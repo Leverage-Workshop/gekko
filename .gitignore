@@ -16,3 +16,6 @@ coverage/
 .trigger/
 *.log
 .DS_Store
+
+# Autonomous orchestration loop (scripts/auto-implement.sh) per-session logs
+logs/auto-run/
