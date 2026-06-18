@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+
+/*
+ * Gekko design tokens — source of truth is DESIGN.md (BMW M motorsport system).
+ * Tailwind v4 is CSS-first: these @theme tokens generate utilities like
+ * bg-canvas, text-ink, border-hairline, text-body, etc.
+ * Display typeface is Inter (the DESIGN.md source site's font), loaded via
+ * next/font in app/layout.tsx and exposed as --font-inter; --font-display
+ * resolves to it with a sans-serif fallback.
+ */
+@theme {
+  /* Canvas & surfaces */
+  --color-canvas: #000000;
+  --color-surface-soft: #0d0d0d;
+  --color-surface-card: #1a1a1a;
+  --color-surface-elevated: #262626;
+
+  /* Ink & text */
+  --color-ink: #ffffff;
+  --color-body: #bbbbbb;
+  --color-body-strong: #e6e6e6;
+  --color-muted: #7e7e7e;
+
+  /* Hairlines */
+  --color-hairline: #3c3c3c;
+  --color-hairline-strong: #262626;
+
+  /* M tricolor + brand blues */
+  --color-m-blue-light: #0066b1;
+  --color-m-blue-dark: #1c69d4;
+  --color-m-red: #e22718;
+  --color-bmw-blue: #1c69d4;
+  --color-electric-blue: #0653b6;
+  --color-carbon-gray: #2b2b2b;
+
+  /* Status */
+  --color-warning: #f4b400;
+  --color-success: #0fa336;
+
+  /* Radius */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-full: 9999px;
+
+  /* Typography — Inter, loaded via next/font in app/layout.tsx (--font-inter) */
+  --font-display: var(--font-inter), sans-serif;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+}

@@ -1,0 +1,14 @@
+# Prettier is scoped to application source only. Keep it away from the harness,
+# docs, knowledge base, vendored skills, and generated artifacts — those have
+# their own formatting conventions and must not be reflowed by `npm run format`.
+.agents/
+.claude/
+docs/
+gem-files/
+chart-data/
+public/
+node_modules/
+.next/
+*.md
+*.json
+package-lock.json

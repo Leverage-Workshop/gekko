@@ -3,7 +3,8 @@
 ## Current State
 
 **Last Updated:** 2026-06-18
-**Active Feature:** none yet — start with `feat-001` (Project scaffold & verification baseline)
+**Active Feature:** `feat-001` **DONE** — next up is `feat-002` (profile parser) or any
+no-dependency item (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021 now unblocked).
 
 **Note:** Most recent commit (`c518fc9`) was a housekeeping rename, not feature work — project
 renamed from "Ulysses" to "Gekko" throughout docs/harness/persona; no `feature_list.json` status
@@ -28,14 +29,22 @@ feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-
 - [x] `feature_list.json` populated from the plan: 34 features (feat-001..feat-038 minus removed feat-004/027/032/034), dependency-ordered, validated (no cycles, all deps resolve)
 - [x] Tooling installed: Vercel Claude Code plugin; Trigger.dev MCP server (`trigger`, in `~/.claude.json`); Trigger.dev agent rules (`CLAUDE.md` + `.claude/agents/trigger-dev-task-writer.md`)
 
+- [x] **feat-001 (scaffold & verification baseline)** — Next.js 16.2.9 + React 19.2.4 (App
+  Router, TypeScript, Tailwind v4, **no `src/`**) scaffolded at repo root via `create-next-app`.
+  Scripts: `typecheck` (`tsc --noEmit`), `lint` (`eslint`), `test` (`vitest run`), `build`
+  (`next build`), plus Prettier (`eslint-config-prettier` in the flat config). Tailwind `@theme`
+  in `app/globals.css` seeded with DESIGN.md color/radius/font tokens; minimal placeholder page
+  renders the near-black canvas. `./init.sh` green from a clean checkout (typecheck/lint/test/build);
+  prod server renders the GEKKO page.
+
 ### What's In Progress
 
-- [ ] Nothing in progress — implementation has not started (this round was planning + harness setup only)
+- [ ] Nothing in progress.
 
 ### What's Next
 
-1. Pick up **feat-001**: scaffold Next.js (App Router) + TypeScript + ESLint/Prettier + Vitest; add `package.json` scripts (typecheck, lint, test, build); make `./init.sh` run green.
-2. Then **feat-002** (profile parser + tests) and the no-dependency Phase-0 item (feat-003, chart-image auto-export PoC).
+1. Pick up **feat-002** (profile parser + tests) — first dependent feature, or any no-dependency
+   item now unblocked by feat-001 (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021).
 
 ## Blockers / Risks
 
@@ -46,6 +55,15 @@ feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-
 
 - **Harness file = `CLAUDE.md`** (single source of routing for Claude Code). Trigger.dev rules moved out to `docs/trigger-dev-rules.md`. `AGENTS.md` removed to avoid duplication.
 - **`.claude/settings.local.json` is gitignored** (machine/session-local); the `harness-creator` skill and `skills-lock.json` are committed so the harness is reproducible.
+- **Repo layout has no `src/`** (feat-001): `app/` and (future) `lib/`, `knowledge/` live at the
+  repo root to match the architecture plan's paths (`/lib/engine/...`).
+- **Prettier is scoped to app code only** (feat-001): `format` runs on `{app,lib,tests}` and a
+  `.prettierignore` excludes docs/knowledge/skills/JSON/Markdown. (A naive `prettier --write .`
+  reflows the entire harness — docs, DESIGN.md, feature_list.json — which is out of scope.)
+- **Display font is Inter** (feat-001): the DESIGN.md source site uses Inter (not the proprietary
+  BMW Type Next), so it's loaded via `next/font/google` in `app/layout.tsx` as `--font-inter`;
+  the Tailwind `--font-display` token resolves to it with a `sans-serif` fallback. Per the
+  `vercel:nextjs` skill, fonts go through `next/font`, never `<link>`/`@import`.
 
 ## Files Modified This Session
 

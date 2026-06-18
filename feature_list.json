@@ -5,8 +5,8 @@
       "name": "Project scaffold & verification baseline",
       "description": "Next.js (App Router) + TypeScript project with ESLint/Prettier + Vitest; package.json scripts (typecheck, lint, test, build); ./init.sh runs green from a clean checkout.",
       "dependencies": [],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "Scaffolded Next.js 16.2.9 + React 19.2.4 (App Router, TS, Tailwind v4, no src/) at repo root via create-next-app. Added scripts typecheck (tsc --noEmit), lint (eslint), test (vitest run), build (next build) + Prettier (eslint-config-prettier, scoped .prettierignore). Tailwind @theme in app/globals.css seeded with DESIGN.md color/radius/font tokens; placeholder page renders the canvas. ./init.sh green from clean checkout: typecheck=0, lint=0, vitest 1/1 pass, next build OK; prod server renders GEKKO page."
     },
     {
       "id": "feat-002",
