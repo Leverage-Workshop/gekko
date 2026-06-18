@@ -4,7 +4,8 @@ Harness for building **Gekko** — an advisory-only autonomous agent that turns 
 NQ-futures Gemini "Gem" into a scheduled + proximity-triggered briefing system (Next.js on
 Vercel, trigger.dev workflows, Supabase, Vercel AI SDK → OpenRouter). The full architecture
 and rationale live in `docs/agent-architecture-plan.md`; the work breakdown lives in
-`feature_list.json`.
+`feature_list.json`. For any UI work, `DESIGN.md` is the visual source of truth (color
+tokens, typography, and design language).
 
 ## Startup Workflow
 
@@ -27,6 +28,9 @@ If baseline verification is failing, repair that first before adding new scope.
 - **Update artifacts**: Before ending session, update `progress.md` and `feature_list.json`
 - **Stay in scope**: Don't modify files unrelated to the current feature
 - **Leave clean state**: Next session must be able to run `./init.sh` immediately
+- **UI follows `DESIGN.md`**: Before building or changing any UI (components, pages,
+  styles, Tailwind theme), read `DESIGN.md` and use its color tokens, typography scale,
+  and design language. Don't introduce ad-hoc colors, fonts, or spacing that conflict with it.
 
 ## Required Artifacts
 
@@ -34,6 +38,7 @@ If baseline verification is failing, repair that first before adding new scope.
 - `feature_list.json` — Feature state tracker (source of truth)
 - `progress.md` — Session continuity log
 - `init.sh` — Standard startup and verification path
+- `DESIGN.md` — Visual design system (source of truth for all UI work)
 - `session-handoff.md` — Optional, for larger sessions
 
 ## Definition of Done
