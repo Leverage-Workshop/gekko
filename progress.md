@@ -9,6 +9,15 @@
 renamed from "Ulysses" to "Gekko" throughout docs/harness/persona; no `feature_list.json` status
 changed as a result.
 
+**Scope change (2026-06-18):** Triggering switched from automatic to **on-demand UI buttons**.
+The cron `scheduled-briefing` became a "Run Briefing" button (feat-012); the live-price
+proximity pipeline became a "Check Entry" button running the `instructions.md` eval logic
+(feat-028, repurposed). Current price now comes from the latest bundle (Sierra exports ~every
+30s), so the ACSIL price heartbeat / `/api/price` / `latest_price` are gone. Removed feat-004,
+feat-027, feat-032, feat-034; added an `eval_results` table + `EvalResult` Zod schema; updated
+feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-plan.md` and
+`feature_list.json` updated. Feature count: 38 → 34. (Planning/spec only — no app code yet.)
+
 ## Status
 
 ### What's Done
@@ -16,7 +25,7 @@ changed as a result.
 - [x] Architecture plan written: `docs/agent-architecture-plan.md`
 - [x] Sample profile exports confirmed and parsing spec locked: `chart-data/vbp_export.md`, `chart-data/delta_vbp_export.md`
 - [x] Agent harness created (`harness-creator` skill): `CLAUDE.md`, `feature_list.json`, `progress.md`, `session-handoff.md`, `init.sh` — validator reports 100/100
-- [x] `feature_list.json` populated from the plan: 38 features (feat-001..feat-038), dependency-ordered, validated (no cycles, all deps resolve)
+- [x] `feature_list.json` populated from the plan: 34 features (feat-001..feat-038 minus removed feat-004/027/032/034), dependency-ordered, validated (no cycles, all deps resolve)
 - [x] Tooling installed: Vercel Claude Code plugin; Trigger.dev MCP server (`trigger`, in `~/.claude.json`); Trigger.dev agent rules (`CLAUDE.md` + `.claude/agents/trigger-dev-task-writer.md`)
 
 ### What's In Progress
@@ -26,7 +35,7 @@ changed as a result.
 ### What's Next
 
 1. Pick up **feat-001**: scaffold Next.js (App Router) + TypeScript + ESLint/Prettier + Vitest; add `package.json` scripts (typecheck, lint, test, build); make `./init.sh` run green.
-2. Then **feat-002** (profile parser + tests) and the no-dependency Phase-0 items (feat-003, feat-004).
+2. Then **feat-002** (profile parser + tests) and the no-dependency Phase-0 item (feat-003, chart-image auto-export PoC).
 
 ## Blockers / Risks
 

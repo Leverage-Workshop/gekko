@@ -27,19 +27,9 @@
       "evidence": ""
     },
     {
-      "id": "feat-004",
-      "name": "ACSIL price heartbeat PoC",
-      "description": "Prove ACSIL sc.MakeHTTPPOSTRequest can POST {price,ts} to a public stub /api/price and get 200. Throwaway endpoint acceptable.",
-      "dependencies": [
-        "feat-001"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
       "id": "feat-005",
       "name": "Supabase schema, migrations & storage",
-      "description": "Supabase project; migrations for config, raw_bundles, briefings, entry_levels, latest_price; Storage buckets for PNGs/CSVs. Seed a config row (interval_min=10, proximity_pts=10, model_id, rr_min=3.0).",
+      "description": "Supabase project; migrations for config, raw_bundles, briefings, entry_levels, eval_results; Storage buckets for PNGs/CSVs. Seed a config row (model_id, triage_model_id='anthropic/claude-haiku-4-5', rr_min=3.0). eval_results(id, bundle_id fk, created_at, model_id, near_entry bool, status text [ENTER|WAIT|NOT_VALID|NO_ENTRY_NEAR], evaluated_level_id fk null, direction text null, trigger text null, stop numeric null, targets numeric[] null, reason text, raw_model_json jsonb, current_price numeric). No latest_price table (current price comes from the latest bundle).",
       "dependencies": [
         "feat-001"
       ],
@@ -48,8 +38,8 @@
     },
     {
       "id": "feat-006",
-      "name": "Briefing output contract (Zod)",
-      "description": "knowledge/schema/briefing.schema.ts: Zod Briefing + Objective per the Output contract (meta, overview, terrain.zones/levels, primary/secondary, dangerZones). Single source of truth for analyze-task output.",
+      "name": "Briefing + EvalResult output contracts (Zod)",
+      "description": "knowledge/schema/briefing.schema.ts: Zod Briefing + Objective per the Output contract (meta, overview, terrain.zones/levels, primary/secondary, dangerZones) as the source of truth for analyze-task output. Also EvalResult { meta:{createdAt,currentPrice,nearEntry,zone?}, status:'ENTER'|'WAIT'|'NOT_VALID'|'NO_ENTRY_NEAR', evaluatedLevel?:{label,price,direction}, direction?, trigger?, stop?, targets?, reason } for the eval-task output.",
       "dependencies": [
         "feat-001"
       ],
@@ -111,11 +101,11 @@
     },
     {
       "id": "feat-012",
-      "name": "scheduled-briefing cron",
-      "description": "trigger.dev schedule (default */10) -> analyze-task. Driven by config.interval_min (imperative schedule if runtime-configurable).",
+      "name": "Manual briefing trigger (button + route)",
+      "description": "On-demand full briefing: a 'Run Briefing' button in the Next.js UI calls POST /api/briefings/run, which does tasks.trigger('analyze-task', { triggerReason: 'manual' }). No cron / schedules.task / interval_min.",
       "dependencies": [
-        "feat-010",
-        "feat-011"
+        "feat-011",
+        "feat-013"
       ],
       "status": "not-started",
       "evidence": ""
@@ -123,7 +113,7 @@
     {
       "id": "feat-013",
       "name": "Bare briefing render page",
-      "description": "Next.js page that fetches the latest briefing and renders primary/secondary objectives + danger zones from the JSON (no terrain map yet). Parity check vs the existing sample briefing.",
+      "description": "Next.js page that fetches the latest briefing and renders primary/secondary objectives + danger zones from the JSON (no terrain map yet); hosts the 'Run Briefing' and 'Check Entry at Current Price' trigger buttons. Parity check vs the existing sample briefing.",
       "dependencies": [
         "feat-011"
       ],
@@ -242,7 +232,7 @@
     {
       "id": "feat-024",
       "name": "Prompt caching",
-      "description": "Assemble static doctrine into a cached prefix via the AI SDK Anthropic provider cache_control/providerOptions (through OpenRouter); volatile data after the prefix. Cache TTL chosen from config.interval_min. Assert usage.cache_read_input_tokens > 0 on repeat runs.",
+      "description": "Assemble static doctrine into a cached prefix via the AI SDK Anthropic provider cache_control/providerOptions (through OpenRouter); volatile data after the prefix. Use the default 5-min cache TTL (runs are on-demand, no fixed interval). Assert usage.cache_read_input_tokens > 0 on repeat runs.",
       "dependencies": [
         "feat-022",
         "feat-023"
@@ -264,7 +254,7 @@
     {
       "id": "feat-026",
       "name": "Terrain/zone-map UI",
-      "description": "Render terrain.zones[] as a real SVG/canvas zone map plus a levels overlay; full briefing render (overview, objectives, danger zones, key inflections).",
+      "description": "Render terrain.zones[] as a real SVG/canvas zone map plus a levels overlay; full briefing render (overview, objectives, danger zones, key inflections); render the latest EvalResult (status + direction/trigger/stop/targets/reason).",
       "dependencies": [
         "feat-013",
         "feat-020",
@@ -274,23 +264,15 @@
       "evidence": ""
     },
     {
-      "id": "feat-027",
-      "name": "/api/price + proximity check",
-      "description": "Update latest_price; inline proximity comparison vs active entry_levels (|price-level| <= config.proximity_pts). No LLM call here.",
-      "dependencies": [
-        "feat-005",
-        "feat-011"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
       "id": "feat-028",
-      "name": "proximity trigger.dev task",
-      "description": "Fired from /api/price; tasks.trigger('analyze-task') with idempotency + debounce keys per level_id (one analysis per level per 3-5 min) so oscillation can't fan out.",
+      "name": "Eval task + 'Check Entry' button",
+      "description": "On-demand entry check: a 'Check Entry at Current Price' button calls POST /api/eval/run, which does tasks.trigger('eval-task'). eval-task loads the latest bundle (current price = raw_bundles.current_price) + active entry_levels, calls the AI SDK generateObject with the EvalResult schema using the triage model (config.triage_model_id, default anthropic/claude-haiku-4-5) with chart images + delta telemetry, implements the instructions.md eval logic (ENTER/WAIT/NOT_VALID per long/short conditions, else NO_ENTRY_NEAR), persists an eval_results row, triggers notify.",
       "dependencies": [
+        "feat-006",
         "feat-010",
-        "feat-027"
+        "feat-011",
+        "feat-013",
+        "feat-029"
       ],
       "status": "not-started",
       "evidence": ""
@@ -298,7 +280,7 @@
     {
       "id": "feat-029",
       "name": "entry_levels lifecycle",
-      "description": "On each new briefing, set prior entry_levels.active=false and insert the new set; proximity scans active=true only.",
+      "description": "On each new briefing, set prior entry_levels.active=false and insert the new set; the eval-task evaluates active=true levels only.",
       "dependencies": [
         "feat-005",
         "feat-011"
@@ -309,7 +291,7 @@
     {
       "id": "feat-030",
       "name": "Web notifications",
-      "description": "Notification API + Service Worker driven by Supabase Realtime on briefings/entry_levels; fires on new briefing while the tab is open/backgrounded.",
+      "description": "Notification API + Service Worker driven by Supabase Realtime on briefings/eval_results; fires on a new briefing or a new eval result while the tab is open/backgrounded.",
       "dependencies": [
         "feat-011"
       ],
@@ -319,7 +301,7 @@
     {
       "id": "feat-031",
       "name": "Config UI",
-      "description": "Settings page to edit config (interval_min, proximity_pts, model_id, rr_min) with validation; writes the config row.",
+      "description": "Settings page to edit config (model_id, triage_model_id, rr_min) with validation; writes the config row.",
       "dependencies": [
         "feat-005",
         "feat-013"
@@ -328,34 +310,11 @@
       "evidence": ""
     },
     {
-      "id": "feat-032",
-      "name": "ACSIL price heartbeat (production)",
-      "description": "Real ACSIL study POSTing the price heartbeat to /api/price every 1-2s; fire-and-forget, dropped beats harmless.",
-      "dependencies": [
-        "feat-004",
-        "feat-027"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
       "id": "feat-033",
       "name": "Staleness detection",
-      "description": "scheduled-briefing skips + emits a staleness alert when the latest bundle is older than interval+margin; UI marks briefings stale; never serve stale as fresh.",
+      "description": "At button-press time (briefing or eval), check bundle freshness: if the latest bundle is older than a margin, surface a staleness warning and mark the result stale; UI marks briefings/eval results stale; never serve stale as fresh.",
       "dependencies": [
-        "feat-008",
-        "feat-012"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-034",
-      "name": "Haiku triage gate",
-      "description": "Cheap anthropic/claude-haiku-4-5 'is this entry still valid' pre-check to suppress no-op proximity analyses before a full Sonnet briefing.",
-      "dependencies": [
-        "feat-023",
-        "feat-028"
+        "feat-008"
       ],
       "status": "not-started",
       "evidence": ""
