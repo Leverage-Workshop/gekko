@@ -1,6 +1,3 @@
-# Local agent/session state (machine-specific)
-.claude/settings.local.json
-
 # Node / Next.js (for the app scaffolded in feat-001)
 node_modules/
 .next/
