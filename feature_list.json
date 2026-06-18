@@ -1,42 +1,406 @@
 {
   "features": [
-    { "id": "feat-001", "name": "Project scaffold & verification baseline", "description": "Next.js (App Router) + TypeScript project with ESLint/Prettier + Vitest; package.json scripts (typecheck, lint, test, build); ./init.sh runs green from a clean checkout.", "dependencies": [], "status": "not-started", "evidence": "" },
-    { "id": "feat-002", "name": "Profile export parser + tests", "description": "lib/engine/parseProfile.ts: parse the Markdown VbP/Delta exports (Metadata tickSize/binSize, Summary POC/VAH/VAL, fenced csv, descending prices; distinguish files by 2nd column Volume vs Delta), join on Price into {price,volume,delta}. Unit tests assert against chart-data/vbp_export.md and chart-data/delta_vbp_export.md.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-003", "name": "Sierra Chart chart-image auto-export PoC", "description": "Prove Sierra Chart auto-dumps clean, consistently-cropped HTF/TPO/exec PNGs on a timer to C:\\ulysses\\export\\. Document the study/config and capture sample outputs.", "dependencies": [], "status": "not-started", "evidence": "" },
-    { "id": "feat-004", "name": "ACSIL price heartbeat PoC", "description": "Prove ACSIL sc.MakeHTTPPOSTRequest can POST {price,ts} to a public stub /api/price and get 200. Throwaway endpoint acceptable.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-005", "name": "Supabase schema, migrations & storage", "description": "Supabase project; migrations for config, raw_bundles, briefings, entry_levels, latest_price; Storage buckets for PNGs/CSVs. Seed a config row (interval_min=10, proximity_pts=10, model_id, rr_min=3.0).", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-006", "name": "Briefing output contract (Zod)", "description": "knowledge/schema/briefing.schema.ts: Zod Briefing + Objective per the Output contract (meta, overview, terrain.zones/levels, primary/secondary, dangerZones). Single source of truth for analyze-task output.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-007", "name": "AI SDK + OpenRouter provider wiring", "description": "Vercel AI SDK configured with OpenRouter as the gateway; model id read from config (anthropic/claude-sonnet-4-6 default). Thin wrapper exposing generateObject with image parts. Assert response.model matches the configured model.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-008", "name": "/api/ingest endpoint", "description": "Multipart ingest: store PNGs/CSVs to Storage, mgi JSON to jsonb, write raw_bundles row, enqueue analyze-task. Bearer-auth the route.", "dependencies": ["feat-005"], "status": "not-started", "evidence": "" },
-    { "id": "feat-009", "name": "Local uploader (chokidar)", "description": "Node watcher on the Windows export folder: debounce file writes, bundle the set, POST multipart to /api/ingest with bearer auth + retry/backoff. ~100 lines isolating all fragile local concerns.", "dependencies": ["feat-008"], "status": "not-started", "evidence": "" },
-    { "id": "feat-010", "name": "trigger.dev project setup", "description": "Install/configure trigger.dev in the repo (project ref, env, deploy); a hello task runs locally and on deploy. Use the trigger.dev MCP/skills for the current API.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-011", "name": "analyze-task v1 (no engine)", "description": "trigger.dev task: load bundle -> AI SDK generateObject via OpenRouter (images + raw mgi/csv, Briefing schema) -> Zod validate -> persist briefing + entry_levels. Retries; logs model/cost to run metadata.", "dependencies": ["feat-006", "feat-007", "feat-008", "feat-010"], "status": "not-started", "evidence": "" },
-    { "id": "feat-012", "name": "scheduled-briefing cron", "description": "trigger.dev schedule (default */10) -> analyze-task. Driven by config.interval_min (imperative schedule if runtime-configurable).", "dependencies": ["feat-010", "feat-011"], "status": "not-started", "evidence": "" },
-    { "id": "feat-013", "name": "Bare briefing render page", "description": "Next.js page that fetches the latest briefing and renders primary/secondary objectives + danger zones from the JSON (no terrain map yet). Parity check vs the existing sample briefing.", "dependencies": ["feat-011"], "status": "not-started", "evidence": "" },
-    { "id": "feat-014", "name": "Vercel deployment", "description": "Deploy Next.js to Vercel; wire env/secrets (Supabase, OpenRouter, trigger.dev, ingest bearer). Use the Vercel plugin for current config. End-to-end: drop bundle -> briefing row -> page renders.", "dependencies": ["feat-011", "feat-013"], "status": "not-started", "evidence": "" },
-    { "id": "feat-015", "name": "deltaTelemetry.ts", "description": "Reduce the ~250-row exec CSV to a compact summary (recent delta trend, sign, +/-3/+/-4 extremes, Leg-VWAP-relative position) for the prompt.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-016", "name": "mgiPriority.ts", "description": "MGI Tier 1/2/3 hierarchy + daily priority sort; compute nearest Tier-1 border above/below current price.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-017", "name": "ripStatus.ts", "description": "Vanguard Protocol Green/Yellow/Red from price-vs-Rip + DeltaIntensity.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-018", "name": "lvnDetection.ts", "description": "HVN peaks + low-volume-node valleys from the VbP volume series (local-minima/gradient detection, neighborhood-thresholded). Validated against a hand-labeled chart.", "dependencies": ["feat-002"], "status": "not-started", "evidence": "" },
-    { "id": "feat-019", "name": "magnetCheck.ts", "description": "Trench/Wall/Magnet detection: magnets = POC/VAH/VAL (from Summary) + HVN peaks; magnet proximity = |price - magnet|; cross-reference MGI levels.", "dependencies": ["feat-002"], "status": "not-started", "evidence": "" },
-    { "id": "feat-020", "name": "terrainZones.ts", "description": "Contiguous Stratosphere->Abyss zone stack with the No-Gap invariant (Price[N]===Price2[N+1]); classify regions by volume (acceptance/HVN vs rejection/LVN) cross-referenced with delta sign (absorption vs initiative). Engine assembles + validates borders.", "dependencies": ["feat-002", "feat-018"], "status": "not-started", "evidence": "" },
-    { "id": "feat-021", "name": "riskReward.ts", "description": "Direction-aware 3:1 R/R gate; enforce 'stops never widen' vs the prior briefing. Produces rr for each Objective.", "dependencies": ["feat-001"], "status": "not-started", "evidence": "" },
-    { "id": "feat-022", "name": "Knowledge restructure", "description": "Dedupe instructions.md + tactical-companion-playbook.md into /knowledge: system (persona, constraints, output-schema), doctrine (patterns, chart-reading, glossary), schema (briefing.schema.ts). Computable doctrine removed from prose.", "dependencies": ["feat-006"], "status": "not-started", "evidence": "" },
-    { "id": "feat-023", "name": "Engine integration into analyze-task", "description": "Wire deltaTelemetry/mgiPriority/ripStatus/lvnDetection/magnetCheck/terrainZones/riskReward into analyze-task; inject engine facts and shrink the prompt; model supplies perception/judgment only.", "dependencies": ["feat-011", "feat-015", "feat-016", "feat-017", "feat-018", "feat-019", "feat-020", "feat-021"], "status": "not-started", "evidence": "" },
-    { "id": "feat-024", "name": "Prompt caching", "description": "Assemble static doctrine into a cached prefix via the AI SDK Anthropic provider cache_control/providerOptions (through OpenRouter); volatile data after the prefix. Cache TTL chosen from config.interval_min. Assert usage.cache_read_input_tokens > 0 on repeat runs.", "dependencies": ["feat-022", "feat-023"], "status": "not-started", "evidence": "" },
-    { "id": "feat-025", "name": "Hybrid LVN flow", "description": "Engine proposes LVN/border candidates from data -> model confirms/adjusts against the chart image -> engine re-validates final borders.", "dependencies": ["feat-020", "feat-023"], "status": "not-started", "evidence": "" },
-    { "id": "feat-026", "name": "Terrain/zone-map UI", "description": "Render terrain.zones[] as a real SVG/canvas zone map plus a levels overlay; full briefing render (overview, objectives, danger zones, key inflections).", "dependencies": ["feat-013", "feat-020", "feat-023"], "status": "not-started", "evidence": "" },
-    { "id": "feat-027", "name": "/api/price + proximity check", "description": "Update latest_price; inline proximity comparison vs active entry_levels (|price-level| <= config.proximity_pts). No LLM call here.", "dependencies": ["feat-005", "feat-011"], "status": "not-started", "evidence": "" },
-    { "id": "feat-028", "name": "proximity trigger.dev task", "description": "Fired from /api/price; tasks.trigger('analyze-task') with idempotency + debounce keys per level_id (one analysis per level per 3-5 min) so oscillation can't fan out.", "dependencies": ["feat-010", "feat-027"], "status": "not-started", "evidence": "" },
-    { "id": "feat-029", "name": "entry_levels lifecycle", "description": "On each new briefing, set prior entry_levels.active=false and insert the new set; proximity scans active=true only.", "dependencies": ["feat-005", "feat-011"], "status": "not-started", "evidence": "" },
-    { "id": "feat-030", "name": "Web notifications", "description": "Notification API + Service Worker driven by Supabase Realtime on briefings/entry_levels; fires on new briefing while the tab is open/backgrounded.", "dependencies": ["feat-011"], "status": "not-started", "evidence": "" },
-    { "id": "feat-031", "name": "Config UI", "description": "Settings page to edit config (interval_min, proximity_pts, model_id, rr_min) with validation; writes the config row.", "dependencies": ["feat-005", "feat-013"], "status": "not-started", "evidence": "" },
-    { "id": "feat-032", "name": "ACSIL price heartbeat (production)", "description": "Real ACSIL study POSTing the price heartbeat to /api/price every 1-2s; fire-and-forget, dropped beats harmless.", "dependencies": ["feat-004", "feat-027"], "status": "not-started", "evidence": "" },
-    { "id": "feat-033", "name": "Staleness detection", "description": "scheduled-briefing skips + emits a staleness alert when the latest bundle is older than interval+margin; UI marks briefings stale; never serve stale as fresh.", "dependencies": ["feat-008", "feat-012"], "status": "not-started", "evidence": "" },
-    { "id": "feat-034", "name": "Haiku triage gate", "description": "Cheap anthropic/claude-haiku-4-5 'is this entry still valid' pre-check to suppress no-op proximity analyses before a full Sonnet briefing.", "dependencies": ["feat-023", "feat-028"], "status": "not-started", "evidence": "" },
-    { "id": "feat-035", "name": "Web Push (tab-closed)", "description": "VAPID + web-push for alerts when the tab is fully closed; opt-in subscription flow.", "dependencies": ["feat-030"], "status": "not-started", "evidence": "" },
-    { "id": "feat-036", "name": "Cost/latency observability", "description": "Persist model/cost/latency + cache-hit metrics per run; dashboard or log surface; assert prompt-cache hits on repeat runs.", "dependencies": ["feat-023", "feat-024"], "status": "not-started", "evidence": "" },
-    { "id": "feat-037", "name": "Opus high-conviction review flag", "description": "Config flag to route high-conviction reviews to anthropic/claude-opus-4-8 for max fidelity.", "dependencies": ["feat-023"], "status": "not-started", "evidence": "" },
-    { "id": "feat-038", "name": "Doctrine drift guard", "description": "Keep constraints.md guardrails and engine code in sync (engine authoritative); a check/test that flags divergence of non-negotiables.", "dependencies": ["feat-022", "feat-023"], "status": "not-started", "evidence": "" }
+    {
+      "id": "feat-001",
+      "name": "Project scaffold & verification baseline",
+      "description": "Next.js (App Router) + TypeScript project with ESLint/Prettier + Vitest; package.json scripts (typecheck, lint, test, build); ./init.sh runs green from a clean checkout.",
+      "dependencies": [],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-002",
+      "name": "Profile export parser + tests",
+      "description": "lib/engine/parseProfile.ts: parse the Markdown VbP/Delta exports (Metadata tickSize/binSize, Summary POC/VAH/VAL, fenced csv, descending prices; distinguish files by 2nd column Volume vs Delta), join on Price into {price,volume,delta}. Unit tests assert against chart-data/vbp_export.md and chart-data/delta_vbp_export.md.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-003",
+      "name": "Sierra Chart chart-image auto-export PoC",
+      "description": "Prove Sierra Chart auto-dumps clean, consistently-cropped HTF/TPO/exec PNGs on a timer to C:\\ulysses\\export\\. Document the study/config and capture sample outputs.",
+      "dependencies": [],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-004",
+      "name": "ACSIL price heartbeat PoC",
+      "description": "Prove ACSIL sc.MakeHTTPPOSTRequest can POST {price,ts} to a public stub /api/price and get 200. Throwaway endpoint acceptable.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-005",
+      "name": "Supabase schema, migrations & storage",
+      "description": "Supabase project; migrations for config, raw_bundles, briefings, entry_levels, latest_price; Storage buckets for PNGs/CSVs. Seed a config row (interval_min=10, proximity_pts=10, model_id, rr_min=3.0).",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-006",
+      "name": "Briefing output contract (Zod)",
+      "description": "knowledge/schema/briefing.schema.ts: Zod Briefing + Objective per the Output contract (meta, overview, terrain.zones/levels, primary/secondary, dangerZones). Single source of truth for analyze-task output.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-007",
+      "name": "AI SDK + OpenRouter provider wiring",
+      "description": "Vercel AI SDK configured with OpenRouter as the gateway; model id read from config (anthropic/claude-sonnet-4-6 default). Thin wrapper exposing generateObject with image parts. Assert response.model matches the configured model.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-008",
+      "name": "/api/ingest endpoint",
+      "description": "Multipart ingest: store PNGs/CSVs to Storage, mgi JSON to jsonb, write raw_bundles row, enqueue analyze-task. Bearer-auth the route.",
+      "dependencies": [
+        "feat-005"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-009",
+      "name": "Local uploader (chokidar)",
+      "description": "Node watcher on the Windows export folder: debounce file writes, bundle the set, POST multipart to /api/ingest with bearer auth + retry/backoff. ~100 lines isolating all fragile local concerns.",
+      "dependencies": [
+        "feat-008"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-010",
+      "name": "trigger.dev project setup",
+      "description": "Install/configure trigger.dev in the repo (project ref, env, deploy); a hello task runs locally and on deploy. Use the trigger.dev MCP/skills for the current API.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-011",
+      "name": "analyze-task v1 (no engine)",
+      "description": "trigger.dev task: load bundle -> AI SDK generateObject via OpenRouter (images + raw mgi/csv, Briefing schema) -> Zod validate -> persist briefing + entry_levels. Retries; logs model/cost to run metadata.",
+      "dependencies": [
+        "feat-006",
+        "feat-007",
+        "feat-008",
+        "feat-010"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-012",
+      "name": "scheduled-briefing cron",
+      "description": "trigger.dev schedule (default */10) -> analyze-task. Driven by config.interval_min (imperative schedule if runtime-configurable).",
+      "dependencies": [
+        "feat-010",
+        "feat-011"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-013",
+      "name": "Bare briefing render page",
+      "description": "Next.js page that fetches the latest briefing and renders primary/secondary objectives + danger zones from the JSON (no terrain map yet). Parity check vs the existing sample briefing.",
+      "dependencies": [
+        "feat-011"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-014",
+      "name": "Vercel deployment",
+      "description": "Deploy Next.js to Vercel; wire env/secrets (Supabase, OpenRouter, trigger.dev, ingest bearer). Use the Vercel plugin for current config. End-to-end: drop bundle -> briefing row -> page renders.",
+      "dependencies": [
+        "feat-011",
+        "feat-013"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-015",
+      "name": "deltaTelemetry.ts",
+      "description": "Reduce the ~250-row exec CSV to a compact summary (recent delta trend, sign, +/-3/+/-4 extremes, Leg-VWAP-relative position) for the prompt.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-016",
+      "name": "mgiPriority.ts",
+      "description": "MGI Tier 1/2/3 hierarchy + daily priority sort; compute nearest Tier-1 border above/below current price.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-017",
+      "name": "ripStatus.ts",
+      "description": "Vanguard Protocol Green/Yellow/Red from price-vs-Rip + DeltaIntensity.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-018",
+      "name": "lvnDetection.ts",
+      "description": "HVN peaks + low-volume-node valleys from the VbP volume series (local-minima/gradient detection, neighborhood-thresholded). Validated against a hand-labeled chart.",
+      "dependencies": [
+        "feat-002"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-019",
+      "name": "magnetCheck.ts",
+      "description": "Trench/Wall/Magnet detection: magnets = POC/VAH/VAL (from Summary) + HVN peaks; magnet proximity = |price - magnet|; cross-reference MGI levels.",
+      "dependencies": [
+        "feat-002"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-020",
+      "name": "terrainZones.ts",
+      "description": "Contiguous Stratosphere->Abyss zone stack with the No-Gap invariant (Price[N]===Price2[N+1]); classify regions by volume (acceptance/HVN vs rejection/LVN) cross-referenced with delta sign (absorption vs initiative). Engine assembles + validates borders.",
+      "dependencies": [
+        "feat-002",
+        "feat-018"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-021",
+      "name": "riskReward.ts",
+      "description": "Direction-aware 3:1 R/R gate; enforce 'stops never widen' vs the prior briefing. Produces rr for each Objective.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-022",
+      "name": "Knowledge restructure",
+      "description": "Dedupe instructions.md + tactical-companion-playbook.md into /knowledge: system (persona, constraints, output-schema), doctrine (patterns, chart-reading, glossary), schema (briefing.schema.ts). Computable doctrine removed from prose.",
+      "dependencies": [
+        "feat-006"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-023",
+      "name": "Engine integration into analyze-task",
+      "description": "Wire deltaTelemetry/mgiPriority/ripStatus/lvnDetection/magnetCheck/terrainZones/riskReward into analyze-task; inject engine facts and shrink the prompt; model supplies perception/judgment only.",
+      "dependencies": [
+        "feat-011",
+        "feat-015",
+        "feat-016",
+        "feat-017",
+        "feat-018",
+        "feat-019",
+        "feat-020",
+        "feat-021"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-024",
+      "name": "Prompt caching",
+      "description": "Assemble static doctrine into a cached prefix via the AI SDK Anthropic provider cache_control/providerOptions (through OpenRouter); volatile data after the prefix. Cache TTL chosen from config.interval_min. Assert usage.cache_read_input_tokens > 0 on repeat runs.",
+      "dependencies": [
+        "feat-022",
+        "feat-023"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-025",
+      "name": "Hybrid LVN flow",
+      "description": "Engine proposes LVN/border candidates from data -> model confirms/adjusts against the chart image -> engine re-validates final borders.",
+      "dependencies": [
+        "feat-020",
+        "feat-023"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-026",
+      "name": "Terrain/zone-map UI",
+      "description": "Render terrain.zones[] as a real SVG/canvas zone map plus a levels overlay; full briefing render (overview, objectives, danger zones, key inflections).",
+      "dependencies": [
+        "feat-013",
+        "feat-020",
+        "feat-023"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-027",
+      "name": "/api/price + proximity check",
+      "description": "Update latest_price; inline proximity comparison vs active entry_levels (|price-level| <= config.proximity_pts). No LLM call here.",
+      "dependencies": [
+        "feat-005",
+        "feat-011"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-028",
+      "name": "proximity trigger.dev task",
+      "description": "Fired from /api/price; tasks.trigger('analyze-task') with idempotency + debounce keys per level_id (one analysis per level per 3-5 min) so oscillation can't fan out.",
+      "dependencies": [
+        "feat-010",
+        "feat-027"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-029",
+      "name": "entry_levels lifecycle",
+      "description": "On each new briefing, set prior entry_levels.active=false and insert the new set; proximity scans active=true only.",
+      "dependencies": [
+        "feat-005",
+        "feat-011"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-030",
+      "name": "Web notifications",
+      "description": "Notification API + Service Worker driven by Supabase Realtime on briefings/entry_levels; fires on new briefing while the tab is open/backgrounded.",
+      "dependencies": [
+        "feat-011"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-031",
+      "name": "Config UI",
+      "description": "Settings page to edit config (interval_min, proximity_pts, model_id, rr_min) with validation; writes the config row.",
+      "dependencies": [
+        "feat-005",
+        "feat-013"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-032",
+      "name": "ACSIL price heartbeat (production)",
+      "description": "Real ACSIL study POSTing the price heartbeat to /api/price every 1-2s; fire-and-forget, dropped beats harmless.",
+      "dependencies": [
+        "feat-004",
+        "feat-027"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-033",
+      "name": "Staleness detection",
+      "description": "scheduled-briefing skips + emits a staleness alert when the latest bundle is older than interval+margin; UI marks briefings stale; never serve stale as fresh.",
+      "dependencies": [
+        "feat-008",
+        "feat-012"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-034",
+      "name": "Haiku triage gate",
+      "description": "Cheap anthropic/claude-haiku-4-5 'is this entry still valid' pre-check to suppress no-op proximity analyses before a full Sonnet briefing.",
+      "dependencies": [
+        "feat-023",
+        "feat-028"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-035",
+      "name": "Web Push (tab-closed)",
+      "description": "VAPID + web-push for alerts when the tab is fully closed; opt-in subscription flow.",
+      "dependencies": [
+        "feat-030"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-036",
+      "name": "Cost/latency observability",
+      "description": "Persist model/cost/latency + cache-hit metrics per run; dashboard or log surface; assert prompt-cache hits on repeat runs.",
+      "dependencies": [
+        "feat-023",
+        "feat-024"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-037",
+      "name": "Opus high-conviction review flag",
+      "description": "Config flag to route high-conviction reviews to anthropic/claude-opus-4-8 for max fidelity.",
+      "dependencies": [
+        "feat-023"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-038",
+      "name": "Doctrine drift guard",
+      "description": "Keep constraints.md guardrails and engine code in sync (engine authoritative); a check/test that flags divergence of non-negotiables.",
+      "dependencies": [
+        "feat-022",
+        "feat-023"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    }
   ]
 }
