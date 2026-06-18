@@ -4,33 +4,37 @@ Harness for building **Gekko** — an advisory-only autonomous agent that turns 
 NQ-futures Gemini "Gem" into a scheduled + proximity-triggered briefing system (Next.js on
 Vercel, trigger.dev workflows, Supabase, Vercel AI SDK → OpenRouter). The full architecture
 and rationale live in `docs/agent-architecture-plan.md`; the work breakdown lives in
-`feature_list.json`. For any UI work, `DESIGN.md` is the visual source of truth (color
-tokens, typography, and design language).
+`feature_list.json`.
 
 ## Startup Workflow
 
 Before writing code:
 
-1. **Confirm working directory** with `pwd`
-2. **Read this file** completely
-3. **Read the architecture plan**: `docs/agent-architecture-plan.md` (the source of truth for
-   *what* and *why*); skim `README` if present
-4. **Run `./init.sh`** to verify environment is healthy
-5. **Read `feature_list.json`** to see current feature state
-6. **Review recent commits** with `git log --oneline -5`
+1. **Confirm working directory**: `pwd`
+2. **Run `./init.sh`** — stop here if it fails; repair before adding new scope
+3. **Read `feature_list.json`** — identify the one feature to implement (first `not-started`
+   whose deps are all `done`); read its `description` and `dependencies`
+4. **Create a feature branch**: `git checkout -b feat-NNN-<slug>`
+5. **Read only the docs relevant to your chosen feature** — `docs/agent-architecture-plan.md`
+   is a reference; skim the relevant section, not the full file
+6. **Review recent commits**: `git log --oneline -5`
 
 If baseline verification is failing, repair that first before adding new scope.
 
 ## Working Rules
 
 - **One feature at a time**: Pick exactly one unfinished feature from `feature_list.json`
+- **Branch per feature**: Before writing any code, create a feature branch
+  (`git checkout -b feat-NNN-<slug>`). Never commit feature work directly to `main`.
+- **PR to merge**: When `./init.sh` passes on the branch, open a PR against `main` and
+  merge via squash.
 - **Verification required**: Don't claim done without running verification commands
 - **Update artifacts**: Before ending session, update `progress.md` and `feature_list.json`
 - **Stay in scope**: Don't modify files unrelated to the current feature
 - **Leave clean state**: Next session must be able to run `./init.sh` immediately
-- **UI follows `DESIGN.md`**: Before building or changing any UI (components, pages,
-  styles, Tailwind theme), read `DESIGN.md` and use its color tokens, typography scale,
-  and design language. Don't introduce ad-hoc colors, fonts, or spacing that conflict with it.
+- **DESIGN.md is UI-only**: Read `DESIGN.md` only when the feature touches `app/` components,
+  pages, styles, or the Tailwind theme. Engine (`lib/`), API routes, config, and test-only
+  features do not need it.
 
 ## Required Artifacts
 
@@ -57,7 +61,7 @@ Before ending a session:
 1. Update `progress.md` with current state
 2. Update `feature_list.json` with new feature status
 3. Record any unresolved risks or blockers
-4. Commit with descriptive message once work is in safe state
+4. Push branch and open a PR against `main`; merge via squash once `./init.sh` passes
 5. Leave repo clean enough for next session to run `./init.sh` immediately
 
 ## Verification Commands
