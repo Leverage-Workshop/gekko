@@ -11,5 +11,23 @@
   "enabledMcpjsonServers": [
     "trigger",
     "supabase"
-  ]
+  ],
+  "skillOverrides": {
+    "pp-linear-implement": "off",
+    "pp-linear-merge": "off",
+    "pp-linear-plan": "off",
+    "company-research-report": "off",
+    "init-wat": "off",
+    "printing-press": "off",
+    "printing-press-catalog": "off",
+    "printing-press-import": "off",
+    "printing-press-output-review": "off",
+    "printing-press-polish": "off",
+    "printing-press-publish": "off",
+    "printing-press-reprint": "off",
+    "printing-press-retro": "off",
+    "printing-press-score": "off",
+    "test-report": "off",
+    "transcript-summarizer": "off"
+  }
 }
