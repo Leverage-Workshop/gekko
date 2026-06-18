@@ -5,6 +5,10 @@
 **Last Updated:** 2026-06-18
 **Active Feature:** none yet — start with `feat-001` (Project scaffold & verification baseline)
 
+**Note:** Most recent commit (`c518fc9`) was a housekeeping rename, not feature work — project
+renamed from "Ulysses" to "Gekko" throughout docs/harness/persona; no `feature_list.json` status
+changed as a result.
+
 ## Status
 
 ### What's Done
@@ -41,6 +45,20 @@
 - `docs/trigger-dev-rules.md` — Trigger.dev integration rules (moved out of `CLAUDE.md`)
 - `CLAUDE.md`, `.claude/agents/trigger-dev-task-writer.md` — Trigger.dev rules + subagent
 - `.gitignore`, `skills-lock.json`, `.agents/skills/harness-creator/**` — tooling
+
+### Rename session (2026-06-18, commit `c518fc9`)
+
+Renamed all "Ulysses" references to "Gekko" (project now named after Gordon Gekko, not Ulysses
+S. Grant):
+
+- `CLAUDE.md` — harness intro line
+- `docs/agent-architecture-plan.md` — title, intro, `C:\gekko\export\` paths, knowledge-base comment
+- `feature_list.json` — `feat-003` description path (`C:\gekko\export\`)
+- `gem-files/instructions.md` — title, intro persona line, and the `PERSONA` section rewritten
+  from Ulysses S. Grant (military-general tone) to Gordon Gekko (cold, ruthless-conviction
+  trader tone); the underlying military-terrain trading vocabulary (Campaign, Stratosphere/Abyss,
+  infantry aggression, etc.) was deliberately left unchanged — out of scope for this rename
+- `scripts/auto-implement.sh` — header comment
 
 ## Notes for Next Session
 
