@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: BMW M-design-analysis
-description: A motorsport-engineering interface anchored on a near-black canvas with white BMW Type Next Latin display headlines in confident UPPERCASE. The brand carries no decorative voltage — its energy comes from full-bleed automotive photography (cars on tracks, driver-cockpit shots, carbon-fiber detail) and the iconic M tricolor stripe (light blue → dark blue → red) used sparingly as a brand signature on logos, dividers, and motorsport chrome. Type stays light to medium weight to feel European-engineered, never American-bombastic.
+description: A motorsport-engineering interface anchored on a near-black canvas with white Inter display headlines in confident UPPERCASE. The brand carries no decorative voltage — its energy comes from full-bleed automotive photography (cars on tracks, driver-cockpit shots, carbon-fiber detail) and the iconic M tricolor stripe (light blue → dark blue → red) used sparingly as a brand signature on logos, dividers, and motorsport chrome. Type stays light to medium weight to feel European-engineered, never American-bombastic.
 
 colors:
   primary: "#ffffff"
@@ -28,79 +28,79 @@ colors:
 
 typography:
   display-xl:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 80px
     fontWeight: 700
     lineHeight: 1
     letterSpacing: 0
   display-lg:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 56px
     fontWeight: 700
     lineHeight: 1.05
     letterSpacing: 0
   display-md:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 40px
     fontWeight: 700
     lineHeight: 1.1
     letterSpacing: 0
   display-sm:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 32px
     fontWeight: 700
     lineHeight: 1.15
     letterSpacing: 0
   title-lg:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 24px
     fontWeight: 700
     lineHeight: 1.3
     letterSpacing: 0
   title-md:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 20px
     fontWeight: 400
     lineHeight: 1.4
     letterSpacing: 0
   title-sm:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 18px
     fontWeight: 400
     lineHeight: 1.4
     letterSpacing: 0
   label-uppercase:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 14px
     fontWeight: 700
     lineHeight: 1.3
     letterSpacing: 1.5px
   body-md:
-    fontFamily: "BMWTypeNextLatin Light, BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 16px
     fontWeight: 300
     lineHeight: 1.5
     letterSpacing: 0
   body-sm:
-    fontFamily: "BMWTypeNextLatin Light, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 14px
     fontWeight: 300
     lineHeight: 1.5
     letterSpacing: 0
   caption:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 12px
     fontWeight: 400
     lineHeight: 1.4
     letterSpacing: 0.5px
   button:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 14px
     fontWeight: 700
     lineHeight: 1
     letterSpacing: 1.5px
   nav-link:
-    fontFamily: "BMWTypeNextLatin, sans-serif"
+    fontFamily: "Inter, sans-serif"
     fontSize: 14px
     fontWeight: 400
     lineHeight: 1.4
@@ -244,15 +244,15 @@ components:
 
 ## Overview
 
-BMW M's marketing surface is a near-pure black canvas (`{colors.canvas}` — #000) holding white BMW Type Next Latin headlines in **confident UPPERCASE**. The system has no decorative voltage of its own; brand energy comes from **full-bleed automotive photography** — cars cornering at speed, carbon-fiber wheel detail, driver cockpit shots, motorsport pit lanes — placed as edge-to-edge content that fills entire bands. UI chrome around the photography stays minimal: thin sans-serif copy, dividers as 1px hairlines (`{colors.hairline}`), all-caps button labels with no fill until hovered.
+BMW M's marketing surface is a near-pure black canvas (`{colors.canvas}` — #000) holding white Inter headlines in **confident UPPERCASE**. The system has no decorative voltage of its own; brand energy comes from **full-bleed automotive photography** — cars cornering at speed, carbon-fiber wheel detail, driver cockpit shots, motorsport pit lanes — placed as edge-to-edge content that fills entire bands. UI chrome around the photography stays minimal: thin sans-serif copy, dividers as 1px hairlines (`{colors.hairline}`), all-caps button labels with no fill until hovered.
 
 The **M tricolor stripe** — `{colors.m-blue-light}` (#0066b1) → `{colors.m-blue-dark}` (#1c69d4) → `{colors.m-red}` (#e22718) — appears sparingly as the brand's signature accent, used on the M wordmark, motorsport chrome, vehicle-tech callouts, and model badges. It is never a CTA color and never used as a background fill — the tricolor is exclusively a brand-identity marker.
 
-Type voice runs **BMW Type Next Latin** in two cuts: regular for display + nav labels and Light for body + secondary copy. Display sizes use weight 700 (BMW's signature heavy-but-tight setting), while body type drops to weight 300 (Light). The contrast between heavy display and light body is the system's editorial signature.
+Type voice runs **Inter** (variable) in two weights: 700 for display + nav labels and 300 (Light) for body + secondary copy. Display sizes use weight 700 (the heavy-but-tight setting that stands in for BMW's signature display cut), while body type drops to weight 300 (Light). The contrast between heavy display and light body is the system's editorial signature.
 
 **Key Characteristics:**
 - Near-pure black canvas (`{colors.canvas}` — #000) with white type. The system inverts almost nothing — there is no light-mode marketing surface.
-- Display headlines in UPPERCASE BMW Type Next Latin at weight 700. Sub-heads stay sentence-case at lighter weight.
+- Display headlines in UPPERCASE Inter at weight 700. Sub-heads stay sentence-case at lighter weight.
 - M tricolor (`{colors.m-blue-light}` / `{colors.m-blue-dark}` / `{colors.m-red}`) used as 4px brand-stripe dividers, M-wordmark accents, and motorsport chrome — never as buttons or fills.
 - Photography fills entire bands edge-to-edge. Cars are always the visual subject; UI chrome backs off to small white labels overlaid on photography.
 - Buttons are flat with `{rounded.none}` (0px) corners and uppercase letterspaced labels. The "industrial precision" rectangular silhouette IS the brand.
@@ -292,13 +292,13 @@ Type voice runs **BMW Type Next Latin** in two cuts: regular for display + nav l
 ## Typography
 
 ### Font Family
-**BMW Type Next Latin** is BMW's licensed display + body typeface. The system uses two cuts: regular and Light. The fallback stack walks `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`.
+**Inter** (variable) is the shipping typeface — it stands in for BMW's licensed **BMW Type Next Latin**, which inspired this system but isn't available. Inter is loaded via `next/font` and exposed as the `--font-display` token; the fallback stack walks `sans-serif`.
 
 The split is a deliberate weight-pair:
 - Display (700) for headlines, navigation labels, button text, and category labels — the "stamped" voice
 - Light (300) for body paragraphs, descriptive copy, and secondary metadata — the "engineered" voice
 
-The contrast between heavy display and light body is BMW's editorial signature — never blur it by using regular (400) display or medium (500) body.
+The contrast between heavy display and light body is the editorial signature — never blur it by using regular (400) display or medium (500) body.
 
 ### Hierarchy
 
@@ -312,19 +312,19 @@ The contrast between heavy display and light body is BMW's editorial signature �
 | `{typography.title-md}` | 20px | 400 | 1.4 | 0 | Card sub-titles, lead paragraphs |
 | `{typography.title-sm}` | 18px | 400 | 1.4 | 0 | Spec callouts, intro paragraphs |
 | `{typography.label-uppercase}` | 14px | 700 | 1.3 | 1.5px | Category tabs, "VIEW MORE" inline labels |
-| `{typography.body-md}` | 16px | 300 (Light) | 1.5 | 0 | Default body — BMW Type Next Latin Light |
+| `{typography.body-md}` | 16px | 300 (Light) | 1.5 | 0 | Default body — Inter Light (300) |
 | `{typography.body-sm}` | 14px | 300 (Light) | 1.5 | 0 | Footer body, cookie consent, fine print |
 | `{typography.caption}` | 12px | 400 | 1.4 | 0.5px | Photo captions, image-credit lines |
 | `{typography.button}` | 14px | 700 | 1.0 | 1.5px | All button labels — uppercase, letterspaced |
 | `{typography.nav-link}` | 14px | 400 | 1.4 | 0.5px | Top-nav menu items |
 
 ### Principles
-The system contrasts heavy headlines (700) against very light body (300) at all times — the gap is the editorial signature. Letter-spacing is non-trivial: button labels and category labels carry 1.5px tracking that makes them feel "machined" rather than "typed." Display headlines stay at 0 letter-spacing — BMW Type's natural cap-height handles spacing on large sizes.
+The system contrasts heavy headlines (700) against very light body (300) at all times — the gap is the editorial signature. Letter-spacing is non-trivial: button labels and category labels carry 1.5px tracking that makes them feel "machined" rather than "typed." Display headlines stay at 0 letter-spacing (tighten to -0.5px at the largest sizes to match BMW Type's spacing — see the substitution note below).
 
 UPPERCASE display is the default voice for h1/h2 — sentence case appears on body and intro paragraphs but rarely on headlines. The all-caps treatment is a brand-voice signal, not a stylistic choice.
 
-### Note on Font Substitutes
-If BMW Type Next Latin is unavailable, **Inter** (variable) at 700/300 is the closest open-source substitute. Adjust display headline tracking to -0.5px to match BMW Type's tighter spacing at large sizes. **Saira Condensed** is an alternative for headlines if a slightly more compressed feel is desired.
+### Note on the Typeface
+**Inter** (variable) at 700/300 is the shipping font, chosen as the closest open-source stand-in for BMW's licensed **BMW Type Next Latin** (the original brand reference). Display headline tracking is nudged to -0.5px at large sizes to match BMW Type's tighter spacing. If the licensed BMW face is ever available, swap it in at the same 700/300 weights. **Saira Condensed** is an alternative for headlines if a slightly more compressed feel is desired.
 
 ## Layout
 
@@ -496,7 +496,7 @@ Hero photography fills full-width with no rounding. Photo cards inside grids ret
 
 - The dembrandt frequency analyzer captured the white text (count 955) as the highest-frequency token. The black canvas was inferred from screenshot — dembrandt's body-background sampling didn't surface it as a top palette entry, but the page is unambiguously black-on-white-text.
 - The exact M tricolor stops are documented from public BMW brand guidelines; the screenshots show the stripe as a small element but pixel-sampling at this resolution doesn't reliably distinguish #0066b1 from #1c69d4. Treat the documented stops as canonical based on BMW Design Works' published brand spec.
-- BMW Type Next Latin weight axis values beyond Light (300) and regular (700) are not documented — only the static weights observed in screenshots.
+- Only two weights (Light 300 and regular 700) were observed in the BMW reference screenshots; Inter (the shipping font) is variable and covers the full axis, but the system intentionally uses just 300/700 to preserve the heavy/light editorial contrast.
 - Animation and transition timings (photo carousel transitions, hover-reveal effects, configurator interactions) are not in scope.
 - Form validation states beyond `{component.text-input}` defaults are not extracted — error / success input variants would need a configurator or order flow to confirm.
 - The configurator surface (vehicle build pages with color / wheel / interior pickers) was not in the analyzed URL set; its swatch grid, comparison panels, and price-summary card are not documented here.
