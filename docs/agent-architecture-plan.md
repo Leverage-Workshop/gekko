@@ -1,8 +1,8 @@
-# Plan: Turn the "Ulysses" NQ-Futures Gem into an Autonomous Agent
+# Plan: Turn the "Gekko" NQ-Futures Gem into an Autonomous Agent
 
 ## Context
 
-Today, "Ulysses" is a Google Gem (Gemini Pro 3.1) that analyzes NQ futures. The trader
+Today, "Gekko" is a Google Gem (Gemini Pro 3.1) that analyzes NQ futures. The trader
 manually uploads, every time he wants an update: 3 chart screenshots (HTF 30-min, TPO,
 execution/footprint), `mgi_static_levels.json`, and `execution_bar_data.rolling.csv`,
 and the Gem returns a "Morning Briefing" as markdown. All inputs are produced by the
@@ -48,9 +48,9 @@ on the Windows box bridges Sierra Chart to the cloud.
 
 ```
 [Sierra Chart / Windows]
-  ├─ ACSIL export studies ──▶ C:\ulysses\export\  (mgi.json, exec.csv,
+  ├─ ACSIL export studies ──▶ C:\gekko\export\  (mgi.json, exec.csv,
   │                                               vbp_export.md, delta_vbp_export.md)
-  ├─ Chart image auto-dump ──▶ C:\ulysses\export\  (htf.png, tpo.png, exec.png)
+  ├─ Chart image auto-dump ──▶ C:\gekko\export\  (htf.png, tpo.png, exec.png)
   └─ ACSIL price heartbeat ──HTTP POST /api/price──┐ (price+ts only, every 1–2s)
                                                    │
 [Local uploader (Node + chokidar)]                │
@@ -149,7 +149,7 @@ Asymmetric Initiative, Leg-VWAP rule, output formats). New layout:
 ```
 /knowledge
   /system
-    persona.md         # Ulysses persona, tone, ADHD UX rules (≤2 highlights, one action)
+    persona.md         # Gekko persona, tone, ADHD UX rules (≤2 highlights, one action)
     constraints.md     # Hardcoded non-negotiables as guardrails (color=side, stops never
                        #   widen, entries only at borders, Leg VWAP rule, Magnet prohibition,
                        #   Asymmetric Initiative + Campaign Boundary Override)

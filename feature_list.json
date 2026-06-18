@@ -21,7 +21,7 @@
     {
       "id": "feat-003",
       "name": "Sierra Chart chart-image auto-export PoC",
-      "description": "Prove Sierra Chart auto-dumps clean, consistently-cropped HTF/TPO/exec PNGs on a timer to C:\\ulysses\\export\\. Document the study/config and capture sample outputs.",
+      "description": "Prove Sierra Chart auto-dumps clean, consistently-cropped HTF/TPO/exec PNGs on a timer to C:\\gekko\\export\\. Document the study/config and capture sample outputs.",
       "dependencies": [],
       "status": "not-started",
       "evidence": ""

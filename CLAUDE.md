@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Harness for building **Ulysses** — an advisory-only autonomous agent that turns the manual
+Harness for building **Gekko** — an advisory-only autonomous agent that turns the manual
 NQ-futures Gemini "Gem" into a scheduled + proximity-triggered briefing system (Next.js on
 Vercel, trigger.dev workflows, Supabase, Vercel AI SDK → OpenRouter). The full architecture
 and rationale live in `docs/agent-architecture-plan.md`; the work breakdown lives in

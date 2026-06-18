@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# auto-implement.sh — autonomous feature-by-feature implementation loop for Ulysses.
+# auto-implement.sh — autonomous feature-by-feature implementation loop for Gekko.
 #
 # Press start and walk away. For each unfinished feature whose dependencies are all done, this
 # script: creates a branch, runs ONE fresh unattended Claude Code session to implement it, re-runs
