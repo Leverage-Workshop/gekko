@@ -3,8 +3,7 @@
 ## Current State
 
 **Last Updated:** 2026-06-18
-**Active Feature:** `feat-001` **DONE** — next up is `feat-002` (profile parser) or any
-no-dependency item (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021 now unblocked).
+**Active Feature:** `feat-002` **DONE** — next up is any unblocked item (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021 no-dep items; feat-018/019/020 now unblocked by feat-002).
 
 **Note:** Most recent commit (`c518fc9`) was a housekeeping rename, not feature work — project
 renamed from "Ulysses" to "Gekko" throughout docs/harness/persona; no `feature_list.json` status
@@ -29,6 +28,14 @@ feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-
 - [x] `feature_list.json` populated from the plan: 34 features (feat-001..feat-038 minus removed feat-004/027/032/034), dependency-ordered, validated (no cycles, all deps resolve)
 - [x] Tooling installed: Vercel Claude Code plugin; Trigger.dev MCP server (`trigger`, in `~/.claude.json`); Trigger.dev agent rules (`CLAUDE.md` + `.claude/agents/trigger-dev-task-writer.md`)
 
+- [x] **feat-002 (profile export parser + tests)** — `lib/engine/parseProfile.ts`: pure TS
+  parser for Sierra Chart Markdown VbP/Delta exports. Reads `tickSize`/`binSize` from Metadata,
+  `POC`/`VAH`/`VAL` from Summary, extracts fenced CSV block, detects file type by 2nd column
+  header (`Volume` vs `Delta`), validates row spacing against `step = tickSize × binSize`,
+  left-joins delta rows onto VbP price series → `ProfileRow[]{ price, volume, delta|null }`.
+  7 tests against real `chart-data/` samples; `./init.sh` green (8 tests / typecheck / lint /
+  build all pass).
+
 - [x] **feat-001 (scaffold & verification baseline)** — Next.js 16.2.9 + React 19.2.4 (App
   Router, TypeScript, Tailwind v4, **no `src/`**) scaffolded at repo root via `create-next-app`.
   Scripts: `typecheck` (`tsc --noEmit`), `lint` (`eslint`), `test` (`vitest run`), `build`
@@ -43,8 +50,8 @@ feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-
 
 ### What's Next
 
-1. Pick up **feat-002** (profile parser + tests) — first dependent feature, or any no-dependency
-   item now unblocked by feat-001 (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021).
+1. Pick up **feat-018** (lvnDetection — now unblocked by feat-002), or any no-dependency item
+   (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021).
 
 ## Blockers / Risks
 

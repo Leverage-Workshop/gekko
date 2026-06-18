@@ -15,8 +15,8 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/engine/parseProfile.ts: pure TS parser with extractMeta/extractSummary/extractCsvBlock/detectType/validateSpacing/parseCsvRows internals; public parseProfiles(vbpContent, deltaContent) left-joins on VbP price series → ProfileRow[]{price,volume,delta|null}; parseProfilesFromFiles convenience wrapper. lib/engine/parseProfile.test.ts: 7 tests against chart-data/vbp_export.md + chart-data/delta_vbp_export.md (metadata, row counts, ordering, spot-check overlap price 30258.75 volume=19 delta=13, spot-check null delta at 30218.75, wrong-arg-order throw). ./init.sh green: typecheck/lint/test(8 pass)/build all pass."
     },
     {
       "id": "feat-003",
