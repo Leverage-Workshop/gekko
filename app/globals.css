@@ -4,8 +4,9 @@
  * Gekko design tokens — source of truth is DESIGN.md (BMW M motorsport system).
  * Tailwind v4 is CSS-first: these @theme tokens generate utilities like
  * bg-canvas, text-ink, border-hairline, text-body, etc.
- * NOTE: BMW Type Next Latin is proprietary and not bundled — --font-display
- * falls back to sans-serif. A later UI feature wires next/font/local.
+ * Display typeface is Inter (the DESIGN.md source site's font), loaded via
+ * next/font in app/layout.tsx and exposed as --font-inter; --font-display
+ * resolves to it with a sans-serif fallback.
  */
 @theme {
   /* Canvas & surfaces */
@@ -42,8 +43,8 @@
   --radius-md: 6px;
   --radius-full: 9999px;
 
-  /* Typography */
-  --font-display: 'BMWTypeNextLatin', sans-serif;
+  /* Typography — Inter, loaded via next/font in app/layout.tsx (--font-inter) */
+  --font-display: var(--font-inter), sans-serif;
 }
 
 body {

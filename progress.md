@@ -60,9 +60,10 @@ feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-
 - **Prettier is scoped to app code only** (feat-001): `format` runs on `{app,lib,tests}` and a
   `.prettierignore` excludes docs/knowledge/skills/JSON/Markdown. (A naive `prettier --write .`
   reflows the entire harness — docs, DESIGN.md, feature_list.json — which is out of scope.)
-- **BMW Type Next Latin is not bundled** (proprietary): the `--font-display` token falls back to
-  `sans-serif`; a later UI feature wires the licensed font via `next/font/local`. Per the
-  `vercel:nextjs` skill, fonts must go through `next/font`, never `<link>`/`@import`.
+- **Display font is Inter** (feat-001): the DESIGN.md source site uses Inter (not the proprietary
+  BMW Type Next), so it's loaded via `next/font/google` in `app/layout.tsx` as `--font-inter`;
+  the Tailwind `--font-display` token resolves to it with a `sans-serif` fallback. Per the
+  `vercel:nextjs` skill, fonts go through `next/font`, never `<link>`/`@import`.
 
 ## Files Modified This Session
 
