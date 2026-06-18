@@ -1,0 +1,18 @@
+# Node / Next.js (for the app scaffolded in feat-001)
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Tooling caches / deploy
+.vercel/
+.trigger/
+*.log
+.DS_Store
