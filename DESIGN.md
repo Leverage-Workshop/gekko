@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: BMW M-design-analysis
-description: A motorsport-engineering interface anchored on a near-black canvas with white Inter display headlines in confident UPPERCASE. The brand carries no decorative voltage — its energy comes from full-bleed automotive photography (cars on tracks, driver-cockpit shots, carbon-fiber detail) and the iconic M tricolor stripe (light blue → dark blue → red) used sparingly as a brand signature on logos, dividers, and motorsport chrome. Type stays light to medium weight to feel European-engineered, never American-bombastic.
+description: A confident financial-advisory interface anchored on a near-black canvas with white Inter display headlines in confident UPPERCASE. The brand energy comes from color voltage, not photography — bmw-blue (#1c69d4) is the primary accent that carries every primary CTA, value-claim headline, brand mark, and key callout, while m-red (#e22718) is the secondary accent reserved for calling out significant, high-priority UI. The iconic M tricolor stripe (light blue → dark blue → red) is retained as the brand signature on logos, dividers, and section chrome. Type stays light to medium weight to feel engineered and precise, never bombastic.
 
 colors:
   primary: "#ffffff"
@@ -125,7 +125,7 @@ spacing:
 
 components:
   button-primary:
-    backgroundColor: "{colors.canvas}"
+    backgroundColor: "{colors.bmw-blue}"
     textColor: "{colors.on-dark}"
     typography: "{typography.button}"
     rounded: "{rounded.none}"
@@ -244,29 +244,34 @@ components:
 
 ## Overview
 
-BMW M's marketing surface is a near-pure black canvas (`{colors.canvas}` — #000) holding white Inter headlines in **confident UPPERCASE**. The system has no decorative voltage of its own; brand energy comes from **full-bleed automotive photography** — cars cornering at speed, carbon-fiber wheel detail, driver cockpit shots, motorsport pit lanes — placed as edge-to-edge content that fills entire bands. UI chrome around the photography stays minimal: thin sans-serif copy, dividers as 1px hairlines (`{colors.hairline}`), all-caps button labels with no fill until hovered.
+Gekko's surface is a near-pure black canvas (`{colors.canvas}` — #000) holding white Inter headlines in **confident UPPERCASE**. The brand energy comes from **color voltage, not photography**: a single primary accent — **bmw-blue** (`{colors.bmw-blue}` — #1c69d4) — does the brand's heavy lifting, carrying every primary CTA, value-claim headline, brand mark, key stat/number callout, and inline link. Used scarcely on the dark canvas, that blue voltage is what reads as "the brand." UI chrome around it stays minimal: thin sans-serif copy, dividers as 1px hairlines (`{colors.hairline}`), and the blue-filled CTA as the one confident point of color.
 
-The **M tricolor stripe** — `{colors.m-blue-light}` (#0066b1) → `{colors.m-blue-dark}` (#1c69d4) → `{colors.m-red}` (#e22718) — appears sparingly as the brand's signature accent, used on the M wordmark, motorsport chrome, vehicle-tech callouts, and model badges. It is never a CTA color and never used as a background fill — the tricolor is exclusively a brand-identity marker.
+A **secondary accent — `{colors.m-red}` (#e22718)** — is reserved for calling out **significant, high-priority UI** (the way many product surfaces use a second accent for moments that demand attention). Its scarcity is what keeps it powerful; it never competes with bmw-blue as the primary action color.
 
-Type voice runs **Inter** (variable) in two weights: 700 for display + nav labels and 300 (Light) for body + secondary copy. Display sizes use weight 700 (the heavy-but-tight setting that stands in for BMW's signature display cut), while body type drops to weight 300 (Light). The contrast between heavy display and light body is the system's editorial signature.
+The **M tricolor stripe** — `{colors.m-blue-light}` (#0066b1) → `{colors.m-blue-dark}` (#1c69d4) → `{colors.m-red}` (#e22718) — is retained as the brand's **signature** mark, used on the wordmark, section chrome, and brand-identity dividers. The stripe is a signature, not an action surface — never a button fill.
+
+Type voice runs **Inter** (variable) in two weights: 700 for display + nav labels and 300 (Light) for body + secondary copy. Display sizes use weight 700 (the heavy-but-tight setting), while body type drops to weight 300 (Light). The contrast between heavy display and light body is the system's editorial signature.
 
 **Key Characteristics:**
-- Near-pure black canvas (`{colors.canvas}` — #000) with white type. The system inverts almost nothing — there is no light-mode marketing surface.
+- Near-pure black canvas (`{colors.canvas}` — #000) with white type. The system inverts almost nothing — there is no light-mode surface.
+- **bmw-blue** (`{colors.bmw-blue}`) is the single primary accent that does all brand voltage — primary CTA fills, value-claim headlines, brand mark, key callouts, and inline links. Scarce on the dark canvas, which is what makes it read as the brand.
+- **m-red** (`{colors.m-red}`) is the secondary accent — reserved for significant / high-priority UI callouts only, never for primary actions.
 - Display headlines in UPPERCASE Inter at weight 700. Sub-heads stay sentence-case at lighter weight.
-- M tricolor (`{colors.m-blue-light}` / `{colors.m-blue-dark}` / `{colors.m-red}`) used as 4px brand-stripe dividers, M-wordmark accents, and motorsport chrome — never as buttons or fills.
-- Photography fills entire bands edge-to-edge. Cars are always the visual subject; UI chrome backs off to small white labels overlaid on photography.
-- Buttons are flat with `{rounded.none}` (0px) corners and uppercase letterspaced labels. The "industrial precision" rectangular silhouette IS the brand.
+- M tricolor (`{colors.m-blue-light}` / `{colors.m-blue-dark}` / `{colors.m-red}`) used as the 4px signature brand-stripe divider and wordmark accent — a brand-identity mark, never an action surface.
+- Imagery, where present, is generic and supporting — it backs off to small white labels and never becomes the source of brand energy. The color does that work.
+- Buttons are flat with `{rounded.none}` (0px) corners and uppercase letterspaced labels. The primary CTA is a solid bmw-blue rectangle; the rectangular silhouette IS the brand.
 - Border radius is mostly zero across the system. The few exceptions: `{rounded.full}` on circular icon buttons (carousel arrows, chatbot launcher) and `{rounded.sm}` on a handful of small toggle pills.
 - Spacing is generous and grid-aligned: `{spacing.section}` (96px) between major bands; `{spacing.xxl}` (64px) inside hero photo bands; `{spacing.xl}` (40px) inside content cards.
 
 ## Colors
 
 ### Brand & Accent
-- **Primary** (`{colors.primary}` — #ffffff): The system's primary type and CTA color. Used for h1/h2/h3 display, body text on dark, and primary button labels (the buttons themselves are transparent or canvas-colored — the white text + outline IS the button).
-- **M Blue Light** (`{colors.m-blue-light}` — #0066b1): The first stop in the M tricolor stripe. Used on M-badge accents and motorsport chrome.
-- **M Blue Dark** (`{colors.m-blue-dark}` — #1c69d4): The middle stop. The same hex as `{colors.bmw-blue}` — BMW's heritage corporate blue, repurposed as the middle band of the M stripe.
-- **M Red** (`{colors.m-red}` — #e22718): The third stop. The signature M-power red, used in the stripe and on motorsport-pace callouts.
-- **Electric Blue** (`{colors.electric-blue}` — #0653b6): A separate electric-vehicle accent used on M xDrive electric model pages. Distinct from the heritage blue — feels colder, more digital.
+- **BMW Blue** (`{colors.bmw-blue}` — #1c69d4): **The primary brand accent — the single color that carries brand voltage.** Used for primary CTA fills (`{component.button-primary}`), value-claim headlines, the brand mark, key stat/number callouts, and inline links. Like a trading platform's signature accent, bmw-blue is deployed scarcely on the dark canvas so each appearance reads as a focal brand moment. It is also the middle stop of the M tricolor stripe.
+- **M Red** (`{colors.m-red}` — #e22718): **The secondary accent — reserved for significant, high-priority UI callouts.** Used to mark UI that demands attention (critical alerts, the single most important value on a screen, urgency moments). It is a brand accent, not a generic semantic state — distinct from `{colors.warning}` and `{colors.success}`; it reads as attention/significance, which is the intent. Never used on primary CTAs (that is bmw-blue's role) and never as a large surface fill. It is also the third stop of the M tricolor stripe.
+- **Primary / White** (`{colors.primary}` — #ffffff): The system's primary type color — h1/h2/h3 display and body text on dark, plus the label color on the bmw-blue primary button.
+- **M Blue Light** (`{colors.m-blue-light}` — #0066b1): The first stop in the M tricolor signature stripe.
+- **M Blue Dark** (`{colors.m-blue-dark}` — #1c69d4): The middle stop of the stripe — the same hex as `{colors.bmw-blue}`. The heritage corporate blue, which doubles as both the primary brand accent and the middle band of the signature stripe.
+- **Electric Blue** (`{colors.electric-blue}` — #0653b6): A colder, more digital blue held in reserve for data-visualization or secondary-emphasis surfaces. Distinct from the heritage bmw-blue accent.
 
 ### Surface
 - **Canvas** (`{colors.canvas}` — #000000): The default page floor across every marketing surface. True black.
@@ -343,7 +348,7 @@ UPPERCASE display is the default voice for h1/h2 — sentence case appears on bo
 - **Footer:** 4-column link list at desktop, 2-up at tablet, 1-up at mobile.
 
 ### Whitespace Philosophy
-BMW M trusts photography to do the visual work. Whitespace around photography is restrained — the cars fill the frame, and copy sits below or beside them in tightly-aligned columns. Where whitespace appears (between body sections, around CTAs), it's always uniform `{spacing.section}` (96px). The system never adds atmospheric backdrops, gradients, or decoration — empty space stays as empty black canvas.
+Gekko trusts color voltage and type to do the visual work. Whitespace is generous and uniform — content sits in tightly-aligned columns on the black canvas, with a bmw-blue accent providing the focal pop. Where whitespace appears (between body sections, around CTAs), it's always uniform `{spacing.section}` (96px). The system never adds atmospheric backdrops, gradients, or decoration — empty space stays as empty black canvas, which is what makes the blue accent read.
 
 ## Elevation & Depth
 
@@ -351,15 +356,15 @@ BMW M trusts photography to do the visual work. Whitespace around photography is
 |---|---|---|
 | Flat | No shadow, no border | Body sections, top nav, footer, photo bands |
 | Soft hairline | 1px `{colors.hairline}` border | Section dividers, card outlines, table rows |
-| Card surface | `{colors.surface-card}` background over canvas — no shadow | Feature photo cards, magazine cards, chatbot launcher |
-| Photographic depth | Full-bleed photography with edge-to-edge crop | Hero bands, motorsport features — depth via subject matter, not chrome |
+| Card surface | `{colors.surface-card}` background over canvas — no shadow | Feature cards, content cards, chatbot launcher |
+| Accent voltage | A bmw-blue CTA, headline, or callout against the black canvas | Hero bands, value-claim moments — focus via color contrast, not chrome |
 
-The system uses no drop shadows and no layered chrome. Depth comes entirely from photography (subject + lens + lighting) and the contrast between black canvas and slightly-elevated `{colors.surface-card}`.
+The system uses no drop shadows and no layered chrome. Depth comes from the contrast between the black canvas and slightly-elevated `{colors.surface-card}`, and from the high-contrast pop of a bmw-blue accent (or, for significant moments, an m-red one) against the dark field.
 
 ### Decorative Depth
-- **M Stripe Divider** (`{component.m-stripe-divider}`): A 4px-tall horizontal divider carrying the M tricolor (`{colors.m-blue-light}` → `{colors.m-blue-dark}` → `{colors.m-red}`). Used on motorsport chrome, model-detail headers, and brand-identity moments. The stripe is the system's only true "decorative" element — used sparingly to mark significance.
-- **Carbon-fiber surfaces**: The technical-spec page uses `{colors.carbon-gray}` (#2b2b2b) cells with subtle texture overlay. This is a single-page treatment, not a system-wide pattern.
-- **Photographic depth**: Full-bleed cars are the depth. Lighting in the photography (track lights, sunset rim-light) does the elevation work that drop shadows would do in a SaaS system.
+- **M Stripe Divider** (`{component.m-stripe-divider}`): A 4px-tall horizontal divider carrying the M tricolor (`{colors.m-blue-light}` → `{colors.m-blue-dark}` → `{colors.m-red}`). Used on section chrome, detail headers, and brand-identity moments. The stripe is the brand signature — used sparingly to mark significance.
+- **Carbon-fiber surfaces**: The technical-spec sections use `{colors.carbon-gray}` (#2b2b2b) cells with subtle texture overlay. This is a localized treatment, not a system-wide pattern.
+- **Accent voltage**: A bmw-blue CTA or headline (and, for the most significant UI, an m-red callout) against the black canvas does the elevation work that drop shadows would do in a SaaS system. The color pop is the depth.
 
 ## Shapes
 
@@ -375,8 +380,8 @@ The system uses no drop shadows and no layered chrome. Depth comes entirely from
 
 The radius hierarchy is "almost always 0, sometimes circular." This binary radius decision is a deliberate brand-language choice — sharp rectangles read as engineered precision; circles read as functional controls. Nothing in between.
 
-### Photography Geometry
-Hero photography fills full-width with no rounding. Photo cards inside grids retain `{rounded.none}` corners, edge-to-edge images. Carbon-wheel detail shots and motorsport-pit photos use 16:9 or 21:9 cinema-aspect ratios. Driver portraits in racing-team grids use 4:5 portrait crops, also with sharp corners.
+### Imagery Geometry
+Where supporting imagery appears, it fills full-width with no rounding and stays generic (market/abstract, not a brand subject). Image cards inside grids retain `{rounded.none}` corners, edge-to-edge. Wide imagery uses 16:9 or 21:9 cinema-aspect ratios; portrait crops use 4:5, also with sharp corners. Imagery is a backdrop — the bmw-blue accent, not the image, carries the brand.
 
 ## Components
 
@@ -386,9 +391,9 @@ Hero photography fills full-width with no rounding. Photo cards inside grids ret
 
 ### Buttons
 
-**`button-primary`** — The signature primary CTA. Background `{colors.canvas}` (or transparent over photography), text `{colors.on-dark}` (white), 1px white border outline, rounded `{rounded.none}` (0px), padding 16px × 32px, height 48px. Type `{typography.button}` — uppercase 14px / 700 / 1.5px tracking. The rectangular silhouette and uppercase letterspaced label IS the brand button.
+**`button-primary`** — The signature primary CTA and the system's most important point of brand color. Background `{colors.bmw-blue}`, text `{colors.on-dark}` (white), rounded `{rounded.none}` (0px), padding 16px × 32px, height 48px. Type `{typography.button}` — uppercase 14px / 700 / 1.5px tracking. The solid blue rectangle with an uppercase letterspaced label IS the brand button — its scarcity on the black canvas is what gives the blue its voltage.
 
-**`button-primary-outline`** — Same shape as primary but with transparent background and white outline only. Used over photography where a filled button would clash with the image.
+**`button-primary-outline`** — The secondary button: same shape as primary but with transparent background and white 1px outline only. Used for less-emphasized actions and where a filled button would crowd a busy band. Always pairs with — never replaces — the blue primary CTA as the dominant action.
 
 **`button-on-light`** — Used on rare light-surface contexts (configurator, account dialogs). Background `{colors.canvas}`, text `{colors.on-dark}` — black button with white text, inverted from the dark-canvas default.
 
@@ -400,17 +405,17 @@ Hero photography fills full-width with no rounding. Photo cards inside grids ret
 
 ### Cards & Containers
 
-**`hero-photo-band`** — Full-width black band with full-bleed automotive photography filling most of the frame. The h1 uses `{typography.display-xl}` (80px / 700) and sits left-aligned over the photo, often with a small subtitle in `{typography.body-md}` below. Vertical padding `{spacing.xxl}` (64px). No card frame — the photo IS the band.
+**`hero-photo-band`** — Full-width black hero band. The h1 uses `{typography.display-xl}` (80px / 700) and sits left-aligned on the canvas, often with a small subtitle in `{typography.body-md}` below and a bmw-blue `{component.button-primary}` as the call to action. Vertical padding `{spacing.xxl}` (64px). Any imagery is a generic, supporting backdrop — the headline and the blue CTA carry the band, not a photo.
 
-**`feature-photo-card`** — Used in 3-up grids for "MORE FROM BMW M MAGAZINE" and similar editorial sections. Background `{colors.surface-card}`, rounded `{rounded.none}`, internal padding `{spacing.lg}` (24px). Top half of the card is a 16:9 photo (full-bleed within the card); below the photo, a category tag in `{typography.label-uppercase}`, a `{typography.title-lg}` title, and a short body description.
+**`feature-photo-card`** — Used in 3-up grids for editorial / feature sections. Background `{colors.surface-card}`, rounded `{rounded.none}`, internal padding `{spacing.lg}` (24px). Top half of the card can hold a 16:9 generic image (full-bleed within the card); below it, a category tag in `{typography.label-uppercase}`, a `{typography.title-lg}` title, and a short body description.
 
-**`model-card`** — Used in the "MORE NEW M MODELS" 3-up grid. Background `{colors.canvas}` (no card surface — just photo on black), rounded `{rounded.none}`. Top: 16:10 hero shot of the model. Below: model name in `{typography.display-md}` (40px / 700), short specs line in `{typography.body-sm}`, a `{component.text-link}` ("EXPLORE THIS MODEL").
+**`model-card`** — Used in feature 3-up grids. Background `{colors.canvas}` (no card surface — content on black), rounded `{rounded.none}`. Top: an optional 16:10 supporting image. Below: a title in `{typography.display-md}` (40px / 700), a short detail line in `{typography.body-sm}`, and a `{component.text-link}` ("EXPLORE") rendered in bmw-blue.
 
-**`magazine-article-card`** — A more text-forward card variant used on the magazine overview page. Background `{colors.canvas}` with hairline border, rounded `{rounded.none}`. Carries a small thumbnail at top, a category label in `{typography.label-uppercase}`, headline in `{typography.title-lg}`, and a body excerpt.
+**`magazine-article-card`** — A text-forward card variant for overview pages. Background `{colors.canvas}` with hairline border, rounded `{rounded.none}`. Carries a small thumbnail at top, a category label in `{typography.label-uppercase}`, headline in `{typography.title-lg}`, and a body excerpt.
 
 **`spec-cell`** — Technical specification cells used on model-detail pages (engine specs, weight, top speed, 0-100 time). Background `{colors.surface-soft}` (#0d0d0d), rounded `{rounded.none}`, padding `{spacing.lg}` (24px). Each cell holds a value in `{typography.display-sm}` (32px / 700) at top and a label in `{typography.label-uppercase}` below.
 
-**`motorsport-photo-card`** — Edge-to-edge photo cards used in the racing-team / motorsport sections. No card surface — just a full-bleed photograph with a small overlay caption in white text at the bottom-left. The photography IS the brand here.
+**`motorsport-photo-card`** — Edge-to-edge image cards used in feature sections. No card surface — a full-bleed generic image with a small overlay caption in white text at the bottom-left. The image is a backdrop; the bmw-blue accent and type carry the brand, not the photo.
 
 **`chatbot-launcher`** — A right-side card-style entry point ("BMW M CHATBOT") on the homepage. Background `{colors.surface-card}`, rounded `{rounded.none}`, padding `{spacing.lg}` (24px). Carries an h3 title, a short prompt, and a `{component.button-primary}` to launch.
 
@@ -424,9 +429,9 @@ Hero photography fills full-width with no rounding. Photo cards inside grids ret
 
 ### Signature Components
 
-**`m-stripe-divider`** — The 4px horizontal stripe carrying the M tricolor (`{colors.m-blue-light}` → `{colors.m-blue-dark}` → `{colors.m-red}`). Used as a divider on motorsport chrome, between brand-identity sections, and as a hover-state indicator on category tabs. The most distinctive non-typographic element in the system.
+**`m-stripe-divider`** — The 4px horizontal stripe carrying the M tricolor (`{colors.m-blue-light}` → `{colors.m-blue-dark}` → `{colors.m-red}`). Used as a divider on section chrome, between brand-identity sections, and as a hover-state indicator on category tabs. The brand signature and the most distinctive non-typographic element in the system — a signature mark, never an action surface.
 
-**`cta-band-photo`** — A pre-footer "Drive an M" CTA band carrying full-bleed photography of a car cornering on a track, with a centered headline in `{typography.display-md}` and a `{component.button-primary-outline}` below. Vertical padding 80px. The CTA inherits the editorial gravity of the rest of the page through full-bleed photography rather than chrome.
+**`cta-band-photo`** — A pre-footer CTA band carrying a centered headline in `{typography.display-md}` and a bmw-blue `{component.button-primary}` below. Vertical padding 80px. The band's gravity comes from the headline and the blue CTA against the black canvas — color voltage, not photography. Any backdrop image stays generic and subordinate to the type.
 
 ### Footer
 
@@ -435,21 +440,25 @@ Hero photography fills full-width with no rounding. Photo cards inside grids ret
 ## Do's and Don'ts
 
 ### Do
-- Anchor every page with full-bleed automotive photography. The cars are the brand voltage; chrome backs off.
+- Let bmw-blue carry the brand voltage — primary CTAs, value-claim headlines, key callouts, and the brand mark. The blue accent on the black canvas is the brand energy.
+- Keep bmw-blue scarce on the dark canvas. Its power comes from rarity — one confident blue moment per band, not blue everywhere.
+- Reserve m-red for significant / high-priority UI callouts only — the secondary accent that marks the single most important or most urgent thing on a screen. Its scarcity keeps it meaningful.
 - Use UPPERCASE display headlines in `{typography.display-xl}` or `{typography.display-lg}`. Sentence-case display reads as off-brand.
 - Pair heavy display (700) with light body (300). The weight contrast is the editorial signature.
-- Reserve the M tricolor stripe for brand-identity moments — wordmark accents, motorsport chrome, model badges. Never as a button fill or surface.
+- Keep the M tricolor stripe as the brand signature — wordmark accents, section chrome, brand-identity dividers. Never as a button fill or surface.
 - Use `{rounded.none}` (0px) by default. Reserve `{rounded.full}` for circular icon buttons only.
 - Letter-space all-caps labels at 1.5px. The "machined" feel is non-negotiable.
-- Use `{spacing.section}` (96px) between major editorial bands for grid-aligned vertical rhythm.
+- Use `{spacing.section}` (96px) between major bands for grid-aligned vertical rhythm.
 
 ### Don't
-- Don't introduce a brand color outside the M tricolor (`{colors.m-blue-light}` / `{colors.m-blue-dark}` / `{colors.m-red}`) and the heritage `{colors.bmw-blue}`.
-- Don't bold body type. Body stays at 300 (Light) — bumping to 400 or 500 makes the page feel marketing-bombastic instead of European-engineered.
-- Don't use rounded buttons. The rectangular silhouette IS the brand. Rounded corners read as consumer-tech, not motorsport.
-- Don't put gradient backdrops behind hero type. The hero IS the photography — the page floor stays pure black, and the photo provides the depth.
-- Don't repeat the same surface mode in two consecutive bands. Rhythm: photo band → spec table → photo band → magazine grid → photo band. Two text-only bands in a row read as a corporate site.
-- Don't use the M stripe as a button fill. The stripe is a divider / accent — never an action surface.
+- Don't introduce a third brand accent. The system has exactly two: `{colors.bmw-blue}` (primary) and `{colors.m-red}` (secondary). Any expansion dilutes the identity.
+- Don't put m-red on primary CTAs. bmw-blue is the primary action color; m-red is a secondary accent for significant UI, never the default button fill.
+- Don't use bmw-blue or m-red as large surface fills. They are focal-point accents — CTAs, headlines, callouts — not background washes. The page floor stays black.
+- Don't bold body type. Body stays at 300 (Light) — bumping to 400 or 500 makes the page feel bombastic instead of engineered.
+- Don't use rounded buttons. The rectangular silhouette IS the brand. Rounded corners read as consumer-tech.
+- Don't put gradient backdrops behind hero type. The page floor stays pure black, and the bmw-blue accent provides the depth — never an atmospheric glow.
+- Don't repeat the same surface mode in two consecutive bands. Vary rhythm: hero band → spec table → feature grid → CTA band. Two flat text-only bands in a row read as a corporate site.
+- Don't use the M stripe as a button fill. The stripe is the brand signature — never an action surface.
 - Don't bold uppercase tracking under 1.5px on button labels — the spacing is what makes them feel "machined."
 
 ## Responsive Behavior
@@ -478,7 +487,7 @@ Hero photography fills full-width with no rounding. Photo cards inside grids ret
 
 ### Image Behavior
 - Hero photography crops responsively — wider crops at desktop, vertical crops on mobile.
-- Lifestyle and motorsport photos retain native aspect ratios; the system never letterboxes or pillarboxes.
+- Supporting/lifestyle imagery retains native aspect ratios; the system never letterboxes or pillarboxes.
 - The M wordmark + tricolor logo scales proportionally with viewport width.
 
 ## Iteration Guide
@@ -489,8 +498,8 @@ Hero photography fills full-width with no rounding. Photo cards inside grids ret
 4. Use `{token.refs}` everywhere — never inline hex.
 5. Never document hover states. Default and Active/Pressed only.
 6. Display headlines stay UPPERCASE 700; body stays sentence-case 300. Never blur the contrast.
-7. The M tricolor is brand-identity-only — never extend it to system tokens for "primary action."
-8. When in doubt about emphasis: bigger photography before bigger type.
+7. bmw-blue is the primary action color (CTAs, headlines, callouts); m-red is the secondary accent for significant UI; the M tricolor stripe stays as the brand-identity signature. Don't blur these roles.
+8. When in doubt about emphasis: a stronger bmw-blue accent or bigger type before any decoration. Color voltage is the energy, not imagery.
 
 ## Known Gaps
 
@@ -500,4 +509,5 @@ Hero photography fills full-width with no rounding. Photo cards inside grids ret
 - Animation and transition timings (photo carousel transitions, hover-reveal effects, configurator interactions) are not in scope.
 - Form validation states beyond `{component.text-input}` defaults are not extracted — error / success input variants would need a configurator or order flow to confirm.
 - The configurator surface (vehicle build pages with color / wheel / interior pickers) was not in the analyzed URL set; its swatch grid, comparison panels, and price-summary card are not documented here.
-- The cookie consent overlay obscured part of the homepage hero in the captured screenshot; secondary hero treatments (different car models cycling through the hero band) may carry variations not captured.
+- The cookie consent overlay obscured part of the homepage hero in the captured screenshot; secondary hero treatments may carry variations not captured.
+- **Brand adaptation note:** This system was originally extracted from a photography-led brand (BMW M) but has been re-pointed to a **color-voltage** brand model for Gekko — bmw-blue as the primary accent doing the brand work, m-red as a secondary accent for significant UI, and the M tricolor stripe retained as the signature. The color palette (hex values) is unchanged from the original extraction; only the brand-energy and color-usage roles were re-specified. Photo-bearing component entries are retained structurally but reframed as generic, supporting backdrops rather than the source of brand energy.
