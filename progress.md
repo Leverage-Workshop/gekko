@@ -3,7 +3,10 @@
 ## Current State
 
 **Last Updated:** 2026-06-18
-**Active Feature:** `feat-002` **DONE** — next up is any unblocked item (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021 no-dep items; feat-018/019/020 now unblocked by feat-002).
+**Active Feature:** `feat-002` **DONE** — next up is any unblocked item. After the 2026-06-20
+renumber (see below), the unblocked set is: feat-003 (chart-image PoC); feat-004/005/006/007/010/012/013/017
+(dep on feat-001 only); feat-014/015 (unblocked by feat-002). All feat numbers in this section use the
+**post-renumber** scheme.
 
 **Note:** Most recent commit (`c518fc9`) was a housekeeping rename, not feature work — project
 renamed from "Ulysses" to "Gekko" throughout docs/harness/persona; no `feature_list.json` status
@@ -17,6 +20,42 @@ proximity pipeline became a "Check Entry" button running the `instructions.md` e
 feat-027, feat-032, feat-034; added an `eval_results` table + `EvalResult` Zod schema; updated
 feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-plan.md` and
 `feature_list.json` updated. Feature count: 38 → 34. (Planning/spec only — no app code yet.)
+
+**Scope change (2026-06-20):** Added **feat-004 "Execution bars CSV parser + tests"**
+(`lib/engine/parseExecBars.ts`) — the exec CSV (`chart-data/execution_bar_data.rolling.csv`,
+~250 rows, `DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity`) previously had no typed
+parser; feat-015 `deltaTelemetry` summarized raw CSV directly, an asymmetry with feat-002's
+profile parser. feat-004 produces typed `ExecBar[]`; feat-015's dependency moved from feat-001
+→ feat-004 to consume it. Reuses the feat-004 id freed by the 2026-06-18 removal. Feature
+count: 34 → 35. (Planning/spec only — no app code yet.)
+
+**Scope change (2026-06-20) — no intermediate "v1" features:** Per product direction (full
+functionality from the start, no v0/v1 stepping stones), collapsed the thin-then-thick pairs:
+- **feat-011** is now "analyze-task (engine-integrated)" — absorbed feat-023 (engine wiring)
+  and the hybrid-LVN behavior of feat-025; depends on the full engine
+  (feat-015–021) + feat-006/007/008/010.
+- **feat-013** is now "Briefing + terrain render page" — absorbed feat-026 (real terrain map,
+  EvalResult render).
+- **Deleted feat-023, feat-025, feat-026.** Repointed their dependents (feat-024/036/037/038)
+  to feat-011.
+Trade-off accepted: the analyze-task is no longer parallelizable ahead of the engine — the full
+engine must land before the end-to-end pipeline. Validated: 32 features, no dup ids, no dangling
+deps, no dependency cycles. Feature count: 35 → 32. (Planning/spec only — no app code yet.)
+
+**Renumber (2026-06-20) — sequential, dependency-ordered:** Reordered `feature_list.json` so the
+list reads top-to-bottom (every dependency now points to an earlier feature) and renumbered the ids
+sequentially `feat-001..feat-032`, closing the gaps left by past deletions. The engine modules now
+precede the analyze-task that consumes them. **All scope-change entries ABOVE this line use the
+pre-renumber id scheme.** Old → new id map for the items that moved:
+- engine modules: feat-015→011 (deltaTelemetry), 016→012 (mgiPriority), 017→013 (ripStatus),
+  018→014 (lvnDetection), 019→015 (magnetCheck), 020→016 (terrainZones), 021→017 (riskReward)
+- pipeline/UI: feat-011→018 (analyze-task), 013→019 (render page), 012→020 (manual trigger),
+  014→021 (Vercel)
+- back half: feat-024→023 (prompt caching), 029→024 (entry_levels lifecycle), 028→025 (eval task),
+  030→026 (web notifications), 035→027 (web push), 031→028 (config UI), 033→029 (staleness),
+  036→030 (observability), 037→031 (opus flag), 038→032 (doctrine guard)
+- unchanged: feat-001..010, feat-022 (knowledge restructure)
+Validated: 32 sequential ids, no dangling deps, no forward (backward-reading) deps, no cycles.
 
 ## Status
 
@@ -50,8 +89,9 @@ feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-
 
 ### What's Next
 
-1. Pick up **feat-018** (lvnDetection — now unblocked by feat-002), or any no-dependency item
-   (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021).
+1. Pick up **feat-014** (lvnDetection — unblocked by feat-002) or **feat-015** (magnetCheck), or any
+   item whose deps are all done: feat-003 (chart-image PoC); feat-004/005/006/007/010/012/013/017.
+   (Post-renumber ids.)
 
 ## Blockers / Risks
 
