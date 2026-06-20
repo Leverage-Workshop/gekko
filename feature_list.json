@@ -33,8 +33,8 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/engine/parseExecBars.ts: pure TS parser for chart-data/execution_bar_data.rolling.csv (250 rows, DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity). Validates header column order, throws on mismatch, tolerates zero LegVWAP (pre-leg rows), parses DateTime→Date + 6 numeric columns → ExecBar[]. lib/engine/parseExecBars.test.ts: 6 tests (row count 250, first/last spot-checks, ascending-time ordering, pre-leg tolerance, header-mismatch throw). ./init.sh green: typecheck/lint/test(14 pass)/build all pass."
     },
     {
       "id": "feat-005",

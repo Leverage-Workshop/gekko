@@ -2,7 +2,7 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-18
+**Last Updated:** 2026-06-20
 **Active Feature:** `feat-002` **DONE** — next up is any unblocked item. After the 2026-06-20
 renumber (see below), the unblocked set is: feat-003 (chart-image PoC); feat-004/005/006/007/010/012/013/017
 (dep on feat-001 only); feat-014/015 (unblocked by feat-002). All feat numbers in this section use the
@@ -66,6 +66,14 @@ Validated: 32 sequential ids, no dangling deps, no forward (backward-reading) de
 - [x] Agent harness created (`harness-creator` skill): `CLAUDE.md`, `feature_list.json`, `progress.md`, `session-handoff.md`, `init.sh` — validator reports 100/100
 - [x] `feature_list.json` populated from the plan: 34 features (feat-001..feat-038 minus removed feat-004/027/032/034), dependency-ordered, validated (no cycles, all deps resolve)
 - [x] Tooling installed: Vercel Claude Code plugin; Trigger.dev MCP server (`trigger`, in `~/.claude.json`); Trigger.dev agent rules (`CLAUDE.md` + `.claude/agents/trigger-dev-task-writer.md`)
+
+- [x] **feat-004 (execution bars CSV parser + tests)** — `lib/engine/parseExecBars.ts`: pure TS
+  parser for `chart-data/execution_bar_data.rolling.csv` (250 rows,
+  `DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity`). Validates header column order and
+  throws on mismatch; tolerates zero `LegVWAP` (pre-leg rows); parses `DateTime` to `Date`,
+  all price/indicator columns to `number` → `ExecBar[]`. 6 tests: row count (250), first/last
+  spot-checks, ascending-time ordering, pre-leg tolerance, header-mismatch throw. `./init.sh`
+  green (14 tests / typecheck / lint / build all pass).
 
 - [x] **feat-002 (profile export parser + tests)** — `lib/engine/parseProfile.ts`: pure TS
   parser for Sierra Chart Markdown VbP/Delta exports. Reads `tickSize`/`binSize` from Metadata,
