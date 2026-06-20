@@ -3,10 +3,17 @@
 ## Current State
 
 **Last Updated:** 2026-06-20
-**Active Feature:** `feat-005` **DONE** — next up is any unblocked item. After the 2026-06-20
-renumber (see below), the unblocked set is: feat-003 (chart-image PoC); feat-006/007/010/012/013/017
-(dep on feat-001 only); feat-014/015 (unblocked by feat-002); feat-008/024/028 now unblocked by feat-005.
-All feat numbers in this section use the **post-renumber** scheme.
+**Active Feature:** `feat-006` **DONE** — Briefing + EvalResult Zod output contracts. Next up is
+any unblocked item: feat-003 (chart-image PoC); feat-007/010/012/013/017 (dep on feat-001 only);
+feat-014/015 (unblocked by feat-002); feat-008/024/028 (unblocked by feat-005); feat-022 (unblocked
+by feat-006). All feat numbers use the **post-renumber** scheme.
+
+**feat-006 (2026-06-20):** `knowledge/schema/briefing.schema.ts` — Zod 4.4.3 schemas as the
+source of truth for analyze-task (`Briefing`/`Objective`) and eval-task (`EvalResult`) output,
+mirroring the docs/agent-architecture-plan.md Output contract. Exports inferred TS types +
+standalone enums (Direction, LevelKind, TargetLabel, EvalStatus). 16 tests in
+`tests/briefing.schema.test.ts`. Added `@` path alias + `knowledge/**/*.test.ts` glob to
+`vitest.config.ts`. Added `zod` dependency. `./init.sh` green (45 tests, 5 files).
 
 **Note:** Most recent commit (`c518fc9`) was a housekeeping rename, not feature work — project
 renamed from "Ulysses" to "Gekko" throughout docs/harness/persona; no `feature_list.json` status
