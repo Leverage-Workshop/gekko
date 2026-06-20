@@ -27,6 +27,16 @@
       "evidence": ""
     },
     {
+      "id": "feat-004",
+      "name": "Execution bars CSV parser + tests",
+      "description": "lib/engine/parseExecBars.ts: parse chart-data/execution_bar_data.rolling.csv (header DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity; ~250 ascending-time rows) into typed ExecBar[] {dateTime:Date, open, high, low, close, legVWAP, deltaIntensity}; tolerate zero LegVWAP (pre-leg) rows; validate the header/column order and throw on mismatch. Unit tests assert against the fixture (row count, first/last-row spot-checks, ascending-time ordering, header-mismatch throw).",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
       "id": "feat-005",
       "name": "Supabase schema, migrations & storage",
       "description": "Supabase project; migrations for config, raw_bundles, briefings, entry_levels, eval_results; Storage buckets for PNGs/CSVs. Seed a config row (model_id, triage_model_id='anthropic/claude-haiku-4-5', rr_min=3.0). eval_results(id, bundle_id fk, created_at, model_id, near_entry bool, status text [ENTER|WAIT|NOT_VALID|NO_ENTRY_NEAR], evaluated_level_id fk null, direction text null, trigger text null, stop numeric null, targets numeric[] null, reason text, raw_model_json jsonb, current_price numeric). No latest_price table (current price comes from the latest bundle).",
@@ -134,9 +144,9 @@
     {
       "id": "feat-015",
       "name": "deltaTelemetry.ts",
-      "description": "Reduce the ~250-row exec CSV to a compact summary (recent delta trend, sign, +/-3/+/-4 extremes, Leg-VWAP-relative position) for the prompt.",
+      "description": "Reduce the parsed ExecBar[] (from parseExecBars, the ~250-row exec CSV) to a compact summary (recent delta trend, sign, +/-3/+/-4 extremes, Leg-VWAP-relative position) for the prompt.",
       "dependencies": [
-        "feat-001"
+        "feat-004"
       ],
       "status": "not-started",
       "evidence": ""

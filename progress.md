@@ -18,6 +18,14 @@ feat-027, feat-032, feat-034; added an `eval_results` table + `EvalResult` Zod s
 feat-005/006/013/026/029/030/031/033 accordingly. Both `docs/agent-architecture-plan.md` and
 `feature_list.json` updated. Feature count: 38 → 34. (Planning/spec only — no app code yet.)
 
+**Scope change (2026-06-20):** Added **feat-004 "Execution bars CSV parser + tests"**
+(`lib/engine/parseExecBars.ts`) — the exec CSV (`chart-data/execution_bar_data.rolling.csv`,
+~250 rows, `DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity`) previously had no typed
+parser; feat-015 `deltaTelemetry` summarized raw CSV directly, an asymmetry with feat-002's
+profile parser. feat-004 produces typed `ExecBar[]`; feat-015's dependency moved from feat-001
+→ feat-004 to consume it. Reuses the feat-004 id freed by the 2026-06-18 removal. Feature
+count: 34 → 35. (Planning/spec only — no app code yet.)
+
 ## Status
 
 ### What's Done
