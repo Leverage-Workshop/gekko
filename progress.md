@@ -26,6 +26,19 @@ profile parser. feat-004 produces typed `ExecBar[]`; feat-015's dependency moved
 → feat-004 to consume it. Reuses the feat-004 id freed by the 2026-06-18 removal. Feature
 count: 34 → 35. (Planning/spec only — no app code yet.)
 
+**Scope change (2026-06-20) — no intermediate "v1" features:** Per product direction (full
+functionality from the start, no v0/v1 stepping stones), collapsed the thin-then-thick pairs:
+- **feat-011** is now "analyze-task (engine-integrated)" — absorbed feat-023 (engine wiring)
+  and the hybrid-LVN behavior of feat-025; depends on the full engine
+  (feat-015–021) + feat-006/007/008/010.
+- **feat-013** is now "Briefing + terrain render page" — absorbed feat-026 (real terrain map,
+  EvalResult render).
+- **Deleted feat-023, feat-025, feat-026.** Repointed their dependents (feat-024/036/037/038)
+  to feat-011.
+Trade-off accepted: the analyze-task is no longer parallelizable ahead of the engine — the full
+engine must land before the end-to-end pipeline. Validated: 32 features, no dup ids, no dangling
+deps, no dependency cycles. Feature count: 35 → 32. (Planning/spec only — no app code yet.)
+
 ## Status
 
 ### What's Done

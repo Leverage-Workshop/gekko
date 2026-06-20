@@ -98,13 +98,20 @@
     },
     {
       "id": "feat-011",
-      "name": "analyze-task v1 (no engine)",
-      "description": "trigger.dev task: load bundle -> AI SDK generateObject via OpenRouter (images + raw mgi/csv, Briefing schema) -> Zod validate -> persist briefing + entry_levels. Retries; logs model/cost to run metadata.",
+      "name": "analyze-task (engine-integrated)",
+      "description": "trigger.dev task: load bundle -> run the engine (deltaTelemetry/mgiPriority/ripStatus/lvnDetection/magnetCheck/terrainZones/riskReward) to compute facts and validate terrain borders -> AI SDK generateObject via OpenRouter (chart images + engine facts + raw mgi, Briefing schema; model supplies perception/judgment only) -> Zod validate -> persist briefing + entry_levels. Includes the hybrid LVN flow (engine proposes LVN/border candidates -> model confirms/adjusts against the chart image -> engine re-validates final borders). Retries; logs model/cost to run metadata.",
       "dependencies": [
         "feat-006",
         "feat-007",
         "feat-008",
-        "feat-010"
+        "feat-010",
+        "feat-015",
+        "feat-016",
+        "feat-017",
+        "feat-018",
+        "feat-019",
+        "feat-020",
+        "feat-021"
       ],
       "status": "not-started",
       "evidence": ""
@@ -122,8 +129,8 @@
     },
     {
       "id": "feat-013",
-      "name": "Bare briefing render page",
-      "description": "Next.js page that fetches the latest briefing and renders primary/secondary objectives + danger zones from the JSON (no terrain map yet); hosts the 'Run Briefing' and 'Check Entry at Current Price' trigger buttons. Parity check vs the existing sample briefing.",
+      "name": "Briefing + terrain render page",
+      "description": "Next.js page that fetches the latest briefing and renders the full briefing (overview, primary/secondary objectives, danger zones, key inflections) plus terrain.zones[] as a real SVG/canvas zone map with a levels overlay; renders the latest EvalResult (status + direction/trigger/stop/targets/reason). Hosts the 'Run Briefing' and 'Check Entry at Current Price' trigger buttons. Parity check vs the existing sample briefing.",
       "dependencies": [
         "feat-011"
       ],
@@ -223,52 +230,12 @@
       "evidence": ""
     },
     {
-      "id": "feat-023",
-      "name": "Engine integration into analyze-task",
-      "description": "Wire deltaTelemetry/mgiPriority/ripStatus/lvnDetection/magnetCheck/terrainZones/riskReward into analyze-task; inject engine facts and shrink the prompt; model supplies perception/judgment only.",
-      "dependencies": [
-        "feat-011",
-        "feat-015",
-        "feat-016",
-        "feat-017",
-        "feat-018",
-        "feat-019",
-        "feat-020",
-        "feat-021"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
       "id": "feat-024",
       "name": "Prompt caching",
       "description": "Assemble static doctrine into a cached prefix via the AI SDK Anthropic provider cache_control/providerOptions (through OpenRouter); volatile data after the prefix. Use the default 5-min cache TTL (runs are on-demand, no fixed interval). Assert usage.cache_read_input_tokens > 0 on repeat runs.",
       "dependencies": [
         "feat-022",
-        "feat-023"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-025",
-      "name": "Hybrid LVN flow",
-      "description": "Engine proposes LVN/border candidates from data -> model confirms/adjusts against the chart image -> engine re-validates final borders.",
-      "dependencies": [
-        "feat-020",
-        "feat-023"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-026",
-      "name": "Terrain/zone-map UI",
-      "description": "Render terrain.zones[] as a real SVG/canvas zone map plus a levels overlay; full briefing render (overview, objectives, danger zones, key inflections); render the latest EvalResult (status + direction/trigger/stop/targets/reason).",
-      "dependencies": [
-        "feat-013",
-        "feat-020",
-        "feat-023"
+        "feat-011"
       ],
       "status": "not-started",
       "evidence": ""
@@ -344,7 +311,7 @@
       "name": "Cost/latency observability",
       "description": "Persist model/cost/latency + cache-hit metrics per run; dashboard or log surface; assert prompt-cache hits on repeat runs.",
       "dependencies": [
-        "feat-023",
+        "feat-011",
         "feat-024"
       ],
       "status": "not-started",
@@ -355,7 +322,7 @@
       "name": "Opus high-conviction review flag",
       "description": "Config flag to route high-conviction reviews to anthropic/claude-opus-4-8 for max fidelity.",
       "dependencies": [
-        "feat-023"
+        "feat-011"
       ],
       "status": "not-started",
       "evidence": ""
@@ -366,7 +333,7 @@
       "description": "Keep constraints.md guardrails and engine code in sync (engine authoritative); a check/test that flags divergence of non-negotiables.",
       "dependencies": [
         "feat-022",
-        "feat-023"
+        "feat-011"
       ],
       "status": "not-started",
       "evidence": ""
