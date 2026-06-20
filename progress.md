@@ -3,10 +3,10 @@
 ## Current State
 
 **Last Updated:** 2026-06-20
-**Active Feature:** `feat-002` **DONE** — next up is any unblocked item. After the 2026-06-20
-renumber (see below), the unblocked set is: feat-003 (chart-image PoC); feat-004/005/006/007/010/012/013/017
-(dep on feat-001 only); feat-014/015 (unblocked by feat-002). All feat numbers in this section use the
-**post-renumber** scheme.
+**Active Feature:** `feat-005` **DONE** — next up is any unblocked item. After the 2026-06-20
+renumber (see below), the unblocked set is: feat-003 (chart-image PoC); feat-006/007/010/012/013/017
+(dep on feat-001 only); feat-014/015 (unblocked by feat-002); feat-008/024/028 now unblocked by feat-005.
+All feat numbers in this section use the **post-renumber** scheme.
 
 **Note:** Most recent commit (`c518fc9`) was a housekeeping rename, not feature work — project
 renamed from "Ulysses" to "Gekko" throughout docs/harness/persona; no `feature_list.json` status
@@ -61,6 +61,22 @@ Validated: 32 sequential ids, no dangling deps, no forward (backward-reading) de
 
 ### What's Done
 
+- [x] **feat-005 (Supabase schema, migrations & storage)** — `supabase/` scaffolded
+  (`supabase init`) + 3 timestamped migrations checked in: **init_core_schema** (`config`
+  singleton `id=1`; `raw_bundles`; `briefings`; `entry_levels` w/ `direction in (long,short)`;
+  `eval_results` w/ `status in (ENTER|WAIT|NOT_VALID|NO_ENTRY_NEAR)` + `near_entry` /
+  `evaluated_level_id` fk / `direction` / `trigger` / `stop` / `targets` / `reason` /
+  `raw_model_json` / `current_price` — **no `latest_price` table**, current price comes from the
+  latest bundle; indexes on `received_at`/`created_at`/`active`/fks; **RLS enabled on all 5
+  tables with no policies** → service-role-only until per-feature read policies land),
+  **storage_buckets** (private `chart-images` for PNGs + `bundle-csvs` for CSVs), **seed_config**
+  (idempotent singleton: `anthropic/claude-sonnet-4-6`, triage `anthropic/claude-haiku-4-5`,
+  `rr_min 3.0`). **Applied live** to project `qvhkqilizwozikpomxob` via the Supabase MCP and
+  verified: 5 tables, 2 buckets, 1 config row with the documented defaults, RLS on all 5;
+  `get_advisors(security)` returns only 5 INFO `rls_enabled_no_policy` notices (intentional —
+  not WARN/ERROR). `tests/migrations.test.ts` adds 15 offline schema guards. `./init.sh` green
+  (29 tests / 4 files / typecheck / lint / build).
+
 - [x] Architecture plan written: `docs/agent-architecture-plan.md`
 - [x] Sample profile exports confirmed and parsing spec locked: `chart-data/vbp_export.md`, `chart-data/delta_vbp_export.md`
 - [x] Agent harness created (`harness-creator` skill): `CLAUDE.md`, `feature_list.json`, `progress.md`, `session-handoff.md`, `init.sh` — validator reports 100/100
@@ -97,9 +113,9 @@ Validated: 32 sequential ids, no dangling deps, no forward (backward-reading) de
 
 ### What's Next
 
-1. Pick up **feat-014** (lvnDetection — unblocked by feat-002) or **feat-015** (magnetCheck), or any
-   item whose deps are all done: feat-003 (chart-image PoC); feat-004/005/006/007/010/012/013/017.
-   (Post-renumber ids.)
+1. Pick up **feat-008** (`/api/ingest`, now unblocked by feat-005), **feat-006** (Zod output
+   contracts), **feat-007** (AI SDK + OpenRouter), **feat-014** (lvnDetection) / **feat-015**
+   (magnetCheck), or any item whose deps are all done. (Post-renumber ids.)
 
 ## Blockers / Risks
 
