@@ -43,8 +43,12 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "supabase/ scaffolded via `supabase init`. 3 timestamped migrations: init_core_schema (config singleton id=1 default 1; raw_bundles; briefings; entry_levels with direction long/short check; eval_results with status check ENTER|WAIT|NOT_VALID|NO_ENTRY_NEAR + near_entry/evaluated_level_id fk/direction/trigger/stop/targets/reason/raw_model_json/current_price — no latest_price table; indexes on received_at/created_at/active/fks; RLS enabled on all 5 tables, no policies = service-role-only), storage_buckets (private chart-images + bundle-csvs), seed_config (singleton row anthropic/claude-sonnet-4-6 + triage anthropic/claude-haiku-4-5 + rr_min 3.0, idempotent). Applied LIVE to project qvhkqilizwozikpomxob via Supabase MCP: verified 5 tables, 2 buckets, 1 config row with documented defaults, RLS on all 5; get_advisors(security) returns only 5 INFO rls_enabled_no_policy notices (intentional). tests/migrations.test.ts: 15 offline guards over the SQL. ./init.sh green: typecheck/lint/test(29 pass, 4 files)/build all pass.",
+      "live": {
+        "project_ref": "qvhkqilizwozikpomxob",
+        "migrations_applied": ["init_core_schema", "storage_buckets", "seed_config"]
+      }
     },
     {
       "id": "feat-006",
