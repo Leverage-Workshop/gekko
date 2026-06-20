@@ -57,8 +57,8 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "knowledge/schema/briefing.schema.ts: Zod (v4.4.3) output contracts mirroring the docs/agent-architecture-plan.md Output contract. Briefing{meta(createdAt,triggerReason,currentPrice,htfTrend,ripStatus), overview(currentPosition[],structuralArchitecture[],orderFlowContext[],keyInflections{level,why}[]), terrain(zones{color,top,bottom,label}[], levels{price,label,kind:trench|wall|magnet|mgi}[]), primary/secondary:Objective, dangerZones{area,why}[]}; Objective{macroGoal,rationale,direction:long|short, entries{label,price,trigger}[], stops{label,price,invalidation}[], targets{label:T1|T2|T3,price,description}[], rr}; EvalResult{meta{createdAt,currentPrice,nearEntry,zone?}, status:ENTER|WAIT|NOT_VALID|NO_ENTRY_NEAR, evaluatedLevel?{label,price,direction}, direction?,trigger?,stop?,targets?,reason}. Exports inferred TS types + standalone enums (Direction,LevelKind,TargetLabel,EvalStatus). tests/briefing.schema.test.ts: 16 tests (enum membership/rejection, full Briefing accept, missing-section/bad-kind/non-numeric-price reject, unknown-key strip, Objective rr/target-label, EvalResult full ENTER + minimal NO_ENTRY_NEAR + nearEntry-boolean/status/reason guards). vitest.config.ts: added '@' path alias + knowledge/**/*.test.ts glob. ./init.sh green: typecheck/lint/test(45 pass, 5 files)/build all pass."
     },
     {
       "id": "feat-007",
