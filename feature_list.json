@@ -98,58 +98,6 @@
     },
     {
       "id": "feat-011",
-      "name": "analyze-task (engine-integrated)",
-      "description": "trigger.dev task: load bundle -> run the engine (deltaTelemetry/mgiPriority/ripStatus/lvnDetection/magnetCheck/terrainZones/riskReward) to compute facts and validate terrain borders -> AI SDK generateObject via OpenRouter (chart images + engine facts + raw mgi, Briefing schema; model supplies perception/judgment only) -> Zod validate -> persist briefing + entry_levels. Includes the hybrid LVN flow (engine proposes LVN/border candidates -> model confirms/adjusts against the chart image -> engine re-validates final borders). Retries; logs model/cost to run metadata.",
-      "dependencies": [
-        "feat-006",
-        "feat-007",
-        "feat-008",
-        "feat-010",
-        "feat-015",
-        "feat-016",
-        "feat-017",
-        "feat-018",
-        "feat-019",
-        "feat-020",
-        "feat-021"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-012",
-      "name": "Manual briefing trigger (button + route)",
-      "description": "On-demand full briefing: a 'Run Briefing' button in the Next.js UI calls POST /api/briefings/run, which does tasks.trigger('analyze-task', { triggerReason: 'manual' }). No cron / schedules.task / interval_min.",
-      "dependencies": [
-        "feat-011",
-        "feat-013"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-013",
-      "name": "Briefing + terrain render page",
-      "description": "Next.js page that fetches the latest briefing and renders the full briefing (overview, primary/secondary objectives, danger zones, key inflections) plus terrain.zones[] as a real SVG/canvas zone map with a levels overlay; renders the latest EvalResult (status + direction/trigger/stop/targets/reason). Hosts the 'Run Briefing' and 'Check Entry at Current Price' trigger buttons. Parity check vs the existing sample briefing.",
-      "dependencies": [
-        "feat-011"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-014",
-      "name": "Vercel deployment",
-      "description": "Deploy Next.js to Vercel; wire env/secrets (Supabase, OpenRouter, trigger.dev, ingest bearer). Use the Vercel plugin for current config. End-to-end: drop bundle -> briefing row -> page renders.",
-      "dependencies": [
-        "feat-011",
-        "feat-013"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-015",
       "name": "deltaTelemetry.ts",
       "description": "Reduce the parsed ExecBar[] (from parseExecBars, the ~250-row exec CSV) to a compact summary (recent delta trend, sign, +/-3/+/-4 extremes, Leg-VWAP-relative position) for the prompt.",
       "dependencies": [
@@ -159,7 +107,7 @@
       "evidence": ""
     },
     {
-      "id": "feat-016",
+      "id": "feat-012",
       "name": "mgiPriority.ts",
       "description": "MGI Tier 1/2/3 hierarchy + daily priority sort; compute nearest Tier-1 border above/below current price.",
       "dependencies": [
@@ -169,7 +117,7 @@
       "evidence": ""
     },
     {
-      "id": "feat-017",
+      "id": "feat-013",
       "name": "ripStatus.ts",
       "description": "Vanguard Protocol Green/Yellow/Red from price-vs-Rip + DeltaIntensity.",
       "dependencies": [
@@ -179,7 +127,7 @@
       "evidence": ""
     },
     {
-      "id": "feat-018",
+      "id": "feat-014",
       "name": "lvnDetection.ts",
       "description": "HVN peaks + low-volume-node valleys from the VbP volume series (local-minima/gradient detection, neighborhood-thresholded). Validated against a hand-labeled chart.",
       "dependencies": [
@@ -189,7 +137,7 @@
       "evidence": ""
     },
     {
-      "id": "feat-019",
+      "id": "feat-015",
       "name": "magnetCheck.ts",
       "description": "Trench/Wall/Magnet detection: magnets = POC/VAH/VAL (from Summary) + HVN peaks; magnet proximity = |price - magnet|; cross-reference MGI levels.",
       "dependencies": [
@@ -199,22 +147,74 @@
       "evidence": ""
     },
     {
-      "id": "feat-020",
+      "id": "feat-016",
       "name": "terrainZones.ts",
       "description": "Contiguous Stratosphere->Abyss zone stack with the No-Gap invariant (Price[N]===Price2[N+1]); classify regions by volume (acceptance/HVN vs rejection/LVN) cross-referenced with delta sign (absorption vs initiative). Engine assembles + validates borders.",
       "dependencies": [
         "feat-002",
+        "feat-014"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-017",
+      "name": "riskReward.ts",
+      "description": "Direction-aware 3:1 R/R gate; enforce 'stops never widen' vs the prior briefing. Produces rr for each Objective.",
+      "dependencies": [
+        "feat-001"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-018",
+      "name": "analyze-task (engine-integrated)",
+      "description": "trigger.dev task: load bundle -> run the engine (deltaTelemetry/mgiPriority/ripStatus/lvnDetection/magnetCheck/terrainZones/riskReward) to compute facts and validate terrain borders -> AI SDK generateObject via OpenRouter (chart images + engine facts + raw mgi, Briefing schema; model supplies perception/judgment only) -> Zod validate -> persist briefing + entry_levels. Includes the hybrid LVN flow (engine proposes LVN/border candidates -> model confirms/adjusts against the chart image -> engine re-validates final borders). Retries; logs model/cost to run metadata.",
+      "dependencies": [
+        "feat-006",
+        "feat-007",
+        "feat-008",
+        "feat-010",
+        "feat-011",
+        "feat-012",
+        "feat-013",
+        "feat-014",
+        "feat-015",
+        "feat-016",
+        "feat-017"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-019",
+      "name": "Briefing + terrain render page",
+      "description": "Next.js page that fetches the latest briefing and renders the full briefing (overview, primary/secondary objectives, danger zones, key inflections) plus terrain.zones[] as a real SVG/canvas zone map with a levels overlay; renders the latest EvalResult (status + direction/trigger/stop/targets/reason). Hosts the 'Run Briefing' and 'Check Entry at Current Price' trigger buttons. Parity check vs the existing sample briefing.",
+      "dependencies": [
         "feat-018"
       ],
       "status": "not-started",
       "evidence": ""
     },
     {
-      "id": "feat-021",
-      "name": "riskReward.ts",
-      "description": "Direction-aware 3:1 R/R gate; enforce 'stops never widen' vs the prior briefing. Produces rr for each Objective.",
+      "id": "feat-020",
+      "name": "Manual briefing trigger (button + route)",
+      "description": "On-demand full briefing: a 'Run Briefing' button in the Next.js UI calls POST /api/briefings/run, which does tasks.trigger('analyze-task', { triggerReason: 'manual' }). No cron / schedules.task / interval_min.",
       "dependencies": [
-        "feat-001"
+        "feat-018",
+        "feat-019"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-021",
+      "name": "Vercel deployment",
+      "description": "Deploy Next.js to Vercel; wire env/secrets (Supabase, OpenRouter, trigger.dev, ingest bearer). Use the Vercel plugin for current config. End-to-end: drop bundle -> briefing row -> page renders.",
+      "dependencies": [
+        "feat-018",
+        "feat-019"
       ],
       "status": "not-started",
       "evidence": ""
@@ -230,64 +230,74 @@
       "evidence": ""
     },
     {
-      "id": "feat-024",
+      "id": "feat-023",
       "name": "Prompt caching",
       "description": "Assemble static doctrine into a cached prefix via the AI SDK Anthropic provider cache_control/providerOptions (through OpenRouter); volatile data after the prefix. Use the default 5-min cache TTL (runs are on-demand, no fixed interval). Assert usage.cache_read_input_tokens > 0 on repeat runs.",
       "dependencies": [
         "feat-022",
-        "feat-011"
+        "feat-018"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-024",
+      "name": "entry_levels lifecycle",
+      "description": "On each new briefing, set prior entry_levels.active=false and insert the new set; the eval-task evaluates active=true levels only.",
+      "dependencies": [
+        "feat-005",
+        "feat-018"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-025",
+      "name": "Eval task + 'Check Entry' button",
+      "description": "On-demand entry check: a 'Check Entry at Current Price' button calls POST /api/eval/run, which does tasks.trigger('eval-task'). eval-task loads the latest bundle (current price = raw_bundles.current_price) + active entry_levels, calls the AI SDK generateObject with the EvalResult schema using the triage model (config.triage_model_id, default anthropic/claude-haiku-4-5) with chart images + delta telemetry, implements the instructions.md eval logic (ENTER/WAIT/NOT_VALID per long/short conditions, else NO_ENTRY_NEAR), persists an eval_results row, triggers notify.",
+      "dependencies": [
+        "feat-006",
+        "feat-010",
+        "feat-018",
+        "feat-019",
+        "feat-024"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-026",
+      "name": "Web notifications",
+      "description": "Notification API + Service Worker driven by Supabase Realtime on briefings/eval_results; fires on a new briefing or a new eval result while the tab is open/backgrounded.",
+      "dependencies": [
+        "feat-018"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-027",
+      "name": "Web Push (tab-closed)",
+      "description": "VAPID + web-push for alerts when the tab is fully closed; opt-in subscription flow.",
+      "dependencies": [
+        "feat-026"
       ],
       "status": "not-started",
       "evidence": ""
     },
     {
       "id": "feat-028",
-      "name": "Eval task + 'Check Entry' button",
-      "description": "On-demand entry check: a 'Check Entry at Current Price' button calls POST /api/eval/run, which does tasks.trigger('eval-task'). eval-task loads the latest bundle (current price = raw_bundles.current_price) + active entry_levels, calls the AI SDK generateObject with the EvalResult schema using the triage model (config.triage_model_id, default anthropic/claude-haiku-4-5) with chart images + delta telemetry, implements the instructions.md eval logic (ENTER/WAIT/NOT_VALID per long/short conditions, else NO_ENTRY_NEAR), persists an eval_results row, triggers notify.",
+      "name": "Config UI",
+      "description": "Settings page to edit config (model_id, triage_model_id, rr_min) with validation; writes the config row.",
       "dependencies": [
-        "feat-006",
-        "feat-010",
-        "feat-011",
-        "feat-013",
-        "feat-029"
+        "feat-005",
+        "feat-019"
       ],
       "status": "not-started",
       "evidence": ""
     },
     {
       "id": "feat-029",
-      "name": "entry_levels lifecycle",
-      "description": "On each new briefing, set prior entry_levels.active=false and insert the new set; the eval-task evaluates active=true levels only.",
-      "dependencies": [
-        "feat-005",
-        "feat-011"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-030",
-      "name": "Web notifications",
-      "description": "Notification API + Service Worker driven by Supabase Realtime on briefings/eval_results; fires on a new briefing or a new eval result while the tab is open/backgrounded.",
-      "dependencies": [
-        "feat-011"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-031",
-      "name": "Config UI",
-      "description": "Settings page to edit config (model_id, triage_model_id, rr_min) with validation; writes the config row.",
-      "dependencies": [
-        "feat-005",
-        "feat-013"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-033",
       "name": "Staleness detection",
       "description": "At button-press time (briefing or eval), check bundle freshness: if the latest bundle is older than a margin, surface a staleness warning and mark the result stale; UI marks briefings/eval results stale; never serve stale as fresh.",
       "dependencies": [
@@ -297,43 +307,33 @@
       "evidence": ""
     },
     {
-      "id": "feat-035",
-      "name": "Web Push (tab-closed)",
-      "description": "VAPID + web-push for alerts when the tab is fully closed; opt-in subscription flow.",
-      "dependencies": [
-        "feat-030"
-      ],
-      "status": "not-started",
-      "evidence": ""
-    },
-    {
-      "id": "feat-036",
+      "id": "feat-030",
       "name": "Cost/latency observability",
       "description": "Persist model/cost/latency + cache-hit metrics per run; dashboard or log surface; assert prompt-cache hits on repeat runs.",
       "dependencies": [
-        "feat-011",
-        "feat-024"
+        "feat-018",
+        "feat-023"
       ],
       "status": "not-started",
       "evidence": ""
     },
     {
-      "id": "feat-037",
+      "id": "feat-031",
       "name": "Opus high-conviction review flag",
       "description": "Config flag to route high-conviction reviews to anthropic/claude-opus-4-8 for max fidelity.",
       "dependencies": [
-        "feat-011"
+        "feat-018"
       ],
       "status": "not-started",
       "evidence": ""
     },
     {
-      "id": "feat-038",
+      "id": "feat-032",
       "name": "Doctrine drift guard",
       "description": "Keep constraints.md guardrails and engine code in sync (engine authoritative); a check/test that flags divergence of non-negotiables.",
       "dependencies": [
         "feat-022",
-        "feat-011"
+        "feat-018"
       ],
       "status": "not-started",
       "evidence": ""

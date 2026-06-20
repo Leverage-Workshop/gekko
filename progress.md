@@ -3,7 +3,10 @@
 ## Current State
 
 **Last Updated:** 2026-06-18
-**Active Feature:** `feat-002` **DONE** — next up is any unblocked item (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021 no-dep items; feat-018/019/020 now unblocked by feat-002).
+**Active Feature:** `feat-002` **DONE** — next up is any unblocked item. After the 2026-06-20
+renumber (see below), the unblocked set is: feat-003 (chart-image PoC); feat-004/005/006/007/010/012/013/017
+(dep on feat-001 only); feat-014/015 (unblocked by feat-002). All feat numbers in this section use the
+**post-renumber** scheme.
 
 **Note:** Most recent commit (`c518fc9`) was a housekeeping rename, not feature work — project
 renamed from "Ulysses" to "Gekko" throughout docs/harness/persona; no `feature_list.json` status
@@ -39,6 +42,21 @@ Trade-off accepted: the analyze-task is no longer parallelizable ahead of the en
 engine must land before the end-to-end pipeline. Validated: 32 features, no dup ids, no dangling
 deps, no dependency cycles. Feature count: 35 → 32. (Planning/spec only — no app code yet.)
 
+**Renumber (2026-06-20) — sequential, dependency-ordered:** Reordered `feature_list.json` so the
+list reads top-to-bottom (every dependency now points to an earlier feature) and renumbered the ids
+sequentially `feat-001..feat-032`, closing the gaps left by past deletions. The engine modules now
+precede the analyze-task that consumes them. **All scope-change entries ABOVE this line use the
+pre-renumber id scheme.** Old → new id map for the items that moved:
+- engine modules: feat-015→011 (deltaTelemetry), 016→012 (mgiPriority), 017→013 (ripStatus),
+  018→014 (lvnDetection), 019→015 (magnetCheck), 020→016 (terrainZones), 021→017 (riskReward)
+- pipeline/UI: feat-011→018 (analyze-task), 013→019 (render page), 012→020 (manual trigger),
+  014→021 (Vercel)
+- back half: feat-024→023 (prompt caching), 029→024 (entry_levels lifecycle), 028→025 (eval task),
+  030→026 (web notifications), 035→027 (web push), 031→028 (config UI), 033→029 (staleness),
+  036→030 (observability), 037→031 (opus flag), 038→032 (doctrine guard)
+- unchanged: feat-001..010, feat-022 (knowledge restructure)
+Validated: 32 sequential ids, no dangling deps, no forward (backward-reading) deps, no cycles.
+
 ## Status
 
 ### What's Done
@@ -71,8 +89,9 @@ deps, no dependency cycles. Feature count: 35 → 32. (Planning/spec only — no
 
 ### What's Next
 
-1. Pick up **feat-018** (lvnDetection — now unblocked by feat-002), or any no-dependency item
-   (feat-003 chart-image PoC; feat-005/006/007/010/015–017/021).
+1. Pick up **feat-014** (lvnDetection — unblocked by feat-002) or **feat-015** (magnetCheck), or any
+   item whose deps are all done: feat-003 (chart-image PoC); feat-004/005/006/007/010/012/013/017.
+   (Post-renumber ids.)
 
 ## Blockers / Risks
 
