@@ -1,0 +1,80 @@
+/**
+ * Local uploader entrypoint (feat-009).
+ *
+ * Watches the Sierra Chart export folder, debounces the burst of writes Sierra
+ * emits each ~30s cycle, bundles the present files, and POSTs them to
+ * /api/ingest with bearer auth and retry/backoff. This file is the only place
+ * that touches fragile local concerns (filesystem, chokidar, the network); all
+ * bundling/posting/scheduling logic lives in `@/lib/uploader` and is unit-tested.
+ *
+ * Run with: `npm run uploader` (reads config from the environment / .env).
+ */
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import chokidar from 'chokidar'
+import {
+  BUNDLE_FILENAMES,
+  createScheduler,
+  isEmptyBundle,
+  loadConfig,
+  postBundle,
+  readBundle,
+  toFormData,
+  type FileReader,
+} from '@/lib/uploader'
+
+const config = loadConfig()
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+const readExportFile: FileReader = async (filename) => {
+  try {
+    return new Uint8Array(await readFile(join(config.exportDir, filename)))
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null
+    }
+    throw error
+  }
+}
+
+async function uploadBundle(): Promise<void> {
+  const bundle = await readBundle(readExportFile)
+  if (isEmptyBundle(bundle)) {
+    console.warn('[uploader] export folder produced an empty bundle — skipping')
+    return
+  }
+
+  const result = await postBundle(
+    config.ingestUrl,
+    config.bearerToken,
+    toFormData(bundle),
+    config.retry,
+    { fetch, sleep },
+  )
+
+  if (result.ok) {
+    console.log(`[uploader] ingested bundle ${result.bundleId ?? '(unknown id)'} (attempt ${result.attempts})`)
+  } else {
+    console.error(
+      `[uploader] ingest failed after ${result.attempts} attempt(s): ${result.error}`,
+    )
+  }
+}
+
+const scheduler = createScheduler({
+  debounceMs: config.debounceMs,
+  run: uploadBundle,
+  onError: (error) => console.error('[uploader] unexpected error:', error),
+})
+
+const watchPaths = BUNDLE_FILENAMES.map((filename) => join(config.exportDir, filename))
+
+chokidar
+  .watch(watchPaths, { ignoreInitial: false })
+  .on('add', scheduler.trigger)
+  .on('change', scheduler.trigger)
+  .on('error', (error) => console.error('[uploader] watch error:', error))
+
+console.log(
+  `[uploader] watching ${config.exportDir} (debounce ${config.debounceMs}ms) → POST ${config.ingestUrl}`,
+)

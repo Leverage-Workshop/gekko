@@ -3,10 +3,24 @@
 ## Current State
 
 **Last Updated:** 2026-06-20
-**Active Feature:** `feat-008` **DONE** — `/api/ingest` endpoint. Next up is any unblocked
+**Active Feature:** `feat-009` **DONE** — local uploader (chokidar). Next up is any unblocked
 item: feat-003 (chart-image PoC); feat-010/012/013/017 (dep on feat-001 only); feat-014/015
-(unblocked by feat-002); feat-009/029 (now unblocked by feat-008); feat-024/028 (feat-005);
+(unblocked by feat-002); feat-029 (unblocked by feat-008); feat-024/028 (feat-005);
 feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
+
+**feat-009 (2026-06-20):** Local uploader for the Windows trading machine. `scripts/uploader.ts`
+is a thin entry (the only place touching the filesystem, `chokidar`, and the network) wired to
+pure, unit-tested modules in `lib/uploader/`: `bundle.ts` (reads the export folder into a bundle
+and builds the multipart body — field/filename contract single-sourced from `lib/ingest`'s
+manifest; `mgi.json` + `current_price.txt` sidecars carry the scalar fields), `post.ts` (bearer
+POST to `/api/ingest` with exponential backoff — retries 5xx/408/429 + network errors, treats
+other 4xx as permanent), `scheduler.ts` (debounces Sierra's ~30s write burst, coalesces triggers,
+never overlaps runs), `config.ts` (zod-validated env). Run via `npm run uploader` (tsx).
+Added `chokidar` (dep) + `tsx` (devDep), `INGEST_URL`/`GEKKO_EXPORT_DIR`/`UPLOADER_*` to
+`.env.example`. **Design note:** `current_price` isn't specified for the uploader and the ingest
+endpoint treats it as optional, so it's sourced from an optional `current_price.txt` sidecar
+rather than coupling to CSV/MGI formats. 18 new tests (`tests/uploader.{bundle,post,scheduler}.test.ts`).
+`./init.sh` green (85 tests, 11 files; typecheck/lint/build clean).
 
 **feat-008 (2026-06-20):** `app/api/ingest/route.ts` — bearer-authed multipart ingest. Stores
 PNGs to the `chart-images` bucket and CSV/MD exports to `bundle-csvs` (under a `<bundleId>/`

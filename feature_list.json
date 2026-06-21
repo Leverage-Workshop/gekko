@@ -87,8 +87,8 @@
       "dependencies": [
         "feat-008"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/uploader/{config,bundle,post,scheduler}.ts + thin scripts/uploader.ts entry (chokidar watch → debounce → multipart POST /api/ingest w/ bearer auth + exponential backoff). Bundle filenames/fields single-sourced from lib/ingest manifest; mgi.json + current_price.txt sidecars. 18 unit tests (tests/uploader.{bundle,post,scheduler}.test.ts) cover bundling, retry/backoff classification, and debounce/no-overlap scheduling. `npm run uploader` (tsx) entry validates env via zod. Verified: ./init.sh passes (typecheck, lint, 85 tests, build)."
     },
     {
       "id": "feat-010",
