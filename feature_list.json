@@ -313,7 +313,7 @@
     {
       "id": "feat-030",
       "name": "Cost/latency observability",
-      "description": "Persist model/cost/latency + cache-hit metrics per run; dashboard or log surface; assert prompt-cache hits on repeat runs.",
+      "description": "Persist model/cost/latency + cache-hit metrics per run; dashboard or log surface; assert prompt-cache hits on repeat runs. Wire AI SDK experimental_telemetry (recordInputs/recordOutputs) to LangSmith via its OTLP/OpenTelemetry ingestion endpoint so the exact prompt sent and model response are viewable per run (nested inside the trigger.dev run trace). Strip/exclude the base64 chart-image parts from recorded inputs so traces capture the doctrine prompt + JSON response without PNG bloat.",
       "dependencies": [
         "feat-018",
         "feat-023"
