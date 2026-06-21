@@ -5,7 +5,8 @@
       "Read",
       "Edit",
       "Fetch",
-      "WebSearch"
+      "WebSearch",
+      "mcp__trigger__search_docs"
     ]
   },
   "enabledMcpjsonServers": [
