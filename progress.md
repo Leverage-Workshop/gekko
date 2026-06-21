@@ -3,10 +3,24 @@
 ## Current State
 
 **Last Updated:** 2026-06-20
-**Active Feature:** `feat-007` **DONE** — AI SDK + OpenRouter provider wiring. Next up is
-any unblocked item: feat-003 (chart-image PoC); feat-010/012/013/017 (dep on feat-001 only);
-feat-014/015 (unblocked by feat-002); feat-008/024/028 (unblocked by feat-005); feat-022 (unblocked
-by feat-006). All feat numbers use the **post-renumber** scheme.
+**Active Feature:** `feat-008` **DONE** — `/api/ingest` endpoint. Next up is any unblocked
+item: feat-003 (chart-image PoC); feat-010/012/013/017 (dep on feat-001 only); feat-014/015
+(unblocked by feat-002); feat-009/029 (now unblocked by feat-008); feat-024/028 (feat-005);
+feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
+
+**feat-008 (2026-06-20):** `app/api/ingest/route.ts` — bearer-authed multipart ingest. Stores
+PNGs to the `chart-images` bucket and CSV/MD exports to `bundle-csvs` (under a `<bundleId>/`
+prefix), the MGI JSON inline as `jsonb`, parses `current_price`, and inserts one `raw_bundles`
+row holding the object refs. Auth is timing-safe (`lib/ingest/auth.ts`, `node:crypto`
+`timingSafeEqual`); orchestration is pure + dependency-injected (`lib/ingest/ingestBundle.ts`
+— `uploadObject`/`insertBundle`/`newId` injected, `IngestValidationError`→400), with the
+multipart field contract in `lib/ingest/manifest.ts`. Real deps wire to a service-role Supabase
+client (`lib/supabase/server.ts`, `@supabase/supabase-js@2.108.2`). **Scope deviation:** the
+feature_list line says "enqueue analyze-task", but `docs/agent-architecture-plan.md` line 62
+specifies ingest is `[no auto-analyze]` (analysis runs via `/api/briefings/run`), and
+trigger.dev (feat-010) + analyze-task (feat-018) are not yet built — so ingest only persists the
+bundle. Added `INGEST_BEARER_TOKEN` to `.env.example`. 13 new tests (`tests/ingest.auth.test.ts`,
+`tests/ingest.bundle.test.ts`). `./init.sh` green (67 tests, 8 files).
 
 **feat-007 (2026-06-20):** `lib/llm/` — thin wrapper over the Vercel AI SDK `generateObject`
 using OpenRouter (`@openrouter/ai-sdk-provider`) as the gateway. `client.ts#getOpenRouter()`

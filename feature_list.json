@@ -77,8 +77,8 @@
       "dependencies": [
         "feat-005"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "POST /api/ingest (app/api/ingest/route.ts, nodejs runtime): timing-safe Bearer auth (lib/ingest/auth.ts, node:crypto timingSafeEqual), multipart parse, uploads PNGs->chart-images + CSV/MD->bundle-csvs Storage buckets under a <bundleId>/ prefix, mgi JSON stored inline as jsonb, current_price parsed, then one raw_bundles insert holding object refs. Orchestration is pure/DI (lib/ingest/ingestBundle.ts; uploadObject/insertBundle/newId injected) with IngestValidationError->400. Real deps wired to service-role Supabase client (lib/supabase/server.ts). DEVIATION FROM DESCRIPTION: does NOT enqueue analyze-task — docs/agent-architecture-plan.md line 62 specifies ingest is '[no auto-analyze]' (analyze runs via /api/briefings/run), and trigger.dev (feat-010) + analyze-task (feat-018) are not yet built. Added INGEST_BEARER_TOKEN to .env.example and @supabase/supabase-js@2.108.2. Verification: ./init.sh green — typecheck 0, lint 0 errors, vitest 67/67 pass (13 new across tests/ingest.auth.test.ts + tests/ingest.bundle.test.ts), next build OK with /api/ingest registered (dynamic)."
     },
     {
       "id": "feat-009",
