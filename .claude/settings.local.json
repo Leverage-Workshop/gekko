@@ -6,7 +6,8 @@
       "Edit",
       "Fetch",
       "WebSearch",
-      "mcp__trigger__search_docs"
+      "mcp__trigger__search_docs",
+      "mcp__plugin_vercel_vercel__search_vercel_documentation"
     ]
   },
   "enabledMcpjsonServers": [
