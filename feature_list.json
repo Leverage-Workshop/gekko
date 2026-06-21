@@ -97,8 +97,8 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "Installed @trigger.dev/sdk 4.4.6; added trigger.config.ts (project proj_txmafkbausaizdmtsoiw, org leverage-workshop-c42c, dirs ./trigger, runtime node, maxDuration 300) and trigger/hello.ts (task id 'hello', no external deps). Verified locally: `trigger.dev dev` built the local worker and a triggered run returned {greeting:'Hello, feat-010'}. Verified on deploy: `trigger.dev deploy` to prod built version 20260621.1 (1 task detected, deployment fll4v5bq); prod run run_cmqnzrdd84kf80hoj6892j1yv completed with {greeting:'Hello, prod-deploy'}. ./init.sh green (typecheck 0, lint 0 errors, tests pass, build OK). No new env vars required — dev/deploy use trigger.dev CLI auth; TRIGGER_SECRET_KEY only needed later when app server code triggers tasks."
     },
     {
       "id": "feat-011",
