@@ -3,9 +3,26 @@
 ## Current State
 
 **Last Updated:** 2026-06-21
-**Active Feature:** `feat-011` **DONE** — see below. Next up is any unblocked item:
-feat-012/013/017 (dep on feat-001 only); feat-014/015 (feat-002); feat-029 (feat-008);
+**Active Feature:** `feat-012` **DONE** — see below. Next up is any unblocked item:
+feat-013/017 (dep on feat-001 only); feat-014/015 (feat-002); feat-029 (feat-008);
 feat-024/028 (feat-005); feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
+
+**feat-012 (2026-06-21) — `mgiPriority.ts`.** Added `lib/engine/mgiPriority.ts`:
+pure/immutable `computeMgiPriority(mgi: MgiStaticLevels, {currentPrice?})` over the parsed
+`mgi_static_levels.json`. Classifies every static level into the playbook `<mgi_reference>`
+Structural Hierarchy: **Tier 1** (campaign borders) = Weekly/Monthly levels + VRange extremes
++ ONH/ONL + ATR hi/lo; **Tier 2** (intraday) = Rip + 24 VWAP + PDH/PDL/PDC + IBH/IBL + OR
+hi/mid/lo; **Tier 3** = Leg VWAP (lives in the exec CSV, so never appears here). Emits all
+`levels` (price-desc), `tier1`, a `dailyPrioritySort` (Daily MGI Priority Order rank then
+price), and `nearestTier1Above`/`Below` borders relative to current price. Tiering + daily
+ranks are a declarative `LEVEL_SPECS` table (auditable). Current price defaults to
+`mgi.current.price` (override via opts), throws if neither is finite; non-finite/missing
+levels skipped; border candidates strictly above/below (a level *at* price is neither). Plain
+TS type (engine fact → no Zod), no file I/O (caller passes parsed JSON). `mgiPriority.test.ts`:
+14 tests (7 fixture against `chart-data/mgi_static_levels.json` — current 30436.25, 30 levels,
+20 Tier-1, nearestAbove PM High 30536.00 / nearestBelow Month Open 30415.50 — + 7 synthetic).
+`./init.sh` green: typecheck 0, lint 0 errors (3 pre-existing warnings), 113 tests (13 files),
+build OK.
 
 **feat-011 (2026-06-21) — `deltaTelemetry.ts`.** Added `lib/engine/deltaTelemetry.ts`:
 pure/immutable `computeDeltaTelemetry(bars: ExecBar[], {recentWindow=20})` that reduces the

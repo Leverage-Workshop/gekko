@@ -47,7 +47,11 @@
       "evidence": "supabase/ scaffolded via `supabase init`. 3 timestamped migrations: init_core_schema (config singleton id=1 default 1; raw_bundles; briefings; entry_levels with direction long/short check; eval_results with status check ENTER|WAIT|NOT_VALID|NO_ENTRY_NEAR + near_entry/evaluated_level_id fk/direction/trigger/stop/targets/reason/raw_model_json/current_price — no latest_price table; indexes on received_at/created_at/active/fks; RLS enabled on all 5 tables, no policies = service-role-only), storage_buckets (private chart-images + bundle-csvs), seed_config (singleton row anthropic/claude-sonnet-4-6 + triage anthropic/claude-haiku-4-5 + rr_min 3.0, idempotent). Applied LIVE to project qvhkqilizwozikpomxob via Supabase MCP: verified 5 tables, 2 buckets, 1 config row with documented defaults, RLS on all 5; get_advisors(security) returns only 5 INFO rls_enabled_no_policy notices (intentional). tests/migrations.test.ts: 15 offline guards over the SQL. ./init.sh green: typecheck/lint/test(29 pass, 4 files)/build all pass.",
       "live": {
         "project_ref": "qvhkqilizwozikpomxob",
-        "migrations_applied": ["init_core_schema", "storage_buckets", "seed_config"]
+        "migrations_applied": [
+          "init_core_schema",
+          "storage_buckets",
+          "seed_config"
+        ]
       }
     },
     {
@@ -117,8 +121,8 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/engine/mgiPriority.ts: pure, immutable computeMgiPriority(mgi: MgiStaticLevels, {currentPrice?}) over the parsed mgi_static_levels.json. Returns MgiPriority{currentPrice (opts override else mgi.current.price; throws 'computeMgiPriority: no finite current price' if neither finite), levels: MgiLevel[] price-desc, tier1 (Tier-1 only, price-desc), dailyPrioritySort (daily group by Daily MGI Priority Order rank then price-desc), nearestTier1Above/Below: NearestBorder|null{level, distance round2}}. MgiLevel{code,label,price,group(daily|weekly|monthly|vRange|atr),tier(1|2|3),dailyRank|null}. Tiering from playbook <mgi_reference> Structural Hierarchy Rule: Tier 1 = Weekly/Monthly levels + VRange extremes + ONH/ONL + ATR hi/lo (campaign borders); Tier 2 = Rip + 24 VWAP + PDH/PDL/PDC + IBH/IBL + OR hi/mid/lo (intraday); Tier 3 = Leg VWAP (exec CSV, not this JSON). Daily ranks 1 Rip/2 ONH+ONL/3 PDH+PDL/6 IBH+IBL/7 VWAP; unranked (PDC, OR*) sort last. Classification is a declarative LEVEL_SPECS table (auditable). Non-finite/missing level values skipped; nearest-border candidates are strictly above/below (a level at price is neither). No file I/O (caller passes parsed JSON); no Zod (engine fact). lib/engine/mgiPriority.test.ts: 14 tests — 7 fixture (current 30436.25, 30 levels desc, 20 Tier-1, nearestAbove pmHigh 30536.00 dist 99.75, nearestBelow mthOpen 30415.50 dist 20.75, dailyPrioritySort[0]=rip then onh/onl, no-mutate) + 7 synthetic (currentPrice override, throws on missing/NaN price, null border when none above, level-at-price excluded, Tier-2 not a candidate, non-finite skipped, empty structures). ./init.sh green: typecheck 0, lint 0 errors (3 pre-existing warnings), 113 tests pass (13 files), next build OK."
     },
     {
       "id": "feat-013",
