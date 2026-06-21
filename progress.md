@@ -2,11 +2,23 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-20
-**Active Feature:** `feat-009` **DONE** — local uploader (chokidar). Next up is any unblocked
-item: feat-003 (chart-image PoC); feat-010/012/013/017 (dep on feat-001 only); feat-014/015
+**Last Updated:** 2026-06-21
+**Active Feature:** `feat-010` **DONE** — trigger.dev project setup. Next up is any unblocked
+item: feat-003 (chart-image PoC); feat-012/013/017 (dep on feat-001 only); feat-014/015
 (unblocked by feat-002); feat-029 (unblocked by feat-008); feat-024/028 (feat-005);
 feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
+
+**feat-010 (2026-06-21):** trigger.dev wired into the repo. Installed `@trigger.dev/sdk` 4.4.6;
+added `trigger.config.ts` (project `proj_txmafkbausaizdmtsoiw`, org `leverage-workshop-c42c`,
+`dirs: ["./trigger"]`, `runtime: node`, `maxDuration: 300`) and a dependency-free smoke task
+`trigger/hello.ts` (`id: "hello"`). Verified **locally** via `trigger.dev dev` (local worker
+built, triggered run returned `{greeting:"Hello, feat-010"}`) and **on deploy** via
+`trigger.dev deploy` to prod (version `20260621.1`, deployment `fll4v5bq`, 1 task detected; prod
+run `run_cmqnzrdd84kf80hoj6892j1yv` returned `{greeting:"Hello, prod-deploy"}`). `./init.sh`
+green. **No env vars required** for setup/dev/deploy — those use the trigger.dev CLI login
+(`~/.config/trigger`). `TRIGGER_SECRET_KEY` is documented as commented-out in `.env.example` and
+only becomes necessary when app server code triggers tasks (a later feature). `.trigger/` is
+already gitignored.
 
 **fix (2026-06-20) — real export filenames + MGI-derived price:** Corrected two errors from the
 initial feat-009 build (see the real sample files in `chart-data/`):
