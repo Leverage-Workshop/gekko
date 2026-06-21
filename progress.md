@@ -3,10 +3,20 @@
 ## Current State
 
 **Last Updated:** 2026-06-20
-**Active Feature:** `feat-006` **DONE** — Briefing + EvalResult Zod output contracts. Next up is
-any unblocked item: feat-003 (chart-image PoC); feat-007/010/012/013/017 (dep on feat-001 only);
+**Active Feature:** `feat-007` **DONE** — AI SDK + OpenRouter provider wiring. Next up is
+any unblocked item: feat-003 (chart-image PoC); feat-010/012/013/017 (dep on feat-001 only);
 feat-014/015 (unblocked by feat-002); feat-008/024/028 (unblocked by feat-005); feat-022 (unblocked
 by feat-006). All feat numbers use the **post-renumber** scheme.
+
+**feat-007 (2026-06-20):** `lib/llm/` — thin wrapper over the Vercel AI SDK `generateObject`
+using OpenRouter (`@openrouter/ai-sdk-provider`) as the gateway. `client.ts#getOpenRouter()`
+reads `OPENROUTER_API_KEY` and throws if unset. `generateStructured.ts#generateStructured()`
+defaults the model to `anthropic/claude-sonnet-4-6` (callers pass `config.model_id` — no DB
+coupling here, dep stays feat-001), attaches base64 chart images as AI SDK vision parts,
+asserts `result.response.modelId` equals the requested model (`assertModelMatch`), and
+re-validates output against the caller's Zod schema. 9 tests in
+`tests/llm.generateStructured.test.ts` (DI'd fake `generateObject` — no network). Added
+`ai` + `@openrouter/ai-sdk-provider` deps and `.env.example`. `./init.sh` green (54 tests, 6 files).
 
 **feat-006 (2026-06-20):** `knowledge/schema/briefing.schema.ts` — Zod 4.4.3 schemas as the
 source of truth for analyze-task (`Briefing`/`Objective`) and eval-task (`EvalResult`) output,

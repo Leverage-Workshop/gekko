@@ -67,8 +67,8 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/llm/ wraps Vercel AI SDK generateObject over OpenRouter (@openrouter/ai-sdk-provider). getOpenRouter() reads OPENROUTER_API_KEY (throws if unset); generateStructured() defaults model to anthropic/claude-sonnet-4-6 (caller passes config.model_id), attaches base64 chart images as vision parts, asserts response.response.modelId matches the requested model, and re-validates output against the Zod schema. 9 unit tests (tests/llm.generateStructured.test.ts) cover match/mismatch, default model, image parts, schema rejection, and missing-key. .env.example added. ./init.sh green: typecheck clean, 54 tests pass, build OK."
     },
     {
       "id": "feat-008",
