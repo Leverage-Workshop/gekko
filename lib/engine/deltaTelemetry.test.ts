@@ -1,0 +1,102 @@
+import { describe, it, expect } from 'vitest'
+import { join } from 'path'
+import { parseExecBarsFromFile } from './parseExecBars'
+import type { ExecBar } from './parseExecBars'
+import { computeDeltaTelemetry } from './deltaTelemetry'
+
+const FIXTURE = join(process.cwd(), 'chart-data/execution_bar_data.rolling.csv')
+
+// Minimal ExecBar factory for synthetic, branch-targeting tests.
+function bar(deltaIntensity: number, legVWAP = 0, close = 100): ExecBar {
+  return {
+    dateTime: new Date('2026-06-16 09:31:47'),
+    open: close,
+    high: close,
+    low: close,
+    close,
+    legVWAP,
+    deltaIntensity,
+  }
+}
+
+describe('computeDeltaTelemetry — fixture', () => {
+  const bars = parseExecBarsFromFile(FIXTURE)
+
+  it('analyzes all 250 bars with the default recent window', () => {
+    const t = computeDeltaTelemetry(bars)
+    expect(t.barCount).toBe(250)
+    expect(t.recentWindow).toBe(20)
+  })
+
+  it('counts ±3 / ±4 extremes over the whole series', () => {
+    const t = computeDeltaTelemetry(bars)
+    expect(t.extremes.posStrong).toBe(17)
+    expect(t.extremes.posExtreme).toBe(6)
+    expect(t.extremes.negStrong).toBe(42)
+    expect(t.extremes.negExtreme).toBe(20)
+  })
+
+  it('reports the most recent extreme reading', () => {
+    const t = computeDeltaTelemetry(bars)
+    expect(t.extremes.lastExtreme).toBe(-4)
+  })
+
+  it('locates the latest Leg VWAP and prices the last close below it', () => {
+    const t = computeDeltaTelemetry(bars)
+    expect(t.legVwap.value).toBe(30470.51)
+    expect(t.legVwap.close).toBe(30436.25)
+    expect(t.legVwap.position).toBe('below')
+    expect(t.legVwap.distance).toBeCloseTo(-34.26, 2)
+  })
+
+  it('produces sign / trend values within their unions', () => {
+    const t = computeDeltaTelemetry(bars)
+    expect(['positive', 'negative', 'neutral']).toContain(t.sign)
+    expect(['rising', 'falling', 'flat']).toContain(t.recentTrend)
+  })
+})
+
+describe('computeDeltaTelemetry — synthetic', () => {
+  it('throws on empty input', () => {
+    expect(() => computeDeltaTelemetry([])).toThrow('no bars')
+  })
+
+  it('treats all-zero legVWAP (pre-leg) as unknown position', () => {
+    const t = computeDeltaTelemetry([bar(1), bar(2), bar(-1)])
+    expect(t.legVwap.value).toBeNull()
+    expect(t.legVwap.distance).toBeNull()
+    expect(t.legVwap.position).toBe('unknown')
+  })
+
+  it('detects a rising delta trend', () => {
+    const bars = [-4, -3, -2, -1, 1, 2, 3, 4].map(d => bar(d))
+    const t = computeDeltaTelemetry(bars)
+    expect(t.recentTrend).toBe('rising')
+    expect(t.sign).toBe('neutral') // symmetric window means ~0
+  })
+
+  it('detects a falling delta trend with negative sign', () => {
+    const bars = [4, 3, 2, -2, -3, -4].map(d => bar(d))
+    const t = computeDeltaTelemetry(bars)
+    expect(t.recentTrend).toBe('falling')
+    expect(t.sign).toBe('neutral')
+  })
+
+  it('reports positive sign when recent delta is consistently positive', () => {
+    const t = computeDeltaTelemetry([3, 4, 3, 4].map(d => bar(d)))
+    expect(t.sign).toBe('positive')
+  })
+
+  it('clamps recentWindow to the number of bars', () => {
+    const t = computeDeltaTelemetry([bar(1), bar(2)], { recentWindow: 50 })
+    expect(t.recentWindow).toBe(2)
+    expect(t.barCount).toBe(2)
+  })
+
+  it('prices the close above the leg when applicable', () => {
+    const t = computeDeltaTelemetry([bar(1, 0, 100), bar(2, 95, 110)])
+    expect(t.legVwap.value).toBe(95)
+    expect(t.legVwap.position).toBe('above')
+    expect(t.legVwap.distance).toBe(15)
+  })
+})

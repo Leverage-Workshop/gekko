@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
+    // Generated trigger.dev build/dev-server output (gitignored; never lint).
+    '.trigger/**',
   ]),
 ])
 

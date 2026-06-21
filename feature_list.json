@@ -107,8 +107,8 @@
       "dependencies": [
         "feat-004"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/engine/deltaTelemetry.ts: pure, immutable computeDeltaTelemetry(bars: ExecBar[], {recentWindow=20}) reducer over parsed exec bars. Returns DeltaTelemetry{barCount, recentWindow (clamped to bars.length), recentMeanDelta (round2 over last window), recentTrend rising|falling|flat (first-half vs second-half mean of window, ±0.25 tick epsilon), sign positive|negative|neutral, extremes{posStrong=±3/±4 counts (===3/4/-3/-4 over whole series), lastExtreme=most-recent |d|>=3 or null}, legVwap{value=latest non-zero legVWAP ignoring pre-leg zeros or null, close, distance=close-value, position above|below|at|unknown}}. Throws 'computeDeltaTelemetry: no bars' on empty. No file I/O (caller passes ExecBar[]); no Zod (engine fact, not Briefing output). Timezone-invariant (uses ordering + tail only). lib/engine/deltaTelemetry.test.ts: 14 tests — 5 fixture (250 bars, window 20, extreme counts +3=17/+4=6/-3=42/-4=20, lastExtreme=-4, legVWAP 30470.51 vs close 30436.25 => below/distance -34.26, sign/trend union membership) + 9 synthetic (empty throws, all-zero legVWAP=>unknown/null, rising/falling trend, positive sign, recentWindow clamp, above-leg distance). BASELINE REPAIR: added '.trigger/**' to eslint.config.mjs globalIgnores — leftover trigger.dev dev-server build artifacts under .trigger/tmp/build-* (gitignored) were producing 46 spurious lint errors. ./init.sh green: typecheck 0, lint 0 errors (3 pre-existing warnings), 99 tests pass (12 files), next build OK."
     },
     {
       "id": "feat-012",
