@@ -3,9 +3,23 @@
 ## Current State
 
 **Last Updated:** 2026-06-21
-**Active Feature:** `feat-012` **DONE** — see below. Next up is any unblocked item:
-feat-013/017 (dep on feat-001 only); feat-014/015 (feat-002); feat-029 (feat-008);
+**Active Feature:** `feat-013` **DONE** — see below. Next up is any unblocked item:
+feat-017 (dep on feat-001 only); feat-014/015 (feat-002); feat-029 (feat-008);
 feat-024/028 (feat-005); feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
+
+**feat-013 (2026-06-21) — `ripStatus.ts`.** Added `lib/engine/ripStatus.ts`: pure/immutable
+`computeRipStatus({currentPrice, rip, deltaIntensity})` resolving the playbook's **Vanguard
+Protocol** — **Green** (price at/above the Rip, trend intact, DO NOT FADE), **Yellow** (below
+the Rip with sub-extreme red = breach/stress test), **Red** (below the Rip AND `DeltaIntensity
+<= -3` = control flipped). One-tick (0.25) tolerance: price within a tick of the Rip reads
+`at` → Green (defensive line holds). Returns `condition`, signed `distance`, `position`,
+`redInitiative`, and doctrine `headline`/`action` lines. **Scalar inputs by design** — depends
+only on feat-001 scaffold, decoupled from `deltaTelemetry`/`mgiPriority` (caller passes
+`mgi.daily.rip`, `mgi.current.price`, and a representative recent `DeltaIntensity`). Plain TS
+types (engine fact → no Zod), no file I/O. `ripStatus.test.ts`: 13 tests (fixture Yellow/Red
+against `chart-data/mgi_static_levels.json` price 30436.25 vs Rip 30632.53, Green/at/above/below
+boundaries, -3 red threshold, signed round2 distance, finite-input validation). `./init.sh`
+green: typecheck 0, lint 0 errors, 126 tests (14 files), build OK.
 
 **feat-012 (2026-06-21) — `mgiPriority.ts`.** Added `lib/engine/mgiPriority.ts`:
 pure/immutable `computeMgiPriority(mgi: MgiStaticLevels, {currentPrice?})` over the parsed

@@ -131,8 +131,8 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/engine/ripStatus.ts: computeRipStatus({currentPrice, rip, deltaIntensity}) resolves the Vanguard Protocol per tactical-companion-playbook.md — Green (price at/above Rip, trend intact), Yellow (below Rip, sub-extreme red = breach/stress test), Red (below Rip AND DeltaIntensity <= -3, control flipped). One-tick (0.25) tolerance: price within a tick of the Rip reads 'at' → Green (defensive line holds). Returns condition, signed distance, position, redInitiative flag, and doctrine headline/action lines. Scalar inputs by design (depends only on feat-001 scaffold; decoupled from deltaTelemetry/mgiPriority). Pure + immutable, plain TS types, no Zod — matches engine module conventions. Tests: lib/engine/ripStatus.test.ts (13 tests: fixture Yellow/Red against chart-data/mgi_static_levels.json price 30436.25 vs Rip 30632.53, Green/at/above/below boundary cases, -3 red threshold, signed round2 distance, finite-input validation). ./init.sh green: typecheck=0, lint=0, vitest 126/126 pass, next build OK."
     },
     {
       "id": "feat-014",
