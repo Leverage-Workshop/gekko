@@ -3,10 +3,23 @@
 ## Current State
 
 **Last Updated:** 2026-06-21
-**Active Feature:** `feat-003` **DONE** (admin close, no code) — see below. Next up is any unblocked
-item: feat-012/013/017 (dep on feat-001 only); feat-014/015 (unblocked by feat-002); feat-029
-(unblocked by feat-008); feat-024/028 (feat-005); feat-022 (feat-006). All feat numbers use the
-**post-renumber** scheme.
+**Active Feature:** `feat-011` **DONE** — see below. Next up is any unblocked item:
+feat-012/013/017 (dep on feat-001 only); feat-014/015 (feat-002); feat-029 (feat-008);
+feat-024/028 (feat-005); feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
+
+**feat-011 (2026-06-21) — `deltaTelemetry.ts`.** Added `lib/engine/deltaTelemetry.ts`:
+pure/immutable `computeDeltaTelemetry(bars: ExecBar[], {recentWindow=20})` that reduces the
+~250-row parsed exec bars (feat-004) to a compact `DeltaTelemetry` for the prompt — recent
+delta mean + trend (rising/falling/flat via first-half vs second-half mean, ±0.25 tick
+epsilon), sign, whole-series ±3/±4 extreme counts + most-recent extreme, and Leg-VWAP
+position (latest non-zero legVWAP, ignoring pre-leg zeros; above/below/at/unknown + distance).
+Plain TS type (engine fact, not a Briefing output → no Zod), no file I/O. Timezone-invariant
+(uses only bar ordering + tail; the CSV DateTime is US Central but isn't parsed here).
+`lib/engine/deltaTelemetry.test.ts`: 14 tests (5 fixture against
+`chart-data/execution_bar_data.rolling.csv` + 9 synthetic branch tests). **Baseline repair:**
+added `.trigger/**` to `eslint.config.mjs` globalIgnores — leftover trigger.dev dev-server
+build output under `.trigger/tmp/build-*` (gitignored) was throwing 46 spurious lint errors.
+`./init.sh` green: typecheck 0, lint 0 errors (3 pre-existing warnings), 99 tests pass, build OK.
 
 **feat-003 (2026-06-21) — Sierra chart-image auto-export PoC, closed with no repo code.** This is
 a Phase 0 proof-of-concept that lives on the Sierra Chart / Windows side. Both deliverables are
