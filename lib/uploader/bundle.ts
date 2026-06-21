@@ -4,12 +4,36 @@ import { CURRENT_PRICE_FIELD, FILE_FIELDS, MGI_FIELD } from '@/lib/ingest'
  * Reads the Sierra Chart export folder into an in-memory bundle and turns it
  * into the multipart body POST /api/ingest expects.
  *
- * The local export filenames are exactly the `filename` of each ingest
- * `FILE_FIELD` (htf.png, tpo.png, exec.png, execution_bars.csv, vbp_export.md,
- * delta_vbp_export.md). Two sidecars carry the non-file fields: `mgi.json` holds
- * the MGI static-levels JSON and `current_price.txt` holds the latest price.
- * Reusing the ingest manifest keeps the field/filename contract single-sourced.
+ * The ingest field name and content-type for each file are single-sourced from
+ * the ingest manifest (`FILE_FIELDS`), but the *local* export filenames come
+ * from Sierra Chart (docs/agent-architecture-plan.md) and are NOT the manifest's
+ * `filename` — that one is the object name used inside the Storage bucket by the
+ * server. They coincide for every file except the execution CSV: Sierra writes
+ * `exec.csv` locally, which the server stores as `execution_bars.csv`.
+ *
+ * Two sidecars carry the non-file fields: `mgi.json` holds the MGI static-levels
+ * JSON and `current_price.txt` holds the latest price.
  */
+
+/**
+ * Local export filename Sierra Chart writes for each ingest field. Defaults to
+ * the manifest filename and overrides only where the local name differs.
+ */
+const LOCAL_FILENAME_BY_FIELD: Readonly<Record<string, string>> = {
+  exec_csv: 'exec.csv',
+}
+
+type LocalFile = {
+  readonly field: string
+  readonly filename: string
+  readonly contentType: string
+}
+
+const LOCAL_FILES: readonly LocalFile[] = FILE_FIELDS.map((f) => ({
+  field: f.field,
+  filename: LOCAL_FILENAME_BY_FIELD[f.field] ?? f.filename,
+  contentType: f.contentType,
+}))
 
 /** Sidecar filename holding the MGI static-levels JSON (posted as the `mgi` field). */
 export const MGI_FILENAME = 'mgi.json'
@@ -19,7 +43,7 @@ export const CURRENT_PRICE_FILENAME = 'current_price.txt'
 
 /** Every filename the uploader watches for inside the export folder. */
 export const BUNDLE_FILENAMES: readonly string[] = [
-  ...FILE_FIELDS.map((f) => f.filename),
+  ...LOCAL_FILES.map((f) => f.filename),
   MGI_FILENAME,
   CURRENT_PRICE_FILENAME,
 ]
@@ -45,7 +69,7 @@ const decoder = new TextDecoder()
 /** Reads every present bundle file/sidecar via the injected reader. */
 export async function readBundle(read: FileReader): Promise<Bundle> {
   const files: BundlePart[] = []
-  for (const f of FILE_FIELDS) {
+  for (const f of LOCAL_FILES) {
     const bytes = await read(f.filename)
     if (bytes) {
       files.push({ field: f.field, filename: f.filename, contentType: f.contentType, bytes })

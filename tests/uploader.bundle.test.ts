@@ -25,7 +25,7 @@ describe('readBundle', () => {
         'htf.png': new Uint8Array([1]),
         'tpo.png': new Uint8Array([2]),
         'exec.png': new Uint8Array([3]),
-        'execution_bars.csv': 'DateTime,Open\n',
+        'exec.csv': 'DateTime,Open\n',
         'vbp_export.md': '# vbp',
         'delta_vbp_export.md': '# delta',
       }),
@@ -38,6 +38,12 @@ describe('readBundle', () => {
     const htf = bundle.files.find((f) => f.field === 'htf_png')
     expect(htf?.filename).toBe('htf.png')
     expect(htf?.contentType).toBe('image/png')
+
+    // Sierra writes the CSV as `exec.csv` locally (server stores it as
+    // execution_bars.csv); the uploader must read the local name under exec_csv.
+    const csv = bundle.files.find((f) => f.field === 'exec_csv')
+    expect(csv?.filename).toBe('exec.csv')
+    expect(csv?.contentType).toBe('text/csv')
   })
 
   it('omits absent files and parses the mgi + current_price sidecars', async () => {
@@ -69,7 +75,7 @@ describe('BUNDLE_FILENAMES', () => {
       'htf.png',
       'tpo.png',
       'exec.png',
-      'execution_bars.csv',
+      'exec.csv',
       'vbp_export.md',
       'delta_vbp_export.md',
       'mgi.json',
