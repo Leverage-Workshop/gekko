@@ -23,8 +23,8 @@
       "name": "Sierra Chart chart-image auto-export PoC",
       "description": "Prove Sierra Chart auto-dumps clean, consistently-cropped HTF/TPO/exec PNGs on a timer to C:\\gekko\\export\\. Document the study/config and capture sample outputs.",
       "dependencies": [],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "Phase 0 PoC validated Sierra-side (no repo code). Sample outputs captured and committed to chart-data/: htf_clean.png, tpo.png, execution_clean.png (the consistently-cropped HTF/TPO/exec PNGs), alongside the JSON/CSV exports. Timer-based auto-export to C:\\gekko\\export\\ is empirically proven downstream: feat-008 (/api/ingest) + feat-009 (chokidar uploader watching the export dir) ingest these exact filenames from real ~30s Sierra exports, and the bundle pipeline runs against them. Sierra study/config doc intentionally skipped (lives on the user's Windows machine; not a repo artifact)."
     },
     {
       "id": "feat-004",

@@ -3,10 +3,20 @@
 ## Current State
 
 **Last Updated:** 2026-06-21
-**Active Feature:** `feat-010` **DONE** — trigger.dev project setup. Next up is any unblocked
-item: feat-003 (chart-image PoC); feat-012/013/017 (dep on feat-001 only); feat-014/015
-(unblocked by feat-002); feat-029 (unblocked by feat-008); feat-024/028 (feat-005);
-feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
+**Active Feature:** `feat-003` **DONE** (admin close, no code) — see below. Next up is any unblocked
+item: feat-012/013/017 (dep on feat-001 only); feat-014/015 (unblocked by feat-002); feat-029
+(unblocked by feat-008); feat-024/028 (feat-005); feat-022 (feat-006). All feat numbers use the
+**post-renumber** scheme.
+
+**feat-003 (2026-06-21) — Sierra chart-image auto-export PoC, closed with no repo code.** This is
+a Phase 0 proof-of-concept that lives on the Sierra Chart / Windows side. Both deliverables are
+satisfied: (1) **sample outputs captured** — `chart-data/htf_clean.png`, `tpo.png`,
+`execution_clean.png` (the consistently-cropped HTF/TPO/exec PNGs) are committed alongside the
+JSON/CSV exports; (2) **timer auto-export to `C:\gekko\export\` proven empirically downstream** —
+feat-008 (`/api/ingest`) + feat-009 (chokidar uploader watching the export dir) ingest these exact
+filenames from real ~30s Sierra exports and the bundle pipeline runs against them. The Sierra
+study/config doc was intentionally skipped per user decision (that knowledge lives on the user's
+Windows machine and is not a repo artifact). Edit is to `feature_list.json` only — no branch/PR.
 
 **feat-010 (2026-06-21):** trigger.dev wired into the repo. Installed `@trigger.dev/sdk` 4.4.6;
 added `trigger.config.ts` (project `proj_txmafkbausaizdmtsoiw`, org `leverage-workshop-c42c`,
