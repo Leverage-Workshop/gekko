@@ -62,16 +62,28 @@ describe('ingestBundle', () => {
     expect(record.is_stale).toBe(false)
   })
 
-  it('stores mgi JSON inline and parses current_price', async () => {
+  it('stores mgi JSON inline and extracts current_price from current.price', async () => {
     const { deps, inserts } = makeDeps()
+    const mgi = { current: { time: '13:36:08', price: 30436.25 }, daily: { pdh: 30915 } }
     const form = new FormData()
-    form.set('mgi', JSON.stringify({ levels: [1, 2, 3] }))
-    form.set('current_price', '30617.25')
+    form.set('mgi', JSON.stringify(mgi))
 
     await ingestBundle(form, deps)
 
-    expect(inserts[0].mgi_json).toEqual({ levels: [1, 2, 3] })
-    expect(inserts[0].current_price).toBe(30617.25)
+    // Full MGI is stored inline (so current.time is preserved in the jsonb)...
+    expect(inserts[0].mgi_json).toEqual(mgi)
+    // ...and the price is lifted out of current.price.
+    expect(inserts[0].current_price).toBe(30436.25)
+  })
+
+  it('leaves current_price null when the MGI lacks current.price', async () => {
+    const { deps, inserts } = makeDeps()
+    const form = new FormData()
+    form.set('mgi', JSON.stringify({ daily: { pdh: 30915 } }))
+
+    await ingestBundle(form, deps)
+
+    expect(inserts[0].current_price).toBeNull()
   })
 
   it('leaves refs null for absent files', async () => {
@@ -104,12 +116,13 @@ describe('ingestBundle', () => {
     await expect(ingestBundle(form, deps)).rejects.toBeInstanceOf(IngestValidationError)
   })
 
-  it('rejects a non-numeric current_price', async () => {
-    const { deps } = makeDeps()
+  it('ignores a non-numeric current.price in the MGI (price stays null)', async () => {
+    const { deps, inserts } = makeDeps()
     const form = new FormData()
     form.set('htf_png', pngFile('htf.png'))
-    form.set('current_price', 'NaN-ish')
-    await expect(ingestBundle(form, deps)).rejects.toBeInstanceOf(IngestValidationError)
+    form.set('mgi', JSON.stringify({ current: { price: 'NaN-ish' } }))
+    await ingestBundle(form, deps)
+    expect(inserts[0].current_price).toBeNull()
   })
 
   it('does not insert when validation fails before upload', async () => {

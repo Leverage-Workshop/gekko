@@ -1,26 +1,28 @@
-import { CURRENT_PRICE_FIELD, FILE_FIELDS, MGI_FIELD } from '@/lib/ingest'
+import { FILE_FIELDS, MGI_FIELD } from '@/lib/ingest'
 
 /**
  * Reads the Sierra Chart export folder into an in-memory bundle and turns it
  * into the multipart body POST /api/ingest expects.
  *
  * The ingest field name and content-type for each file are single-sourced from
- * the ingest manifest (`FILE_FIELDS`), but the *local* export filenames come
- * from Sierra Chart (docs/agent-architecture-plan.md) and are NOT the manifest's
- * `filename` — that one is the object name used inside the Storage bucket by the
- * server. They coincide for every file except the execution CSV: Sierra writes
- * `exec.csv` locally, which the server stores as `execution_bars.csv`.
+ * the ingest manifest (`FILE_FIELDS`), but the *local* export filenames are the
+ * names Sierra Chart actually writes into the export folder (see the
+ * `chart-data/` samples) — these are NOT the manifest's `filename`, which is the
+ * object name the server uses inside the Storage bucket.
  *
- * Two sidecars carry the non-file fields: `mgi.json` holds the MGI static-levels
- * JSON and `current_price.txt` holds the latest price.
+ * The current price and time are NOT separate uploads: Sierra writes them into
+ * `mgi_static_levels.json` (`current.price` / `current.time`), and the ingest
+ * endpoint extracts the price from that JSON. The uploader just ships the file.
  */
 
-/**
- * Local export filename Sierra Chart writes for each ingest field. Defaults to
- * the manifest filename and overrides only where the local name differs.
- */
+/** Local export filename Sierra Chart writes for each ingest field. */
 const LOCAL_FILENAME_BY_FIELD: Readonly<Record<string, string>> = {
-  exec_csv: 'exec.csv',
+  htf_png: 'htf_clean.png',
+  tpo_png: 'tpo.png',
+  exec_png: 'execution_clean.png',
+  exec_csv: 'execution_bar_data.rolling.csv',
+  vol_profile: 'vbp_export.md',
+  delta_profile: 'delta_vbp_export.md',
 }
 
 type LocalFile = {
@@ -29,23 +31,21 @@ type LocalFile = {
   readonly contentType: string
 }
 
-const LOCAL_FILES: readonly LocalFile[] = FILE_FIELDS.map((f) => ({
-  field: f.field,
-  filename: LOCAL_FILENAME_BY_FIELD[f.field] ?? f.filename,
-  contentType: f.contentType,
-}))
+const LOCAL_FILES: readonly LocalFile[] = FILE_FIELDS.map((f) => {
+  const filename = LOCAL_FILENAME_BY_FIELD[f.field]
+  if (!filename) {
+    throw new Error(`No local export filename mapped for ingest field '${f.field}'`)
+  }
+  return { field: f.field, filename, contentType: f.contentType }
+})
 
 /** Sidecar filename holding the MGI static-levels JSON (posted as the `mgi` field). */
-export const MGI_FILENAME = 'mgi.json'
-
-/** Sidecar filename holding the current price as plain text (posted as `current_price`). */
-export const CURRENT_PRICE_FILENAME = 'current_price.txt'
+export const MGI_FILENAME = 'mgi_static_levels.json'
 
 /** Every filename the uploader watches for inside the export folder. */
 export const BUNDLE_FILENAMES: readonly string[] = [
   ...LOCAL_FILES.map((f) => f.filename),
   MGI_FILENAME,
-  CURRENT_PRICE_FILENAME,
 ]
 
 export type BundlePart = {
@@ -58,7 +58,6 @@ export type BundlePart = {
 export type Bundle = {
   readonly files: readonly BundlePart[]
   readonly mgi: string | null
-  readonly currentPrice: string | null
 }
 
 /** Reads one export-folder file; resolves to `null` when the file is absent. */
@@ -66,7 +65,7 @@ export type FileReader = (filename: string) => Promise<Uint8Array | null>
 
 const decoder = new TextDecoder()
 
-/** Reads every present bundle file/sidecar via the injected reader. */
+/** Reads every present bundle file via the injected reader. */
 export async function readBundle(read: FileReader): Promise<Bundle> {
   const files: BundlePart[] = []
   for (const f of LOCAL_FILES) {
@@ -77,15 +76,9 @@ export async function readBundle(read: FileReader): Promise<Bundle> {
   }
 
   const mgiBytes = await read(MGI_FILENAME)
-  const priceBytes = await read(CURRENT_PRICE_FILENAME)
   const mgi = mgiBytes ? decoder.decode(mgiBytes).trim() : null
-  const currentPrice = priceBytes ? decoder.decode(priceBytes).trim() : null
 
-  return {
-    files,
-    mgi: mgi || null,
-    currentPrice: currentPrice || null,
-  }
+  return { files, mgi: mgi || null }
 }
 
 /**
@@ -106,9 +99,6 @@ export function toFormData(bundle: Bundle): FormData {
   }
   if (bundle.mgi !== null) {
     form.append(MGI_FIELD, bundle.mgi)
-  }
-  if (bundle.currentPrice !== null) {
-    form.append(CURRENT_PRICE_FIELD, bundle.currentPrice)
   }
   return form
 }

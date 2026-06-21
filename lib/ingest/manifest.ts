@@ -52,8 +52,9 @@ export const FILE_FIELDS: readonly FileField[] = [
   },
 ] as const
 
-/** multipart field carrying the MGI static-levels JSON (stored inline as jsonb). */
+/**
+ * multipart field carrying the MGI static-levels JSON (stored inline as jsonb).
+ * The current price and time are NOT separate fields — they live inside this
+ * JSON at `current.price` / `current.time` and are extracted on ingest.
+ */
 export const MGI_FIELD = 'mgi'
-
-/** multipart field carrying the current price (numeric text). */
-export const CURRENT_PRICE_FIELD = 'current_price'
