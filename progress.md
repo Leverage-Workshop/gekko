@@ -8,33 +8,38 @@ item: feat-003 (chart-image PoC); feat-010/012/013/017 (dep on feat-001 only); f
 (unblocked by feat-002); feat-029 (unblocked by feat-008); feat-024/028 (feat-005);
 feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
 
+**fix (2026-06-20) — real export filenames + MGI-derived price:** Corrected two errors from the
+initial feat-009 build (see the real sample files in `chart-data/`):
+- **Filenames** — the uploader had invented local filenames (`htf.png`, `exec.csv`, `mgi.json`,
+  …). Sierra actually writes `htf_clean.png`, `tpo.png`, `execution_clean.png`,
+  `execution_bar_data.rolling.csv`, `vbp_export.md`, `delta_vbp_export.md`,
+  `mgi_static_levels.json`. Fixed `LOCAL_FILENAME_BY_FIELD` + `MGI_FILENAME` in
+  `lib/uploader/bundle.ts`. A new test reads the real `chart-data/` folder so `BUNDLE_FILENAMES`
+  can't drift from reality again.
+- **Current price/time** — these are NOT separate upload fields; they live inside
+  `mgi_static_levels.json` at `current.price` / `current.time`. Removed the invented
+  `current_price.txt` sidecar from the uploader and the `current_price` form field from the
+  ingest contract. `lib/ingest/ingestBundle.ts` now extracts `current_price` from
+  `mgi_json.current.price` (zod-validated); the full MGI is still stored inline as jsonb, so
+  `current.time` is preserved. Removed `CURRENT_PRICE_FIELD` from `lib/ingest/manifest.ts`.
+- Also corrected the export-folder filenames in `docs/agent-architecture-plan.md` (the original
+  source of the wrong names).
+
 **feat-009 (2026-06-20):** Local uploader for the Windows trading machine. `scripts/uploader.ts`
 is a thin entry (the only place touching the filesystem, `chokidar`, and the network) wired to
 pure, unit-tested modules in `lib/uploader/`: `bundle.ts` (reads the export folder into a bundle
 and builds the multipart body — ingest *field* + *content-type* single-sourced from `lib/ingest`'s
-manifest, but the *local* export filenames come from Sierra/the architecture doc, NOT the
-manifest's `filename` (that's the server-side Storage object name); `mgi.json` +
-`current_price.txt` sidecars carry the scalar fields), `post.ts` (bearer
-POST to `/api/ingest` with exponential backoff — retries 5xx/408/429 + network errors, treats
-other 4xx as permanent), `scheduler.ts` (debounces Sierra's ~30s write burst, coalesces triggers,
-never overlaps runs), `config.ts` (zod-validated env). Run via `npm run uploader` (tsx).
-Added `chokidar` (dep) + `tsx` (devDep), `INGEST_URL`/`GEKKO_EXPORT_DIR`/`UPLOADER_*` to
-`.env.example`. **Design note:** `current_price` isn't specified for the uploader and the ingest
-endpoint treats it as optional, so it's sourced from an optional `current_price.txt` sidecar
-rather than coupling to CSV/MGI formats. 18 new tests (`tests/uploader.{bundle,post,scheduler}.test.ts`).
-`./init.sh` green (85 tests, 11 files; typecheck/lint/build clean).
-
-**fix-009 (2026-06-20):** Corrected a filename bug in the uploader. The initial impl derived the
-*local* watch filenames from the ingest manifest's `filename`, but that field is the Storage
-**object** name, not the local source name. They match for 5 of 6 files; the execution CSV
-differs (Sierra writes `exec.csv` locally → server stores `execution_bars.csv`), so the uploader
-was watching `execution_bars.csv` and would have silently never picked up the CSV. Fixed via a
-`LOCAL_FILENAME_BY_FIELD` override in `lib/uploader/bundle.ts` (field + content-type still
-single-sourced from the manifest); added a test asserting the `exec.csv`→`exec_csv` mapping.
+manifest, *local* filenames from Sierra per `chart-data/`), `post.ts` (bearer POST to `/api/ingest`
+with exponential backoff — retries 5xx/408/429 + network errors, treats other 4xx as permanent),
+`scheduler.ts` (debounces Sierra's ~30s write burst, coalesces triggers, never overlaps runs),
+`config.ts` (zod-validated env). Run via `npm run uploader` (tsx). Added `chokidar` (dep) + `tsx`
+(devDep), `INGEST_URL`/`GEKKO_EXPORT_DIR`/`UPLOADER_*` to `.env.example`.
+`./init.sh` green (87 tests; typecheck/lint/build clean).
 
 **feat-008 (2026-06-20):** `app/api/ingest/route.ts` — bearer-authed multipart ingest. Stores
 PNGs to the `chart-images` bucket and CSV/MD exports to `bundle-csvs` (under a `<bundleId>/`
-prefix), the MGI JSON inline as `jsonb`, parses `current_price`, and inserts one `raw_bundles`
+prefix), the MGI JSON inline as `jsonb`, derives `current_price` from `mgi.current.price` (see the
+later fix entry — was originally a separate form field), and inserts one `raw_bundles`
 row holding the object refs. Auth is timing-safe (`lib/ingest/auth.ts`, `node:crypto`
 `timingSafeEqual`); orchestration is pure + dependency-injected (`lib/ingest/ingestBundle.ts`
 — `uploadObject`/`insertBundle`/`newId` injected, `IngestValidationError`→400), with the

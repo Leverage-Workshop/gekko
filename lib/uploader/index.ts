@@ -5,7 +5,6 @@ export {
   isEmptyBundle,
   BUNDLE_FILENAMES,
   MGI_FILENAME,
-  CURRENT_PRICE_FILENAME,
   type Bundle,
   type BundlePart,
   type FileReader,

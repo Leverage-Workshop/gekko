@@ -1,9 +1,5 @@
-import {
-  CURRENT_PRICE_FIELD,
-  FILE_FIELDS,
-  MGI_FIELD,
-  type IngestBucket,
-} from './manifest'
+import { z } from 'zod'
+import { FILE_FIELDS, MGI_FIELD, type IngestBucket } from './manifest'
 
 /**
  * Raised for client-correctable problems (bad JSON, empty bundle, non-numeric
@@ -61,16 +57,20 @@ function parseMgi(form: FormData): unknown | null {
   }
 }
 
-function parseCurrentPrice(form: FormData): number | null {
-  const raw = form.get(CURRENT_PRICE_FIELD)
-  if (raw == null || isFile(raw) || raw === '') {
-    return null
-  }
-  const value = Number(raw)
-  if (!Number.isFinite(value)) {
-    throw new IngestValidationError(`'${CURRENT_PRICE_FIELD}' is not a number`)
-  }
-  return value
+/** The MGI JSON carries the live price/time at `current.price` / `current.time`. */
+const mgiCurrentSchema = z.object({
+  current: z.object({ price: z.number().finite() }),
+})
+
+/**
+ * Pull the current price out of the MGI static-levels JSON. The price is not a
+ * separate upload field — Sierra writes it into `mgi_static_levels.json` at
+ * `current.price` (alongside `current.time`, which stays inside the stored
+ * jsonb). Returns null when the MGI is absent or lacks a numeric price.
+ */
+function extractCurrentPrice(mgiJson: unknown): number | null {
+  const parsed = mgiCurrentSchema.safeParse(mgiJson)
+  return parsed.success ? parsed.data.current.price : null
 }
 
 /**
@@ -88,7 +88,7 @@ export async function ingestBundle(
   deps: IngestDeps,
 ): Promise<{ id: string }> {
   const mgiJson = parseMgi(form)
-  const currentPrice = parseCurrentPrice(form)
+  const currentPrice = extractCurrentPrice(mgiJson)
 
   const id = deps.newId()
 

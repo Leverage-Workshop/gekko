@@ -51,9 +51,13 @@ on the Windows box bridges Sierra Chart to the cloud.
 
 ```
 [Sierra Chart / Windows]
-  ├─ ACSIL export studies ──▶ C:\gekko\export\  (mgi.json, exec.csv,
+  ├─ ACSIL export studies ──▶ C:\gekko\export\  (mgi_static_levels.json,
+  │                                               execution_bar_data.rolling.csv,
   │                                               vbp_export.md, delta_vbp_export.md)
-  └─ Chart image auto-dump ──▶ C:\gekko\export\  (htf.png, tpo.png, exec.png)
+  └─ Chart image auto-dump ──▶ C:\gekko\export\  (htf_clean.png, tpo.png,
+                                                  execution_clean.png)
+  Note: current price/time live in mgi_static_levels.json (current.price/.time),
+  extracted on ingest — not a separate field.
 
 [Local uploader (Node + chokidar)]
   └─ watches export folder, debounces, bundles ─── POST /api/ingest (multipart, ~30s)
