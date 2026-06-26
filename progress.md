@@ -2,10 +2,29 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-21
-**Active Feature:** `feat-013` **DONE** — see below. Next up is any unblocked item:
-feat-017 (dep on feat-001 only); feat-014/015 (feat-002); feat-029 (feat-008);
-feat-024/028 (feat-005); feat-022 (feat-006). All feat numbers use the **post-renumber** scheme.
+**Last Updated:** 2026-06-26
+**Active Feature:** `feat-017` **DONE** — see below. Next unblocked items:
+feat-029 (feat-008); feat-022 (feat-006); feat-033 (feat-002, but needs manual Sierra exports).
+NOTE: feat-015 (magnetCheck) now depends on **feat-014** as well as feat-002 — its magnets
+include HVN peaks produced by feat-014/lvnDetection, so it is blocked until the LVN/HVN chain
+(feat-033 → feat-014) lands. Dependency edge added 2026-06-26. All feat numbers use the
+**post-renumber** scheme.
+
+**feat-017 (2026-06-26) — `riskReward.ts`.** Added `lib/engine/riskReward.ts`: pure/immutable
+`evaluateRiskReward({direction,entry,stop,targets,rrMin?,priorStop?})` — direction-aware risk
+(long: `entry-stop`; short: `stop-entry`) + per-target reward/rr, headline `rr` to the nearest
+target (T1), **3:1 gate** (`DEFAULT_RR_MIN=3.0`, mirrors seeded `config.rr_min`), and **stops
+never widen** vs the prior briefing (long: a lower stop = farther = invalid; short: higher;
+0.25-tick tolerance). Returns `RiskReward{risk, targets[], rr, rrMin, meetsGate, priorStop,
+stopWidened, valid, reasons[]}` with human-readable invalidation reasons. `objectiveRiskReward`
+adapts a schema `Objective` (type-only import → no runtime Zod coupling): entry = Entry A, stop
+= farthest protective-side stop (most conservative R/R). Doctrine basis: `instructions.md` #5
+(3:1 min) + playbook Stop Management ("Never Allow movement farther from entry"). Scalar/array
+inputs by design (depends only on feat-001 scaffold). `riskReward.test.ts`: 23 tests (long/short
+geometry, gate pass/fail + custom rrMin, wrong-side stop/target, missing targets, stops-never-
+widen long/short + sub-tick tolerance + null skip, finite-input guards, objective adapter).
+`./init.sh` green: typecheck 0, lint 0 errors (3 pre-existing warnings), 149 tests (15 files),
+build OK.
 
 **feat-013 (2026-06-21) — `ripStatus.ts`.** Added `lib/engine/ripStatus.ts`: pure/immutable
 `computeRipStatus({currentPrice, rip, deltaIntensity})` resolving the playbook's **Vanguard

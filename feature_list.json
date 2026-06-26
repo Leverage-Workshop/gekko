@@ -150,7 +150,8 @@
       "name": "magnetCheck.ts",
       "description": "Trench/Wall/Magnet detection: magnets = POC/VAH/VAL (from Summary) + HVN peaks; magnet proximity = |price - magnet|; cross-reference MGI levels.",
       "dependencies": [
-        "feat-002"
+        "feat-002",
+        "feat-014"
       ],
       "status": "not-started",
       "evidence": ""
@@ -173,8 +174,8 @@
       "dependencies": [
         "feat-001"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/engine/riskReward.ts: pure, immutable engine module. evaluateRiskReward({direction,entry,stop,targets,rrMin?,priorStop?}) computes direction-aware risk (long: entry-stop; short: stop-entry) and per-target reward/rr, headline rr to the nearest target (T1), gates rr>=rrMin (DEFAULT_RR_MIN=3.0 mirroring seeded config.rr_min), and enforces 'stops never widen' vs the prior briefing (long: new stop lower than priorStop = farther = invalid; short: higher; 0.25-tick EPSILON tolerance). Returns RiskReward{risk, targets[], rr, rrMin, meetsGate, priorStop, stopWidened, valid, reasons[]} with human-readable invalidation reasons (wrong-side stop/target, below-minimum, widened). objectiveRiskReward(objective, {rrMin?,priorStop?}) adapts a schema Objective via type-only import (no runtime Zod coupling): entry=Entry A, stop=farthest protective-side stop (most conservative R/R), targets in listed order; throws when no entry or no protective-side stop. Doctrine basis: instructions.md #5 (3:1 min) + playbook Stop Management ('Never Allow movement farther from entry'). lib/engine/riskReward.test.ts: 23 tests (long/short geometry, T1 headline + per-target rr, gate pass/fail, custom rrMin, wrong-side stop/target, missing targets, stops-never-widen long/short + sub-tick tolerance + null skip, finite-input guards, objective adapter Entry-A/farthest-stop selection + priorStop/rrMin threading + entry/stop throws). ./init.sh green: typecheck 0, lint 0 errors (3 pre-existing warnings), 149 tests pass (15 files, +23), next build OK."
     },
     {
       "id": "feat-018",
