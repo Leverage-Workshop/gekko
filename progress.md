@@ -3,12 +3,35 @@
 ## Current State
 
 **Last Updated:** 2026-06-27
-**Active Feature:** `feat-022` **DONE** — see below. Next unblocked items:
-feat-029 (feat-008); feat-033 (feat-002, but needs manual Sierra exports). NOTE: feat-018
+**Active Feature:** `feat-029` **DONE** — see below. Next unblocked items:
+feat-033 (feat-002, but needs manual Sierra exports). NOTE: feat-018
 (analyze-task) remains blocked on the LVN/HVN chain (feat-033 → feat-014 → feat-015/016) plus
 feat-015/016. feat-015 (magnetCheck) depends on **feat-014** as well as feat-002 — its magnets
 include HVN peaks produced by feat-014/lvnDetection, so it is blocked until the LVN/HVN chain
 lands. All feat numbers use the **post-renumber** scheme.
+
+**feat-029 (2026-06-27) — Staleness detection.** NEW `lib/engine/staleness.ts`: pure,
+serializable `assessStaleness({receivedAt, now?, marginMs?})` → `StalenessAssessment`
+(`isStale`, `hasData`, `ageMs`, `ageSeconds`, `marginMs`, `receivedAt`, `evaluatedAt`,
+`warning`). Compares the latest `raw_bundles.received_at` against a freshness margin
+(`DEFAULT_STALENESS_MARGIN_MS = 180s`, ~6 missed 30s exports; overridable per call). `age >
+margin` ⇒ stale; **no bundle at all** (null/unparseable `receivedAt`, i.e. uploader/Sierra never
+started or DB empty) ⇒ maximally stale (`hasData=false`, `ageMs=Infinity`). Boundary is
+strictly-greater (`age == margin` is fresh); future-dated bundles clamp to age 0 (cross-machine
+clock skew never reads as stale). Stale results carry a human `warning` ("do not treat as the
+live market picture") for the UI to surface; fresh ⇒ `warning=null` — **never serve stale as
+fresh** (Top Risk #3, single-machine availability). `now` is injected (defaults to wall clock) so
+it's deterministic/unit-testable, and the output is plain JSON meant to be embedded in a
+Briefing/EvalResult payload. DECISION: built as a **pure engine primitive** (like
+`ripStatus`/`riskReward`) with no DB coupling — its consumers don't exist yet (analyze-task
+feat-018, eval-task feat-025, render pages feat-019/025 will call it at button-press time and pass
+the latest bundle's `received_at`); margin kept as a param (default constant) rather than a new
+`config` column to avoid scope creep into feat-028. No Zod (engine fact, not model-facing output).
+`lib/engine/staleness.test.ts`: 16 guards (freshness boundary incl. exact-margin/±1ms, default &
+override margin, no-data null/undefined/bad-string, ISO/epoch/Date inputs, skew clamp, ISO
+normalisation, invalid `now`/`marginMs` throws). Verified: `./init.sh` green — typecheck 0, lint 0
+errors (3 pre-existing warnings in `tests/briefing.schema.test.ts`, untouched), vitest **177/177**
+(16 new), `next build` OK.
 
 **feat-022 (2026-06-27) — Knowledge restructure.** Deduped the two Gem-export prose files
 (`gem-files/instructions.md`, `gem-files/tactical-companion-playbook.md`) into `knowledge/` per
