@@ -236,8 +236,8 @@
       "dependencies": [
         "feat-006"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "Deduped the two Gem-export prose files into knowledge/ per docs/agent-architecture-plan.md (lines 151-189). NEW: knowledge/system/{persona.md (Gekko persona+tone, ADHD UX <=2 highlights/one action, discipline + quick-ref templates), constraints.md (8 non-negotiables split into qualitative guardrails vs engine-owned computable ones + warnings/edge-cases), output-schema.md (prose mirror of the Zod Briefing+EvalResult contract, names briefing.schema.ts as source of truth)}; knowledge/doctrine/{chart-reading.md (consolidated <chart_interpretation>: 5 feeds, merged the two duplicate Data-Ingestion-Hierarchy + Tactical-Fusion copies into one, Terrain Model/Internal Partitioning/Campaign Map/Entry Decision Tree/Vanguard Protocol/validation checklist/position mgmt), patterns.md (order-flow absorption/exhaustion + rebid/reoffer cheat sheets, Three-Push Exhaustion Trap, Controlled Flush & Reload, failed-breakout reload), glossary.md (Daily/Weekly/Monthly MGI tables verbatim)}. knowledge/schema/briefing.schema.ts unchanged (feat-006). COMPUTABLE DOCTRINE REMOVED FROM PROSE: 3:1 R/R -> riskReward.ts, stops-never-widen -> riskReward.ts, Rip Green/Yellow/Red -> ripStatus.ts, MGI Tier 1/2/3 + daily priority -> mgiPriority.ts, delta scale -> deltaTelemetry.ts; prose names the module rather than restating thresholds. USER DECISIONS: gem-files/instructions.md + tactical-companion-playbook.md kept as untouched historical originals (not deleted); engine comment citations still point at them so no engine edits. tests/knowledge-restructure.test.ts: 12 guards (7 file-existence/non-empty, 2 no-'3:1' in doctrine prose, 3 constraints.md defers to riskReward/ripStatus/mgiPriority). ./init.sh green: typecheck 0, lint 0 errors, 161 tests pass (16 files, +12), next build OK."
     },
     {
       "id": "feat-023",

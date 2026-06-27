@@ -2,13 +2,34 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-26
-**Active Feature:** `feat-017` **DONE** — see below. Next unblocked items:
-feat-029 (feat-008); feat-022 (feat-006); feat-033 (feat-002, but needs manual Sierra exports).
-NOTE: feat-015 (magnetCheck) now depends on **feat-014** as well as feat-002 — its magnets
+**Last Updated:** 2026-06-27
+**Active Feature:** `feat-022` **DONE** — see below. Next unblocked items:
+feat-029 (feat-008); feat-033 (feat-002, but needs manual Sierra exports). NOTE: feat-018
+(analyze-task) remains blocked on the LVN/HVN chain (feat-033 → feat-014 → feat-015/016) plus
+feat-015/016. feat-015 (magnetCheck) depends on **feat-014** as well as feat-002 — its magnets
 include HVN peaks produced by feat-014/lvnDetection, so it is blocked until the LVN/HVN chain
-(feat-033 → feat-014) lands. Dependency edge added 2026-06-26. All feat numbers use the
-**post-renumber** scheme.
+lands. All feat numbers use the **post-renumber** scheme.
+
+**feat-022 (2026-06-27) — Knowledge restructure.** Deduped the two Gem-export prose files
+(`gem-files/instructions.md`, `gem-files/tactical-companion-playbook.md`) into `knowledge/` per
+`docs/agent-architecture-plan.md` (151–189). NEW `knowledge/system/`: `persona.md` (Gekko
+persona+tone, ADHD UX, discipline + quick-ref templates), `constraints.md` (8 non-negotiables
+split into qualitative guardrails vs **engine-owned computable** ones + warnings/edge-cases),
+`output-schema.md` (prose mirror of the Zod `Briefing`+`EvalResult` contract, names
+`briefing.schema.ts` as source of truth). NEW `knowledge/doctrine/`: `chart-reading.md`
+(consolidated `<chart_interpretation>`; merged the **two duplicate** Data-Ingestion-Hierarchy +
+Tactical-Fusion copies into one; Terrain Model / Internal Partitioning / Campaign Map / Entry
+Decision Tree / Vanguard Protocol), `patterns.md` (absorption/exhaustion + rebid/reoffer, Three-
+Push Exhaustion Trap, Controlled Flush & Reload, failed-breakout reload), `glossary.md`
+(Daily/Weekly/Monthly MGI tables verbatim). `knowledge/schema/briefing.schema.ts` unchanged
+(feat-006). **Computable doctrine removed from prose**: 3:1 R/R + stops-never-widen →
+`riskReward.ts`, Rip Green/Yellow/Red → `ripStatus.ts`, MGI Tier 1/2/3 + daily priority →
+`mgiPriority.ts`, delta scale → `deltaTelemetry.ts` (prose names the module, not the threshold).
+DECISIONS: `gem-files/*.md` kept as **untouched historical originals** (not deleted); engine
+comment citations still point at them so no engine edits. `tests/knowledge-restructure.test.ts`:
+12 guards (file existence/non-empty, no-`3:1` in doctrine prose, constraints.md defers to the
+three engine modules). `./init.sh` green: typecheck 0, lint 0 errors, 161 tests (16 files, +12),
+build OK.
 
 **feat-017 (2026-06-26) — `riskReward.ts`.** Added `lib/engine/riskReward.ts`: pure/immutable
 `evaluateRiskReward({direction,entry,stop,targets,rrMin?,priorStop?})` — direction-aware risk
