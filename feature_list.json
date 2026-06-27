@@ -313,8 +313,8 @@
       "dependencies": [
         "feat-008"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/engine/staleness.ts: pure, serializable assessStaleness({receivedAt, now?, marginMs?}) → StalenessAssessment {isStale, hasData, ageMs, ageSeconds, marginMs, receivedAt, evaluatedAt, warning}. Compares the latest raw_bundles.received_at against a freshness margin (DEFAULT_STALENESS_MARGIN_MS = 180s, ~6 missed 30s exports; overridable); >margin ⇒ stale, and null/unparseable receivedAt (no uploader/Sierra) ⇒ maximally stale (hasData=false, ageMs=Infinity). Boundary is strictly-greater (==margin is fresh); future-dated bundles clamp to age 0 (clock skew). Stale results carry a human warning ('do not treat as the live market picture') for the UI; fresh ⇒ warning=null — never serve stale as fresh. Engine primitive for the not-yet-built consumers (analyze-task feat-018, eval-task feat-025, render pages feat-019/025), mirroring ripStatus/riskReward. Verified: lib/engine/staleness.test.ts 16/16 pass; ./init.sh green (typecheck 0, lint 0 errors, vitest 177/177, next build OK)."
     },
     {
       "id": "feat-030",
