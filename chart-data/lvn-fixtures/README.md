@@ -1,7 +1,12 @@
 # LVN/HVN Fixture Set
 
 Target: **8 fixtures** — 5 train / 3 holdout — for tuning LVN/HVN detection thresholds
-(feat-033). Each profile yields ~9 LVN + ~9 HVN labeled nodes.
+(feat-033). Label each profile to its **actual structure**, not to a fixed count: mark only
+genuine HVN peaks (fat bars / local maxima) and genuine LVNs (real volume troughs or the knees
+where a distribution tapers into a low plateau). A clean bell has one HVN and a couple of tail
+LVNs; a multi-modal profile has more. **Do not pad labels to hit a target number** — labels
+landing on high-volume bins corrupt the ground truth the detector is judged against (this was the
+original defect corrected under feat-014).
 
 > `fixture-x.*` is a **scratch template** (export, then rename to the next real fixture).
 > It does **not** count toward the 8.
@@ -12,7 +17,8 @@ Target: **8 fixtures** — 5 train / 3 holdout — for tuning LVN/HVN detection 
 - Both LVN types present in **both** train and holdout (guards against silent overfitting):
   - **Taper-edge** LVNs — from trend/elongated legs
   - **Valley** LVNs — from double-distribution / composite profiles
-- Each export must span enough price levels to hold ~9 labels per type.
+- Each export must span enough price levels to exhibit clear structure (several distributions,
+  gaps, and tails) — not to hit a specific label count.
 
 ## Export checklist
 
