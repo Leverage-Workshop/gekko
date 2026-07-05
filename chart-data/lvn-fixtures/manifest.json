@@ -1,0 +1,13 @@
+{
+  "description": "Machine-readable index for the LVN/HVN fixture set (feat-033, Phase A). The `split` field is the authoritative train/holdout designation consumed by the feat-014 eval harness — never tune against holdout. Keep in sync with README.md.",
+  "fixtures": [
+    { "id": "fixture-1", "split": "train", "shape": "broad-multimodal", "primaryLvnType": "valley" },
+    { "id": "fixture-2", "split": "train", "shape": "double-distribution-wide", "primaryLvnType": "valley" },
+    { "id": "fixture-3", "split": "train", "shape": "trend-elongated-up", "primaryLvnType": "taper-edge" },
+    { "id": "fixture-4", "split": "train", "shape": "balanced-bell", "primaryLvnType": "valley" },
+    { "id": "fixture-5", "split": "train", "shape": "double-distribution-clean", "primaryLvnType": "valley" },
+    { "id": "fixture-6", "split": "holdout", "shape": "multi-session-composite", "primaryLvnType": "valley" },
+    { "id": "fixture-7", "split": "holdout", "shape": "thin-low-liquidity", "primaryLvnType": "taper-edge" },
+    { "id": "fixture-8", "split": "holdout", "shape": "trend-elongated-down", "primaryLvnType": "taper-edge" }
+  ]
+}

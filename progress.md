@@ -2,13 +2,31 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-27
-**Active Feature:** `feat-029` **DONE** — see below. Next unblocked items:
-feat-033 (feat-002, but needs manual Sierra exports). NOTE: feat-018
-(analyze-task) remains blocked on the LVN/HVN chain (feat-033 → feat-014 → feat-015/016) plus
-feat-015/016. feat-015 (magnetCheck) depends on **feat-014** as well as feat-002 — its magnets
+**Last Updated:** 2026-07-05
+**Active Feature:** `feat-033` **DONE** — see below. Next unblocked item: **feat-014**
+(`lvnDetection.ts` + LVN/HVN eval harness, Phase B) — its Phase-A ground truth is now in place.
+NOTE: feat-018 (analyze-task) remains blocked on the LVN/HVN chain (feat-033 ✅ → feat-014 →
+feat-015/016). feat-015 (magnetCheck) depends on **feat-014** as well as feat-002 — its magnets
 include HVN peaks produced by feat-014/lvnDetection, so it is blocked until the LVN/HVN chain
 lands. All feat numbers use the **post-renumber** scheme.
+
+**feat-033 (2026-07-05) — LVN/HVN validation fixtures + labels (Phase A).** Closed out the
+ground-truth set in `chart-data/lvn-fixtures/`: 8 fixtures (`fixture-1..8`), each with
+`.vbp.md` + `.labels.json` + `.image.png`, spanning all 5 shape categories, with taper-edge and
+valley LVNs present in **both** train (1–5) and holdout (6–8). NEW `manifest.json` is the
+**authoritative** train/holdout designation (plus `shape`, `primaryLvnType`) — the eval harness
+reads it, not README prose. NEW `lib/engine/loadLvnFixtures.ts`: a VbP-only loader (no paired
+delta) built on a new `parseVbpProfile` export in `parseProfile.ts`; it joins each fixture to its
+labels and **validates** every label is in range + snapped to an actual bin. `loadLvnFixtures({
+strict: true })` throws on any out-of-range/off-bin label. This guard caught (and we corrected) a
+real defect: `fixture-8` carried 3 LVN labels (`30052/29920/29576`) copy-pasted from fixture-2,
+all below its `30070` floor. Also sorted all label arrays ascending and refreshed the README
+status column. `lib/engine/loadLvnFixtures.test.ts`: 9 guards (manifest load, 5/3 split, both LVN
+types per split, non-empty profiles, zero label issues across the set, strict-mode pass, plus
+synthetic out-of-range + off-bin + on-bin cases). Verified: `./init.sh` green — new tests 9/9,
+typecheck 0, lint 0 errors (3 pre-existing warnings untouched), full vitest suite pass,
+`next build` OK. (A stray uncommitted edit to `chart-data/delta_vbp_export.md` had briefly
+red-lined `parseProfile.test.ts` mid-session; it was reverted, restoring a clean baseline.)
 
 **feat-029 (2026-06-27) — Staleness detection.** NEW `lib/engine/staleness.ts`: pure,
 serializable `assessStaleness({receivedAt, now?, marginMs?})` → `StalenessAssessment`
