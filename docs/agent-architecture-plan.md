@@ -117,8 +117,12 @@ capture — absorption-vs-exhaustion *shape*, Three-Push Exhaustion / Flush-&-Re
 the engine's borders — plus synthesis/judgment (Law of Asymmetric Initiative, Campaign
 Boundary Override, macro-vs-micro conflict resolution) and the persona narrative.
 
-**Hybrid LVN flow:** engine proposes LVN/border candidates from data → model
-confirms/adjusts against the chart image → engine re-validates final borders.
+**Code-owned LVN flow:** `lvnDetection.ts` computes LVN/HVN node prices from the VbP
+volume series and they are authoritative — there is **no** vision round-trip and the
+model is **not** asked to confirm or adjust node prices (chart histograms are lossy
+renderings of the exact numeric data the engine already holds). The model reads the
+screenshots only for perception the data can't give (absorption/exhaustion shape, TPO
+single prints, delta clustering). See feat-014 / feat-018 in `feature_list.json`.
 
 ### Profile Export Format (LOCKED — from samples `chart-data/vbp_export.md`, `chart-data/delta_vbp_export.md`)
 

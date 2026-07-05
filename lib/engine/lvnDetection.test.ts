@@ -14,7 +14,10 @@ function series(vols: number[], startPrice = 30000): PriceVolume[] {
   return vols.map((v, i) => ({ price: startPrice + i, volume: v }))
 }
 
-const RAW = { smoothWindow: 1 } // no smoothing — preserve exact synthetic shape
+// No smoothing + a small merge tolerance: these synthetic series are only ~10 bins wide with
+// features a few points apart, so the production mergeTolerance (tuned for real ~600-bin
+// profiles) would collapse distinct peaks/valleys. Mechanics, not tuning, are under test here.
+const RAW = { smoothWindow: 1, mergeTolerance: 2 }
 
 describe('detectLvnHvn — HVN peaks', () => {
   it('finds a single peak in a triangular hill and no valley', () => {
@@ -101,7 +104,7 @@ describe('detectLvnHvn — output shape', () => {
   })
 
   it('ships tuned default params (feat-034)', () => {
-    expect(DEFAULT_LVN_PARAMS.smoothWindow).toBe(11)
+    expect(DEFAULT_LVN_PARAMS.smoothWindow).toBe(13)
     expect(DEFAULT_LVN_PARAMS.peakProminenceFrac).toBeGreaterThan(0)
     expect(DEFAULT_LVN_PARAMS.valleyDepthFrac).toBeGreaterThan(0)
   })

@@ -69,18 +69,21 @@ export type LvnDetectionParams = {
   mergeTolerance: number
 }
 
-// Tuned against the 5 TRAIN fixtures via `npm run lvn:eval` (feat-034, folded in). Selection was
-// train-only with a regularization preference for moderate smoothing: a larger smoothWindow (19)
-// scored higher on train but collapsed on holdout (overfit), so smoothWindow is held at 11.
-// Achieves train LVN F1 ~0.58 / HVN F1 ~0.65 at ±10pt; see progress.md for the rationale.
+// Tuned against the 5 TRAIN fixtures via `npm run lvn:eval` (feat-034, folded in). Selection
+// favored generalization over train-max: aggressive params (high prominence, big smoothing) beat
+// this on train but collapsed on the holdout set (overfit), so moderate settings were kept.
+// Real-world estimate (holdout, ±10pt): HVN F1 ~0.61, LVN F1 ~0.36 — HVN detection is solid; LVN
+// localization is the known-hard part (the architecture's #1 engine risk) and this is a first
+// cut. Detection is code-owned and authoritative (no LLM validation of node prices), so these
+// numbers are what ships downstream. See progress.md for the full rationale.
 export const DEFAULT_LVN_PARAMS: LvnDetectionParams = {
-  smoothWindow: 11,
-  peakProminenceFrac: 0.12,
-  valleyDepthFrac: 0.07,
-  plateauLevelFrac: 0.2,
+  smoothWindow: 13,
+  peakProminenceFrac: 0.1,
+  valleyDepthFrac: 0.1,
+  plateauLevelFrac: 0.18,
   plateauRun: 6,
-  shoulderFrac: 0.5,
-  mergeTolerance: 6,
+  shoulderFrac: 0.45,
+  mergeTolerance: 12,
 }
 
 function round2(n: number): number {
