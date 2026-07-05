@@ -155,3 +155,23 @@ export function parseProfilesFromFiles(vbpPath: string, deltaPath: string): Pars
   const deltaContent = readFileSync(deltaPath, 'utf-8')
   return parseProfiles(vbpContent, deltaContent)
 }
+
+export type VbpProfile = {
+  rows: { price: number; volume: number }[]
+  meta: ProfileMeta
+}
+
+/**
+ * Parse a standalone Volume (VbP) profile file — no paired Delta profile.
+ * Used by the LVN/HVN fixture loader, where fixtures carry only a `.vbp.md`.
+ */
+export function parseVbpProfile(vbpContent: string): VbpProfile {
+  const vbp = parseProfileFile(vbpContent)
+  if (vbp.type !== 'vbp') {
+    throw new Error('Expected a Volume (VbP) profile, got a Delta profile')
+  }
+  return {
+    rows: vbp.rows.map(r => ({ price: r.price, volume: r.value })),
+    meta: vbp.meta,
+  }
+}
