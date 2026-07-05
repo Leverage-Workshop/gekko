@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "uploader": "tsx scripts/uploader.ts",
+    "lvn:eval": "tsx scripts/lvn-eval.ts",
     "format": "prettier --write \"{app,lib,tests}/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
