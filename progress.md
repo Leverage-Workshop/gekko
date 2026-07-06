@@ -24,10 +24,15 @@ distribution shoulder is sought within `shoulderWindow` (40pt), not just the adj
 a **stable, moderate** config (`sw17 pp0.2 hd0.35 vd0.1 pl0.3 pr6 sf0.6 shw40 mt14`) from the
 winning cluster, favoring generalization over train-max (the feat-014 overfit lesson). **Result**
 (`npm run lvn:eval`, ±10pt): TRAIN LVN F1 **0.51** / HVN **0.81** — gate PASSES at 0.40; HOLDOUT LVN
-0.34 / HVN 0.43 (honest, never tuned). **Known remaining limitation:** the hardest ledges Caleb
-marks *high* on a tall distribution (fixture-8 30470 @66%, fixture-7 30270 @54%) are still missed —
-placement sits at the shelf's low/base side; a high-side gradient-knee placement is future work,
-deliberately avoided here to not overfit holdout. **No re-binning** — Caleb confirmed the CSV bins
+0.36 / HVN 0.43 (honest, never tuned). **Known remaining limitation:** shallow tall ledges high on a
+distribution (e.g. fixture-7 30270 @54%, on a ~50%-of-peak flat) are still missed. A
+relative-contrast / high-side gradient-knee ledge detector was investigated (4 variants, incl.
+moving the target ledge into train) and rejected: it catches a tall ledge only at a step threshold
+that also fires on the ordinary flanks of every distribution — a NET NEGATIVE on train (one catch
+costs ~8 false LVNs; train F1 48→43). A big ledge and a normal distribution flank aren't separable
+in the 1-D volume shape by a threshold; that needs a width/shape-aware model or the chart image
+(forbidden — code-owned detection). Baseline kept. Caleb later re-reviewed fixture-8 and dropped its
+30470 label (mid-distribution, not a ledge), leaving 30347/30541 (holdout LVN 0.34→0.36). **No re-binning** — Caleb confirmed the CSV bins
 ARE the 4/8-tick chart bars (no coarse-vs-fine resolution mismatch). Tests:
 `lib/engine/lvnDetection.test.ts` 13 pass (added HVN-floor + windowed-shoulder mechanics). README
 labeling philosophy updated to the shelf-edge definition.

@@ -85,7 +85,7 @@ export type LvnDetectionParams = {
 // Selection favored generalization (per the feat-014 lesson — aggressive params overfit): the
 // winning region was a stable cluster, and `hvnDominanceFrac` was kept at 0.35 (not the train-max
 // 0.45) to retain secondary-distribution HVNs. Real numbers (±10pt): TRAIN LVN F1 0.51 / HVN 0.81;
-// HOLDOUT LVN 0.34 / HVN 0.43 — LVN localization is still the known-hard part (the architecture's
+// HOLDOUT LVN 0.36 / HVN 0.43 — LVN localization is still the known-hard part (the architecture's
 // #1 engine risk). Detection is code-owned and authoritative (no LLM validation of node prices),
 // so these numbers are what ships downstream. See progress.md for the full rationale.
 export const DEFAULT_LVN_PARAMS: LvnDetectionParams = {
