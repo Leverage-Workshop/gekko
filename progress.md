@@ -2,13 +2,40 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-05
-**Active Feature:** `feat-014` **DONE** (with `feat-034` **folded in** — see below). Next
-unblocked items: **feat-015** (`magnetCheck.ts`) and **feat-016** (`terrainZones.ts`), which are
-independent of each other and now unblocked since the LVN/HVN detector output contract has landed.
-Per the approved PR-sequencing plan, feat-014(+034) ships as PR1; feat-015 and feat-016 follow as
-separate PRs. feat-018 (analyze-task) remains blocked until 015/016 land. All feat numbers use the
-**post-renumber** scheme.
+**Last Updated:** 2026-07-06
+**Active Feature:** `feat-035` **DONE** (LVN detection accuracy improvement — see below).
+Previously `feat-014` DONE (+ `feat-034` folded in). Next unblocked items: **feat-015**
+(`magnetCheck.ts`) and **feat-016** (`terrainZones.ts`), independent of each other. Per the
+approved PR-sequencing plan, feat-014(+034) ships as PR1; feat-035 hardens the same detector on
+the `feat-035-lvn-accuracy` branch; feat-015 and feat-016 follow as separate PRs. feat-018
+(analyze-task) remains blocked until 015/016 land. All feat numbers use the **post-renumber** scheme.
+
+**feat-035 (2026-07-06) — LVN/HVN detection re-tune to Caleb's real methodology.** Caleb
+re-labeled all 8 fixtures: **HVNs = only the most prominent** (1 on clean/trend, 3–4 on
+multi-modal); **LVNs = shelf edges** — the edge of a large distribution / where volume drops off a
+cliff / the start of a low-volume area between distributions, **not** troughs (so LVN labels can
+sit at 24–66% of peak, on the high side of a drop). This moved the ground truth and broke the old
+gate (train LVN F1 0.33). Two algorithm changes in `lib/engine/lvnDetection.ts`: (1) **HVN
+dominance floor** `hvnDominanceFrac` (0.35) — an HVN must be prominent AND tall, cutting
+over-detection (train HVN det 27→15 vs 12 labeled; precision 0.41→0.73); (2) **shelf-edge
+generalization** — `plateauLevelFrac` 0.18→0.30 (catch moderate-volume shelves) and the
+distribution shoulder is sought within `shoulderWindow` (40pt), not just the adjacent bar
+(`findShoulder`). Re-tuned TRAIN-only via a throwaway 58k-config grid sweep (not committed); picked
+a **stable, moderate** config (`sw17 pp0.2 hd0.35 vd0.1 pl0.3 pr6 sf0.6 shw40 mt14`) from the
+winning cluster, favoring generalization over train-max (the feat-014 overfit lesson). **Result**
+(`npm run lvn:eval`, ±10pt): TRAIN LVN F1 **0.51** / HVN **0.81** — gate PASSES at 0.40; HOLDOUT LVN
+0.36 / HVN 0.43 (honest, never tuned). **Known remaining limitation:** shallow tall ledges high on a
+distribution (e.g. fixture-7 30270 @54%, on a ~50%-of-peak flat) are still missed. A
+relative-contrast / high-side gradient-knee ledge detector was investigated (4 variants, incl.
+moving the target ledge into train) and rejected: it catches a tall ledge only at a step threshold
+that also fires on the ordinary flanks of every distribution — a NET NEGATIVE on train (one catch
+costs ~8 false LVNs; train F1 48→43). A big ledge and a normal distribution flank aren't separable
+in the 1-D volume shape by a threshold; that needs a width/shape-aware model or the chart image
+(forbidden — code-owned detection). Baseline kept. Caleb later re-reviewed fixture-8 and dropped its
+30470 label (mid-distribution, not a ledge), leaving 30347/30541 (holdout LVN 0.34→0.36). **No re-binning** — Caleb confirmed the CSV bins
+ARE the 4/8-tick chart bars (no coarse-vs-fine resolution mismatch). Tests:
+`lib/engine/lvnDetection.test.ts` 13 pass (added HVN-floor + windowed-shoulder mechanics). README
+labeling philosophy updated to the shelf-edge definition.
 
 **feat-014 (2026-07-05) — lvnDetection.ts + LVN/HVN eval harness (Phase B); feat-034 tuning
 folded in.** NEW `lib/engine/lvnDetection.ts`: pure, immutable `detectLvnHvn(series, overrides?)`

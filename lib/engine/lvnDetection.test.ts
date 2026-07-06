@@ -103,9 +103,50 @@ describe('detectLvnHvn — output shape', () => {
     expect(r.peakVolume).toBe(50)
   })
 
-  it('ships tuned default params (feat-034)', () => {
-    expect(DEFAULT_LVN_PARAMS.smoothWindow).toBe(13)
+  it('ships tuned default params (feat-035)', () => {
+    expect(DEFAULT_LVN_PARAMS.smoothWindow).toBe(17)
     expect(DEFAULT_LVN_PARAMS.peakProminenceFrac).toBeGreaterThan(0)
+    expect(DEFAULT_LVN_PARAMS.hvnDominanceFrac).toBeGreaterThan(0)
     expect(DEFAULT_LVN_PARAMS.valleyDepthFrac).toBeGreaterThan(0)
+    expect(DEFAULT_LVN_PARAMS.shoulderWindow).toBeGreaterThan(0)
+  })
+})
+
+describe('detectLvnHvn — HVN dominance floor (feat-035)', () => {
+  it('rejects a prominent but short bump that is below the dominance floor', () => {
+    // A tall main peak (100) and a well-separated minor bump (20) that IS locally prominent
+    // (rises from ~2 on both sides) but sits at only 20% of peak — below hvnDominanceFrac.
+    const s = series([2, 30, 70, 100, 70, 30, 4, 2, 2, 8, 20, 8, 2, 2])
+    const r = detectLvnHvn(s, { smoothWindow: 1, mergeTolerance: 2, hvnDominanceFrac: 0.35 })
+    expect(r.hvn).toHaveLength(1)
+    expect(r.hvn[0].price).toBe(30003) // only the dominant peak
+  })
+
+  it('keeps a secondary peak once it clears the dominance floor', () => {
+    // Same shape but the second hump now reaches 50 (>=35% of peak 100) — a real HVN.
+    const s = series([2, 30, 70, 100, 70, 30, 4, 2, 2, 20, 50, 20, 2, 2])
+    const r = detectLvnHvn(s, { smoothWindow: 1, mergeTolerance: 2, hvnDominanceFrac: 0.35 })
+    expect(r.hvn.map(n => n.price).sort()).toEqual([30003, 30010])
+  })
+})
+
+describe('detectLvnHvn — shelf-edge with windowed shoulder (feat-035)', () => {
+  it('fires a taper-edge when the distribution shoulder is a few bins off the plateau boundary', () => {
+    // Sustained low shelf (5s), then a short moderate ramp before the tall distribution (60): the
+    // shoulder (>=shoulderFrac) is NOT the bar immediately outside the shelf, so the old
+    // adjacent-only test would miss it; the windowed search finds it within shoulderWindow.
+    const s = series([5, 5, 5, 5, 5, 5, 5, 5, 12, 22, 40, 60, 45, 25, 10])
+    const r = detectLvnHvn(s, {
+      smoothWindow: 1,
+      mergeTolerance: 2,
+      plateauLevelFrac: 0.3,
+      plateauRun: 6,
+      shoulderFrac: 0.6,
+      shoulderWindow: 10,
+    })
+    const taper = r.lvn.filter(n => n.type === 'taper-edge')
+    expect(taper.length).toBeGreaterThanOrEqual(1)
+    // Knee sits at the high-price end of the low shelf (price 30007), the top of the low run.
+    expect(taper.some(n => Math.abs(n.price - 30007) <= 1)).toBe(true)
   })
 })
