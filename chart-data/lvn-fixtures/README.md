@@ -1,12 +1,21 @@
 # LVN/HVN Fixture Set
 
 Target: **8 fixtures** — 5 train / 3 holdout — for tuning LVN/HVN detection thresholds
-(feat-033). Label each profile to its **actual structure**, not to a fixed count: mark only
-genuine HVN peaks (fat bars / local maxima) and genuine LVNs (real volume troughs or the knees
-where a distribution tapers into a low plateau). A clean bell has one HVN and a couple of tail
-LVNs; a multi-modal profile has more. **Do not pad labels to hit a target number** — labels
-landing on high-volume bins corrupt the ground truth the detector is judged against (this was the
-original defect corrected under feat-014).
+(feat-033). Label each profile to its **actual structure**, not to a fixed count.
+
+**HVNs — only the most prominent.** Mark the fat bars where a lot of volume transacted (the ones
+you don't want to enter a trade at): the POC-class peak on a clean/trend profile (often just one),
+and the dominant peak of each distribution on a multi-modal one (3–4). Skip minor local maxima.
+
+**LVNs — shelf edges, not just troughs (feat-035).** An LVN is where price moves through quickly:
+the **edge of a large distribution** — where volume drops off a cliff into a lower shelf, or the
+**start of a low-volume area between two distributions**. These are *knees / gradient edges*, so an
+LVN label can sit at a **moderate** volume level (the top of the drop), not only at the absolute
+trough. Genuine deep troughs and long tails are LVNs too. A clean bell has one HVN and a couple of
+tail LVNs; a multi-modal profile has more. **Do not pad labels to hit a target number.** Labels are
+eyeballed from the chart, so a few points of offset is fine (the eval matches within ±10pt), but
+don't drop a label onto a fat bar just to hit a count — that corrupts the ground truth (the defect
+corrected under feat-014).
 
 > `fixture-x.*` is a **scratch template** (export, then rename to the next real fixture).
 > It does **not** count toward the 8.

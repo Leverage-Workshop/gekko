@@ -56,34 +56,48 @@ export type LvnDetectionParams = {
   smoothWindow: number
   /** Min topographic prominence for an HVN peak, as a fraction of peak volume. */
   peakProminenceFrac: number
+  /** Min smoothed volume for an HVN peak, as a fraction of peak — the "dominant peak" floor that
+   *  keeps only the fat bars Caleb trades around and rejects minor local maxima (feat-035). */
+  hvnDominanceFrac: number
   /** Min depth for a VALLEY LVN, as a fraction of peak volume. */
   valleyDepthFrac: number
-  /** A bin is "low" (plateau candidate) when smoothed volume <= this fraction of peak. */
+  /** A bin is "low" (shelf candidate) when smoothed volume <= this fraction of peak. */
   plateauLevelFrac: number
-  /** Min sustained run (price bins) of low volume to qualify as a taper plateau. */
+  /** Min sustained run (price bins) of low volume to qualify as a shelf/plateau. */
   plateauRun: number
-  /** A plateau edge is a TAPER-EDGE only if the distribution shoulder just outside it rises
-   *  to at least this fraction of peak volume (i.e. it borders a real distribution). */
+  /** A shelf edge is a TAPER-EDGE only if a distribution shoulder near it rises to at least this
+   *  fraction of peak volume (i.e. the low shelf borders a real distribution). */
   shoulderFrac: number
+  /** How far (price points) to search outward from a shelf edge for that distribution shoulder.
+   *  Caleb labels the knee where a shelf meets a distribution even when the fat bar is not the
+   *  immediately-adjacent bin, so the shoulder is sought within a window, not just next-door. */
+  shoulderWindow: number
   /** Detected nodes of the same type closer than this (price points) are merged (keep strongest). */
   mergeTolerance: number
 }
 
-// Tuned against the 5 TRAIN fixtures via `npm run lvn:eval` (feat-034, folded in). Selection
-// favored generalization over train-max: aggressive params (high prominence, big smoothing) beat
-// this on train but collapsed on the holdout set (overfit), so moderate settings were kept.
-// Real-world estimate (holdout, ±10pt): HVN F1 ~0.61, LVN F1 ~0.36 — HVN detection is solid; LVN
-// localization is the known-hard part (the architecture's #1 engine risk) and this is a first
-// cut. Detection is code-owned and authoritative (no LLM validation of node prices), so these
-// numbers are what ships downstream. See progress.md for the full rationale.
+// Tuned against the 5 TRAIN fixtures via `npm run lvn:eval` (feat-035 re-tune on Caleb's re-labeled
+// fixtures). Two methodology-driven changes drove this pass:
+//   - HVN = "dominant peaks only": `hvnDominanceFrac` adds a height floor so only fat bars qualify,
+//     cutting HVN over-detection (train det 27→15 vs 12 labeled; precision 41%→73%).
+//   - LVN = "shelf edges": `plateauLevelFrac` raised to 0.30 and the shoulder is sought within
+//     `shoulderWindow` points (not just next-door), so knees into moderate-volume shelves fire.
+// Selection favored generalization (per the feat-014 lesson — aggressive params overfit): the
+// winning region was a stable cluster, and `hvnDominanceFrac` was kept at 0.35 (not the train-max
+// 0.45) to retain secondary-distribution HVNs. Real numbers (±10pt): TRAIN LVN F1 0.51 / HVN 0.81;
+// HOLDOUT LVN 0.34 / HVN 0.43 — LVN localization is still the known-hard part (the architecture's
+// #1 engine risk). Detection is code-owned and authoritative (no LLM validation of node prices),
+// so these numbers are what ships downstream. See progress.md for the full rationale.
 export const DEFAULT_LVN_PARAMS: LvnDetectionParams = {
-  smoothWindow: 13,
-  peakProminenceFrac: 0.1,
+  smoothWindow: 17,
+  peakProminenceFrac: 0.2,
+  hvnDominanceFrac: 0.35,
   valleyDepthFrac: 0.1,
-  plateauLevelFrac: 0.18,
+  plateauLevelFrac: 0.3,
   plateauRun: 6,
-  shoulderFrac: 0.45,
-  mergeTolerance: 12,
+  shoulderFrac: 0.6,
+  shoulderWindow: 40,
+  mergeTolerance: 14,
 }
 
 function round2(n: number): number {
@@ -168,19 +182,45 @@ function mergeByPrice(cands: Candidate[], prices: number[], tolerance: number): 
 }
 
 /**
- * Detect taper-edge LVNs: the knee where a distribution falls into a sustained low plateau.
- * We scan maximal runs of "low" bins (<= plateauLevel), keep runs at least `plateauRun` long,
- * and emit a run boundary as a taper-edge only when the bin just outside it rises to a real
- * distribution shoulder (>= shoulderFrac of peak) — that asymmetry is what distinguishes a
- * taper edge from the two walls of an ordinary valley (which the valley pass already covers).
+ * Walk outward from a shelf boundary looking for the distribution shoulder that makes the shelf
+ * an LVN edge. Steps in `dir` (−1 = toward lower prices, +1 = toward higher) up to `windowPts`
+ * away; returns the index of the first bar that rises to `shoulder`, or −1 if volume dips below
+ * the boundary first (that direction leads deeper into low volume, not into a distribution).
+ */
+function findShoulder(
+  vols: number[],
+  prices: number[],
+  from: number,
+  dir: -1 | 1,
+  shoulder: number,
+  windowPts: number,
+): number {
+  for (let k = from + dir; k >= 0 && k < vols.length; k += dir) {
+    if (Math.abs(prices[k] - prices[from]) > windowPts) break
+    if (vols[k] >= shoulder) return k
+    if (vols[k] < vols[from]) break
+  }
+  return -1
+}
+
+/**
+ * Detect taper/shelf-edge LVNs: the knee where a distribution falls off into a sustained low
+ * shelf. We scan maximal runs of "low" bins (<= plateauLevel), keep runs at least `plateauRun`
+ * long, and emit a run boundary as a taper-edge when a distribution shoulder (>= shoulderFrac of
+ * peak) sits within `shoulderWindow` points of it — that asymmetry is what distinguishes a taper
+ * edge from the two walls of an ordinary valley (which the valley pass already covers). The
+ * shoulder is sought within a window (not just the immediately-adjacent bar) because Caleb marks
+ * these shelf edges from the chart, where the fat bar can be several points off the exact knee.
  */
 function detectTaperEdges(
   vols: number[],
+  prices: number[],
   peak: number,
   params: LvnDetectionParams,
 ): Candidate[] {
   const low = params.plateauLevelFrac * peak
   const shoulder = params.shoulderFrac * peak
+  const win = params.shoulderWindow
   const out: Candidate[] = []
   let runStart = -1
   for (let i = 0; i <= vols.length; i++) {
@@ -189,14 +229,12 @@ function detectTaperEdges(
     if (!isLow && runStart !== -1) {
       const runEnd = i - 1
       if (runEnd - runStart + 1 >= params.plateauRun) {
-        // Lower boundary knee: distribution sits below the plateau (bar before the run is tall).
-        if (runStart > 0 && vols[runStart - 1] >= shoulder) {
-          out.push({ index: runStart, score: (vols[runStart - 1] - vols[runStart]) / peak })
-        }
-        // Upper boundary knee: distribution sits above the plateau (bar after the run is tall).
-        if (runEnd < vols.length - 1 && vols[runEnd + 1] >= shoulder) {
-          out.push({ index: runEnd, score: (vols[runEnd + 1] - vols[runEnd]) / peak })
-        }
+        // Lower boundary knee: distribution sits below the shelf (search toward lower prices).
+        const lo = findShoulder(vols, prices, runStart, -1, shoulder, win)
+        if (lo >= 0) out.push({ index: runStart, score: (vols[lo] - vols[runStart]) / peak })
+        // Upper boundary knee: distribution sits above the shelf (search toward higher prices).
+        const hi = findShoulder(vols, prices, runEnd, 1, shoulder, win)
+        if (hi >= 0) out.push({ index: runEnd, score: (vols[hi] - vols[runEnd]) / peak })
       }
       runStart = -1
     }
@@ -228,10 +266,12 @@ export function detectLvnHvn(
     return { hvn: [], lvn: [], peakVolume: 0 }
   }
 
-  // HVN peaks: prominent local maxima.
+  // HVN peaks: prominent local maxima that are ALSO tall (dominant). The dominance floor keeps
+  // only the fat bars Caleb trades around and rejects minor bumps that pass prominence alone.
   const peakCands: Candidate[] = []
   for (let i = 0; i < smoothed.length; i++) {
     if (!isLocalMax(smoothed, i)) continue
+    if (smoothed[i] < params.hvnDominanceFrac * peak) continue
     const prom = peakProminence(smoothed, i)
     if (prom / peak >= params.peakProminenceFrac) peakCands.push({ index: i, score: prom / peak })
   }
@@ -244,8 +284,8 @@ export function detectLvnHvn(
     if (depth / peak >= params.valleyDepthFrac) valleyCands.push({ index: i, score: depth / peak })
   }
 
-  // Taper-edge LVNs: knees into low-volume plateaus.
-  const taperCands = detectTaperEdges(smoothed, peak, params)
+  // Taper/shelf-edge LVNs: knees into low-volume shelves.
+  const taperCands = detectTaperEdges(smoothed, prices, peak, params)
 
   const hvnKept = mergeByPrice(peakCands, prices, params.mergeTolerance)
   const valleyKept = mergeByPrice(valleyCands, prices, params.mergeTolerance)
