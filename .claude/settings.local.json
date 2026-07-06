@@ -9,7 +9,8 @@
       "mcp__trigger__search_docs",
       "mcp__plugin_vercel_vercel__search_vercel_documentation",
       "mcp__trigger__list_projects",
-      "mcp__trigger__whoami"
+      "mcp__trigger__whoami",
+      "mcp__plugin_claude-mem_mcp-search__get_observations"
     ]
   },
   "enabledMcpjsonServers": [
