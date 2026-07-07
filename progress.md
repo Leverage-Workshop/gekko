@@ -14,9 +14,9 @@
   Budget alternative `google/gemini-3.5-flash` ($1.50/$9); escalation `anthropic/claude-opus-4.8`
   ($5/$25). Default promoted in migration `20260706190000_default_model_sonnet_5.sql` (column
   default + row update only-if-still-old-default) and `DEFAULT_MODEL_ID`.
-  **⚠ Migration NOT yet applied to the live Supabase project** (qvhkqilizwozikpomxob) — apply via
-  Supabase MCP/CLI before the first production run, or the config row keeps serving sonnet-4-6
-  (which still works; the task always reads `config.model_id`).
+  **Applied LIVE** to project qvhkqilizwozikpomxob via Supabase MCP (2026-07-07, live version
+  `20260707035809_default_model_sonnet_5`); verified `config` row id=1 now serves
+  `anthropic/claude-sonnet-5` (triage model + rr_min unchanged).
 - **`lib/analyze/`** — the pipeline, all side effects injected (ingest-route pattern):
   `loadBundle.ts` (latest `raw_bundles` row + Storage fetch-back; texts required, PNGs optional →
   warning), `engineFacts.ts` (parseProfiles/parseExecBars → deltaTelemetry/mgiPriority/
@@ -43,8 +43,7 @@
 - `./init.sh` green: typecheck 0, lint 0 errors (3 pre-existing warnings), 277 tests pass,
   next build OK.
 - **Not in scope / next:** `/api/briefings/run` route + UI button (feat-019+?), `eval-task`,
-  `notify-task`; live-DB migration application; first real `trigger.dev dev` smoke run of
-  `analyze-task` against a live bundle.
+  `notify-task`; first real `trigger.dev dev` smoke run of `analyze-task` against a live bundle.
 
 **feat-015 + feat-016 (2026-07-06) — terrain engine (magnetCheck + terrainZones).**
 - **feat-015 `lib/engine/magnetCheck.ts`** — the single source of Magnet classification.
