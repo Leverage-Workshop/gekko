@@ -3,12 +3,35 @@
 ## Current State
 
 **Last Updated:** 2026-07-06
-**Active Feature:** `feat-035` **DONE** (LVN detection accuracy improvement — see below).
-Previously `feat-014` DONE (+ `feat-034` folded in). Next unblocked items: **feat-015**
-(`magnetCheck.ts`) and **feat-016** (`terrainZones.ts`), independent of each other. Per the
-approved PR-sequencing plan, feat-014(+034) ships as PR1; feat-035 hardens the same detector on
-the `feat-035-lvn-accuracy` branch; feat-015 and feat-016 follow as separate PRs. feat-018
-(analyze-task) remains blocked until 015/016 land. All feat numbers use the **post-renumber** scheme.
+**Active Feature:** `feat-015` **DONE** + `feat-016` **DONE** (terrain engine — see below).
+Both landed on branch `feat-015-016-terrain-zones` as two separate commits. This clears the
+last two engine dependencies for **feat-018** (analyze-task), which is now unblocked (all deps
+done). All feat numbers use the **post-renumber** scheme.
+
+**feat-015 + feat-016 (2026-07-06) — terrain engine (magnetCheck + terrainZones).**
+- **feat-015 `lib/engine/magnetCheck.ts`** — the single source of Magnet classification.
+  `collectMagnets({summary,hvn})` builds the magnet set (POC/VAH/VAL + detected HVN peaks);
+  `classifyMagnet` / `evaluateMagnetCheck` flag any MGI level within `DEFAULT_MAGNET_TOLERANCE`
+  (10 pts) of a magnet as a structural invalidation (cannot be a border or T3, per
+  chart-reading.md's Magnet Check). MGI accepted structurally (no runtime coupling to
+  mgiPriority). 15 unit tests.
+- **feat-016 `lib/engine/terrainZones.ts`** — `assembleTerrain(...)`. For each major MGI anchor
+  (Tier-1 + Rip) it inspects the LOCAL VbP shape and promotes with strict doctrine priority
+  **Trench > Wall > Magnet > mgi**. Wall (Shelf+MGI) is checked *before* Magnet so a block-edge
+  MGI is a Wall not a Magnet — this is the HOME FOR HARD-LEDGE DETECTION, anchored on the few
+  MGI prices to avoid the whole-profile false-positive explosion that killed the feat-035 ledge
+  scan; the local test deliberately favors recall (MGI cross-ref only prunes, never creates).
+  The magnet set/alignment is single-sourced from feat-015. Hard partitions + profile extremes
+  assemble a contiguous Stratosphere→Abyss zone stack with the No-Gap invariant
+  (`bottom[N]===top[N+1]`), each zone classified by volume (acceptance/void) × delta sign
+  (absorption/initiative) and given a vertical-map position. No MGI-terrain eval fixtures exist,
+  so the thresholds are documented recall-favoring doctrine heuristics in
+  `DEFAULT_TERRAIN_PARAMS` (overridable), validated by 20 unit tests on synthetic profiles.
+- `./init.sh` green: typecheck 0, lint 0 errors (3 pre-existing warnings), 234 tests pass
+  (21 files, +35), next build OK.
+
+**Prior:** `feat-035` DONE (LVN detection accuracy improvement — see below); `feat-014` DONE
+(+ `feat-034` folded in).
 
 **feat-035 (2026-07-06) — LVN/HVN detection re-tune to Caleb's real methodology.** Caleb
 re-labeled all 8 fixtures: **HVNs = only the most prominent** (1 on clean/trend, 3–4 on
