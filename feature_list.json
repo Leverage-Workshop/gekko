@@ -195,8 +195,8 @@
         "feat-016",
         "feat-017"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/analyze/ implements the full pipeline behind trigger/analyzeTask.ts (schemaTask id=analyze-task, payload {triggerReason} default 'manual', per-task retry maxAttempts=3): loadBundle.ts fetches the latest raw_bundles row + Storage objects (bundle-csvs texts required, chart-images PNGs optional->warning); engineFacts.ts runs the deterministic chain parseProfiles/parseExecBars -> deltaTelemetry/mgiPriority/lvnDetection/staleness -> ripStatus (null+warning when mgi.daily.rip absent) -> magnetCheck(tier1) -> assembleTerrain; prompt.ts builds the volatile user message (engine facts + raw mgi + chart manifest + staleness flag; LVN/HVN and terrain borders declared code-owned, screenshots perception-only); doctrine.ts concatenates knowledge/system+doctrine md as the cached system prefix (generateStructured gained cacheSystem -> openrouter cacheControl ephemeral, plus usage-accounting cost extraction); validateBriefing.ts enforces the No-Gap zone invariant (throws -> task retry), warns on off-engine borders, and overwrites Objective.rr via objectiveRiskReward (config.rr_min gate); persistBriefing.ts inserts the briefings row then refreshes entry_levels (deactivate prior active set, insert one row per entry rung with engine stop + target ladder). Task logs model/costUsd/usage/briefingId/stale to run metadata. Model default promoted to anthropic/claude-sonnet-5 (2026-07-06 OpenRouter catalog review: dominates sonnet-4.6 at ~2/3 price; migration 20260706190000_default_model_sonnet_5.sql + DEFAULT_MODEL_ID; NOT yet applied to the live Supabase project). trigger.config.ts ships knowledge/** via additionalFiles (@trigger.dev/build). 43 new tests (tests/analyze.*.test.ts over real chart-data fixtures + llm cacheSystem/cost tests). ./init.sh green: typecheck clean, 277 tests pass, lint 0 errors (3 pre-existing warnings), build OK."
     },
     {
       "id": "feat-019",

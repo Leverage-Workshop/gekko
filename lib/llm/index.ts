@@ -2,6 +2,7 @@ export { getOpenRouter } from './client'
 export {
   DEFAULT_MODEL_ID,
   assertModelMatch,
+  extractCost,
   generateStructured,
 } from './generateStructured'
 export type {

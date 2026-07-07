@@ -8,8 +8,13 @@ import type {
 import type { z } from 'zod'
 import { getOpenRouter } from './client'
 
-/** Default model id, mirroring the `config.model_id` column default. */
-export const DEFAULT_MODEL_ID = 'anthropic/claude-sonnet-4-6'
+/**
+ * Default model id, mirroring the `config.model_id` column default.
+ * anthropic/claude-sonnet-5 per the 2026-07-06 OpenRouter catalog review:
+ * strictly dominates sonnet-4.6 (intelligence/coding/agentic) at ~2/3 the
+ * price, with image input + structured outputs + prompt caching.
+ */
+export const DEFAULT_MODEL_ID = 'anthropic/claude-sonnet-5'
 
 /** A chart image to attach to the prompt as a vision part (base64-encoded PNG). */
 export interface ChartImage {
@@ -28,6 +33,12 @@ export interface GenerateStructuredParams<T> {
   prompt: string
   /** Optional system / doctrine prefix. */
   system?: string
+  /**
+   * Prompt-cache the system prefix (Anthropic ephemeral cache via OpenRouter).
+   * Only set when `system` is static across runs — volatile content in the
+   * prefix would invalidate the cache every call.
+   */
+  cacheSystem?: boolean
   /** Chart images to attach as vision parts. */
   images?: readonly ChartImage[]
   /**
@@ -46,6 +57,8 @@ export interface GenerateStructuredResult<T> {
   model: string
   /** Token usage for the call. */
   usage: Awaited<ReturnType<typeof generateObject>>['usage']
+  /** OpenRouter-reported cost in USD (usage accounting), or null. */
+  cost: number | null
 }
 
 /**
@@ -90,19 +103,31 @@ export async function generateStructured<T>(
     schema,
     prompt,
     system,
+    cacheSystem = false,
     images = [],
-    resolveModel = (id) => getOpenRouter()(id),
+    resolveModel = (id) => getOpenRouter()(id, { usage: { include: true } }),
     generate = generateObject,
   } = params
 
-  const messages: ModelMessage[] = [
-    { role: 'user', content: buildUserContent(prompt, images) },
-  ]
+  const messages: ModelMessage[] = []
+  if (system !== undefined) {
+    messages.push({
+      role: 'system',
+      content: system,
+      ...(cacheSystem
+        ? {
+            providerOptions: {
+              openrouter: { cacheControl: { type: 'ephemeral' } },
+            },
+          }
+        : {}),
+    })
+  }
+  messages.push({ role: 'user', content: buildUserContent(prompt, images) })
 
   const result = await generate({
     model: resolveModel(model),
     schema,
-    system,
     messages,
   })
 
@@ -112,5 +137,26 @@ export async function generateStructured<T>(
     object: schema.parse(result.object),
     model: result.response.modelId,
     usage: result.usage,
+    cost: extractCost(result.providerMetadata),
   }
+}
+
+/**
+ * Pull the USD cost out of OpenRouter's usage-accounting provider metadata
+ * (`providerMetadata.openrouter.usage.cost`), tolerating absence.
+ */
+export function extractCost(providerMetadata: unknown): number | null {
+  if (typeof providerMetadata !== 'object' || providerMetadata === null) {
+    return null
+  }
+  const openrouter = (providerMetadata as Record<string, unknown>).openrouter
+  if (typeof openrouter !== 'object' || openrouter === null) {
+    return null
+  }
+  const usage = (openrouter as Record<string, unknown>).usage
+  if (typeof usage !== 'object' || usage === null) {
+    return null
+  }
+  const cost = (usage as Record<string, unknown>).cost
+  return typeof cost === 'number' && Number.isFinite(cost) ? cost : null
 }
