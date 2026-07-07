@@ -3,10 +3,48 @@
 ## Current State
 
 **Last Updated:** 2026-07-06
-**Active Feature:** `feat-015` **DONE** + `feat-016` **DONE** (terrain engine — see below).
-Both landed on branch `feat-015-016-terrain-zones` as two separate commits. This clears the
-last two engine dependencies for **feat-018** (analyze-task), which is now unblocked (all deps
-done). All feat numbers use the **post-renumber** scheme.
+**Active Feature:** `feat-018` **DONE** (analyze-task, engine-integrated — see below), branch
+`feat-018-analyze-task`. All feat numbers use the **post-renumber** scheme.
+
+**feat-018 (2026-07-06) — analyze-task (engine-integrated full-briefing pipeline).**
+- **Model research first (user request), via the OpenRouter MCP live catalog** (image input +
+  `structured_outputs`, Artificial Analysis indices): **`anthropic/claude-sonnet-5`** strictly
+  dominates the old `anthropic/claude-sonnet-4-6` default (II 53.4 vs 47.2, better coding/agentic)
+  at ~2/3 the price ($2/$10 vs $3/$15 per M tokens), same 1M ctx + caching + reasoning efforts.
+  Budget alternative `google/gemini-3.5-flash` ($1.50/$9); escalation `anthropic/claude-opus-4.8`
+  ($5/$25). Default promoted in migration `20260706190000_default_model_sonnet_5.sql` (column
+  default + row update only-if-still-old-default) and `DEFAULT_MODEL_ID`.
+  **⚠ Migration NOT yet applied to the live Supabase project** (qvhkqilizwozikpomxob) — apply via
+  Supabase MCP/CLI before the first production run, or the config row keeps serving sonnet-4-6
+  (which still works; the task always reads `config.model_id`).
+- **`lib/analyze/`** — the pipeline, all side effects injected (ingest-route pattern):
+  `loadBundle.ts` (latest `raw_bundles` row + Storage fetch-back; texts required, PNGs optional →
+  warning), `engineFacts.ts` (parseProfiles/parseExecBars → deltaTelemetry/mgiPriority/
+  lvnDetection/staleness → ripStatus → magnetCheck(tier1) → assembleTerrain; rip absent degrades
+  to warning), `doctrine.ts` (knowledge/system+doctrine md → static system prefix), `prompt.ts`
+  (volatile user message: engine facts + raw MGI + chart manifest + staleness; code-owned facts
+  declared non-negotiable, screenshots perception-only), `validateBriefing.ts` (No-Gap zone
+  invariant throws → trigger retry; off-engine borders warn; `Objective.rr` overwritten via
+  `objectiveRiskReward` with `config.rr_min`), `persistBriefing.ts` (briefings insert → deactivate
+  prior `entry_levels` → insert new active set, one row per entry rung with engine stop + target
+  ladder), `analyzeBundle.ts` (`runAnalysis` orchestrator), `deps.ts` (service-role Supabase deps).
+- **`trigger/analyzeTask.ts`** — `schemaTask` id `analyze-task`, payload `{triggerReason}`
+  (default "manual", per the on-demand-only doctrine in the plan), per-task retry maxAttempts 3,
+  `logger.info` + `metadata.set` model/costUsd/usage/briefingId/stale (cost from OpenRouter usage
+  accounting). `trigger.config.ts` ships `knowledge/**` via `additionalFiles` (`@trigger.dev/build`
+  added as devDep) so the doctrine reads work after deploy.
+- **`lib/llm/generateStructured.ts`** — gained `cacheSystem` (system prefix as a message with
+  `providerOptions.openrouter.cacheControl: ephemeral` — the plan's main cost/latency lever),
+  default provider settings `usage: {include: true}`, and `extractCost` → `result.cost` (USD).
+- 43 new tests (277 total): `tests/analyze.*.test.ts` run the real `chart-data/` Sierra fixtures
+  through the full engine, plus fake-deps end-to-end `runAnalysis` coverage (order of persistence,
+  rr overwrite, No-Gap rejection, staleness/missing-chart warnings, config fallback) and llm
+  cacheSystem/cost tests.
+- `./init.sh` green: typecheck 0, lint 0 errors (3 pre-existing warnings), 277 tests pass,
+  next build OK.
+- **Not in scope / next:** `/api/briefings/run` route + UI button (feat-019+?), `eval-task`,
+  `notify-task`; live-DB migration application; first real `trigger.dev dev` smoke run of
+  `analyze-task` against a live bundle.
 
 **feat-015 + feat-016 (2026-07-06) — terrain engine (magnetCheck + terrainZones).**
 - **feat-015 `lib/engine/magnetCheck.ts`** — the single source of Magnet classification.

@@ -1,0 +1,115 @@
+import type { Briefing } from '@/knowledge/schema/briefing.schema'
+import type { RiskReward } from '@/lib/engine/riskReward'
+
+/**
+ * Persistence step of the analyze-task: one `briefings` row, then refresh
+ * `entry_levels` (deactivate the prior set, insert the new one — eval-task
+ * only ever evaluates `active=true` rows). Side effects are injected.
+ */
+
+/** Insert shape for `public.briefings`. */
+export interface BriefingInsert {
+  bundle_id: string
+  trigger_reason: string
+  model_id: string
+  htf_trend: string
+  rip_status: string
+  terrain: Briefing['terrain']
+  primary_obj: Briefing['primary']
+  secondary_obj: Briefing['secondary']
+  danger_zones: Briefing['dangerZones']
+  overview: Briefing['overview']
+  raw_model_json: Briefing
+}
+
+/** Insert shape for `public.entry_levels`. */
+export interface EntryLevelInsert {
+  briefing_id: string
+  objective: 'primary' | 'secondary'
+  label: string
+  price: number
+  direction: 'long' | 'short'
+  stop: number
+  targets: number[]
+  active: true
+}
+
+export interface PersistDeps {
+  insertBriefing(row: BriefingInsert): Promise<{ id: string }>
+  /** Set every currently-active `entry_levels` row to `active=false`. */
+  deactivateEntryLevels(): Promise<void>
+  insertEntryLevels(rows: EntryLevelInsert[]): Promise<void>
+}
+
+export interface PersistInput {
+  bundleId: string
+  triggerReason: string
+  /** The model id that actually served the request. */
+  model: string
+  /** Engine-validated briefing (rr already recomputed). */
+  briefing: Briefing
+  /** Engine R/R verdicts — the protective stop per objective. */
+  riskReward: { primary: RiskReward; secondary: RiskReward }
+}
+
+export function buildBriefingRow(
+  input: Pick<PersistInput, 'bundleId' | 'triggerReason' | 'model' | 'briefing'>,
+): BriefingInsert {
+  const { briefing } = input
+  return {
+    bundle_id: input.bundleId,
+    trigger_reason: input.triggerReason,
+    model_id: input.model,
+    htf_trend: briefing.meta.htfTrend,
+    rip_status: briefing.meta.ripStatus,
+    terrain: briefing.terrain,
+    primary_obj: briefing.primary,
+    secondary_obj: briefing.secondary,
+    danger_zones: briefing.dangerZones,
+    overview: briefing.overview,
+    raw_model_json: briefing,
+  }
+}
+
+/**
+ * One `entry_levels` row per objective entry rung, all sharing the
+ * objective's engine-chosen protective stop and target ladder.
+ */
+export function buildEntryLevelRows(
+  briefingId: string,
+  briefing: Briefing,
+  riskReward: PersistInput['riskReward'],
+): EntryLevelInsert[] {
+  const objectives = [
+    { objective: 'primary' as const, spec: briefing.primary, rr: riskReward.primary },
+    { objective: 'secondary' as const, spec: briefing.secondary, rr: riskReward.secondary },
+  ]
+  return objectives.flatMap(({ objective, spec, rr }) =>
+    spec.entries.map((entry) => ({
+      briefing_id: briefingId,
+      objective,
+      label: entry.label,
+      price: entry.price,
+      direction: spec.direction,
+      stop: rr.stop,
+      targets: spec.targets.map((target) => target.price),
+      active: true as const,
+    })),
+  )
+}
+
+export interface PersistResult {
+  briefingId: string
+  entryLevelCount: number
+}
+
+export async function persistBriefing(
+  deps: PersistDeps,
+  input: PersistInput,
+): Promise<PersistResult> {
+  const { id: briefingId } = await deps.insertBriefing(buildBriefingRow(input))
+  const rows = buildEntryLevelRows(briefingId, input.briefing, input.riskReward)
+  await deps.deactivateEntryLevels()
+  await deps.insertEntryLevels(rows)
+  return { briefingId, entryLevelCount: rows.length }
+}

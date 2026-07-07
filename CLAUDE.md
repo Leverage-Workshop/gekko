@@ -88,7 +88,7 @@ For the two riskiest integrations, prefer the installed tooling over training me
   `trigger-dev-task-writer` / `trigger-dev-expert` subagents.
 - **Vercel** (deploy, runtime, env): use the Vercel plugin skills/commands and `vercel:*` agents.
 - **LLM**: Vercel AI SDK with OpenRouter as the gateway; model id comes from the `config` row
-  (default `anthropic/claude-sonnet-4-6`). Never hardcode the model.
+  (default `anthropic/claude-sonnet-5`). Never hardcode the model.
 
 ## Escalation
 

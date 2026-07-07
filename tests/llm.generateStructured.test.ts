@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   DEFAULT_MODEL_ID,
   assertModelMatch,
+  extractCost,
   generateStructured,
   getOpenRouter,
 } from '@/lib/llm'
@@ -14,6 +15,7 @@ function fakeGenerate(opts: {
   object: unknown
   modelId: string
   capture?: (args: unknown) => void
+  providerMetadata?: unknown
 }) {
   return (async (args: unknown) => {
     opts.capture?.(args)
@@ -21,6 +23,7 @@ function fakeGenerate(opts: {
       object: opts.object,
       response: { id: 'resp_1', timestamp: new Date(), modelId: opts.modelId },
       usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+      providerMetadata: opts.providerMetadata,
     }
   }) as unknown as Parameters<typeof generateStructured>[0]['generate']
 }
@@ -113,6 +116,80 @@ describe('generateStructured', () => {
     ).rejects.toThrow(/Model mismatch/)
   })
 
+  it('sends the system prefix as a cache-controlled message when cacheSystem is set', async () => {
+    let captured: { messages: Record<string, unknown>[] } | undefined
+    await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      system: 'DOCTRINE',
+      cacheSystem: true,
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        capture: (a) => {
+          captured = a as typeof captured
+        },
+      }),
+    })
+
+    expect(captured!.messages).toHaveLength(2)
+    expect(captured!.messages[0]).toEqual({
+      role: 'system',
+      content: 'DOCTRINE',
+      providerOptions: {
+        openrouter: { cacheControl: { type: 'ephemeral' } },
+      },
+    })
+    expect(captured!.messages[1].role).toBe('user')
+  })
+
+  it('sends a plain system message when cacheSystem is not set', async () => {
+    let captured: { messages: Record<string, unknown>[] } | undefined
+    await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      system: 'DOCTRINE',
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        capture: (a) => {
+          captured = a as typeof captured
+        },
+      }),
+    })
+
+    expect(captured!.messages[0]).toEqual({ role: 'system', content: 'DOCTRINE' })
+  })
+
+  it('surfaces the OpenRouter usage-accounting cost', async () => {
+    const result = await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        providerMetadata: { openrouter: { usage: { cost: 0.0123 } } },
+      }),
+    })
+    expect(result.cost).toBe(0.0123)
+  })
+
+  it('returns null cost when the provider reports none', async () => {
+    const result = await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+      }),
+    })
+    expect(result.cost).toBeNull()
+  })
+
   it('rejects output that violates the schema', async () => {
     await expect(
       generateStructured({
@@ -125,6 +202,24 @@ describe('generateStructured', () => {
         }),
       }),
     ).rejects.toThrow()
+  })
+})
+
+describe('extractCost', () => {
+  it('pulls the USD cost from openrouter usage metadata', () => {
+    expect(extractCost({ openrouter: { usage: { cost: 0.42 } } })).toBe(0.42)
+  })
+
+  it.each([
+    [undefined],
+    [null],
+    [{}],
+    [{ openrouter: {} }],
+    [{ openrouter: { usage: {} } }],
+    [{ openrouter: { usage: { cost: 'a lot' } } }],
+    [{ openrouter: { usage: { cost: Number.NaN } } }],
+  ])('returns null for %j', (metadata) => {
+    expect(extractCost(metadata)).toBeNull()
   })
 })
 
