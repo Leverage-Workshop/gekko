@@ -2,7 +2,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_MAGNET_TOLERANCE } from '@/lib/engine/magnetCheck'
-import { RED_EXTREME, computeRipStatus } from '@/lib/engine/ripStatus'
+import { RED_EXTREME, RED_BUILDING_MIN_BARS, computeRipStatus } from '@/lib/engine/ripStatus'
+import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { DEFAULT_RR_MIN, evaluateRiskReward } from '@/lib/engine/riskReward'
 import { DEFAULT_STALENESS_MARGIN_MS } from '@/lib/engine/staleness'
 import { DEFAULT_NEAR_ENTRY_POINTS } from '@/lib/eval/proximity'
@@ -77,25 +78,50 @@ describe('doctrine drift guard (feat-032)', () => {
       expect(belowGate.meetsGate).toBe(false)
     })
 
-    it('RED_EXTREME is the exact Red/Yellow boundary in computeRipStatus', () => {
-      expect(Number.isFinite(RED_EXTREME)).toBe(true)
-      expect(RED_EXTREME).toBeLessThan(0)
+    it('RED_BUILDING_MIN_BARS is the exact Red/Yellow boundary in computeRipStatus', () => {
+      expect(Number.isInteger(RED_BUILDING_MIN_BARS)).toBe(true)
+      // A single rogue -3/-4 print on a 750-volume bar must never flip Red on its own.
+      expect(RED_BUILDING_MIN_BARS).toBeGreaterThan(1)
 
-      const belowRip = { currentPrice: 30000, rip: 30100 }
+      const belowRip = { currentPrice: 30000, rip: 30100, deltaIntensity: -4 }
       expect(
-        computeRipStatus({ ...belowRip, deltaIntensity: RED_EXTREME }).condition,
+        computeRipStatus({ ...belowRip, redExtremeCount: RED_BUILDING_MIN_BARS })
+          .condition,
       ).toBe('red')
       expect(
-        computeRipStatus({ ...belowRip, deltaIntensity: RED_EXTREME + 0.5 })
-          .condition,
+        computeRipStatus({
+          ...belowRip,
+          redExtremeCount: RED_BUILDING_MIN_BARS - 1,
+        }).condition,
       ).toBe('yellow')
       expect(
         computeRipStatus({
           currentPrice: 30200,
           rip: 30100,
-          deltaIntensity: RED_EXTREME,
+          deltaIntensity: -4,
+          redExtremeCount: RED_BUILDING_MIN_BARS,
         }).condition,
       ).toBe('green')
+    })
+
+    it('RED_EXTREME is the exact per-bar extreme boundary in deltaTelemetry counting', () => {
+      expect(Number.isFinite(RED_EXTREME)).toBe(true)
+      expect(RED_EXTREME).toBeLessThan(0)
+
+      const bar = (deltaIntensity: number, i: number) => ({
+        dateTime: new Date(2026, 0, 1, 9, 30 + i),
+        open: 30000,
+        high: 30010,
+        low: 29990,
+        close: 30005,
+        legVWAP: 30000,
+        deltaIntensity,
+      })
+      // At the boundary counts; half a unit above it does not.
+      const telemetry = computeDeltaTelemetry(
+        [RED_EXTREME, RED_EXTREME + 0.5, 0, RED_EXTREME - 1].map(bar),
+      )
+      expect(telemetry.recentRedExtremeCount).toBe(2)
     })
 
     it('the remaining engine-owned thresholds exist and are sane', () => {

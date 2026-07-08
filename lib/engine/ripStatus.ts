@@ -19,8 +19,9 @@
  *
  * Inputs are scalars by design — this module depends only on feat-001 scaffold, not on the
  * deltaTelemetry (feat-011) or mgiPriority (feat-012) outputs. The caller supplies the current
- * price, the Rip price (from `mgi.daily.rip`), and the representative recent Delta Intensity
- * reading (e.g. `deltaTelemetry.recentMeanDelta`, or the most negative recent extreme). Keeping
+ * price, the Rip price (from `mgi.daily.rip`), a representative recent Delta Intensity reading
+ * for display (e.g. `deltaTelemetry.recentMeanDelta`), and the count of red-extreme prints in
+ * the recent window (`deltaTelemetry.recentRedExtremeCount`) that decides the Red flip. Keeping
  * it decoupled lets either upstream module evolve without touching this one.
  *
  * Pure + immutable; no file I/O. Plain TypeScript types (engine fact, not a Briefing output —
@@ -36,8 +37,9 @@ export type RipStatus = {
   rip: number
   distance: number // currentPrice - rip, signed, rounded (>0 above, <0 below)
   position: RipPosition // price vs Rip within one tick of tolerance
-  deltaIntensity: number // the representative recent Delta Intensity reading the caller passed
-  redInitiative: boolean // true when extreme red has confirmed (deltaIntensity <= -3)
+  deltaIntensity: number // representative recent Delta Intensity (display/context only)
+  redExtremeCount: number // red-extreme prints (<= RED_EXTREME) in the recent window
+  redInitiative: boolean // true when extreme red has confirmed (redExtremeCount >= RED_BUILDING_MIN_BARS)
   headline: string // short doctrine label for the condition
   action: string // doctrine action line for the condition
 }
@@ -46,10 +48,17 @@ export type RipStatus = {
 // sitting on it — the defensive line is held, not breached, so it reads as Green.
 const EPSILON = 0.25
 
-// Extreme red initiative per doctrine: Delta Intensity -3 or -4. At/below this beneath the Rip
-// confirms a control flip (Red); a sub-extreme breach is only a stress test (Yellow).
+// Extreme red initiative per doctrine: a Delta Intensity print of -3 or -4. Defines what counts
+// as a single red-extreme bar (deltaTelemetry counts these over its recent window).
 // Exported so the doctrine drift guard (feat-032) can tie prose checks to the live constant.
 export const RED_EXTREME = -3
+
+// How many red-extreme prints within the recent window confirm "red initiative volume BUILDING"
+// (the Red flip). The exec bars are 750-volume bars, so a single rogue -3/-4 print is possible
+// and carries little weight on its own; genuine control flips print extremes in clusters
+// (operator doctrine: at least three). Below the Rip with fewer than this the condition stays
+// Yellow. Exported for the doctrine drift guard (feat-032).
+export const RED_BUILDING_MIN_BARS = 3
 
 const ACTIONS: Record<RipCondition, { headline: string; action: string }> = {
   green: {
@@ -91,17 +100,21 @@ function classifyPosition(distance: number): RipPosition {
 /**
  * Resolve the Vanguard Protocol condition from price-vs-Rip and Delta Intensity.
  *
- * @param input.currentPrice    Live price (e.g. `mgi.current.price`).
- * @param input.rip             The Rip / Rolling Pivot price (`mgi.daily.rip`).
- * @param input.deltaIntensity  Representative recent Delta Intensity in [-4, 4]; readings
- *                              <= -3 beneath the Rip confirm a control flip.
+ * @param input.currentPrice     Live price (e.g. `mgi.current.price`).
+ * @param input.rip              The Rip / Rolling Pivot price (`mgi.daily.rip`).
+ * @param input.deltaIntensity   Representative recent Delta Intensity in [-4, 4], carried for
+ *                               display/context (e.g. `deltaTelemetry.recentMeanDelta`).
+ * @param input.redExtremeCount  Count of red-extreme prints (<= RED_EXTREME) within the recent
+ *                               window (`deltaTelemetry.recentRedExtremeCount`); reaching
+ *                               RED_BUILDING_MIN_BARS beneath the Rip confirms a control flip.
  */
 export function computeRipStatus(input: {
   currentPrice: number
   rip: number
   deltaIntensity: number
+  redExtremeCount: number
 }): RipStatus {
-  const { currentPrice, rip, deltaIntensity } = input
+  const { currentPrice, rip, deltaIntensity, redExtremeCount } = input
 
   if (!isFiniteNumber(currentPrice)) {
     throw new Error('computeRipStatus: no finite current price')
@@ -112,10 +125,13 @@ export function computeRipStatus(input: {
   if (!isFiniteNumber(deltaIntensity)) {
     throw new Error('computeRipStatus: no finite deltaIntensity')
   }
+  if (!isFiniteNumber(redExtremeCount) || redExtremeCount < 0) {
+    throw new Error('computeRipStatus: redExtremeCount must be a non-negative finite number')
+  }
 
   const distance = round2(currentPrice - rip)
   const position = classifyPosition(distance)
-  const redInitiative = deltaIntensity <= RED_EXTREME
+  const redInitiative = redExtremeCount >= RED_BUILDING_MIN_BARS
 
   // At-or-above the Rip → trend intact (the defensive line holds). Below the Rip → Red when
   // extreme red has confirmed the flip, otherwise Yellow (breach without confirmation).
@@ -129,6 +145,7 @@ export function computeRipStatus(input: {
     distance,
     position,
     deltaIntensity,
+    redExtremeCount,
     redInitiative,
     ...ACTIONS[condition],
   }

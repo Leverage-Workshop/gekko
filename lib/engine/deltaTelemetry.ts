@@ -1,4 +1,5 @@
 import type { ExecBar } from './parseExecBars'
+import { RED_EXTREME } from './ripStatus'
 
 export type DeltaTrend = 'rising' | 'falling' | 'flat'
 export type DeltaSign = 'positive' | 'negative' | 'neutral'
@@ -8,6 +9,7 @@ export type DeltaTelemetry = {
   barCount: number // total bars analyzed
   recentWindow: number // # of most-recent bars used for "recent" stats
   recentMeanDelta: number // mean deltaIntensity over the recent window (rounded)
+  recentRedExtremeCount: number // bars with deltaIntensity <= RED_EXTREME (-3) in the recent window
   recentTrend: DeltaTrend // slope sign across the recent window
   sign: DeltaSign // sign of recentMeanDelta (neutral within epsilon of 0)
   extremes: {
@@ -75,6 +77,11 @@ export function computeDeltaTelemetry(
 
   const recentMeanDelta = round2(mean(recentDeltas))
 
+  // Red-extreme prints within the recent window. These are 750-volume bars, so a single rogue
+  // -3/-4 print is possible; ripStatus confirms Condition Red only when several cluster
+  // (RED_BUILDING_MIN_BARS), which is why the count — not the mean — is the flip signal.
+  const recentRedExtremeCount = recentDeltas.filter(d => d <= RED_EXTREME).length
+
   // Trend: compare the mean delta of the window's first half vs its second half.
   const mid = Math.floor(recentDeltas.length / 2)
   const recentTrend =
@@ -105,6 +112,7 @@ export function computeDeltaTelemetry(
     barCount: bars.length,
     recentWindow,
     recentMeanDelta,
+    recentRedExtremeCount,
     recentTrend,
     sign: classifySign(recentMeanDelta),
     extremes,

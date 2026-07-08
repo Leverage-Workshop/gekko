@@ -41,6 +41,12 @@ describe('computeDeltaTelemetry — fixture', () => {
     expect(t.extremes.lastExtreme).toBe(-4)
   })
 
+  it('counts red-extreme prints within the recent window', () => {
+    // Last 20 fixture deltas hold five <= -3 readings (-3,-3,-3 ... -4,-4).
+    const t = computeDeltaTelemetry(bars)
+    expect(t.recentRedExtremeCount).toBe(5)
+  })
+
   it('locates the latest Leg VWAP and prices the last close below it', () => {
     const t = computeDeltaTelemetry(bars)
     expect(t.legVwap.value).toBe(30470.51)
@@ -59,6 +65,16 @@ describe('computeDeltaTelemetry — fixture', () => {
 describe('computeDeltaTelemetry — synthetic', () => {
   it('throws on empty input', () => {
     expect(() => computeDeltaTelemetry([])).toThrow('no bars')
+  })
+
+  it('counts red extremes at exactly the boundary, scoped to the recent window', () => {
+    // -3 counts, -2.99 does not; extremes older than the recent window are ignored.
+    const inWindow = computeDeltaTelemetry([bar(-3), bar(-2.99), bar(-4), bar(0)])
+    expect(inWindow.recentRedExtremeCount).toBe(2)
+
+    const oldExtremes = [bar(-4), bar(-4), bar(-4), bar(0), bar(0)]
+    const t = computeDeltaTelemetry(oldExtremes, { recentWindow: 2 })
+    expect(t.recentRedExtremeCount).toBe(0)
   })
 
   it('treats all-zero legVWAP (pre-leg) as unknown position', () => {
