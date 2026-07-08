@@ -6,7 +6,7 @@ import type { ComponentPropsWithoutRef } from 'react'
 type Variant = 'primary' | 'outline'
 
 const base =
-  'inline-flex h-12 items-center justify-center px-8 text-sm font-bold uppercase tracking-[1.5px] transition-colors rounded-none'
+  'inline-flex h-12 items-center justify-center px-8 text-sm font-bold uppercase tracking-[1.5px] transition-colors rounded-none disabled:pointer-events-none disabled:opacity-40'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-bmw-blue text-ink hover:bg-electric-blue',

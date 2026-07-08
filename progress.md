@@ -3,9 +3,57 @@
 ## Current State
 
 **Last Updated:** 2026-07-08
-**Active Feature:** none — harness maintenance session (feat-021 descoped, see below). Previous
-feature work: `feat-018` **DONE** (analyze-task, engine-integrated — see below). All feat
-numbers use the **post-renumber** scheme.
+**Active Feature:** none — `feat-019` + `feat-020` **DONE** (briefing dashboard + manual
+Run Briefing trigger, see below). All feat numbers use the **post-renumber** scheme.
+
+**feat-019 + feat-020 (2026-07-08) — briefing dashboard + manual Run Briefing trigger.**
+- **`app/page.tsx` replaces the filler marketing landing page** (user decision) with the
+  real dashboard: a `force-dynamic` server component fetching via the service-role client.
+  `lib/briefing/` follows the house pattern — `dashboardData.ts` (pure `loadDashboardData`
+  over injected deps: latest briefing row **re-validated against the Zod Briefing schema**
+  so a corrupt payload surfaces an error instead of half-rendering, latest eval_results
+  row, latest bundle `received_at` → `assessStaleness`), `deps.ts` (real Supabase deps),
+  `terrainMap.ts` (pure SVG geometry).
+- **Gem parity** (gem-files/instructions.md Morning Briefing template): meta band
+  (created/trigger/model + currentPrice/htfTrend/ripStatus spec cells) → 1·Tactical
+  Overview (three bullet columns + Key Inflections grid) → Terrain campaign map →
+  2·Strategic Alignment (Primary/Secondary objective cards with macroGoal, rationale,
+  direction, R/R, target sequence, Action Point|Price|Level table) → III·Danger Zones →
+  Latest Entry Eval (status chip + trigger/stop/targets/reason, empty state until
+  feat-025). Empty DB renders a clean "No Briefing Yet — run one" state.
+- **Terrain SVG**: `buildTerrainMap(terrain, currentPrice)` returns a serializable layout
+  model (nice-step price axis, contiguous zone rects — the No-Gap invariant renders as
+  touching rectangles tiling the plot, Gem blue→purple palette mapping, per-kind
+  trench/wall/magnet/mgi level overlay, bmw-blue current-price marker); the component
+  only paints. 13 geometry tests.
+- **Staleness**: m-red "STALE DATA" banner + STALE chip whenever the latest bundle
+  exceeds the assessStaleness margin or no bundle exists — stale is never presented as
+  fresh (m-red used per DESIGN.md's critical-significance role).
+- **feat-020 route**: `POST /api/briefings/run` (nodejs) does the type-safe
+  `tasks.trigger<typeof analyzeTask>("analyze-task", { triggerReason: "manual" })`
+  (type-only task import), 202 `{runId}` / clean 500 body. No cron/schedules — on-demand
+  only. **Auth decision: unauthenticated** — local-machine-only app, no input accepted,
+  worst case an extra advisory run; `/api/ingest` stays bearer-authed because a separate
+  process writes data through it (rationale in the route header).
+- **Run Briefing button** (`run-briefing-button.tsx`, client) with pending/success(run
+  id)/error states; **Check Entry at Current Price rendered DISABLED** with a "wired in
+  feat-025" note — the eval backend does not exist yet (decision documented here per the
+  feature spec). `button.tsx` gained `disabled:` styling; top-nav/footer trimmed of
+  marketing filler (nav now anchors dashboard sections; footer keeps stripe+disclaimer).
+- **Tests**: +22 (299 total, all offline): terrainMap geometry (13), dashboard loader
+  with fake deps (6), route with a hoisted SDK fake (3).
+- **Verified**: `./init.sh` green — typecheck 0, lint 0 errors (3 pre-existing warnings
+  in tests/briefing.schema.test.ts), vitest 299/299 (29 files), next build OK
+  (`/` and `/api/briefings/run` dynamic). Live smoke against the real (empty-briefings)
+  Supabase project: GET / → 200 with No-Briefing + Stale-Data + eval empty states;
+  POST /api/briefings/run without TRIGGER_SECRET_KEY → clean 500 error body.
+- **USER SETUP REQUIRED**: set `TRIGGER_SECRET_KEY` in `.env` on the trading machine
+  (now uncommented in `.env.example`) — trigger.dev dashboard → Project → API keys
+  (`tr_dev_*` when running `trigger.dev dev`, `tr_prod_*` against the deployed worker).
+  Live end-to-end smoke still to do once bundles flow: click Run Briefing → one
+  analyze-task run → new briefing row → reload renders it.
+
+**Previous:** feat-021 descoped (below); `feat-018` DONE (analyze-task).
 
 **feat-021 descoped (2026-07-08) — Vercel deployment removed from scope.**
 - User decision: Gekko will run locally on the trading machine; no public deployment needed.
