@@ -41,10 +41,16 @@ whole codebase.**
     re-subscribe + notificationclick navigate fallback; shared `lib/api/respond.ts`;
     the two trigger buttons merged into `trigger-run-button.tsx`; `role="status"` live
     regions; eval section shows an honest unavailable state during DB outages.
-- **Flagged, deliberately NOT changed (doctrine decision for Caleb):** `engineFacts`
-  feeds `deltaTelemetry.recentMeanDelta` (20-bar mean) into `computeRipStatus`, so
-  Condition Red (≤ −3) needs a near-saturated mean; doctrine says "Delta Intensity −3/−4
-  building", which `extremes.lastExtreme` matches better. Also noted, not done: orphaned
+- **Condition Red input — RESOLVED with Caleb (same session/PR):** the flagged
+  mean-based Red trigger (`recentMeanDelta ≤ −3`, effectively unreachable) was replaced
+  with a **count-based flip**: `deltaTelemetry.recentRedExtremeCount` (bars ≤ RED_EXTREME
+  within the 20-bar recent window) and `ripStatus.RED_BUILDING_MIN_BARS = 3` — Caleb's
+  doctrine: exec bars are 750-volume bars, one rogue −3/−4 print carries no weight, he
+  wants ≥3 clustered prints; window deliberately NOT shrunk (clusters shouldn't be missed
+  because of when the analysis request is submitted). `deltaIntensity` (the mean) is kept
+  as display context only; drift guard re-tied to both constants. The fixture day (~196
+  pts below the Rip, 5 recent extremes) now reads Red where it read Yellow. Also noted,
+  not done: orphaned
   storage objects on failed ingests (no GC), proximity threshold (20 pt) as a config
   column, `round2`/`isFiniteNumber` duplicated across 7 engine modules, mobile nav
   fallback, staleness `ageMs: Infinity` serializing to JSON null.
