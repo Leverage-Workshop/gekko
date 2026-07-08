@@ -1,8 +1,12 @@
-import { Button } from './button'
-
 // DESIGN.md top-nav: 64px, canvas background, hairline base, nav-link items,
-// brand mark with the tricolor signature, and a single bmw-blue primary CTA.
-const links = ['Briefings', 'Signals', 'Levels', 'Method']
+// brand mark with the tricolor signature. Links anchor into the dashboard
+// sections (feat-019 replaced the marketing page with the briefing dashboard).
+const links = [
+  { label: 'Overview', href: '#overview' },
+  { label: 'Terrain', href: '#terrain' },
+  { label: 'Objectives', href: '#objectives' },
+  { label: 'Eval', href: '#eval' },
+]
 
 export function TopNav() {
   return (
@@ -19,26 +23,20 @@ export function TopNav() {
 
         <ul className="hidden items-center gap-8 md:flex">
           {links.map((link) => (
-            <li key={link}>
+            <li key={link.href}>
               <a
-                href="#"
+                href={link.href}
                 className="text-sm font-light tracking-wide text-body transition-colors hover:text-ink"
               >
-                {link}
+                {link.label}
               </a>
             </li>
           ))}
         </ul>
 
-        <div className="flex items-center gap-6">
-          <a
-            href="#"
-            className="hidden text-sm font-light tracking-wide text-body transition-colors hover:text-ink sm:inline"
-          >
-            Log In
-          </a>
-          <Button className="h-10 px-6 text-xs">Open Terminal</Button>
-        </div>
+        <span className="text-xs font-light uppercase tracking-[0.3em] text-muted">
+          Advisory Only
+        </span>
       </nav>
     </header>
   )
