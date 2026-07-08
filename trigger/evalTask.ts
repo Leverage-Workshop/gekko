@@ -24,10 +24,13 @@ export const evalTask = schemaTask({
   run: async () => {
     const result = await runEval(realEvalDeps());
 
-    // Model/cost land in run metadata so every eval's spend is auditable
-    // from the trigger.dev dashboard without opening the DB.
+    // Model/cost/latency/cache-hit metrics land in run metadata so every
+    // eval's spend is auditable from the trigger.dev dashboard without
+    // opening the DB (feat-030 — this metadata IS the observability surface).
     metadata.set("model", result.model);
     metadata.set("costUsd", result.cost);
+    metadata.set("latencyMs", result.latencyMs);
+    metadata.set("cachedInputTokens", result.cachedInputTokens);
     metadata.set(
       "usage",
       result.usage
@@ -35,6 +38,7 @@ export const evalTask = schemaTask({
             inputTokens: result.usage.inputTokens ?? null,
             outputTokens: result.usage.outputTokens ?? null,
             totalTokens: result.usage.totalTokens ?? null,
+            cachedInputTokens: result.cachedInputTokens,
           }
         : null,
     );
@@ -46,6 +50,8 @@ export const evalTask = schemaTask({
       bundleId: result.bundleId,
       model: result.model,
       costUsd: result.cost,
+      latencyMs: result.latencyMs,
+      cachedInputTokens: result.cachedInputTokens,
       status: result.status,
       nearEntry: result.nearEntry,
       stale: result.stale,

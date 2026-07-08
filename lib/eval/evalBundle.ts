@@ -54,6 +54,8 @@ export interface EvalDeps extends LoadBundleDeps, PersistEvalDeps {
     prompt: string
     images: readonly { base64: string; mediaType?: string }[]
     schema: typeof EvalResult
+    /** LangSmith trace grouping (feat-030); inert without LANGSMITH_API_KEY. */
+    telemetry?: { functionId: string }
   }) => Promise<GenerateStructuredResult<EvalResult>>
   /** Doctrine loader; injectable for tests. */
   loadDoctrine?: () => string
@@ -69,6 +71,10 @@ export interface EvalRunResult {
   usage: GenerateStructuredResult<EvalResult>['usage'] | null
   /** OpenRouter-reported cost in USD, when usage accounting returns it. */
   cost: number | null
+  /** Prompt-cache read tokens (feat-023); null when skipped/not reported. */
+  cachedInputTokens: number | null
+  /** LLM-call latency in ms (feat-030); null when the LLM call was skipped. */
+  latencyMs: number | null
   stale: boolean
   status: EvalResult['status']
   nearEntry: boolean
@@ -127,6 +133,8 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
       model: null,
       usage: null,
       cost: null,
+      cachedInputTokens: null,
+      latencyMs: null,
       stale: staleness.isStale,
       status: result.status,
       nearEntry: false,
@@ -150,6 +158,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
     }),
     images: bundle.images,
     schema: EvalResult,
+    telemetry: { functionId: 'eval-task' },
   })
 
   const validated = enforceEvalFacts(generated.object, {
@@ -174,6 +183,8 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
     model: generated.model,
     usage: generated.usage,
     cost: generated.cost,
+    cachedInputTokens: generated.cachedInputTokens,
+    latencyMs: generated.latencyMs,
     stale: staleness.isStale,
     status: validated.result.status,
     nearEntry: proximity.nearEntry,

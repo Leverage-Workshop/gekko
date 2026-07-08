@@ -3,6 +3,7 @@ import { z } from 'zod'
 import {
   DEFAULT_MODEL_ID,
   assertModelMatch,
+  extractCachedInputTokens,
   extractCost,
   generateStructured,
   getOpenRouter,
@@ -16,13 +17,14 @@ function fakeGenerate(opts: {
   modelId: string
   capture?: (args: unknown) => void
   providerMetadata?: unknown
+  usage?: unknown
 }) {
   return (async (args: unknown) => {
     opts.capture?.(args)
     return {
       object: opts.object,
       response: { id: 'resp_1', timestamp: new Date(), modelId: opts.modelId },
-      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+      usage: opts.usage ?? { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
       providerMetadata: opts.providerMetadata,
     }
   }) as unknown as Parameters<typeof generateStructured>[0]['generate']
@@ -38,6 +40,34 @@ describe('assertModelMatch', () => {
   it('throws when the provider serves a different model', () => {
     expect(() =>
       assertModelMatch('anthropic/claude-sonnet-4-6', 'openai/gpt-5.5'),
+    ).toThrow(/Model mismatch/)
+  })
+
+  it('accepts the dated canonical variant of the requested model', () => {
+    // OpenRouter serves anthropic aliases under dated canonical ids.
+    expect(() =>
+      assertModelMatch('anthropic/claude-sonnet-5', 'anthropic/claude-sonnet-5-20260630'),
+    ).not.toThrow()
+  })
+
+  it('accepts a reordered dotted-version canonical id (haiku alias)', () => {
+    expect(() =>
+      assertModelMatch(
+        'anthropic/claude-haiku-4-5',
+        'anthropic/claude-4.5-haiku-20251001',
+      ),
+    ).not.toThrow()
+  })
+
+  it('still rejects a same-provider different model or version', () => {
+    expect(() =>
+      assertModelMatch('anthropic/claude-sonnet-5', 'anthropic/claude-haiku-4-5'),
+    ).toThrow(/Model mismatch/)
+    expect(() =>
+      assertModelMatch(
+        'anthropic/claude-sonnet-4-6',
+        'anthropic/claude-sonnet-4-5-20250929',
+      ),
     ).toThrow(/Model mismatch/)
   })
 })
@@ -190,6 +220,152 @@ describe('generateStructured', () => {
     expect(result.cost).toBeNull()
   })
 
+  it('surfaces cache-read tokens from the AI SDK usage shape', async () => {
+    const result = await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        usage: {
+          inputTokens: 5000,
+          outputTokens: 50,
+          totalTokens: 5050,
+          inputTokenDetails: {
+            noCacheTokens: 800,
+            cacheReadTokens: 4200,
+            cacheWriteTokens: 0,
+          },
+        },
+      }),
+    })
+    expect(result.cachedInputTokens).toBe(4200)
+  })
+
+  it('falls back to the OpenRouter usage-accounting shape for cached tokens', async () => {
+    const result = await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        providerMetadata: {
+          openrouter: {
+            usage: { cost: 0.01, promptTokensDetails: { cachedTokens: 3100 } },
+          },
+        },
+      }),
+    })
+    expect(result.cachedInputTokens).toBe(3100)
+  })
+
+  it('reports null cached tokens when neither shape carries them', async () => {
+    const result = await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+      }),
+    })
+    expect(result.cachedInputTokens).toBeNull()
+  })
+
+  it('measures the LLM call latency', async () => {
+    const result = await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+      }),
+    })
+    expect(Number.isFinite(result.latencyMs)).toBe(true)
+    expect(result.latencyMs).toBeGreaterThanOrEqual(0)
+  })
+
+  it('passes experimental_telemetry when opted in and the runtime is enabled', async () => {
+    let captured: Record<string, unknown> | undefined
+    const tracer = { startActiveSpan: () => undefined }
+    let flushed = 0
+    await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      telemetry: { functionId: 'analyze-task', metadata: { bundleId: 'b1' } },
+      getTelemetry: () =>
+        ({
+          tracer,
+          flush: async () => {
+            flushed += 1
+          },
+        }) as never,
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        capture: (a) => {
+          captured = a as typeof captured
+        },
+      }),
+    })
+
+    expect(captured!.experimental_telemetry).toEqual({
+      isEnabled: true,
+      recordInputs: true,
+      recordOutputs: true,
+      functionId: 'analyze-task',
+      metadata: { bundleId: 'b1' },
+      tracer,
+    })
+    expect(flushed).toBe(1)
+  })
+
+  it('omits experimental_telemetry when the runtime is disabled (no env key)', async () => {
+    let captured: Record<string, unknown> | undefined
+    await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      telemetry: { functionId: 'analyze-task' },
+      getTelemetry: () => null,
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        capture: (a) => {
+          captured = a as typeof captured
+        },
+      }),
+    })
+    expect(captured!).not.toHaveProperty('experimental_telemetry')
+  })
+
+  it('omits experimental_telemetry when the caller does not opt in', async () => {
+    let captured: Record<string, unknown> | undefined
+    let consulted = 0
+    await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      getTelemetry: () => {
+        consulted += 1
+        return null
+      },
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        capture: (a) => {
+          captured = a as typeof captured
+        },
+      }),
+    })
+    expect(captured!).not.toHaveProperty('experimental_telemetry')
+    expect(consulted).toBe(0)
+  })
+
   it('rejects output that violates the schema', async () => {
     await expect(
       generateStructured({
@@ -220,6 +396,58 @@ describe('extractCost', () => {
     [{ openrouter: { usage: { cost: Number.NaN } } }],
   ])('returns null for %j', (metadata) => {
     expect(extractCost(metadata)).toBeNull()
+  })
+})
+
+describe('extractCachedInputTokens', () => {
+  it('prefers the AI SDK inputTokenDetails.cacheReadTokens', () => {
+    expect(
+      extractCachedInputTokens(
+        { inputTokenDetails: { cacheReadTokens: 1200 }, cachedInputTokens: 999 },
+        { openrouter: { usage: { promptTokensDetails: { cachedTokens: 1 } } } },
+      ),
+    ).toBe(1200)
+  })
+
+  it('accepts the deprecated usage.cachedInputTokens alias', () => {
+    expect(extractCachedInputTokens({ cachedInputTokens: 777 }, undefined)).toBe(777)
+  })
+
+  it('falls back to OpenRouter camelCase usage accounting', () => {
+    expect(
+      extractCachedInputTokens(
+        { inputTokens: 10 },
+        { openrouter: { usage: { promptTokensDetails: { cachedTokens: 512 } } } },
+      ),
+    ).toBe(512)
+  })
+
+  it('falls back to the raw snake_case OpenRouter shape', () => {
+    expect(
+      extractCachedInputTokens(undefined, {
+        openrouter: { usage: { prompt_tokens_details: { cached_tokens: 256 } } },
+      }),
+    ).toBe(256)
+  })
+
+  it('reports zero cached tokens as 0, not null', () => {
+    expect(
+      extractCachedInputTokens({ inputTokenDetails: { cacheReadTokens: 0 } }, undefined),
+    ).toBe(0)
+  })
+
+  it.each([
+    [undefined, undefined],
+    [null, null],
+    [{}, {}],
+    [{ inputTokenDetails: {} }, { openrouter: {} }],
+    [{ cachedInputTokens: 'many' }, { openrouter: { usage: {} } }],
+    [
+      { inputTokenDetails: { cacheReadTokens: Number.NaN } },
+      { openrouter: { usage: { promptTokensDetails: {} } } },
+    ],
+  ])('returns null for usage=%j metadata=%j', (usage, metadata) => {
+    expect(extractCachedInputTokens(usage, metadata)).toBeNull()
   })
 })
 

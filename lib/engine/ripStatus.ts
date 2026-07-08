@@ -48,7 +48,8 @@ const EPSILON = 0.25
 
 // Extreme red initiative per doctrine: Delta Intensity -3 or -4. At/below this beneath the Rip
 // confirms a control flip (Red); a sub-extreme breach is only a stress test (Yellow).
-const RED_EXTREME = -3
+// Exported so the doctrine drift guard (feat-032) can tie prose checks to the live constant.
+export const RED_EXTREME = -3
 
 const ACTIONS: Record<RipCondition, { headline: string; action: string }> = {
   green: {

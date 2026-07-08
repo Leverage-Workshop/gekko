@@ -38,6 +38,8 @@ export interface AnalyzeDeps extends LoadBundleDeps, PersistDeps {
     prompt: string
     images: readonly { base64: string; mediaType?: string }[]
     schema: typeof Briefing
+    /** LangSmith trace grouping (feat-030); inert without LANGSMITH_API_KEY. */
+    telemetry?: { functionId: string }
   }) => Promise<GenerateStructuredResult<Briefing>>
   /** Doctrine loader; injectable for tests. */
   loadDoctrine?: () => string
@@ -53,6 +55,10 @@ export interface AnalyzeResult {
   usage: GenerateStructuredResult<Briefing>['usage']
   /** OpenRouter-reported cost in USD, when usage accounting returns it. */
   cost: number | null
+  /** Prompt-cache read tokens (feat-023), when the provider reports them. */
+  cachedInputTokens: number | null
+  /** Wall-clock latency of the LLM call in milliseconds (feat-030). */
+  latencyMs: number
   stale: boolean
   entryLevelCount: number
   warnings: string[]
@@ -100,6 +106,7 @@ export async function runAnalysis(
     }),
     images: bundle.images,
     schema: Briefing,
+    telemetry: { functionId: 'analyze-task' },
   })
 
   const validated = enforceCodeOwnedFacts(result.object, {
@@ -122,6 +129,8 @@ export async function runAnalysis(
     model: result.model,
     usage: result.usage,
     cost: result.cost,
+    cachedInputTokens: result.cachedInputTokens,
+    latencyMs: result.latencyMs,
     stale: facts.staleness.isStale,
     entryLevelCount: persisted.entryLevelCount,
     warnings,

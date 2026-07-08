@@ -30,7 +30,7 @@ These are the guardrails the model must never violate. They split into two kinds
 
 ## Computable guardrails (engine-owned)
 
-- **Minimum risk/reward.** The 3:1 R/R gate is enforced by `lib/engine/riskReward.ts`
+- **Minimum risk/reward.** The minimum R/R gate is enforced by `lib/engine/riskReward.ts`
   (`evaluateRiskReward`, default from `config.rr_min`). Do not restate or recompute the ratio in
   prose — respect the engine's `meetsGate` / `rr`.
 - **Stops never widen.** A new stop may only move closer to entry, never farther. Enforced by

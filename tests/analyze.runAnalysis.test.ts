@@ -134,6 +134,8 @@ function makeDeps(overrides: Partial<AnalyzeDeps> = {}) {
           totalTokens: 150,
         } as GenerateStructuredResult<Briefing>['usage'],
         cost: 0.0421,
+        cachedInputTokens: 4200,
+        latencyMs: 1234,
       }
     },
     loadDoctrine: () => 'DOCTRINE PREFIX',
@@ -177,6 +179,8 @@ describe('runAnalysis', () => {
     expect(result.bundleId).toBe('b1')
     expect(result.model).toBe('test/model-x')
     expect(result.cost).toBe(0.0421)
+    expect(result.cachedInputTokens).toBe(4200)
+    expect(result.latencyMs).toBe(1234)
     expect(result.stale).toBe(false)
     expect(result.entryLevelCount).toBe(2)
   })
@@ -189,6 +193,7 @@ describe('runAnalysis', () => {
     expect(captured.model).toBe('test/model-x')
     expect(captured.system).toBe('DOCTRINE PREFIX')
     expect(captured.cacheSystem).toBe(true)
+    expect(captured.telemetry).toEqual({ functionId: 'analyze-task' })
     expect(captured.images).toHaveLength(1)
     expect(captured.prompt).toContain('# Engine facts (authoritative)')
     expect(captured.prompt).toContain('# Raw MGI static levels')
@@ -247,6 +252,8 @@ describe('runAnalysis', () => {
           model: params.model,
           usage: {} as GenerateStructuredResult<Briefing>['usage'],
           cost: null,
+          cachedInputTokens: null,
+          latencyMs: 0,
         }
       },
     })

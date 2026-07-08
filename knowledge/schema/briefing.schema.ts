@@ -95,7 +95,7 @@ export const Objective = z.object({
   entries: z.array(Entry),
   stops: z.array(Stop),
   targets: z.array(Target),
-  /** Risk/reward ratio; supplied by riskReward.ts (3:1 gate). */
+  /** Risk/reward ratio; supplied by riskReward.ts (the rr_min gate). */
   rr: z.number(),
 })
 export type Objective = z.infer<typeof Objective>
