@@ -68,6 +68,24 @@ describe('supabase migrations', () => {
     expect(sql.combined).toContain("'bundle-csvs'")
   })
 
+  it('adds the high-conviction flag columns idempotently (feat-031)', () => {
+    expect(sql.combined).toContain(
+      'add column if not exists high_conviction_enabled boolean not null default false',
+    )
+    expect(sql.combined).toContain(
+      "add column if not exists high_conviction_model_id text not null default 'anthropic/claude-opus-4-8'",
+    )
+  })
+
+  it('keeps the high-conviction migration scoped to config ALTERs (no destructive DDL)', () => {
+    const file = sql.files.find((f) => f.includes('high_conviction_flag'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    expect(content).toMatch(/alter table public\.config/)
+    expect(content).not.toMatch(/drop\s/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+
   it('seeds the singleton config row with the documented defaults', () => {
     expect(sql.combined).toContain('insert into public.config')
     expect(sql.combined).toContain("'anthropic/claude-sonnet-4-6'")

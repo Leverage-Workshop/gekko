@@ -234,6 +234,65 @@ describe('runAnalysis', () => {
     expect(result.warnings.some((w) => w.includes('config row missing'))).toBe(true)
   })
 
+  it('routes to the high-conviction model when the flag is on (feat-031)', async () => {
+    const harness = makeDeps({
+      fetchConfig: async () => ({
+        model_id: 'test/model-x',
+        rr_min: 3,
+        high_conviction_enabled: true,
+        high_conviction_model_id: 'test/opus-hc',
+      }),
+    })
+    const result = await runAnalysis(harness.deps, { triggerReason: 'manual' })
+
+    expect(harness.getCaptured()!.model).toBe('test/opus-hc')
+    expect(result.model).toBe('test/opus-hc')
+    expect(result.highConviction).toBe(true)
+  })
+
+  it('stays on model_id when the high-conviction flag is off', async () => {
+    const harness = makeDeps({
+      fetchConfig: async () => ({
+        model_id: 'test/model-x',
+        rr_min: 3,
+        high_conviction_enabled: false,
+        high_conviction_model_id: 'test/opus-hc',
+      }),
+    })
+    const result = await runAnalysis(harness.deps, { triggerReason: 'manual' })
+
+    expect(harness.getCaptured()!.model).toBe('test/model-x')
+    expect(result.highConviction).toBe(false)
+  })
+
+  it('treats a pre-migration config read (no high-conviction fields) as flag off', async () => {
+    // Default makeDeps fetchConfig returns only { model_id, rr_min } — the
+    // shape lib/analyze/deps.ts produces before the migration is applied.
+    const harness = makeDeps()
+    const result = await runAnalysis(harness.deps, { triggerReason: 'manual' })
+
+    expect(harness.getCaptured()!.model).toBe('test/model-x')
+    expect(result.highConviction).toBe(false)
+  })
+
+  it('falls back to model_id with a warning when the flag is on but the id is blank', async () => {
+    const harness = makeDeps({
+      fetchConfig: async () => ({
+        model_id: 'test/model-x',
+        rr_min: 3,
+        high_conviction_enabled: true,
+        high_conviction_model_id: '',
+      }),
+    })
+    const result = await runAnalysis(harness.deps, { triggerReason: 'manual' })
+
+    expect(harness.getCaptured()!.model).toBe('test/model-x')
+    expect(result.highConviction).toBe(false)
+    expect(
+      result.warnings.some((w) => w.includes('high_conviction_model_id is empty')),
+    ).toBe(true)
+  })
+
   it('rejects a model briefing whose zones break the No-Gap invariant', async () => {
     const harness = makeDeps({
       generate: async (params) => {

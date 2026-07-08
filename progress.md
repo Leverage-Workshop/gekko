@@ -2,10 +2,59 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-08 (second session this date)
-**Active Feature:** none — `feat-023` + `feat-030` + `feat-032` **DONE** (prompt-cache
-read-back, cost/latency observability + LangSmith telemetry, doctrine drift guard — see
-below). All feat numbers use the **post-renumber** scheme.
+**Last Updated:** 2026-07-08 (third session this date)
+**Active Feature:** none — `feat-031` + `feat-028` **DONE** (Opus high-conviction review
+flag + Config UI — see below). All feat numbers use the **post-renumber** scheme.
+
+**feat-031 + feat-028 (2026-07-08, third session) — Opus high-conviction flag; /settings
+Config UI.**
+
+- **feat-031 (high-conviction flag).** New migration
+  `supabase/migrations/20260708090000_high_conviction_flag.sql` adds
+  `high_conviction_enabled boolean not null default false` and
+  `high_conviction_model_id text not null default 'anthropic/claude-opus-4-8'` to
+  `public.config` (idempotent `add column if not exists`, house ALTER style, doctrine
+  comments per plan "Decisions locked" + Phase 4). Routing: `runAnalysis` uses
+  `high_conviction_model_id` instead of `model_id` when the flag is on (both from config,
+  never hardcoded; blank id → warning + fall back to `model_id`);
+  `AnalyzeResult.highConviction` lands in analyze-task run metadata + logs next to
+  `model`. The eval-task triage path is deliberately untouched (triage stays cheap).
+- **⚠️ PENDING USER STEP — migration NOT applied live.** This container has no DB
+  password and the Supabase MCP server is unauthorized, so the migration is committed but
+  **not** applied to the live project. Apply
+  `supabase/migrations/20260708090000_high_conviction_flag.sql` via the Supabase MCP
+  server or the dashboard SQL editor. Until then the app degrades gracefully (below), and
+  a /settings save fails with an explicit "apply the high_conviction_flag migration
+  first" 400 (raw Postgres errors are never surfaced).
+- **Graceful pre-migration reads.** New shared `lib/config/fetchConfig.ts`
+  (`fetchConfigRow`): selects the full column set; on Postgres 42703 (undefined column —
+  matched by code or message) retries with the legacy column set, pads
+  `high_conviction_enabled=false` + the default Opus id, and reports
+  `highConvictionColumnsMissing=true`. `lib/analyze/deps.ts` `fetchConfig` now routes
+  through it. **Live read-only smoke this session:** the real DB returned 42703 for the
+  new columns and the seeded legacy row (`model_id anthropic/claude-sonnet-5`) for the
+  fallback select, and a one-off vitest run of the real `fetchConfigRow` against the live
+  DB passed (`highConvictionColumnsMissing: true`) — production hits exactly the tested
+  path. No live writes/DDL were attempted.
+- **feat-028 (Config UI).** `/settings` (server shell, `force-dynamic`) + client
+  `settings-form.tsx` editing `model_id`, `triage_model_id`, `rr_min`,
+  `high_conviction_enabled`, `high_conviction_model_id`; DESIGN.md-conformant (uppercase
+  1.5px-tracked labels, surface-card rounded-none 48px inputs, bmw-blue Save, m-red
+  errors only, success saved-state, warning note pre-migration; `updated_at` shown and
+  refreshed after save). `GET`+`POST /api/config`: Zod validation
+  (`lib/config/updateConfig.ts` — model ids trimmed non-empty `provider/model` regex,
+  `rr_min` bounded 0.5–10, NaN/∞ rejected, boolean flag) → 400 with per-field
+  `fieldErrors` the form renders inline; success updates config `id=1` with fresh
+  `updated_at` and returns the row. **Intentionally unauthenticated** like
+  `/api/briefings/run` (local-machine app; feat-020 rationale). Top-nav gained a
+  Settings link; dashboard anchors root-prefixed (`/#overview`) so they work from
+  /settings.
+- **Tests/verification.** +37 tests → **429 passed** (`tests/config.schema.test.ts`,
+  `tests/config.store.test.ts`, `tests/config.route.test.ts`, migrations guards for the
+  new SQL, runAnalysis routing cases incl. pre-migration config shape). `./init.sh`
+  fully green: typecheck ✓, lint ✓ (only the 3 pre-existing warnings in
+  `tests/briefing.schema.test.ts`), vitest 429 ✓, build ✓ (`/settings` + `/api/config`
+  in the route table).
 
 **feat-023 + feat-030 + feat-032 (2026-07-08) — prompt caching read-back;
 cost/latency/LangSmith observability; doctrine drift guard.**

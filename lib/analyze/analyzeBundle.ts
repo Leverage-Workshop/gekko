@@ -25,6 +25,15 @@ import { enforceCodeOwnedFacts } from './validateBriefing'
 export interface AnalyzeConfig {
   model_id: string
   rr_min: number
+  /**
+   * feat-031: when true, briefing generation routes to
+   * {@link AnalyzeConfig.high_conviction_model_id} instead of `model_id`.
+   * Optional so a pre-migration config read (columns absent) stays valid —
+   * absent reads as false. The eval-task triage path is unaffected by design.
+   */
+  high_conviction_enabled?: boolean
+  /** OpenRouter id for high-conviction reviews; comes from config, never code. */
+  high_conviction_model_id?: string | null
 }
 
 export interface AnalyzeDeps extends LoadBundleDeps, PersistDeps {
@@ -59,6 +68,8 @@ export interface AnalyzeResult {
   cachedInputTokens: number | null
   /** Wall-clock latency of the LLM call in milliseconds (feat-030). */
   latencyMs: number
+  /** True when the high-conviction flag routed this run to the Opus-tier model (feat-031). */
+  highConviction: boolean
   stale: boolean
   entryLevelCount: number
   warnings: string[]
@@ -75,7 +86,21 @@ export async function runAnalysis(
   if (!config) {
     warnings.push('config row missing — using code defaults')
   }
-  const modelId = config?.model_id ?? DEFAULT_MODEL_ID
+  // feat-031: high-conviction routing — both model ids come from the config
+  // row (never hardcoded). If the flag is on but the model id is blank
+  // (shouldn't happen: the column is NOT NULL with a default), fall back to
+  // model_id with a warning rather than failing the run.
+  let highConviction = config?.high_conviction_enabled === true
+  if (highConviction && !config?.high_conviction_model_id) {
+    warnings.push(
+      'high_conviction_enabled is set but high_conviction_model_id is empty — using model_id',
+    )
+    highConviction = false
+  }
+  const modelId =
+    highConviction && config?.high_conviction_model_id
+      ? config.high_conviction_model_id
+      : (config?.model_id ?? DEFAULT_MODEL_ID)
   const rrMin = config?.rr_min ?? DEFAULT_RR_MIN
 
   const bundle = await loadLatestBundle(deps)
@@ -131,6 +156,7 @@ export async function runAnalysis(
     cost: result.cost,
     cachedInputTokens: result.cachedInputTokens,
     latencyMs: result.latencyMs,
+    highConviction,
     stale: facts.staleness.isStale,
     entryLevelCount: persisted.entryLevelCount,
     warnings,
