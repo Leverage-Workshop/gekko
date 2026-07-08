@@ -58,3 +58,12 @@ export const FILE_FIELDS: readonly FileField[] = [
  * JSON at `current.price` / `current.time` and are extracted on ingest.
  */
 export const MGI_FIELD = 'mgi'
+
+/**
+ * Optional multipart field carrying a client-generated bundle UUID. The uploader
+ * mints one id per bundle (before its retry loop) and every retry reuses it, so
+ * a retried POST after a dropped response lands on the same Storage prefix and
+ * `raw_bundles` row instead of minting a duplicate. When absent, ingest
+ * generates the id server-side.
+ */
+export const BUNDLE_ID_FIELD = 'bundle_id'

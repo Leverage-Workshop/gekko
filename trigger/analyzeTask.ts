@@ -1,6 +1,7 @@
-import { logger, metadata, schemaTask } from "@trigger.dev/sdk";
+import { AbortTaskRunError, logger, metadata, schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod";
-import { realAnalyzeDeps, runAnalysis } from "@/lib/analyze";
+import { AnalyzeInputError, realAnalyzeDeps, runAnalysis } from "@/lib/analyze";
+import type { AnalyzeResult } from "@/lib/analyze";
 import { sendGekkoPush } from "@/lib/push";
 
 // analyze-task — the full-briefing LLM task (docs/agent-architecture-plan.md):
@@ -22,9 +23,22 @@ export const analyzeTask = schemaTask({
     randomize: true,
   },
   run: async (payload) => {
-    const result = await runAnalysis(realAnalyzeDeps(), {
-      triggerReason: payload.triggerReason,
-    });
+    let result: AnalyzeResult;
+    try {
+      result = await runAnalysis(realAnalyzeDeps(), {
+        triggerReason: payload.triggerReason,
+      });
+    } catch (error) {
+      // AnalyzeInputError means no usable bundle exists — retrying cannot
+      // help, so abort the run instead of burning the retry attempts.
+      if (error instanceof AnalyzeInputError) {
+        logger.error("analyze input unusable — aborting without retries", {
+          message: error.message,
+        });
+        throw new AbortTaskRunError(error.message);
+      }
+      throw error;
+    }
 
     // Model/cost/latency/cache-hit metrics land in run metadata so every
     // briefing's spend is auditable from the trigger.dev dashboard without

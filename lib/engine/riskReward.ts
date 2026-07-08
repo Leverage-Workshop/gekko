@@ -121,7 +121,8 @@ export function evaluateRiskReward(input: {
     const rawReward = long ? price - entry : entry - price
     const reward = round2(rawReward)
     const rr = risk > 0 && reward > 0 ? round2(reward / risk) : 0
-    return { price, reward, rr, meetsGate: rr >= rrMin }
+    // Same gate as the headline: rr > 0 keeps a wrong-side target failing even at rrMin 0.
+    return { price, reward, rr, meetsGate: rr > 0 && rr >= rrMin }
   })
 
   const head = targetRr[0]

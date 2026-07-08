@@ -288,11 +288,12 @@ export function detectLvnHvn(
   const taperCands = detectTaperEdges(smoothed, prices, peak, params)
 
   const hvnKept = mergeByPrice(peakCands, prices, params.mergeTolerance)
-  const valleyKept = mergeByPrice(valleyCands, prices, params.mergeTolerance)
   // Taper edges compete with valleys for the same LVN slots — merge across both so a valley and
   // a taper knee at the same price collapse to one LVN (valley wins ties on score).
   const lvnKept = mergeByPrice([...valleyCands, ...taperCands], prices, params.mergeTolerance)
-  const valleyIndices = new Set(valleyKept.map(c => c.index))
+  // Type by PRE-merge valley candidacy: a valley that loses a valley-vs-valley neighborhood but
+  // survives the combined merge is still valley-shaped and must not be relabeled taper-edge.
+  const valleyIndices = new Set(valleyCands.map(c => c.index))
 
   const hvn: HvnNode[] = hvnKept.map(c => ({
     price: prices[c.index],

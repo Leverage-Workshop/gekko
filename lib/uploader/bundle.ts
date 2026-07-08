@@ -1,4 +1,4 @@
-import { FILE_FIELDS, MGI_FIELD } from '@/lib/ingest'
+import { BUNDLE_ID_FIELD, FILE_FIELDS, MGI_FIELD } from '@/lib/ingest'
 
 /**
  * Reads the Sierra Chart export folder into an in-memory bundle and turns it
@@ -89,8 +89,14 @@ export function isEmptyBundle(bundle: Bundle): boolean {
   return bundle.files.length === 0 && bundle.mgi === null
 }
 
-/** Builds the multipart body for POST /api/ingest from a read bundle. */
-export function toFormData(bundle: Bundle): FormData {
+/**
+ * Builds the multipart body for POST /api/ingest from a read bundle.
+ *
+ * `bundleId` (a canonical UUID, minted once per bundle before the retry loop)
+ * rides along as the `BUNDLE_ID_FIELD` so every retry of this body carries the
+ * same id and the server can dedupe a retried POST instead of storing twice.
+ */
+export function toFormData(bundle: Bundle, bundleId?: string): FormData {
   const form = new FormData()
   for (const part of bundle.files) {
     // Copy into a fresh ArrayBuffer-backed view so the Blob part is a valid BlobPart.
@@ -99,6 +105,9 @@ export function toFormData(bundle: Bundle): FormData {
   }
   if (bundle.mgi !== null) {
     form.append(MGI_FIELD, bundle.mgi)
+  }
+  if (bundleId !== undefined) {
+    form.append(BUNDLE_ID_FIELD, bundleId)
   }
   return form
 }

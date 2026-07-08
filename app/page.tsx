@@ -7,10 +7,9 @@ import {
 } from '@/lib/briefing'
 import { formatPrice } from '@/lib/briefing/terrainMap'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
-import { CheckEntryButton } from './components/check-entry-button'
 import { Footer } from './components/footer'
 import { MStripe } from './components/m-stripe'
-import { RunBriefingButton } from './components/run-briefing-button'
+import { CheckEntryButton, RunBriefingButton } from './components/trigger-run-button'
 import { TerrainMap } from './components/terrain-map'
 import { TopNav } from './components/top-nav'
 
@@ -239,15 +238,23 @@ const EVAL_STATUS_CLASS: Record<string, string> = {
   NO_ENTRY_NEAR: 'text-muted border-muted',
 }
 
-function EvalSection({ evalResult }: { evalResult: DashboardEvalRow | null }) {
+function EvalSection({
+  evalResult,
+  unavailable,
+}: {
+  evalResult: DashboardEvalRow | null
+  /** Dashboard load failed — don't render the run-your-first-eval CTA. */
+  unavailable: boolean
+}) {
   return (
     <section id="eval" className="border-b border-hairline">
       <div className="mx-auto max-w-[1440px] px-6 py-16">
         <SectionLabel>Latest Entry Eval</SectionLabel>
         {evalResult === null ? (
           <p className="mt-6 max-w-xl text-sm font-light leading-relaxed text-muted">
-            No entry evals yet — press Check Entry at Current Price above to run the first
-            check against the active entry levels.
+            {unavailable
+              ? 'Entry evals unavailable — the database could not be reached.'
+              : 'No entry evals yet — press Check Entry at Current Price above to run the first check against the active entry levels.'}
           </p>
         ) : (
           <div className="mt-6 border border-hairline bg-surface-card p-6">
@@ -464,7 +471,7 @@ export default async function Home() {
           )
         )}
 
-        <EvalSection evalResult={data?.evalResult ?? null} />
+        <EvalSection evalResult={data?.evalResult ?? null} unavailable={loadError !== null} />
       </main>
 
       <Footer />

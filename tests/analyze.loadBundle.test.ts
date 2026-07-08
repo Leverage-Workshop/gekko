@@ -91,4 +91,38 @@ describe('loadLatestBundle', () => {
     ])
     expect(bundle.warnings.some((w) => w.includes('TPO'))).toBe(true)
   })
+
+  it('throws when the delta export is missing under the default (all) mode', async () => {
+    await expect(
+      loadLatestBundle(deps(row({ delta_profile_ref: null }), objects)),
+    ).rejects.toThrow(/delta profile/)
+  })
+})
+
+describe('loadLatestBundle with requireTexts: exec-only (eval)', () => {
+  it('loads a bundle missing the VbP/delta exports', async () => {
+    const d = deps(row({ vol_profile_ref: null, delta_profile_ref: null }), objects)
+    const bundle = await loadLatestBundle(d, { requireTexts: 'exec-only' })
+
+    expect(bundle.execCsvContent).toBe('CSV')
+    expect(bundle.images).toHaveLength(3)
+    expect(bundle.warnings).toEqual([])
+  })
+
+  it('never downloads the VbP/delta exports, even when the refs exist', async () => {
+    const d = deps(row(), objects)
+    await loadLatestBundle(d, { requireTexts: 'exec-only' })
+
+    expect(d.downloads.filter((entry) => entry.startsWith('bundle-csvs:'))).toEqual([
+      'bundle-csvs:bundle-1/execution_bars.csv',
+    ])
+  })
+
+  it('still requires the exec CSV', async () => {
+    await expect(
+      loadLatestBundle(deps(row({ exec_csv_ref: null }), objects), {
+        requireTexts: 'exec-only',
+      }),
+    ).rejects.toThrow(/execution-bar CSV/)
+  })
 })

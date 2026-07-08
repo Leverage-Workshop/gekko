@@ -1,4 +1,5 @@
 import { tasks } from '@trigger.dev/sdk'
+import { json } from '@/lib/api/respond'
 import type { evalTask } from '@/trigger/evalTask'
 
 /**
@@ -16,16 +17,6 @@ import type { evalTask } from '@/trigger/evalTask'
 
 // Node runtime: the trigger.dev SDK talks to the API server-side.
 export const runtime = 'nodejs'
-
-type ApiResponse<T> = {
-  success: boolean
-  data?: T
-  error?: string
-}
-
-function json<T>(body: ApiResponse<T>, status: number): Response {
-  return Response.json(body, { status })
-}
 
 export async function POST(): Promise<Response> {
   try {

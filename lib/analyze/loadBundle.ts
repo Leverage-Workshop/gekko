@@ -47,6 +47,22 @@ export interface LoadedBundle {
   warnings: string[]
 }
 
+/**
+ * The relaxed (`requireTexts: 'exec-only'`) load for the eval-task: only the
+ * exec CSV is required — the VbP/delta exports are neither required nor
+ * fetched, so the fields are absent rather than nullable.
+ */
+export type LoadedExecBundle = Omit<LoadedBundle, 'vbpContent' | 'deltaContent'>
+
+export interface LoadBundleOptions {
+  /**
+   * Which text exports are hard requirements. `'all'` (default — analyze)
+   * requires VbP + delta + exec CSV; `'exec-only'` (eval) requires only the
+   * exec CSV and skips the other two entirely.
+   */
+  requireTexts?: 'all' | 'exec-only'
+}
+
 const CHART_REFS = [
   { column: 'htf_png_ref', label: 'HTF planning chart (30-min, 90-day)' },
   { column: 'tpo_png_ref', label: 'TPO / Market Profile chart' },
@@ -69,9 +85,23 @@ async function requireText(
  * Fetch the latest bundle and everything the engine + model call need from it.
  *
  * @throws {AnalyzeInputError} when there is no bundle, the MGI JSON is absent,
- *   or a required text export (VbP / delta / exec CSV) is missing.
+ *   or a required text export is missing (VbP / delta / exec CSV by default;
+ *   exec CSV only with `requireTexts: 'exec-only'`).
  */
-export async function loadLatestBundle(deps: LoadBundleDeps): Promise<LoadedBundle> {
+export async function loadLatestBundle(
+  deps: LoadBundleDeps,
+  options?: { requireTexts?: 'all' },
+): Promise<LoadedBundle>
+export async function loadLatestBundle(
+  deps: LoadBundleDeps,
+  options: { requireTexts: 'exec-only' },
+): Promise<LoadedExecBundle>
+export async function loadLatestBundle(
+  deps: LoadBundleDeps,
+  options: LoadBundleOptions = {},
+): Promise<LoadedBundle | LoadedExecBundle> {
+  const requireTexts = options.requireTexts ?? 'all'
+
   const row = await deps.fetchLatestBundle()
   if (!row) {
     throw new AnalyzeInputError('no ingested bundle exists — run the uploader first')
@@ -80,11 +110,14 @@ export async function loadLatestBundle(deps: LoadBundleDeps): Promise<LoadedBund
     throw new AnalyzeInputError(`bundle ${row.id} has no mgi_json`)
   }
 
-  const [vbpContent, deltaContent, execCsvContent] = await Promise.all([
-    requireText(deps, row.vol_profile_ref, 'VbP volume profile'),
-    requireText(deps, row.delta_profile_ref, 'delta profile'),
-    requireText(deps, row.exec_csv_ref, 'execution-bar CSV'),
-  ])
+  const execCsvContent = await requireText(deps, row.exec_csv_ref, 'execution-bar CSV')
+  const profileTexts =
+    requireTexts === 'all'
+      ? await Promise.all([
+          requireText(deps, row.vol_profile_ref, 'VbP volume profile'),
+          requireText(deps, row.delta_profile_ref, 'delta profile'),
+        ])
+      : null
 
   const warnings: string[] = []
   const images: ChartImage[] = []
@@ -100,14 +133,16 @@ export async function loadLatestBundle(deps: LoadBundleDeps): Promise<LoadedBund
     charts.push({ label })
   }
 
-  return {
+  const base: LoadedExecBundle = {
     row,
-    vbpContent,
-    deltaContent,
     execCsvContent,
     mgi: row.mgi_json as MgiStaticLevels,
     images,
     charts,
     warnings,
   }
+  if (profileTexts === null) {
+    return base
+  }
+  return { ...base, vbpContent: profileTexts[0], deltaContent: profileTexts[1] }
 }

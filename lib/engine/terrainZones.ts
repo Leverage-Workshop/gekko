@@ -49,7 +49,7 @@
 
 import type { LvnDetectionResult } from './lvnDetection'
 import type { MgiLevel, MgiPriority } from './mgiPriority'
-import { collectMagnets, classifyMagnet, type Magnet, type MagnetHit, type ProfileSummary } from './magnetCheck'
+import { collectMagnets, classifyMagnet, DEFAULT_MAGNET_TOLERANCE, type Magnet, type MagnetHit, type ProfileSummary } from './magnetCheck'
 
 /** VbP row with optional paired delta (feat-002 parseProfiles rows structurally satisfy this). */
 export type TerrainProfileRow = { price: number; volume: number; delta?: number | null }
@@ -162,7 +162,7 @@ export const DEFAULT_TERRAIN_PARAMS: TerrainParams = {
   valleyFrac: 0.6,
   acceptanceFrac: 0.4,
   balancedFrac: 0.1,
-  magnetTolerance: 10,
+  magnetTolerance: DEFAULT_MAGNET_TOLERANCE,
 }
 
 function round2(n: number): number {
@@ -224,6 +224,7 @@ function localProfileAt(
   m: number,
   params: TerrainParams,
 ): LocalProfile | null {
+  if (rowsAsc.length === 0) return null
   const minP = rowsAsc[0].price
   const maxP = rowsAsc[rowsAsc.length - 1].price
   if (m < minP || m > maxP) return null

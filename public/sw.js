@@ -40,16 +40,48 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const url = (event.notification.data && event.notification.data.url) || '/'
   event.waitUntil(
-    self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windows) => {
-        for (const client of windows) {
-          if ('focus' in client) {
-            client.navigate(url)
-            return client.focus()
+    (async () => {
+      const windows = await self.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
+      for (const client of windows) {
+        if ('focus' in client) {
+          try {
+            // navigate() can reject (e.g. uncontrolled clients on some
+            // browsers) — fall back to opening a fresh window.
+            await client.navigate(url)
+            return await client.focus()
+          } catch {
+            break
           }
         }
-        return self.clients.openWindow(url)
-      }),
+      }
+      return self.clients.openWindow(url)
+    })(),
+  )
+})
+
+self.addEventListener('pushsubscriptionchange', (event) => {
+  // The browser rotated / expired the push subscription. Re-subscribe with
+  // the old subscription's options (applicationServerKey included) and store
+  // the replacement server-side so alerts keep flowing. If re-subscribing
+  // isn't possible (permission revoked, no old options), fail quietly — the
+  // page's Enable Push flow recovers on the next visit.
+  event.waitUntil(
+    (async () => {
+      try {
+        const options = event.oldSubscription && event.oldSubscription.options
+        if (!options || !options.applicationServerKey) return
+        const subscription = await self.registration.pushManager.subscribe(options)
+        await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(subscription.toJSON()),
+        })
+      } catch {
+        // Fail quietly by design.
+      }
+    })(),
   )
 })

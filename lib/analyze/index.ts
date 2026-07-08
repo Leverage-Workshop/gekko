@@ -5,7 +5,13 @@ export { loadDoctrine } from './doctrine'
 export { computeEngineFacts, engineZoneBorders } from './engineFacts'
 export type { EngineFacts, EngineFactsInput } from './engineFacts'
 export { AnalyzeInputError, loadLatestBundle } from './loadBundle'
-export type { BundleRow, LoadBundleDeps, LoadedBundle } from './loadBundle'
+export type {
+  BundleRow,
+  LoadBundleDeps,
+  LoadBundleOptions,
+  LoadedBundle,
+  LoadedExecBundle,
+} from './loadBundle'
 export {
   buildBriefingRow,
   buildEntryLevelRows,
@@ -24,4 +30,4 @@ export {
   assertZoneContiguity,
   enforceCodeOwnedFacts,
 } from './validateBriefing'
-export type { ValidatedBriefing, ValidateOptions } from './validateBriefing'
+export type { CodeOwnedMeta, ValidatedBriefing, ValidateOptions } from './validateBriefing'

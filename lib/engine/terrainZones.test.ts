@@ -301,6 +301,20 @@ describe('assembleTerrain — degenerate inputs', () => {
     expect(r.levels.length).toBe(1)
   })
 
+  it('does not throw on an empty profile and degrades like the <2-bins path', () => {
+    const r = assembleTerrain({
+      profile: [],
+      lvn: { hvn: [], lvn: [], peakVolume: 0 },
+      summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+      mgi: makeMgi(30100, [{ price: 30100, label: 'PW High', tier: 1 }]),
+    })
+    expect(r.zones).toEqual([])
+    expect(r.contiguityValid).toBe(true)
+    expect(r.levels.length).toBe(1)
+    expect(r.levels[0].kind).toBe('mgi')
+    expect(r.levels[0].local).toBeNull()
+  })
+
   it('carries the current price through from the MGI input', () => {
     expect(runMain(30333).currentPrice).toBe(30333)
   })

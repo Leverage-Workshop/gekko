@@ -68,6 +68,18 @@ describe('computeEngineFacts', () => {
   it('throws on a malformed bundle rather than briefing from bad facts', () => {
     expect(() => facts({ vbpContent: deltaContent })).toThrow()
   })
+
+  it('warns when the VbP/Delta bin grids do not join (delta null on every row)', () => {
+    // Shift every delta CSV bin price by half a bin: spacing stays valid, but
+    // no price matches the VbP grid, so the join yields delta:null throughout.
+    const shifted = deltaContent.replace(
+      /^(\d+\.\d{2}),/gm,
+      (_line, price: string) => `${(Number(price) + 0.5).toFixed(2)},`,
+    )
+    const result = facts({ deltaContent: shifted })
+
+    expect(result.warnings.some((w) => w.includes('bin-grid'))).toBe(true)
+  })
 })
 
 describe('engineZoneBorders', () => {

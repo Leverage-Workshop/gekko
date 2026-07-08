@@ -24,7 +24,10 @@ export type SchedulerOptions = {
 export type Scheduler = {
   /** Note a filesystem event; (re)starts the debounce window. */
   trigger: () => void
-  /** Cancel any pending debounce timer (does not abort an in-flight run). */
+  /**
+   * Cancel any pending debounce timer and any queued rerun (does not abort an
+   * in-flight run).
+   */
   cancel: () => void
 }
 
@@ -55,8 +58,11 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
   function fire(): void {
     pendingTimer = null
     running = true
-    options
-      .run()
+    // Wrap the call in a resolved promise so a *synchronous* throw from run()
+    // still takes the rejection path below — otherwise `running` would stay
+    // true forever and the scheduler would deadlock.
+    Promise.resolve()
+      .then(() => options.run())
       .catch((error) => options.onError?.(error))
       .finally(() => {
         running = false
@@ -72,6 +78,9 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
       timers.clearTimeout(pendingTimer)
       pendingTimer = null
     }
+    // Also drop a rerun queued during an in-flight run — cancel() means "no
+    // more runs", not "one more after the current one finishes".
+    rerunQueued = false
   }
 
   return { trigger, cancel }

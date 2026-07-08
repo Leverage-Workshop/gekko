@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { postBundle, backoffDelay, type RetryConfig } from '@/lib/uploader'
+import { BUNDLE_ID_FIELD } from '@/lib/ingest'
 
 const retry: RetryConfig = { maxAttempts: 4, baseDelayMs: 100, maxDelayMs: 1000 }
 
@@ -103,6 +104,31 @@ describe('postBundle', () => {
 
     expect(result.ok).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('sends the same bundle id on every retry (idempotent attempt-set)', async () => {
+    // The id is minted once, before the retry loop — retries repost the same body.
+    const id = crypto.randomUUID()
+    const form = new FormData()
+    form.set(BUNDLE_ID_FIELD, id)
+
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('socket hang up'))
+      .mockResolvedValueOnce(jsonResponse(503, {}))
+      .mockResolvedValueOnce(jsonResponse(201, { data: { bundleId: id } }))
+    const { sleep } = recordingSleep()
+
+    const result = await postBundle('http://x', 'tok', form, retry, {
+      fetch: fetchMock as unknown as typeof fetch,
+      sleep,
+    })
+
+    expect(result).toEqual({ ok: true, bundleId: id, attempts: 3 })
+    const sentIds = fetchMock.mock.calls.map(
+      ([, init]) => ((init as RequestInit).body as FormData).get(BUNDLE_ID_FIELD),
+    )
+    expect(sentIds).toEqual([id, id, id])
   })
 
   it('gives up after maxAttempts and reports the last error', async () => {

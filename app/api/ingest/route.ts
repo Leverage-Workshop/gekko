@@ -28,7 +28,14 @@ function json<T>(body: ApiResponse<T>, status: number): Response {
   return Response.json(body, { status })
 }
 
-/** Real side effects wired to the service-role Supabase client. */
+/**
+ * Real side effects wired to the service-role Supabase client.
+ *
+ * Both writes are retry-tolerant so a client re-POSTing the same `bundle_id`
+ * (after a dropped response) is idempotent: Storage uploads upsert onto the
+ * same per-bundle path, and the row insert ignores an id conflict, returning
+ * the same success shape for the already-committed bundle.
+ */
 function realDeps(): IngestDeps {
   const supabase = getServiceClient()
   return {
@@ -36,21 +43,21 @@ function realDeps(): IngestDeps {
     uploadObject: async (bucket, path, bytes, contentType) => {
       const { error } = await supabase.storage
         .from(bucket)
-        .upload(path, bytes, { contentType, upsert: false })
+        .upload(path, bytes, { contentType, upsert: true })
       if (error) {
         throw error
       }
     },
     insertBundle: async (record) => {
-      const { data, error } = await supabase
+      // ON CONFLICT (id) DO NOTHING — no .select(): a duplicate returns zero
+      // rows, and the id is already known client-side.
+      const { error } = await supabase
         .from('raw_bundles')
-        .insert(record)
-        .select('id')
-        .single()
+        .upsert(record, { onConflict: 'id', ignoreDuplicates: true })
       if (error) {
         throw error
       }
-      return { id: data.id as string }
+      return { id: record.id }
     },
   }
 }
