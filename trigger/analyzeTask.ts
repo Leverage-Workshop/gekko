@@ -1,6 +1,7 @@
 import { logger, metadata, schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod";
 import { realAnalyzeDeps, runAnalysis } from "@/lib/analyze";
+import { sendGekkoPush } from "@/lib/push";
 
 // analyze-task — the full-briefing LLM task (docs/agent-architecture-plan.md):
 // load latest bundle → deterministic engine → generateObject via OpenRouter
@@ -56,6 +57,16 @@ export const analyzeTask = schemaTask({
       stale: result.stale,
       warnings: result.warnings,
     });
+
+    // feat-027: Web Push AFTER successful persistence. Fire-and-forget —
+    // sendGekkoPush never throws, is a no-op without VAPID keys, and logs
+    // failures; a push problem must never fail the briefing. Tab-open
+    // notifications need nothing here: the DB trigger broadcasts on Realtime
+    // when the briefings row is inserted (feat-026).
+    await sendGekkoPush(
+      { type: "briefing", id: result.briefingId, createdAt: new Date().toISOString() },
+      { log: (message, extra) => logger.warn(message, extra) },
+    );
 
     return result;
   },

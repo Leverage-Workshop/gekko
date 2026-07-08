@@ -2,9 +2,86 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-08 (third session this date)
-**Active Feature:** none — `feat-031` + `feat-028` **DONE** (Opus high-conviction review
-flag + Config UI — see below). All feat numbers use the **post-renumber** scheme.
+**Last Updated:** 2026-07-08 (fourth session this date)
+**Active Feature:** none — `feat-026` + `feat-027` **DONE** (web notifications + Web
+Push — see below). **Every feature in `feature_list.json` is now `done`** (feat-021
+Vercel deploy intentionally `skipped` — app runs locally on the trading machine). All
+feat numbers use the **post-renumber** scheme.
+
+**feat-026 + feat-027 (2026-07-08, fourth session) — Web notifications (Realtime) +
+Web Push (tab-closed).**
+
+- **Realtime/RLS decision (feat-026): Broadcast, NOT postgres_changes.** All tables are
+  RLS-enabled with no policies (service-role only). Delivering `postgres_changes` INSERTs
+  to the browser's anon client would require anon SELECT policies on
+  `briefings`/`eval_results` — which also opens the FULL rows (briefing content, model
+  output, entry levels) to any anon-key holder via the REST Data API, far more surface
+  than "something new exists". Instead
+  `supabase/migrations/20260708120000_realtime_notifications.sql` installs an AFTER
+  INSERT trigger on both tables calling `realtime.send()` with a **minimal payload**
+  (`{type,id,status,created_at}`) on the **private topic `gekko:alerts`**, plus a
+  `realtime.messages` SELECT policy for `anon`/`authenticated` scoped to
+  `extension='broadcast'` AND that single topic. Net: zero table data exposed, no
+  `supabase_realtime` publication change, one channel for both tables (simpler client),
+  and the trigger's exception guard means a Realtime hiccup can never fail the INSERT.
+- **feat-026 client.** First browser Supabase client `lib/supabase/browser.ts` (anon
+  key, cached singleton, `null` without env — never imported server-side).
+  `app/components/alerts-center.tsx` (client, mounted in `app/layout.tsx` so the
+  subscription survives navigation): explicit **Enable Alerts** opt-in (no auto-prompt)
+  → private-channel subscribe (`realtime.setAuth()` first) → page-context
+  `Notification` per event — titles **"New briefing ready"** / **"Entry eval:
+  \<STATUS\>"** from the shared `lib/notifications/events.ts` (`parseAlertEvent` +
+  `buildAlertContent`, also used by push so the channels never drift). Status strip
+  shows Live / Connecting / Realtime error / No Supabase env / Blocked in browser;
+  every failure mode degrades to a label, never a crash. DESIGN.md conformant
+  (surface-card, hairline, rounded-none, no shadows, uppercase 1.5px tracking,
+  success/warning tokens, no m-red).
+- **feat-027 (Web Push).** `web-push@3.6.7` + VAPID. New table migration
+  `supabase/migrations/20260708120001_push_subscriptions.sql` (`endpoint` unique
+  natural key, `p256dh`, `auth`; RLS with no policies). Opt-in: **Enable Push**
+  registers `public/sw.js` (plain JS: `push` shows title/body/tag,
+  `notificationclick` focuses/navigates an existing window or opens `/`),
+  `pushManager.subscribe` with `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+  (`lib/push/vapid.ts` base64url→Uint8Array), POST `/api/push/subscribe`
+  (Zod-validated; upsert `onConflict: endpoint`; DELETE unsubscribes — route
+  unauthenticated per the feat-020/028 local-machine rationale). Sending:
+  `lib/push/sendPush.ts` — `sendGekkoPush` is **env-gated** (no VAPID keys = silent
+  no-op) and **never throws**; `sendPushToAll` fans out to all stored subscriptions and
+  **prunes 404/410-gone** endpoints; real deps (`lib/push/deps.ts`: web-push +
+  service client, TTL 3600) load via dynamic import. Wired into
+  `trigger/analyzeTask.ts` + `trigger/evalTask.ts` **after successful persistence**
+  with `logger.warn` as the log sink — a push failure can never fail a task.
+  `eslint.config.mjs` now ignores `public/**` (plain-JS SW outside the Next graph).
+- **Env.** `.env.example` documents `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` /
+  `VAPID_SUBJECT` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + the generation one-liner
+  (`npx web-push generate-vapid-keys`). No real keys committed.
+- **Tests/verification.** +52 tests → **481 passed** (`tests/notifications.events.test.ts`
+  16, `tests/push.send.test.ts` 14, `tests/push.subscribe.route.test.ts` 10, +12
+  migration guards in `tests/migrations.test.ts` — incl. "no public-table
+  policies/publication changes/grants" and "RLS with no policies on
+  push_subscriptions"). All offline with DI'd fakes; no real push sends, no live DB
+  writes/DDL. `./init.sh` fully green: typecheck ✓, lint ✓ (0 errors; only the 3
+  pre-existing warnings in `tests/briefing.schema.test.ts`), vitest 481 ✓, build ✓
+  (`/api/push/subscribe` in the route table).
+- **⚠️ PENDING USER STEPS (in order):**
+  1. Apply the still-pending `supabase/migrations/20260708090000_high_conviction_flag.sql`
+     (from the feat-031 session), then the two new migrations
+     `20260708120000_realtime_notifications.sql` and
+     `20260708120001_push_subscriptions.sql` — via the Supabase dashboard SQL editor or
+     `supabase db push` (this container has no DB credentials; nothing was applied
+     live). Until applied: alerts strip connects but receives no events (or shows
+     "Realtime error" if private-channel auth is rejected), and push subscribe fails
+     with a clean 500.
+  2. `npx web-push generate-vapid-keys` once; put the four VAPID vars in `.env.local`
+     on the trading machine (public key in BOTH `VAPID_PUBLIC_KEY` and
+     `NEXT_PUBLIC_VAPID_PUBLIC_KEY`) and set `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/
+     `VAPID_SUBJECT` on the trigger.dev environment (the analyze/eval tasks do the
+     sending). Rebuild the app after setting `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (inlined at
+     build time).
+  3. Verify live on the trading machine: Enable Alerts → run a briefing → notification
+     with the tab backgrounded; Enable Push → close the tab → run a briefing →
+     tab-closed push arrives; check trigger.dev logs for the `push send complete`
+     summary and 404/410 pruning behavior over time.
 
 **feat-031 + feat-028 (2026-07-08, third session) — Opus high-conviction flag; /settings
 Config UI.**

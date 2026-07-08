@@ -17,6 +17,9 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
     // Generated trigger.dev build/dev-server output (gitignored; never lint).
     '.trigger/**',
+    // Plain-JS service worker (feat-027) — served verbatim, not part of the
+    // Next.js module graph; SW globals (self/clients) confuse the app config.
+    'public/**',
   ]),
 ])
 
