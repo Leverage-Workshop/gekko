@@ -227,8 +227,8 @@
         "feat-018",
         "feat-019"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "skipped",
+      "evidence": "Descoped 2026-07-08: app will run locally on the trading machine, no public deployment needed. Verified no feature depends on feat-021 (leaf node) and no code assumes a deployed URL (INGEST_URL is configurable, trigger tasks talk to Supabase/OpenRouter directly)."
     },
     {
       "id": "feat-022",

@@ -41,9 +41,10 @@ knowledge base with computable doctrine moved into code.
   repo (e.g. `docs/agent-architecture-plan.md`). **No app code is built yet.**
 
 ### Stack
-Next.js (Vercel) + trigger.dev (scheduling/workflows) + Supabase (Postgres + object
-storage + Realtime) + Vercel AI SDK → OpenRouter (LLM). One small **local uploader** (Node)
-on the Windows box bridges Sierra Chart to the cloud.
+Next.js (run locally on the trading machine — Vercel deployment descoped, see feat-021) +
+trigger.dev (scheduling/workflows) + Supabase (Postgres + object storage + Realtime) +
+Vercel AI SDK → OpenRouter (LLM). One small **local uploader** (Node) on the Windows box
+bridges Sierra Chart to the app.
 
 ---
 

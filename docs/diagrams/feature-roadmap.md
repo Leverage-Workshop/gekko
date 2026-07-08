@@ -6,8 +6,9 @@ Source: `feature_list.json` (34 features) and `docs/agent-architecture-plan.md` 
 ## Dependency graph
 
 Edges point from a dependency to the feature it unblocks. Green = done, red = not-started,
-orange = the **critical path** (`feat-033 → 014 → 015/016 → 018 → 019/020/021`) that
-currently gates the entire UI pipeline.
+orange = the **critical path** (`feat-033 → 014 → 015/016 → 018 → 019/020`) that
+currently gates the entire UI pipeline. (`feat-021` Vercel deploy was descoped — the app
+runs locally on the trading machine.)
 
 ```mermaid
 graph LR
@@ -31,7 +32,6 @@ graph LR
   F018["feat-018 analyze-task"]
   F019["feat-019 briefing page"]
   F020["feat-020 Run Briefing button"]
-  F021["feat-021 Vercel deploy"]
   F022["feat-022 knowledge restructure"]
   F023["feat-023 prompt caching"]
   F024["feat-024 entry_levels lifecycle"]
@@ -79,8 +79,6 @@ graph LR
   F018 --> F019
   F018 --> F020
   F019 --> F020
-  F018 --> F021
-  F019 --> F021
   F006 --> F022
   F022 --> F023
   F018 --> F023
@@ -108,7 +106,7 @@ graph LR
   classDef crit fill:#b5651d,stroke:#5e340d,color:#fff;
   class F001,F002,F003,F004,F005,F006,F007,F008,F009,F010,F011,F012,F013,F017,F022 done;
   class F023,F024,F025,F026,F027,F028,F029,F030,F031,F032,F034 todo;
-  class F033,F014,F015,F016,F018,F019,F020,F021 crit;
+  class F033,F014,F015,F016,F018,F019,F020 crit;
 ```
 
 ## Phase 0–4 build order
