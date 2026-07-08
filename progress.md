@@ -2,9 +2,22 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-06
-**Active Feature:** `feat-018` **DONE** (analyze-task, engine-integrated — see below), branch
-`feat-018-analyze-task`. All feat numbers use the **post-renumber** scheme.
+**Last Updated:** 2026-07-08
+**Active Feature:** none — harness maintenance session (feat-021 descoped, see below). Previous
+feature work: `feat-018` **DONE** (analyze-task, engine-integrated — see below). All feat
+numbers use the **post-renumber** scheme.
+
+**feat-021 descoped (2026-07-08) — Vercel deployment removed from scope.**
+- User decision: Gekko will run locally on the trading machine; no public deployment needed.
+- Verified safe to remove: no feature in `feature_list.json` depends on feat-021 (leaf node in
+  the dependency graph); no code assumes a deployed URL (`INGEST_URL` is configurable and the
+  uploader runs on the same machine; `trigger/analyzeTask.ts` talks to Supabase/OpenRouter
+  directly, never calls back into the app). feat-026/027 web notifications still work locally
+  (`localhost` is a secure context) but will only reach browsers on the trading machine.
+- Changes: `feature_list.json` feat-021 → `skipped` with evidence note (entry kept for
+  numbering history); `docs/diagrams/feature-roadmap.md` F021 node/edges/crit-class removed;
+  `CLAUDE.md` + `docs/agent-architecture-plan.md` stack descriptions reworded ("run locally on
+  the trading machine") and the Vercel-deploy integration bullet dropped from CLAUDE.md.
 
 **feat-018 (2026-07-06) — analyze-task (engine-integrated full-briefing pipeline).**
 - **Model research first (user request), via the OpenRouter MCP live catalog** (image input +

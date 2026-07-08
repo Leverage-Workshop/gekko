@@ -1,8 +1,9 @@
 # CLAUDE.md
 
 Harness for building **Gekko** — an advisory-only autonomous agent that turns the manual
-NQ-futures Gemini "Gem" into a scheduled + proximity-triggered briefing system (Next.js on
-Vercel, trigger.dev workflows, Supabase, Vercel AI SDK → OpenRouter). The full architecture
+NQ-futures Gemini "Gem" into a scheduled + proximity-triggered briefing system (Next.js
+run locally on the trading machine, trigger.dev workflows, Supabase, Vercel AI SDK →
+OpenRouter). The full architecture
 and rationale live in `docs/agent-architecture-plan.md`; the work breakdown lives in
 `feature_list.json`.
 
@@ -82,11 +83,10 @@ that is expected, and feat-001 is the first feature to pick up.
 
 ## Integration Sources of Truth
 
-For the two riskiest integrations, prefer the installed tooling over training memory:
+For the riskiest integrations, prefer the installed tooling over training memory:
 - **trigger.dev** (tasks, schedules, deploy): read `docs/trigger-dev-rules.md`, use the
   trigger.dev MCP server (named `trigger`), and delegate complex work to the
   `trigger-dev-task-writer` / `trigger-dev-expert` subagents.
-- **Vercel** (deploy, runtime, env): use the Vercel plugin skills/commands and `vercel:*` agents.
 - **LLM**: Vercel AI SDK with OpenRouter as the gateway; model id comes from the `config` row
   (default `anthropic/claude-sonnet-5`). Never hardcode the model.
 

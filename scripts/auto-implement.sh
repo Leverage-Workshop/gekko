@@ -56,10 +56,10 @@ push_with_retry() {  # $1 = branch; retry network failures 2s/4s/8s/16s
   done
 }
 
-# Next feature: first one not "done" whose every dependency is "done". Empty = nothing left.
+# Next feature: first one not "done"/"skipped" whose every dependency is "done". Empty = nothing left.
 next_feature_id() {
   jq -r '
-    [.features[] | select(.status != "done")] as $todo
+    [.features[] | select(.status != "done" and .status != "skipped")] as $todo
     | ($todo | map(select(.id))) as $_
     | [ .features[] | select(.status=="done") | .id ] as $done
     | first(
