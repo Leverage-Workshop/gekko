@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { ALERT_INSERT_EVENT, GEKKO_ALERTS_TOPIC } from '@/lib/notifications/events'
 
 // Guard the Supabase migration set (feat-005). These run offline: they assert
 // the checked-in SQL declares the schema the rest of the app depends on, so a
@@ -91,5 +92,84 @@ describe('supabase migrations', () => {
     expect(sql.combined).toContain("'anthropic/claude-sonnet-4-6'")
     expect(sql.combined).toContain("'anthropic/claude-haiku-4-5'")
     expect(sql.combined).toContain('3.0')
+  })
+})
+
+// feat-026: Realtime notifications go out over Broadcast (realtime.send from
+// an AFTER INSERT trigger), NOT postgres_changes — so no anon SELECT policy
+// on any public table and no publication change is ever needed.
+describe('realtime notifications migration (feat-026)', () => {
+  const file = sql.files.find((f) => f.includes('realtime_notifications'))
+  const content = file ? readFileSync(join(MIGRATIONS_DIR, file), 'utf8') : ''
+
+  it('exists', () => {
+    expect(file).toBeDefined()
+  })
+
+  it('broadcasts via realtime.send on the topic/event the client subscribes to', () => {
+    expect(content).toContain('realtime.send(')
+    expect(content).toContain(`'${GEKKO_ALERTS_TOPIC}'`)
+    expect(content).toContain(`'${ALERT_INSERT_EVENT}'`)
+  })
+
+  it('attaches AFTER INSERT triggers to briefings and eval_results', () => {
+    expect(content).toMatch(/create trigger gekko_broadcast_briefing_insert\s+after insert on public\.briefings/)
+    expect(content).toMatch(/create trigger gekko_broadcast_eval_insert\s+after insert on public\.eval_results/)
+  })
+
+  it('never fails the underlying INSERT (exception guard in the trigger fn)', () => {
+    expect(content).toMatch(/exception\s+when others then/)
+  })
+
+  it('grants anon receive-only access scoped to broadcast + the single topic', () => {
+    expect(content).toContain('on realtime.messages')
+    expect(content).toContain('for select')
+    expect(content).toMatch(/to anon/)
+    expect(content).toContain("realtime.messages.extension = 'broadcast'")
+    expect(content).toContain(`realtime.topic() = '${GEKKO_ALERTS_TOPIC}'`)
+  })
+
+  it('opens NO table data to anon: no policies on public tables, no publication change', () => {
+    expect(content).not.toMatch(/alter publication/i)
+    expect(content).not.toMatch(/create policy[^;]+on\s+public\./i)
+    expect(content).not.toMatch(/grant\s/i)
+  })
+
+  it('is idempotent (create-or-replace + drop-if-exists before create)', () => {
+    expect(content).toContain('create or replace function public.gekko_broadcast_insert()')
+    expect(content).toMatch(/drop trigger if exists gekko_broadcast_briefing_insert/)
+    expect(content).toMatch(/drop trigger if exists gekko_broadcast_eval_insert/)
+    expect(content).toMatch(/drop policy if exists/)
+  })
+})
+
+// feat-027: push_subscriptions storage for Web Push (VAPID).
+describe('push_subscriptions migration (feat-027)', () => {
+  const file = sql.files.find((f) => f.includes('push_subscriptions'))
+  const content = file ? readFileSync(join(MIGRATIONS_DIR, file), 'utf8') : ''
+
+  it('exists', () => {
+    expect(file).toBeDefined()
+  })
+
+  it('creates the table idempotently with endpoint as the unique natural key', () => {
+    expect(content).toContain('create table if not exists public.push_subscriptions')
+    expect(content).toMatch(/endpoint\s+text not null unique/)
+  })
+
+  it('declares the web-push key columns and created_at', () => {
+    expect(content).toMatch(/p256dh\s+text not null/)
+    expect(content).toMatch(/auth\s+text not null/)
+    expect(content).toMatch(/created_at\s+timestamptz not null default now\(\)/)
+  })
+
+  it('locks the table down: RLS enabled with NO policies (service-role only)', () => {
+    expect(content).toMatch(/alter table public\.push_subscriptions\s+enable row level security/)
+    expect(content).not.toMatch(/create policy/i)
+  })
+
+  it('contains no destructive DDL', () => {
+    expect(content).not.toMatch(/drop\s/i)
+    expect(content).not.toMatch(/delete\s+from/i)
   })
 })

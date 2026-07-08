@@ -1,6 +1,7 @@
 import { logger, metadata, schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod";
 import { realEvalDeps, runEval } from "@/lib/eval";
+import { sendGekkoPush } from "@/lib/push";
 
 // eval-task — entry-eval triage (docs/agent-architecture-plan.md): load the
 // latest bundle (current price = raw_bundles.current_price) + ACTIVE
@@ -9,7 +10,8 @@ import { realEvalDeps, runEval } from "@/lib/eval";
 // delta telemetry, EvalResult schema) implementing the instructions.md eval
 // logic → enforce code-owned facts → persist eval_results. Triggered on
 // demand from /api/eval/run (the "Check Entry at Current Price" button).
-// NOTE: does not trigger notify yet — notify-task lands in feat-026/027.
+// Notify: the eval_results INSERT itself broadcasts on Realtime via DB
+// trigger (feat-026); Web Push is sent below after persistence (feat-027).
 export const evalTask = schemaTask({
   id: "eval-task",
   // On-demand with no inputs; the empty object keeps the payload optional.
@@ -57,6 +59,21 @@ export const evalTask = schemaTask({
       stale: result.stale,
       warnings: result.warnings,
     });
+
+    // feat-027: Web Push AFTER successful persistence. Fire-and-forget —
+    // sendGekkoPush never throws, is a no-op without VAPID keys, and logs
+    // failures; a push problem must never fail the eval. Tab-open
+    // notifications need nothing here: the DB trigger broadcasts on Realtime
+    // when the eval_results row is inserted (feat-026).
+    await sendGekkoPush(
+      {
+        type: "eval",
+        id: result.evalResultId,
+        status: result.status,
+        createdAt: new Date().toISOString(),
+      },
+      { log: (message, extra) => logger.warn(message, extra) },
+    );
 
     return result;
   },
