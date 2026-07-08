@@ -2,10 +2,85 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-08
-**Active Feature:** none — `feat-024` + `feat-025` **DONE** (eval-task + Check Entry
-button + active-only entry_levels read, see below). All feat numbers use the
-**post-renumber** scheme.
+**Last Updated:** 2026-07-08 (second session this date)
+**Active Feature:** none — `feat-023` + `feat-030` + `feat-032` **DONE** (prompt-cache
+read-back, cost/latency observability + LangSmith telemetry, doctrine drift guard — see
+below). All feat numbers use the **post-renumber** scheme.
+
+**feat-023 + feat-030 + feat-032 (2026-07-08) — prompt caching read-back;
+cost/latency/LangSmith observability; doctrine drift guard.**
+
+- **feat-023 (prompt caching — the read-back half).** The cacheControl write side has
+  existed since feat-018. Added `extractCachedInputTokens(usage, providerMetadata)` to
+  `lib/llm/generateStructured.ts`: reads the AI SDK v6 shape
+  (`usage.inputTokenDetails.cacheReadTokens`, then the deprecated
+  `usage.cachedInputTokens` alias) and falls back to OpenRouter usage accounting
+  (`providerMetadata.openrouter.usage.promptTokensDetails.cachedTokens`, plus the raw
+  snake_case defensively). Returned as `GenerateStructuredResult.cachedInputTokens`
+  (0 stays 0, absent → null), propagated through `runAnalysis`/`runEval` into
+  analyze-task/eval-task run metadata. **Gated integration check**:
+  `tests/llm.cacheHit.integration.test.ts` — `describe.skipIf(!OPENROUTER_API_KEY)`,
+  two identical real calls with the REAL `loadDoctrine()` prefix (well above Anthropic's
+  ~1024-token cache minimum) + `cacheSystem: true`, asserts the second call reports
+  `cachedInputTokens > 0`. Skipped offline; **it ran LIVE this session (a key was
+  present in the env) and PASSED** — cache write + read proven against real
+  OpenRouter/Anthropic.
+- **BASELINE REPAIR (exposed by the live check, would have broken every live run):**
+  OpenRouter now serves Anthropic models under **dated canonical ids**
+  (`anthropic/claude-sonnet-5` → `anthropic/claude-sonnet-5-20260630`;
+  `anthropic/claude-haiku-4-5` → `anthropic/claude-4.5-haiku-20251001`), so the strict
+  string-equality `assertModelMatch` threw "Model mismatch" on every real analyze/eval
+  call. It now accepts the requested id's canonical variant — same provider + same
+  name-token multiset (`.`/`-`/`:` separated, 8-digit date stamp ignored) — and still
+  throws on any real substitution (different provider/family/version). Unit-tested in
+  both directions.
+- **feat-030 (cost/latency observability + LangSmith).** `generateStructured` measures
+  `latencyMs` around the LLM call; analyze-task + eval-task now set `model`, `costUsd`,
+  `latencyMs`, `cachedInputTokens` and
+  `usage{inputTokens,outputTokens,totalTokens,cachedInputTokens}` in trigger.dev run
+  metadata (that metadata IS the dashboard surface per the plan — no new UI).
+  LangSmith: new `lib/observability/` — `telemetry.ts` lazily builds ONE **private**
+  `NodeTracerProvider` per worker (BatchSpanProcessor → RedactingSpanExporter →
+  OTLP-proto exporter at `https://api.smith.langchain.com/otel/v1/traces`, headers
+  `x-api-key` + optional `Langsmith-Project`; `LANGSMITH_OTEL_ENDPOINT` override) and
+  hands its tracer to the AI SDK via `experimental_telemetry.tracer`.
+  `generateStructured` gained an **opt-in `telemetry` param** (recordInputs +
+  recordOutputs, functionId); analyze passes `analyze-task`, eval `eval-task`.
+  **Wiring decision**: NOT trigger.config.ts `telemetry.exporters` — that hook gets
+  every span of the worker's global provider (noise), and AI spans on the global
+  provider would ship the multi-MB base64 chart images to trigger.dev's own exporter
+  too. The private provider guarantees the only consumer is our redacting exporter;
+  spans still start under the active trigger.dev run context, so trace ids correlate.
+  **Image redaction** (`redact.ts`): the AI SDK records the prompt in
+  `ai.prompt`/`ai.prompt.messages` with no built-in redaction, so the exporter rewrites
+  those attributes at export time — image/file parts become
+  `[image: <mediaType>, ~N bytes]` placeholders; doctrine text + JSON response stay
+  verbatim; what is SENT to the model is untouched. Env-gated: no `LANGSMITH_API_KEY`
+  ⇒ `getLlmTelemetry()` null ⇒ `experimental_telemetry` omitted entirely; flush
+  failures are swallowed (a LangSmith outage can never fail a run). New deps (OTel
+  only): `@opentelemetry/{api,sdk-trace-node,sdk-trace-base,resources,exporter-trace-otlp-proto}`.
+- **feat-032 (doctrine drift guard).** `tests/doctrine-drift.test.ts` — dynamic, engine
+  authoritative: (1) behavior ties (gate flips exactly at `DEFAULT_RR_MIN`; Rip flips
+  red exactly at `RED_EXTREME`, newly exported from ripStatus.ts — the only engine
+  change); (2) constraints.md's "Computable guardrails" bullets each name their owning
+  module (riskReward.ts/evaluateRiskReward/config.rr_min, stopWidened, mgiPriority.ts,
+  ripStatus.ts; output-schema.md → briefing.schema.ts); (3) numeric-drift bans over ALL
+  `knowledge/**/*.md` (discovered dynamically), with forbidden spellings derived from
+  the live constants: any `N:1` ratio, the Rip threshold, magnet tolerance, staleness
+  margin (seconds + minutes forms), near-entry proximity. Prose cleanup the guard
+  forced: constraints.md "The 3:1 R/R gate" → "The minimum R/R gate";
+  briefing.schema.ts comment "(3:1 gate)" → "(the rr_min gate)".
+- **USER-SIDE STEPS (cannot be verified from this repo):**
+  1. **LangSmith live verification**: set `LANGSMITH_API_KEY` (+ optionally
+     `LANGSMITH_PROJECT`) on the trigger.dev environment (dev + prod), run a briefing /
+     entry check, and confirm the trace (doctrine prompt + JSON response, images as
+     placeholders) appears in LangSmith. Nothing breaks while the key is unset.
+  2. The repeat-run **cache-hit assertion needs `OPENROUTER_API_KEY`**
+     (`npx vitest run tests/llm.cacheHit.integration.test.ts`) — it passed live this
+     session; re-runnable any time.
+- **Verified**: `./init.sh` green — typecheck 0, lint 0 errors (3 pre-existing warnings
+  in tests/briefing.schema.test.ts), vitest **392/392** (35 files; +25 unit tests + the
+  live-run integration test), next build OK.
 
 **feat-024 + feat-025 (2026-07-08) — eval-task + "Check Entry" button; entry_levels
 lifecycle closed.**

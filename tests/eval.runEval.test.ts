@@ -122,6 +122,8 @@ function makeDeps(overrides: Partial<EvalDeps> = {}) {
           totalTokens: 60,
         } as GenerateStructuredResult<EvalResult>['usage'],
         cost: 0.0012,
+        cachedInputTokens: 2100,
+        latencyMs: 456,
       }
     },
     loadDoctrine: () => 'DOCTRINE PREFIX',
@@ -156,6 +158,8 @@ describe('runEval', () => {
     expect(result.bundleId).toBe('b1')
     expect(result.model).toBe('test/triage-y')
     expect(result.cost).toBe(0.0012)
+    expect(result.cachedInputTokens).toBe(2100)
+    expect(result.latencyMs).toBe(456)
     expect(result.stale).toBe(false)
     expect(result.status).toBe('ENTER')
     expect(result.nearEntry).toBe(true)
@@ -168,6 +172,7 @@ describe('runEval', () => {
 
     expect(captured.model).toBe('test/triage-y')
     expect(captured.system).toBe('DOCTRINE PREFIX')
+    expect(captured.telemetry).toEqual({ functionId: 'eval-task' })
     expect(captured.cacheSystem).toBe(true)
     expect(captured.images).toHaveLength(1)
     expect(captured.prompt).toContain('# Eval decision logic (doctrine)')
@@ -241,6 +246,8 @@ describe('runEval', () => {
     expect(result.model).toBeNull()
     expect(result.usage).toBeNull()
     expect(result.cost).toBeNull()
+    expect(result.cachedInputTokens).toBeNull()
+    expect(result.latencyMs).toBeNull()
     expect(result.status).toBe('NO_ENTRY_NEAR')
     expect(row.model_id).toBeNull()
     expect(row.status).toBe('NO_ENTRY_NEAR')
@@ -280,6 +287,8 @@ describe('runEval', () => {
         model: params.model,
         usage: {} as GenerateStructuredResult<EvalResult>['usage'],
         cost: null,
+        cachedInputTokens: null,
+        latencyMs: 0,
       }),
     })
     const result = await runEval(harness.deps)
