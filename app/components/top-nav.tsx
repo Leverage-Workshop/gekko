@@ -1,11 +1,13 @@
 // DESIGN.md top-nav: 64px, canvas background, hairline base, nav-link items,
 // brand mark with the tricolor signature. Links anchor into the dashboard
-// sections (feat-019 replaced the marketing page with the briefing dashboard).
+// sections (feat-019 replaced the marketing page with the briefing dashboard);
+// they are root-prefixed so they also work from /settings (feat-028).
 const links = [
-  { label: 'Overview', href: '#overview' },
-  { label: 'Terrain', href: '#terrain' },
-  { label: 'Objectives', href: '#objectives' },
-  { label: 'Eval', href: '#eval' },
+  { label: 'Overview', href: '/#overview' },
+  { label: 'Terrain', href: '/#terrain' },
+  { label: 'Objectives', href: '/#objectives' },
+  { label: 'Eval', href: '/#eval' },
+  { label: 'Settings', href: '/settings' },
 ]
 
 export function TopNav() {

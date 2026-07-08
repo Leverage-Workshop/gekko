@@ -29,6 +29,9 @@ export const analyzeTask = schemaTask({
     // briefing's spend is auditable from the trigger.dev dashboard without
     // opening the DB (feat-030 — this metadata IS the observability surface).
     metadata.set("model", result.model);
+    // feat-031: which tier served the briefing — model is the id that ran,
+    // highConviction says whether the Opus flag routed it there.
+    metadata.set("highConviction", result.highConviction);
     metadata.set("costUsd", result.cost);
     metadata.set("latencyMs", result.latencyMs);
     metadata.set("cachedInputTokens", result.cachedInputTokens);
@@ -45,6 +48,7 @@ export const analyzeTask = schemaTask({
       briefingId: result.briefingId,
       bundleId: result.bundleId,
       model: result.model,
+      highConviction: result.highConviction,
       costUsd: result.cost,
       latencyMs: result.latencyMs,
       cachedInputTokens: result.cachedInputTokens,

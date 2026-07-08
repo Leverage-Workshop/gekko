@@ -1,3 +1,4 @@
+import { fetchConfigRow } from '@/lib/config'
 import { getServiceClient } from '@/lib/supabase/server'
 import type { AnalyzeConfig, AnalyzeDeps } from './analyzeBundle'
 import type { BundleRow } from './loadBundle'
@@ -9,16 +10,20 @@ import type { BundleRow } from './loadBundle'
 export function realAnalyzeDeps(): AnalyzeDeps {
   const supabase = getServiceClient()
   return {
-    fetchConfig: async () => {
-      const { data, error } = await supabase
-        .from('config')
-        .select('model_id, rr_min')
-        .eq('id', 1)
-        .maybeSingle()
-      if (error) {
-        throw error
+    // feat-031: fetchConfigRow selects the high-conviction columns but
+    // degrades gracefully (42703 → legacy column set + flag=false) while the
+    // live DB predates the high_conviction_flag migration.
+    fetchConfig: async (): Promise<AnalyzeConfig | null> => {
+      const { row } = await fetchConfigRow(supabase)
+      if (!row) {
+        return null
       }
-      return data ? (data as AnalyzeConfig) : null
+      return {
+        model_id: row.model_id,
+        rr_min: row.rr_min,
+        high_conviction_enabled: row.high_conviction_enabled,
+        high_conviction_model_id: row.high_conviction_model_id,
+      }
     },
 
     fetchLatestBundle: async () => {
