@@ -12,7 +12,10 @@
       "mcp__trigger__whoami",
       "mcp__plugin_claude-mem_mcp-search__get_observations",
       "mcp__openrouter__models-list",
-      "mcp__openrouter__model-get"
+      "mcp__openrouter__model-get",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__execute_sql"
     ]
   },
   "enabledMcpjsonServers": [
