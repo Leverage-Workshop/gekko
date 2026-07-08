@@ -92,7 +92,9 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
   }
   const modelId = config?.triage_model_id ?? DEFAULT_TRIAGE_MODEL_ID
 
-  const bundle = await loadLatestBundle(deps)
+  // exec-only: the eval consumes just the exec CSV + chart images, so a
+  // bundle missing the VbP/delta exports must not block an entry check.
+  const bundle = await loadLatestBundle(deps, { requireTexts: 'exec-only' })
   warnings.push(...bundle.warnings)
 
   const currentPrice = bundle.row.current_price

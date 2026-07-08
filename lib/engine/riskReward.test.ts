@@ -66,6 +66,13 @@ describe('evaluateRiskReward — long geometry', () => {
     expect(r.reasons.some((m) => m.includes('wrong side of entry'))).toBe(true)
   })
 
+  it('rrMin 0: a wrong-side target (rr 0) still fails the per-target gate', () => {
+    const r = evaluateRiskReward({ ...LONG, targets: [30390, 30460], rrMin: 0 })
+    expect(r.targets[0]).toMatchObject({ price: 30390, rr: 0, meetsGate: false })
+    expect(r.targets[1].meetsGate).toBe(true) // right-side target passes a zero minimum
+    expect(r.meetsGate).toBe(false) // headline gates on the wrong-side T1
+  })
+
   it('flags missing targets', () => {
     const r = evaluateRiskReward({ ...LONG, targets: [] })
     expect(r.rr).toBe(0)

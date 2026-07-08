@@ -2,11 +2,66 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-08 (fourth session this date)
-**Active Feature:** none — `feat-026` + `feat-027` **DONE** (web notifications + Web
-Push — see below). **Every feature in `feature_list.json` is now `done`** (feat-021
-Vercel deploy intentionally `skipped` — app runs locally on the trading machine). All
-feat numbers use the **post-renumber** scheme.
+**Last Updated:** 2026-07-08 (fifth session this date)
+**Active Feature:** none — all features `done` (feat-021 skipped). This session was a
+**full-codebase review + hardening pass** (no feature_list change) plus a new
+`docs/setup-walkthrough.md`.
+
+**Review + hardening (2026-07-08, fifth session) — quality/integration audit of the
+whole codebase.**
+
+- **Audit verdict:** four parallel review agents (engine, pipelines, ingest/uploader/API,
+  UI/notifications/observability) verified **every integration seam clean** — uploader↔
+  ingest manifest, storage buckets↔loadBundle, all DB columns↔migrations, Zod schema↔
+  tables↔dashboard, trigger task ids↔routes, doctrine bundling, Realtime topic/payload,
+  push payload/env names, telemetry redaction. Findings were quality/robustness items;
+  all fixed on branch `fix/review-hardening`:
+  - **Pipelines:** persistBriefing reordered (insert new levels BEFORE deactivating the
+    prior set, scoped `.neq('briefing_id', id)`) — eliminates the zero-active window a
+    concurrent eval-task could persist as spurious NO_ENTRY_NEAR; analyze now enforces
+    code-owned meta (createdAt/currentPrice/triggerReason, ripStatus when engine-computed)
+    mirroring eval; AnalyzeInputError/EvalInputError abort via AbortTaskRunError instead
+    of retrying 3× (no wasted LLM spend); eval loads bundles `exec-only` (no longer fails
+    on missing VbP/delta it never used); evaluated_level_id prefers label+direction+price
+    match, unmatched echo → null FK; engineFacts warns when the VbP/delta join yields
+    all-null deltas (bin-grid drift).
+  - **Ingest/uploader:** `scripts/uploader.ts` now actually loads `.env.local`/`.env` via
+    `process.loadEnvFile` (was documented but never wired — uploader config always failed;
+    Node ≥ 20.12); ingest made idempotent (uploader sends a stable `bundle_id` across
+    retries, storage upserts, on-conflict-ignore insert — no duplicate bundles on flaky
+    links); scheduler sync-throw deadlock + cancel/rerunQueued fixed.
+  - **Engine:** lvnDetection valley LVNs no longer mislabeled `taper-edge` when a taper
+    displaced their merge neighbor (`npm run lvn:eval` F1 identical before/after — label
+    fix only); terrainZones empty-profile crash guard; magnetTolerance single-sourced from
+    DEFAULT_MAGNET_TOLERANCE; riskReward per-target gate gains the `rr > 0` guard; dead
+    `parseProfilesFromFiles` removed.
+  - **UI:** alerts-center auto-reconnects with capped backoff after Realtime channel
+    errors (was dead until reload); push retry respects the failed operation's intent (a
+    failed *disable* no longer re-subscribes); sw.js gains `pushsubscriptionchange`
+    re-subscribe + notificationclick navigate fallback; shared `lib/api/respond.ts`;
+    the two trigger buttons merged into `trigger-run-button.tsx`; `role="status"` live
+    regions; eval section shows an honest unavailable state during DB outages.
+- **Condition Red input — RESOLVED with Caleb (same session/PR):** the flagged
+  mean-based Red trigger (`recentMeanDelta ≤ −3`, effectively unreachable) was replaced
+  with a **count-based flip**: `deltaTelemetry.recentRedExtremeCount` (bars ≤ RED_EXTREME
+  within the 20-bar recent window) and `ripStatus.RED_BUILDING_MIN_BARS = 3` — Caleb's
+  doctrine: exec bars are 750-volume bars, one rogue −3/−4 print carries no weight, he
+  wants ≥3 clustered prints; window deliberately NOT shrunk (clusters shouldn't be missed
+  because of when the analysis request is submitted). `deltaIntensity` (the mean) is kept
+  as display context only; drift guard re-tied to both constants. The fixture day (~196
+  pts below the Rip, 5 recent extremes) now reads Red where it read Yellow. Also noted,
+  not done: orphaned
+  storage objects on failed ingests (no GC), proximity threshold (20 pt) as a config
+  column, `round2`/`isFiniteNumber` duplicated across 7 engine modules, mobile nav
+  fallback, staleness `ageMs: Infinity` serializing to JSON null.
+- **New doc:** `docs/setup-walkthrough.md` — step-by-step runbook to get Gekko running
+  on the trading machine (env, the 3 pending migrations, trigger.dev deploy vs dev,
+  Windows uploader, VAPID/LangSmith extras, smoke test, troubleshooting).
+- **Verification:** `./init.sh` green — typecheck 0, lint 0 errors (3 pre-existing
+  warnings), **506/506 tests** (was 481; +25 net new), build OK; `npm run lvn:eval`
+  TRAIN gate PASS with unchanged F1.
+- **Still pending (unchanged from feat-026/027/031):** apply the 3 live migrations,
+  VAPID keys, trigger.dev prod env vars — now all captured in `docs/setup-walkthrough.md`.
 
 **feat-026 + feat-027 (2026-07-08, fourth session) — Web notifications (Realtime) +
 Web Push (tab-closed).**

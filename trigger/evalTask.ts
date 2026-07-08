@@ -1,6 +1,8 @@
-import { logger, metadata, schemaTask } from "@trigger.dev/sdk";
+import { AbortTaskRunError, logger, metadata, schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod";
-import { realEvalDeps, runEval } from "@/lib/eval";
+import { AnalyzeInputError } from "@/lib/analyze";
+import { EvalInputError, realEvalDeps, runEval } from "@/lib/eval";
+import type { EvalRunResult } from "@/lib/eval";
 import { sendGekkoPush } from "@/lib/push";
 
 // eval-task — entry-eval triage (docs/agent-architecture-plan.md): load the
@@ -24,7 +26,21 @@ export const evalTask = schemaTask({
     randomize: true,
   },
   run: async () => {
-    const result = await runEval(realEvalDeps());
+    let result: EvalRunResult;
+    try {
+      result = await runEval(realEvalDeps());
+    } catch (error) {
+      // Input errors (no usable bundle / no current price — runEval loads the
+      // bundle via loadLatestBundle, so both error types can surface here)
+      // mean retrying cannot help: abort instead of burning retry attempts.
+      if (error instanceof EvalInputError || error instanceof AnalyzeInputError) {
+        logger.error("eval input unusable — aborting without retries", {
+          message: error.message,
+        });
+        throw new AbortTaskRunError(error.message);
+      }
+      throw error;
+    }
 
     // Model/cost/latency/cache-hit metrics land in run metadata so every
     // eval's spend is auditable from the trigger.dev dashboard without

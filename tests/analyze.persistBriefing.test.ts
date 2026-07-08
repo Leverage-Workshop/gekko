@@ -114,16 +114,21 @@ describe('buildEntryLevelRows', () => {
 })
 
 describe('persistBriefing', () => {
-  it('inserts the briefing, then deactivates the prior set, then inserts the new one', async () => {
+  // Order matters (no client-side transactions): the new set must be inserted
+  // BEFORE the old one is deactivated, so there is never a zero-active window
+  // for a concurrent eval-task to read as NO_ENTRY_NEAR.
+  it('inserts the briefing, then the new active set, then deactivates the rest', async () => {
     const calls: string[] = []
     let inserted: EntryLevelInsert[] = []
+    let exceptId: string | undefined
     const deps: PersistDeps = {
       insertBriefing: async () => {
         calls.push('insertBriefing')
         return { id: 'briefing-9' }
       },
-      deactivateEntryLevels: async () => {
+      deactivateEntryLevels: async (exceptBriefingId) => {
         calls.push('deactivate')
+        exceptId = exceptBriefingId
       },
       insertEntryLevels: async (rows) => {
         calls.push('insertEntryLevels')
@@ -139,8 +144,33 @@ describe('persistBriefing', () => {
       riskReward,
     })
 
-    expect(calls).toEqual(['insertBriefing', 'deactivate', 'insertEntryLevels'])
+    expect(calls).toEqual(['insertBriefing', 'insertEntryLevels', 'deactivate'])
+    expect(exceptId).toBe('briefing-9')
     expect(result).toEqual({ briefingId: 'briefing-9', entryLevelCount: 3 })
     expect(inserted.every((r) => r.briefing_id === 'briefing-9')).toBe(true)
+  })
+
+  it('leaves the old set untouched when the level insert fails (no deactivate)', async () => {
+    const calls: string[] = []
+    const deps: PersistDeps = {
+      insertBriefing: async () => ({ id: 'briefing-9' }),
+      deactivateEntryLevels: async () => {
+        calls.push('deactivate')
+      },
+      insertEntryLevels: async () => {
+        throw new Error('insert failed')
+      },
+    }
+
+    await expect(
+      persistBriefing(deps, {
+        bundleId: 'bundle-1',
+        triggerReason: 'manual',
+        model: 'anthropic/claude-sonnet-5',
+        briefing,
+        riskReward,
+      }),
+    ).rejects.toThrow('insert failed')
+    expect(calls).toEqual([])
   })
 })

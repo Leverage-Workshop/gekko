@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   ingestBundle,
   IngestValidationError,
+  BUNDLE_ID_FIELD,
   type IngestDeps,
   type RawBundleRecord,
 } from '@/lib/ingest'
@@ -132,5 +133,84 @@ describe('ingestBundle', () => {
     await expect(ingestBundle(form, deps)).rejects.toThrow()
     expect(uploads).toHaveLength(0)
     expect(inserts).toHaveLength(0)
+  })
+
+  describe('client-supplied bundle id (idempotent retries)', () => {
+    it('uses a provided canonical UUID as the bundle id instead of newId()', async () => {
+      const { deps, uploads, inserts } = makeDeps('server-id')
+      const newId = vi.spyOn(deps, 'newId')
+      const clientId = 'f81d4fae-7dec-41d0-a765-00a0c91e6bf6'
+      const form = new FormData()
+      form.set('htf_png', pngFile('htf.png'))
+      form.set(BUNDLE_ID_FIELD, clientId)
+
+      const result = await ingestBundle(form, deps)
+
+      expect(result).toEqual({ id: clientId })
+      expect(newId).not.toHaveBeenCalled()
+      expect(uploads[0].path).toBe(`${clientId}/htf.png`)
+      expect(inserts[0].id).toBe(clientId)
+    })
+
+    it('rejects a bundle id that is not a canonical UUID', async () => {
+      const { deps, uploads, inserts } = makeDeps()
+      const form = new FormData()
+      form.set('htf_png', pngFile('htf.png'))
+      form.set(BUNDLE_ID_FIELD, 'not-a-uuid')
+
+      await expect(ingestBundle(form, deps)).rejects.toBeInstanceOf(IngestValidationError)
+      expect(uploads).toHaveLength(0)
+      expect(inserts).toHaveLength(0)
+    })
+
+    it('falls back to newId() when no bundle id is sent', async () => {
+      const { deps, inserts } = makeDeps('generated-id')
+      const form = new FormData()
+      form.set('htf_png', pngFile('htf.png'))
+
+      const result = await ingestBundle(form, deps)
+
+      expect(result).toEqual({ id: 'generated-id' })
+      expect(inserts[0].id).toBe('generated-id')
+    })
+
+    it('re-ingesting the same bundle id is a no-op success (duplicate retry)', async () => {
+      // Deps that behave like the route's real ones: uploads upsert onto the
+      // same path, and the row insert ignores an existing id.
+      const rows = new Map<string, RawBundleRecord>()
+      const uploads: Upload[] = []
+      const deps: IngestDeps = {
+        newId: () => 'unused',
+        uploadObject: async (bucket, path, bytes, contentType) => {
+          uploads.push({ bucket, path, bytes, contentType })
+        },
+        insertBundle: async (record) => {
+          if (!rows.has(record.id)) {
+            rows.set(record.id, record)
+          }
+          return { id: record.id }
+        },
+      }
+
+      const clientId = 'f81d4fae-7dec-41d0-a765-00a0c91e6bf6'
+      const makeForm = () => {
+        const form = new FormData()
+        form.set('htf_png', pngFile('htf.png'))
+        form.set(BUNDLE_ID_FIELD, clientId)
+        return form
+      }
+
+      const first = await ingestBundle(makeForm(), deps)
+      const second = await ingestBundle(makeForm(), deps) // retried POST
+
+      expect(first).toEqual({ id: clientId })
+      expect(second).toEqual({ id: clientId }) // same success shape, same id
+      expect(rows.size).toBe(1) // exactly one row committed
+      // The retry re-uploaded onto the identical path (an upsert, not a new object).
+      expect(uploads.map((u) => u.path)).toEqual([
+        `${clientId}/htf.png`,
+        `${clientId}/htf.png`,
+      ])
+    })
   })
 })

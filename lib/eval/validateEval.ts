@@ -29,28 +29,42 @@ export interface ValidatedEval {
   warnings: string[]
 }
 
-/** Match the model's echoed evaluatedLevel back to an active row's id. */
+/**
+ * Match the model's echoed evaluatedLevel back to an active row's id. Prefers
+ * an exact label match (label + direction + price within one tick) — primary
+ * and secondary objectives can share a border price, so price+direction alone
+ * is ambiguous — then falls back to price+direction. When the echo matches
+ * nothing within tolerance the FK stays null (with a warning): pointing it at
+ * the code-nearest row would link a row the persisted direction/trigger/stop/
+ * targets columns don't describe.
+ */
 function resolveEvaluatedLevelId(
   result: EvalResult,
   options: EnforceEvalOptions,
   warnings: string[],
 ): string | null {
   const echoed = result.evaluatedLevel
-  if (echoed) {
-    const match = options.levels.find(
-      (level) =>
-        typeof level.price === 'number' &&
-        Math.abs(level.price - echoed.price) <= PRICE_EPSILON &&
-        (level.direction === null || level.direction === echoed.direction),
-    )
-    if (match) {
-      return match.id
-    }
-    warnings.push(
-      `model evaluatedLevel (${echoed.label} @ ${echoed.price} ${echoed.direction}) matches no active entry level — falling back to the code-nearest level`,
-    )
+  if (!echoed) {
+    return options.proximity.nearest?.level.id ?? null
   }
-  return options.proximity.nearest?.level.id ?? null
+  const priceAndDirectionMatch = (level: EnforceEvalOptions['levels'][number]) =>
+    typeof level.price === 'number' &&
+    Math.abs(level.price - echoed.price) <= PRICE_EPSILON &&
+    (level.direction === null || level.direction === echoed.direction)
+  const exact = options.levels.find(
+    (level) => level.label === echoed.label && priceAndDirectionMatch(level),
+  )
+  if (exact) {
+    return exact.id
+  }
+  const byPrice = options.levels.find(priceAndDirectionMatch)
+  if (byPrice) {
+    return byPrice.id
+  }
+  warnings.push(
+    `model evaluatedLevel (${echoed.label} @ ${echoed.price} ${echoed.direction}) matches no active entry level — persisting with evaluated_level_id=null`,
+  )
+  return null
 }
 
 /**

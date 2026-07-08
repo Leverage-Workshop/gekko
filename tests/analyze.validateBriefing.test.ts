@@ -143,4 +143,56 @@ describe('enforceCodeOwnedFacts', () => {
     enforceCodeOwnedFacts(input, { rrMin: 3 })
     expect(input.primary.rr).toBe(99)
   })
+
+  it('overwrites drifted code-owned meta fields, warning per field', () => {
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      meta: {
+        createdAt: '2026-07-06T13:00:00Z',
+        currentPrice: 30260,
+        triggerReason: 'scheduled',
+        ripStatus: 'yellow',
+      },
+    })
+
+    expect(result.briefing.meta.createdAt).toBe('2026-07-06T13:00:00Z')
+    expect(result.briefing.meta.currentPrice).toBe(30260)
+    expect(result.briefing.meta.triggerReason).toBe('scheduled')
+    expect(result.briefing.meta.ripStatus).toBe('yellow')
+    // htfTrend stays model-owned.
+    expect(result.briefing.meta.htfTrend).toBe('up')
+    expect(result.warnings.some((w) => w.includes('meta.createdAt'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('meta.currentPrice'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('meta.triggerReason'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('meta.ripStatus'))).toBe(true)
+  })
+
+  it('keeps the model ripStatus when the engine computed none (rip absent)', () => {
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      meta: {
+        createdAt: '2026-07-06T12:00:00Z',
+        currentPrice: 30255,
+        triggerReason: 'manual',
+        ripStatus: null,
+      },
+    })
+
+    expect(result.briefing.meta.ripStatus).toBe('green')
+    expect(result.warnings.filter((w) => w.includes('meta.'))).toEqual([])
+  })
+
+  it('stays silent when the model meta matches the code-owned values', () => {
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      meta: {
+        createdAt: '2026-07-06T12:00:00Z',
+        currentPrice: 30255,
+        triggerReason: 'manual',
+        ripStatus: 'green',
+      },
+    })
+
+    expect(result.warnings.filter((w) => w.includes('meta.'))).toEqual([])
+  })
 })

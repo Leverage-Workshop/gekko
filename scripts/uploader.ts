@@ -7,8 +7,11 @@
  * that touches fragile local concerns (filesystem, chokidar, the network); all
  * bundling/posting/scheduling logic lives in `@/lib/uploader` and is unit-tested.
  *
- * Run with: `npm run uploader` (reads config from the environment / .env).
+ * Run with: `npm run uploader`. Config comes from the environment; `.env.local`
+ * and `.env` in the working directory are loaded below via Node's built-in
+ * `process.loadEnvFile` (requires Node >= 20.12) — tsx does NOT auto-load them.
  */
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import chokidar from 'chokidar'
@@ -22,6 +25,15 @@ import {
   toFormData,
   type FileReader,
 } from '@/lib/uploader'
+
+// `loadEnvFile` never overrides vars that are already set, so precedence is:
+// real environment > .env.local > .env (load .env.local first).
+for (const envFile of ['.env.local', '.env']) {
+  const envPath = join(process.cwd(), envFile)
+  if (existsSync(envPath)) {
+    process.loadEnvFile(envPath)
+  }
+}
 
 const config = loadConfig()
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -44,10 +56,12 @@ async function uploadBundle(): Promise<void> {
     return
   }
 
+  // One id per bundle, minted before the retry loop: every retry inside
+  // postBundle reuses it, so a retried POST can't create a duplicate server-side.
   const result = await postBundle(
     config.ingestUrl,
     config.bearerToken,
-    toFormData(bundle),
+    toFormData(bundle, crypto.randomUUID()),
     config.retry,
     { fetch, sleep },
   )

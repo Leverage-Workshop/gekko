@@ -1,11 +1,14 @@
-import type { Briefing, Objective } from '@/knowledge/schema/briefing.schema'
+import type { Briefing, BriefingMeta, Objective } from '@/knowledge/schema/briefing.schema'
 import { DEFAULT_RR_MIN, objectiveRiskReward } from '@/lib/engine/riskReward'
 import type { RiskReward } from '@/lib/engine/riskReward'
 
 /**
- * Post-LLM enforcement of the code-owned facts: terrain borders must be the
- * engine's (No-Gap invariant) and `Objective.rr` is always recomputed by
- * riskReward.ts — the model's value is advisory input, never persisted.
+ * Post-LLM enforcement of the code-owned facts (mirroring the eval-task's
+ * enforceEvalFacts): terrain borders must be the engine's (No-Gap invariant),
+ * `Objective.rr` is always recomputed by riskReward.ts, and the code-owned
+ * `meta` fields (createdAt, currentPrice, triggerReason, ripStatus when the
+ * engine computed one) are overwritten — the model's values are advisory
+ * input, never persisted.
  */
 
 /** Thrown when the model output violates a hard invariant — retryable. */
@@ -22,11 +25,28 @@ export interface ValidatedBriefing {
   warnings: string[]
 }
 
+/** Code-owned `meta` values, supplied by the orchestrator (runAnalysis). */
+export interface CodeOwnedMeta {
+  /** ISO timestamp of this run (code-owned `meta.createdAt`). */
+  createdAt: string
+  /** `engineFacts.currentPrice` (code-owned `meta.currentPrice`). */
+  currentPrice: number
+  /** The task's trigger reason (code-owned `meta.triggerReason`). */
+  triggerReason: string
+  /**
+   * The engine's Rip condition, or null when `mgi.daily.rip` was absent and
+   * the engine could not compute one — in that case the model's value is kept.
+   */
+  ripStatus: string | null
+}
+
 export interface ValidateOptions {
   /** R/R gate from `config.rr_min`; defaults to {@link DEFAULT_RR_MIN}. */
   rrMin?: number
   /** Engine zone border prices; model zone borders must be drawn from these. */
   engineBorders?: readonly number[]
+  /** Code-owned `meta` values; when present the model's are overwritten. */
+  meta?: CodeOwnedMeta
 }
 
 function samePrice(a: number, b: number): boolean {
@@ -68,6 +88,43 @@ function offEngineBorders(
   return [...new Set(modelBorders)].filter(
     (price) => !engineBorders.some((border) => samePrice(border, price)),
   )
+}
+
+/** Overwrite the code-owned `meta` fields, warning on any model drift. */
+function enforceMeta(
+  meta: BriefingMeta,
+  code: CodeOwnedMeta,
+  warnings: string[],
+): BriefingMeta {
+  if (meta.createdAt !== code.createdAt) {
+    warnings.push(
+      `model claimed meta.createdAt=${meta.createdAt}; code says ${code.createdAt} — overwritten`,
+    )
+  }
+  if (!samePrice(meta.currentPrice, code.currentPrice)) {
+    warnings.push(
+      `model claimed meta.currentPrice=${meta.currentPrice}; engine says ${code.currentPrice} — overwritten`,
+    )
+  }
+  if (meta.triggerReason !== code.triggerReason) {
+    warnings.push(
+      `model claimed meta.triggerReason=${meta.triggerReason}; task says ${code.triggerReason} — overwritten`,
+    )
+  }
+  // ripStatus is only code-owned when the engine actually computed a Rip
+  // condition (mgi.daily.rip present); otherwise the model's read stands.
+  if (code.ripStatus !== null && meta.ripStatus !== code.ripStatus) {
+    warnings.push(
+      `model claimed meta.ripStatus=${meta.ripStatus}; engine says ${code.ripStatus} — overwritten`,
+    )
+  }
+  return {
+    ...meta,
+    createdAt: code.createdAt,
+    currentPrice: code.currentPrice,
+    triggerReason: code.triggerReason,
+    ripStatus: code.ripStatus ?? meta.ripStatus,
+  }
 }
 
 function recomputeObjective(
@@ -119,6 +176,7 @@ export function enforceCodeOwnedFacts(
   return {
     briefing: {
       ...briefing,
+      meta: options.meta ? enforceMeta(briefing.meta, options.meta, warnings) : briefing.meta,
       primary: primary.objective,
       secondary: secondary.objective,
     },

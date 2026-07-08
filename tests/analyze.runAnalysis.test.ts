@@ -172,8 +172,8 @@ describe('runAnalysis', () => {
     expect(harness.calls).toEqual([
       'generate',
       'insertBriefing',
-      'deactivate',
       'insertEntryLevels',
+      'deactivate',
     ])
     expect(result.briefingId).toBe('briefing-1')
     expect(result.bundleId).toBe('b1')
@@ -213,6 +213,40 @@ describe('runAnalysis', () => {
       'Entry A (Ideal)',
       'Entry A',
     ])
+  })
+
+  it('overwrites code-owned meta the model drifted on', async () => {
+    const harness = makeDeps({
+      generate: async (params) => ({
+        object: {
+          ...modelBriefing(),
+          meta: {
+            createdAt: '1999-01-01T00:00:00Z',
+            triggerReason: 'wrong-reason',
+            currentPrice: 12345,
+            htfTrend: 'up — higher highs on the planning chart',
+            ripStatus: 'bogus condition',
+          },
+        },
+        model: params.model,
+        usage: {} as GenerateStructuredResult<Briefing>['usage'],
+        cost: null,
+        cachedInputTokens: null,
+        latencyMs: 0,
+      }),
+    })
+    const result = await runAnalysis(harness.deps, { triggerReason: 'manual' })
+    const row = harness.getBriefingRow()!
+
+    expect(row.raw_model_json.meta.createdAt).toBe(NOW.toISOString())
+    expect(row.raw_model_json.meta.currentPrice).toBe(facts.currentPrice)
+    expect(row.raw_model_json.meta.triggerReason).toBe('manual')
+    expect(row.raw_model_json.meta.ripStatus).toBe(facts.ripStatus!.condition)
+    expect(row.rip_status).toBe(facts.ripStatus!.condition)
+    expect(result.warnings.some((w) => w.includes('meta.createdAt'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('meta.currentPrice'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('meta.triggerReason'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('meta.ripStatus'))).toBe(true)
   })
 
   it('surfaces staleness and missing-chart warnings without failing', async () => {

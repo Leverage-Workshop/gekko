@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs'
-
 export type ProfileRow = {
   price: number
   volume: number
@@ -148,12 +146,6 @@ export function parseProfiles(vbpContent: string, deltaContent: string): ParsedP
     vbpMeta: vbp.meta,
     deltaMeta: delta.meta,
   }
-}
-
-export function parseProfilesFromFiles(vbpPath: string, deltaPath: string): ParsedProfiles {
-  const vbpContent = readFileSync(vbpPath, 'utf-8')
-  const deltaContent = readFileSync(deltaPath, 'utf-8')
-  return parseProfiles(vbpContent, deltaContent)
 }
 
 export type VbpProfile = {

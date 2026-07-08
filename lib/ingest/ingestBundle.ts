@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { FILE_FIELDS, MGI_FIELD, type IngestBucket } from './manifest'
+import { BUNDLE_ID_FIELD, FILE_FIELDS, MGI_FIELD, type IngestBucket } from './manifest'
 
 /**
  * Raised for client-correctable problems (bad JSON, empty bundle, non-numeric
@@ -28,21 +28,47 @@ export type RawBundleRecord = {
 
 /** Side effects injected so the orchestration stays pure and unit-testable. */
 export type IngestDeps = {
-  /** uploads object bytes to `<bucket>/<path>`; throws on failure. */
+  /**
+   * uploads object bytes to `<bucket>/<path>`; throws on failure. Must tolerate
+   * the object already existing at that path (retried bundles re-upload).
+   */
   uploadObject: (
     bucket: IngestBucket,
     path: string,
     bytes: Uint8Array,
     contentType: string,
   ) => Promise<void>
-  /** inserts the bundle row; returns the persisted id. */
+  /**
+   * inserts the bundle row; returns the persisted id. Must treat an already-
+   * existing row with the same id as success (retried bundles re-insert).
+   */
   insertBundle: (record: RawBundleRecord) => Promise<{ id: string }>
-  /** generates the bundle id (also used as the Storage prefix). */
+  /** generates the bundle id when the client didn't send one. */
   newId: () => string
 }
 
 function isFile(value: FormDataEntryValue | null): value is File {
   return typeof value === 'object' && value !== null && 'arrayBuffer' in value
+}
+
+/** Canonical UUID (8-4-4-4-12 hex groups), as produced by crypto.randomUUID(). */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Reads the optional client-supplied bundle id (see `BUNDLE_ID_FIELD`): the
+ * uploader sends one stable UUID across retries so ingest is idempotent.
+ * Returns null when absent; rejects anything that isn't a canonical UUID.
+ */
+function parseBundleId(form: FormData): string | null {
+  const raw = form.get(BUNDLE_ID_FIELD)
+  if (raw == null || isFile(raw) || raw === '') {
+    return null
+  }
+  if (!UUID_PATTERN.test(raw)) {
+    throw new IngestValidationError(`'${BUNDLE_ID_FIELD}' is not a canonical UUID`)
+  }
+  return raw
 }
 
 function parseMgi(form: FormData): unknown | null {
@@ -81,16 +107,22 @@ function extractCurrentPrice(mgiJson: unknown): number | null {
  * auto-analyze** — it only persists the raw bundle. Briefings are produced later
  * by the analyze-task, triggered on demand from /api/briefings/run.
  *
+ * When the client sends a `bundle_id` (the uploader does, stable across its
+ * retries), it becomes the bundle id, so a retried POST whose first attempt
+ * already committed is a no-op returning the same id — the deps' upload/insert
+ * tolerate the objects and row already existing.
+ *
  * @throws {IngestValidationError} if the bundle is empty or a field is malformed.
  */
 export async function ingestBundle(
   form: FormData,
   deps: IngestDeps,
 ): Promise<{ id: string }> {
+  const bundleId = parseBundleId(form)
   const mgiJson = parseMgi(form)
   const currentPrice = extractCurrentPrice(mgiJson)
 
-  const id = deps.newId()
+  const id = bundleId ?? deps.newId()
 
   const refs: Record<string, string | null> = {
     htf_png_ref: null,

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 import {
   ALERT_INSERT_EVENT,
   GEKKO_ALERTS_TOPIC,
@@ -22,13 +23,17 @@ import { getBrowserClient } from '@/lib/supabase/browser'
  * trigger sends only {type,status,id,created_at}, so no briefing content
  * crosses the anon channel. Degrades gracefully: missing env, a blocked
  * permission, or an unapplied migration just shows a status label — never a
- * crash.
+ * crash. If the channel drops (CHANNEL_ERROR / TIMED_OUT / CLOSED) it
+ * resubscribes automatically with capped exponential backoff, showing
+ * "Reconnecting…" while it waits.
  *
  * feat-027 (tab fully closed): a second opt-in registers public/sw.js,
  * subscribes via pushManager with the VAPID public key, and stores the
  * subscription through POST /api/push/subscribe; Disable unsubscribes and
  * DELETEs it. Requires NEXT_PUBLIC_VAPID_PUBLIC_KEY (shows "push not
- * configured" otherwise).
+ * configured" otherwise). A failed enable retries the enable; a failed
+ * disable retries the disable (or just the server DELETE when the local
+ * unsubscribe already succeeded).
  *
  * DESIGN.md: flat surface-card strip, hairline borders, zero radius, no
  * shadows, uppercase 1.5px-tracked labels; status colors use the semantic
@@ -36,10 +41,20 @@ import { getBrowserClient } from '@/lib/supabase/browser'
  */
 
 type PermissionState = 'unsupported' | 'default' | 'granted' | 'denied'
-type RealtimeState = 'unconfigured' | 'connecting' | 'live' | 'error' | 'closed'
+type RealtimeState = 'unconfigured' | 'connecting' | 'live' | 'reconnecting'
 type PushState = 'unsupported' | 'unconfigured' | 'off' | 'pending' | 'on' | 'error'
 
+/** Which push operation failed, so "click to retry" retries that operation. */
+type FailedPushOp =
+  | { op: 'enable' }
+  | { op: 'disable' }
+  /** Local unsubscribe succeeded but the server DELETE did not. */
+  | { op: 'server-delete'; endpoint: string }
+
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+const RECONNECT_BASE_MS = 1_000
+const RECONNECT_CAP_MS = 30_000
 
 const subscribeNoop = () => () => {}
 
@@ -68,6 +83,15 @@ function showAlertNotification(payload: unknown): void {
   }
 }
 
+async function deleteServerSubscription(endpoint: string): Promise<void> {
+  const res = await fetch('/api/push/subscribe', {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ endpoint }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
 export function AlertsCenter() {
   const hydrated = useIsHydrated()
 
@@ -85,6 +109,7 @@ export function AlertsCenter() {
     if (!VAPID_PUBLIC_KEY) return 'unconfigured'
     return 'off'
   })
+  const [failedPushOp, setFailedPushOp] = useState<FailedPushOp | null>(null)
 
   // Reflect a push opt-in from a previous visit (async browser probe; state
   // is only set inside the promise callbacks).
@@ -106,34 +131,74 @@ export function AlertsCenter() {
   }, [])
 
   // Realtime subscription lifecycle — runs while permission is granted.
+  // A small connect/retry state machine: any terminal status (CHANNEL_ERROR,
+  // TIMED_OUT, CLOSED) tears the channel down and schedules a resubscribe
+  // with capped exponential backoff; SUBSCRIBED resets the backoff.
   useEffect(() => {
     if (permission !== 'granted') return
     const client = getBrowserClient()
     if (!client) return // rendered as "unconfigured" below — nothing to subscribe
     let cancelled = false
-    const channel = client.channel(GEKKO_ALERTS_TOPIC, { config: { private: true } })
-    channel.on('broadcast', { event: ALERT_INSERT_EVENT }, (message) => {
-      showAlertNotification(message.payload)
-    })
-    // Private topics authorize against the client's JWT (the anon key here);
-    // make sure it is attached before joining.
-    client.realtime
-      .setAuth()
-      .catch(() => {})
-      .then(() => {
-        if (cancelled) return
-        // status is the REALTIME_SUBSCRIBE_STATES string enum; widen to
-        // string so the literal comparisons typecheck.
-        channel.subscribe((status: string) => {
-          if (cancelled) return
-          if (status === 'SUBSCRIBED') setRealtime('live')
-          else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setRealtime('error')
-          else if (status === 'CLOSED') setRealtime('closed')
-        })
+    let channel: RealtimeChannel | null = null
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    let retryDelayMs = RECONNECT_BASE_MS
+
+    function scheduleReconnect() {
+      if (cancelled || retryTimer !== null) return
+      setRealtime('reconnecting')
+      const delay = retryDelayMs
+      retryDelayMs = Math.min(retryDelayMs * 2, RECONNECT_CAP_MS)
+      retryTimer = setTimeout(() => {
+        retryTimer = null
+        connect()
+      }, delay)
+    }
+
+    function connect() {
+      if (cancelled) return
+      if (channel) {
+        // Never leak channels — drop the dead one before re-subscribing.
+        void client!.removeChannel(channel)
+        channel = null
+      }
+      const next = client!.channel(GEKKO_ALERTS_TOPIC, { config: { private: true } })
+      channel = next
+      next.on('broadcast', { event: ALERT_INSERT_EVENT }, (message) => {
+        showAlertNotification(message.payload)
       })
+      // Private topics authorize against the client's JWT (the anon key here);
+      // make sure it is attached before joining.
+      client!.realtime
+        .setAuth()
+        .catch(() => {})
+        .then(() => {
+          if (cancelled || channel !== next) return
+          // status is the REALTIME_SUBSCRIBE_STATES string enum; widen to
+          // string so the literal comparisons typecheck.
+          next.subscribe((status: string) => {
+            if (cancelled || channel !== next) return
+            if (status === 'SUBSCRIBED') {
+              retryDelayMs = RECONNECT_BASE_MS
+              setRealtime('live')
+            } else if (
+              status === 'CHANNEL_ERROR' ||
+              status === 'TIMED_OUT' ||
+              status === 'CLOSED'
+            ) {
+              scheduleReconnect()
+            }
+          })
+        })
+    }
+
+    // No sync setRealtime here: the initial state is already 'connecting',
+    // and every later transition happens inside subscribe/timer callbacks.
+    connect()
+
     return () => {
       cancelled = true
-      void client.removeChannel(channel)
+      if (retryTimer !== null) clearTimeout(retryTimer)
+      if (channel) void client.removeChannel(channel)
     }
   }, [permission])
 
@@ -164,29 +229,58 @@ export function AlertsCenter() {
         body: JSON.stringify(subscription.toJSON()),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setFailedPushOp(null)
       setPush('on')
     } catch {
+      setFailedPushOp({ op: 'enable' })
       setPush('error')
     }
   }
 
   async function disablePush() {
     setPush('pending')
+    let unsubscribedEndpoint: string | null = null
     try {
       const registration = await navigator.serviceWorker.getRegistration()
       const subscription = await registration?.pushManager.getSubscription()
       if (subscription) {
         const endpoint = subscription.endpoint
         await subscription.unsubscribe()
-        await fetch('/api/push/subscribe', {
-          method: 'DELETE',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ endpoint }),
-        })
+        unsubscribedEndpoint = endpoint
+        await deleteServerSubscription(endpoint)
       }
+      setFailedPushOp(null)
+      setPush('off')
+    } catch {
+      // If the local unsubscribe already went through, only the server DELETE
+      // is left to retry — never re-subscribe a user who was opting out.
+      setFailedPushOp(
+        unsubscribedEndpoint !== null
+          ? { op: 'server-delete', endpoint: unsubscribedEndpoint }
+          : { op: 'disable' },
+      )
+      setPush('error')
+    }
+  }
+
+  async function retryServerDelete(endpoint: string) {
+    setPush('pending')
+    try {
+      await deleteServerSubscription(endpoint)
+      setFailedPushOp(null)
       setPush('off')
     } catch {
       setPush('error')
+    }
+  }
+
+  function retryFailedPushOp() {
+    if (failedPushOp === null || failedPushOp.op === 'enable') {
+      void enablePush()
+    } else if (failedPushOp.op === 'disable') {
+      void disablePush()
+    } else {
+      void retryServerDelete(failedPushOp.endpoint)
     }
   }
 
@@ -200,10 +294,14 @@ export function AlertsCenter() {
   const realtimeLabel: Record<RealtimeState, string> = {
     live: 'Live',
     connecting: 'Connecting…',
-    error: 'Realtime error',
+    reconnecting: 'Reconnecting…',
     unconfigured: 'No Supabase env',
-    closed: 'Off',
   }
+
+  const pushFailedDetail =
+    failedPushOp?.op === 'disable' || failedPushOp?.op === 'server-delete'
+      ? 'Push disable failed — click to retry disabling.'
+      : 'Push subscription failed — click to retry.'
 
   const smallButton =
     'rounded-none border border-hairline px-3 py-1.5 text-xs font-bold uppercase tracking-[1.5px] transition-colors hover:border-ink'
@@ -216,7 +314,10 @@ export function AlertsCenter() {
         </span>
 
         {permission === 'denied' && (
-          <span className="text-xs font-light uppercase tracking-[1.5px] text-warning">
+          <span
+            role="status"
+            className="text-xs font-light uppercase tracking-[1.5px] text-warning"
+          >
             Blocked in browser
           </span>
         )}
@@ -230,10 +331,11 @@ export function AlertsCenter() {
         {permission === 'granted' && (
           <>
             <span
+              role="status"
               className={`text-xs font-light uppercase tracking-[1.5px] ${
                 realtimeDisplay === 'live'
                   ? 'text-success'
-                  : realtimeDisplay === 'error' || realtimeDisplay === 'unconfigured'
+                  : realtimeDisplay === 'reconnecting' || realtimeDisplay === 'unconfigured'
                     ? 'text-warning'
                     : 'text-muted'
               }`}
@@ -247,7 +349,10 @@ export function AlertsCenter() {
               </button>
             )}
             {push === 'pending' && (
-              <span className="text-xs font-light uppercase tracking-[1.5px] text-muted">
+              <span
+                role="status"
+                className="text-xs font-light uppercase tracking-[1.5px] text-muted"
+              >
                 Push…
               </span>
             )}
@@ -256,15 +361,17 @@ export function AlertsCenter() {
                 onClick={disablePush}
                 className={`${smallButton} text-success`}
                 title="Push active — alerts arrive even with the tab closed. Click to disable."
+                aria-label="Push active — alerts arrive even with the tab closed. Click to disable."
               >
                 Push On
               </button>
             )}
             {push === 'error' && (
               <button
-                onClick={enablePush}
+                onClick={retryFailedPushOp}
                 className={`${smallButton} text-warning`}
-                title="Push subscription failed — click to retry."
+                title={pushFailedDetail}
+                aria-label={pushFailedDetail}
               >
                 Push Failed
               </button>
@@ -275,8 +382,21 @@ export function AlertsCenter() {
                 title="Set NEXT_PUBLIC_VAPID_PUBLIC_KEY (npx web-push generate-vapid-keys) to enable tab-closed push."
               >
                 Push not configured
+                <span className="sr-only">
+                  {' '}
+                  — set NEXT_PUBLIC_VAPID_PUBLIC_KEY (npx web-push generate-vapid-keys) to
+                  enable tab-closed push.
+                </span>
               </span>
             )}
+
+            {/* Push state changes swap buttons in and out, which live regions
+                don't announce — this hidden status line does. */}
+            <span role="status" className="sr-only">
+              {push === 'on' && 'Push notifications enabled.'}
+              {push === 'off' && 'Push notifications disabled.'}
+              {push === 'error' && pushFailedDetail}
+            </span>
           </>
         )}
       </div>

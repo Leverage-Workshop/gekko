@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { json } from '@/lib/api/respond'
 import {
   ConfigUpdateSchema,
   fetchConfigRow,
@@ -26,18 +27,6 @@ import { getServiceClient } from '@/lib/supabase/server'
 
 // Node runtime: uses the service-role Supabase client.
 export const runtime = 'nodejs'
-
-type ApiResponse<T> = {
-  success: boolean
-  data?: T
-  error?: string
-  /** Per-field validation messages (Zod), keyed by config column. */
-  fieldErrors?: Record<string, string[]>
-}
-
-function json<T>(body: ApiResponse<T>, status: number): Response {
-  return Response.json(body, { status })
-}
 
 type ConfigPayload = {
   config: ConfigRow

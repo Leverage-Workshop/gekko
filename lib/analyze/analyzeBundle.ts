@@ -137,6 +137,14 @@ export async function runAnalysis(
   const validated = enforceCodeOwnedFacts(result.object, {
     rrMin,
     engineBorders: engineZoneBorders(facts.terrain),
+    meta: {
+      createdAt: now.toISOString(),
+      currentPrice: facts.currentPrice,
+      triggerReason: options.triggerReason,
+      // null when the engine couldn't compute a Rip condition (rip absent) —
+      // enforceMeta then keeps the model's read.
+      ripStatus: facts.ripStatus?.condition ?? null,
+    },
   })
   warnings.push(...validated.warnings)
 

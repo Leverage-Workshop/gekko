@@ -59,11 +59,12 @@ export function realAnalyzeDeps(): AnalyzeDeps {
       return { id: data.id as string }
     },
 
-    deactivateEntryLevels: async () => {
+    deactivateEntryLevels: async (exceptBriefingId) => {
       const { error } = await supabase
         .from('entry_levels')
         .update({ active: false })
         .eq('active', true)
+        .neq('briefing_id', exceptBriefingId)
       if (error) {
         throw error
       }

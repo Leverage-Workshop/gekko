@@ -8,6 +8,7 @@ import {
   BUNDLE_FILENAMES,
   type FileReader,
 } from '@/lib/uploader'
+import { BUNDLE_ID_FIELD } from '@/lib/ingest'
 
 const enc = new TextEncoder()
 
@@ -129,5 +130,19 @@ describe('toFormData', () => {
   it('omits the mgi field when the sidecar is absent', async () => {
     const form = toFormData(await readBundle(reader({ [SAMPLE.htf]: new Uint8Array([1]) })))
     expect(form.get('mgi')).toBeNull()
+  })
+
+  it('carries the client-minted bundle id under the manifest field name', async () => {
+    const bundle = await readBundle(reader({ [SAMPLE.htf]: new Uint8Array([1]) }))
+    const id = crypto.randomUUID()
+
+    const form = toFormData(bundle, id)
+
+    expect(form.get(BUNDLE_ID_FIELD)).toBe(id)
+  })
+
+  it('omits the bundle id field when no id is provided', async () => {
+    const form = toFormData(await readBundle(reader({ [SAMPLE.htf]: new Uint8Array([1]) })))
+    expect(form.get(BUNDLE_ID_FIELD)).toBeNull()
   })
 })

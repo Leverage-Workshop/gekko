@@ -299,6 +299,86 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('meta.nearEntry'))).toBe(true)
   })
 
+  it('tolerates a bundle missing the VbP/delta exports (exec-only load)', async () => {
+    const harness = makeDeps({
+      fetchLatestBundle: async () => ({
+        id: 'b1',
+        received_at: NOW.toISOString(),
+        mgi_json: mgi,
+        current_price: CURRENT_PRICE,
+        is_stale: false,
+        exec_csv_ref: 'b1/execution_bars.csv',
+        vol_profile_ref: null,
+        delta_profile_ref: null,
+        htf_png_ref: 'b1/htf.png',
+        tpo_png_ref: null,
+        exec_png_ref: null,
+      }),
+    })
+    const result = await runEval(harness.deps)
+
+    expect(result.evalResultId).toBe('eval-1')
+    expect(result.status).toBe('ENTER')
+    expect(result.nearEntry).toBe(true)
+  })
+
+  it('prefers an exact label match when two active levels share a border price', async () => {
+    // Primary and secondary objectives sharing a border price: price+direction
+    // alone is ambiguous, so the echoed label must break the tie.
+    const shared: EntryLevelRow[] = [
+      { ...activeLevels()[0], id: 'lvl-primary', label: 'Entry A (Ideal)' },
+      {
+        ...activeLevels()[0],
+        id: 'lvl-secondary',
+        objective: 'secondary',
+        label: 'Entry B (Border)',
+      },
+    ]
+    const harness = makeDeps({
+      fetchActiveEntryLevels: async () => shared,
+      generate: async (params) => ({
+        object: {
+          ...modelEval(),
+          evaluatedLevel: { label: 'Entry B (Border)', price: 30245, direction: 'long' },
+        },
+        model: params.model,
+        usage: {} as GenerateStructuredResult<EvalResult>['usage'],
+        cost: null,
+        cachedInputTokens: null,
+        latencyMs: 0,
+      }),
+    })
+    await runEval(harness.deps)
+
+    expect(harness.getInsertedRow()!.evaluated_level_id).toBe('lvl-secondary')
+  })
+
+  it('persists a null evaluated_level_id when the echoed level matches nothing', async () => {
+    // 30260 short: wrong direction for lvl-near, wrong price for lvl-far — the
+    // FK must stay null rather than point at a row the persisted columns
+    // (the model's direction/trigger/stop/targets) do not describe.
+    const harness = makeDeps({
+      generate: async (params) => ({
+        object: {
+          ...modelEval(),
+          evaluatedLevel: { label: 'Ghost Entry', price: 30260, direction: 'short' },
+        },
+        model: params.model,
+        usage: {} as GenerateStructuredResult<EvalResult>['usage'],
+        cost: null,
+        cachedInputTokens: null,
+        latencyMs: 0,
+      }),
+    })
+    const result = await runEval(harness.deps)
+    const row = harness.getInsertedRow()!
+
+    expect(row.evaluated_level_id).toBeNull()
+    expect(
+      result.warnings.some((w) => w.includes('matches no active entry level')),
+    ).toBe(true)
+  })
+
   it('rejects a bundle without a current price', async () => {
     const harness = makeDeps({
       fetchLatestBundle: async () => ({

@@ -92,6 +92,23 @@ describe('detectLvnHvn — taper-edge LVNs', () => {
   })
 })
 
+describe('detectLvnHvn — LVN type labeling across the combined merge', () => {
+  it('keeps the valley type for a valley that lost its valley-only merge but survived the combined merge', () => {
+    // Low shelf (5s) into a distribution whose taper knee (idx6, score 0.94) out-merges the
+    // strong valley at idx8 (20, score 0.56), which in turn had already absorbed the weaker
+    // valley at idx10 (35, score 0.28) in the valley-vs-valley merge. idx10 is outside the
+    // knee's merge radius, so it survives the COMBINED merge — and must still be typed
+    // 'valley' (a regression previously read the post-merge valley set and shipped it as
+    // 'taper-edge').
+    const s = series([5, 5, 5, 5, 5, 5, 5, 90, 20, 60, 35, 70, 40, 10, 8])
+    const r = detectLvnHvn(s, RAW)
+    const at30010 = r.lvn.find(n => n.price === 30010)
+    expect(at30010).toBeDefined()
+    expect(at30010?.type).toBe('valley')
+    expect(at30010?.strength).toBe(0.28)
+  })
+})
+
 describe('detectLvnHvn — output shape', () => {
   it('returns nodes in descending price order and reports peak volume', () => {
     const s = series([2, 10, 30, 50, 30, 10, 5, 4, 5, 10, 30, 50, 30, 10, 3])

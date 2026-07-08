@@ -4,8 +4,8 @@ import type { OpenRouterProvider } from '@openrouter/ai-sdk-provider'
 /**
  * OpenRouter is the single LLM gateway for Gekko (Vercel AI SDK → OpenRouter).
  * The concrete model id is never hardcoded here — callers pass it in from the
- * `config` row (default `anthropic/claude-sonnet-4-6`). This module only owns
- * the authenticated provider instance.
+ * `config` row, falling back to `DEFAULT_MODEL_ID` in generateStructured.ts.
+ * This module only owns the authenticated provider instance.
  */
 
 /**

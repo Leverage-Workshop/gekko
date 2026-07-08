@@ -69,6 +69,14 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const warnings: string[] = []
 
   const profiles = parseProfiles(input.vbpContent, input.deltaContent)
+  // A VbP/Delta join is by exact bin price: if the two exports' bin grids
+  // drift apart, every joined row gets delta:null and terrain silently loses
+  // the order-flow read — surface that instead of failing quietly.
+  if (profiles.rows.length > 0 && profiles.rows.every((row) => row.delta === null)) {
+    warnings.push(
+      'VbP/Delta join matched no bins (delta is null on every row) — likely a bin-grid/step mismatch between the two exports; terrain loses the order-flow read',
+    )
+  }
   const bars = parseExecBars(input.execCsvContent)
   const deltaTelemetry = computeDeltaTelemetry(bars)
   const mgi = computeMgiPriority(input.mgi)
@@ -84,10 +92,13 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const rip = input.mgi.daily?.rip
   let ripStatus: RipStatus | null = null
   if (typeof rip === 'number' && Number.isFinite(rip)) {
+    // Red flip is count-based: the mean is display context only; the flip needs
+    // RED_BUILDING_MIN_BARS red-extreme prints clustered in the recent window.
     ripStatus = computeRipStatus({
       currentPrice: mgi.currentPrice,
       rip,
       deltaIntensity: deltaTelemetry.recentMeanDelta,
+      redExtremeCount: deltaTelemetry.recentRedExtremeCount,
     })
   } else {
     warnings.push('mgi.daily.rip missing — Rip/Vanguard condition not computed')

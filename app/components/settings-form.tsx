@@ -212,12 +212,14 @@ export function SettingsForm({ initial, updatedAt, highConvictionColumnsMissing 
           {state.phase === 'saving' ? 'Saving…' : 'Save Settings'}
         </Button>
         {state.phase === 'saved' && (
-          <p className="text-xs font-light tracking-wide text-success">
+          <p role="status" className="text-xs font-light tracking-wide text-success">
             Saved — applies from the next run.
           </p>
         )}
         {state.phase === 'error' && (
-          <p className="text-xs font-light tracking-wide text-m-red">{state.message}</p>
+          <p role="status" className="text-xs font-light tracking-wide text-m-red">
+            {state.message}
+          </p>
         )}
       </div>
 

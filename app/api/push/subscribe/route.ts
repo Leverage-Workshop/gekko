@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { json } from '@/lib/api/respond'
 import { getServiceClient } from '@/lib/supabase/server'
 
 /**
@@ -30,17 +31,6 @@ const SubscriptionSchema = z.object({
 const UnsubscribeSchema = z.object({
   endpoint: z.url(),
 })
-
-type ApiResponse = {
-  success: boolean
-  error?: string
-  /** Per-field validation messages (Zod). */
-  fieldErrors?: Record<string, string[]>
-}
-
-function json(body: ApiResponse, status: number): Response {
-  return Response.json(body, { status })
-}
 
 async function readJson(req: Request): Promise<unknown | undefined> {
   try {
