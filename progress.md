@@ -3,8 +3,73 @@
 ## Current State
 
 **Last Updated:** 2026-07-08
-**Active Feature:** none — `feat-019` + `feat-020` **DONE** (briefing dashboard + manual
-Run Briefing trigger, see below). All feat numbers use the **post-renumber** scheme.
+**Active Feature:** none — `feat-024` + `feat-025` **DONE** (eval-task + Check Entry
+button + active-only entry_levels read, see below). All feat numbers use the
+**post-renumber** scheme.
+
+**feat-024 + feat-025 (2026-07-08) — eval-task + "Check Entry" button; entry_levels
+lifecycle closed.**
+- **feat-024 was already half-built**: `lib/analyze/persistBriefing.ts` (feat-018)
+  deactivates every prior `entry_levels` row and inserts the new `active=true` set on each
+  briefing (tested in tests/analyze.persistBriefing.test.ts). This session closed the read
+  half: the eval-task consumes **`active=true` rows only** —
+  `lib/eval/deps.ts#fetchActiveEntryLevels` selects with `.eq('active', true)` (the
+  partial index `entry_levels_active_idx` already existed in the init migration).
+- **`lib/eval/` mirrors `lib/analyze/`** (pure orchestrator over injected deps):
+  `evalBundle.ts#runEval` → shared `loadLatestBundle` (current price =
+  `raw_bundles.current_price`, `EvalInputError` when absent; chart images + exec CSV from
+  Storage) → delta telemetry (`parseExecBars`→`computeDeltaTelemetry`) + `assessStaleness`
+  → active levels → **code-owned proximity gate** (`proximity.ts#assessProximity`) →
+  `generateStructured` with the `EvalResult` Zod schema on **`config.triage_model_id`**
+  (eval deps fetchConfig selects it; default `anthropic/claude-haiku-4-5` = the migration
+  column default; never hardcoded at call sites) → `validateEval.ts#enforceEvalFacts` →
+  `persistEval.ts` one `eval_results` row.
+- **Decisions**: (1) proximity is decided in code, not by the model —
+  `DEFAULT_NEAR_ENTRY_POINTS = 20` NQ points (doctrine gives no number; documented in
+  proximity.ts, overridable per call / future config column). If code says not-near and
+  the model still returns a level verdict, the status is **coerced to NO_ENTRY_NEAR**
+  (warning recorded); code-owned meta (createdAt/currentPrice/nearEntry) is always
+  overwritten. (2) `evaluated_level_id` fk resolved by matching the model's echoed
+  evaluatedLevel to an active row within 0.25 pt (one tick), falling back to the
+  code-nearest level. (3) Columns hold the **enforced** verdict; `raw_model_json` keeps
+  the model's unmodified output so coercions stay auditable. (4) **Zero active levels ⇒
+  no LLM call**: a code-owned NO_ENTRY_NEAR row is persisted with `model_id null`
+  ("run a briefing first"). (5) The instructions.md eval logic (long/short
+  ENTER/WAIT/NOT_VALID + the Delta>0-for-longs / Delta<0-for-shorts rule) is embedded in
+  the user prompt (`lib/eval/prompt.ts`); the system prefix is the same cached
+  `loadDoctrine()` as analyze (`cacheSystem: true`).
+- **DEVIATION**: the feature description says "triggers notify" — **not wired**;
+  notify-task doesn't exist yet (feat-026/027), same deviation pattern feat-008 recorded
+  for analyze-enqueue. Wire it in the notify feature.
+- **trigger/evalTask.ts**: schemaTask id `eval-task`, empty/optional payload
+  (`z.object({}).default({})`), retry maxAttempts 3, logs
+  model/costUsd/usage/evalResultId/stale to run metadata (mirrors analyzeTask).
+- **POST /api/eval/run**: mirrors /api/briefings/run — type-safe
+  `tasks.trigger<typeof evalTask>('eval-task', {})`, 202 `{runId}` / clean 500 body;
+  intentionally unauthenticated (local-machine app, no input, worst case an extra
+  advisory triage run).
+- **Dashboard**: `check-entry-button.tsx` (client, outline variant,
+  pending/success/error states matching Run Briefing) replaces the disabled placeholder
+  in `app/page.tsx`; the "wired when feat-025 lands" notes are gone and the eval
+  empty-state now points at the live button.
+- **Tests**: +17 (316 total, all offline, DI fakes + real chart-data fixtures):
+  eval.runEval (9 — end-to-end order, prompt/config wiring, fk mapping, not-near
+  coercion, zero-level short-circuit, default-model fallback, staleness, meta
+  enforcement, missing current_price), eval.proximity (5), eval.run.route (3, hoisted
+  SDK fake).
+- **Verified**: `./init.sh` green — typecheck 0, lint 0 errors (3 pre-existing warnings
+  in tests/briefing.schema.test.ts), vitest 316/316 (32 files), next build OK
+  (`/api/eval/run` registered dynamic).
+- **User-side smoke (once TRIGGER_SECRET_KEY + bundles are live)**: run a briefing so
+  active entry levels exist → click **Check Entry at Current Price** → exactly one
+  eval-task run in the trigger.dev dashboard (metadata shows the haiku triage model +
+  cost) → an `eval_results` row appears → reload the dashboard: "Latest Entry Eval"
+  renders the status chip (ENTER/WAIT/NOT_VALID/NO_ENTRY_NEAR) + trigger/stop/targets/
+  reason. With no active levels, the row appears instantly with NO_ENTRY_NEAR and
+  `model_id` null (no LLM spend). Remember `npx trigger.dev@latest deploy` (or dev) so
+  the worker knows the new `eval-task`.
+
+**Previous:** feat-019 + feat-020 DONE (briefing dashboard + Run Briefing trigger, below).
 
 **feat-019 + feat-020 (2026-07-08) — briefing dashboard + manual Run Briefing trigger.**
 - **`app/page.tsx` replaces the filler marketing landing page** (user decision) with the

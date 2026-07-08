@@ -7,7 +7,7 @@ import {
 } from '@/lib/briefing'
 import { formatPrice } from '@/lib/briefing/terrainMap'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
-import { Button } from './components/button'
+import { CheckEntryButton } from './components/check-entry-button'
 import { Footer } from './components/footer'
 import { MStripe } from './components/m-stripe'
 import { RunBriefingButton } from './components/run-briefing-button'
@@ -20,8 +20,8 @@ import { TopNav } from './components/top-nav'
  * bundle freshness via the service-role client, then renders the full Gem
  * "Morning Briefing" parity view: tactical overview, terrain zone map,
  * primary/secondary objectives, danger zones, and the latest entry eval.
- * Hosts both trigger buttons ("Run Briefing" wired via feat-020; "Check Entry"
- * disabled until the eval backend lands in feat-025).
+ * Hosts both trigger buttons ("Run Briefing" wired via feat-020; "Check Entry
+ * at Current Price" wired via feat-025 → POST /api/eval/run → eval-task).
  */
 
 // Always render at request time: the page reads the live DB and must never be
@@ -246,8 +246,8 @@ function EvalSection({ evalResult }: { evalResult: DashboardEvalRow | null }) {
         <SectionLabel>Latest Entry Eval</SectionLabel>
         {evalResult === null ? (
           <p className="mt-6 max-w-xl text-sm font-light leading-relaxed text-muted">
-            No entry evals yet — the Check Entry at Current Price flow lands with the eval
-            backend (feat-025).
+            No entry evals yet — press Check Entry at Current Price above to run the first
+            check against the active entry levels.
           </p>
         ) : (
           <div className="mt-6 border border-hairline bg-surface-card p-6">
@@ -369,14 +369,7 @@ export default async function Home() {
 
                 <div className="mt-8 flex flex-wrap items-start gap-x-4 gap-y-3">
                   <RunBriefingButton />
-                  <div>
-                    <Button variant="outline" disabled>
-                      Check Entry at Current Price
-                    </Button>
-                    <p className="mt-2 text-xs font-light tracking-wide text-muted">
-                      Wired when the eval backend lands (feat-025).
-                    </p>
-                  </div>
+                  <CheckEntryButton />
                 </div>
               </div>
 
