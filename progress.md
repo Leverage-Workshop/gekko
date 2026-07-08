@@ -60,8 +60,13 @@ whole codebase.**
 - **Verification:** `./init.sh` green — typecheck 0, lint 0 errors (3 pre-existing
   warnings), **506/506 tests** (was 481; +25 net new), build OK; `npm run lvn:eval`
   TRAIN gate PASS with unchanged F1.
-- **Still pending (unchanged from feat-026/027/031):** apply the 3 live migrations,
-  VAPID keys, trigger.dev prod env vars — now all captured in `docs/setup-walkthrough.md`.
+- **Live migrations APPLIED (2026-07-08, post-merge):** all 7 migrations now live on
+  project qvhkqilizwozikpomxob — verified via Supabase MCP: config has the
+  high-conviction columns (flag false, opus-4-8 default; Sonnet 5 / Haiku 4.5 /
+  rr_min 3.0 untouched), both `realtime.send()` AFTER INSERT triggers + the
+  `gekko:alerts` `realtime.messages` policy exist, and `push_subscriptions` exists with
+  RLS-no-policies. Still pending user-side: VAPID keys + trigger.dev prod env vars —
+  captured in `docs/setup-walkthrough.md`.
 
 **feat-026 + feat-027 (2026-07-08, fourth session) — Web notifications (Realtime) +
 Web Push (tab-closed).**

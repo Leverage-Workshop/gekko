@@ -72,25 +72,23 @@ otherwise put them in the uploader machine's `.env` — see step 7):
 `VAPID_*` (tab-closed push, step 8). The model IDs are **not** env vars — they
 live in the `config` DB row and are editable at `/settings`.
 
-## 4. Supabase — apply the 3 pending migrations
+## 4. Supabase — migrations
 
-The live DB already has `init_core_schema`, `storage_buckets`, `seed_config`,
-and `default_model_sonnet_5`. Three later migrations are committed but **not
-applied**:
+**As of 2026-07-08 all 7 migrations are applied to the live project** (verified:
+`init_core_schema`, `storage_buckets`, `seed_config`, `default_model_sonnet_5`,
+`high_conviction_flag`, `realtime_notifications`, `push_subscriptions`) — nothing
+to do for a normal setup.
 
-1. `20260708090000_high_conviction_flag.sql` — Opus high-conviction config columns
-2. `20260708120000_realtime_notifications.sql` — Realtime broadcast triggers (tab-open alerts)
-3. `20260708120001_push_subscriptions.sql` — Web Push subscription storage
+If you ever point the app at a **fresh** Supabase project instead, apply the
+whole `supabase/migrations/` folder in filename order, either:
 
-Apply them in that order, either:
-
-- **CLI:** `supabase link --project-ref qvhkqilizwozikpomxob` (needs the DB
-  password), then `supabase db push`, or
+- **CLI:** `supabase link --project-ref <ref>` (needs the DB password), then
+  `supabase db push`, or
 - **Dashboard:** SQL editor → paste each file's contents → run, in order.
 
-Until applied, the app degrades gracefully but: `/settings` saves fail with an
-explicit "apply the migration" message, the alerts strip receives no events,
-and push subscribe returns a clean 500.
+Symptoms of missing migrations (the app degrades gracefully): `/settings` saves
+fail with an explicit "apply the migration" message, the alerts strip receives
+no events, and push subscribe returns a clean 500.
 
 ## 5. trigger.dev — tasks and their environment
 
