@@ -5,23 +5,21 @@ import type { MgiLevel, MgiPriority, MgiGroup, MgiTier } from './mgiPriority'
 
 // --- fixture builders -------------------------------------------------------
 
-/** Build a 1-point VbP profile over [lo, hi]; ranges [from, to, volume, delta?] override a 40 floor. */
+/** Build a 1-point VbP profile over [lo, hi]; ranges [from, to, volume] override a 40 floor. */
 function buildProfile(
-  ranges: [number, number, number, number?][],
+  ranges: [number, number, number][],
   lo: number,
   hi: number,
 ): TerrainProfileRow[] {
   const rows: TerrainProfileRow[] = []
   for (let p = lo; p <= hi; p++) {
     let v = 40
-    let d: number | null = null
-    for (const [a, b, vol, del] of ranges) {
+    for (const [a, b, vol] of ranges) {
       if (p >= a && p <= b) {
         v = vol
-        d = del ?? null
       }
     }
-    rows.push({ price: p, volume: v, delta: d })
+    rows.push({ price: p, volume: v })
   }
   return rows
 }
@@ -241,48 +239,20 @@ describe('assembleTerrain — vertical positions', () => {
   })
 })
 
-// --- delta cross-reference --------------------------------------------------
+// --- volume-only zone facts ---------------------------------------------------
 
-describe('assembleTerrain — delta character', () => {
-  it('reads a thin void with one-sided delta as initiative and an accepted block as absorption', () => {
-    // Void zone with strong buying delta between two balanced-delta blocks.
-    const profile = buildProfile(
-      [
-        [30450, 30550, 1000, 2], // top block, balanced-ish delta (alternated below)
-        [30200, 30440, 50, 30], // void with strong positive delta → initiative
-        [30050, 30150, 1000, -2],
-      ],
-      30000,
-      30600,
-    )
-    // alternate the block delta sign so net ≈ 0 (absorption)
-    const balanced = profile.map(row =>
-      (row.price >= 30450 || row.price <= 30150) && row.volume === 1000
-        ? { ...row, delta: row.price % 2 === 0 ? 5 : -5 }
-        : row,
-    )
-    const r = assembleTerrain({
-      profile: balanced,
-      lvn: { hvn: [], lvn: [], peakVolume: 1000 },
-      summary: { pocPrice: 30500, valueAreaHigh: 30510, valueAreaLow: 30490 },
-      mgi: makeMgi(30500, [
-        { price: 30445, label: 'Wall Hi', tier: 1 },
-        { price: 30160, label: 'Wall Lo', tier: 1 },
-      ]),
-    })
-    const voidZone = r.zones.find(z => z.volumeClass === 'void')!
-    expect(voidZone.deltaClass).toBe('buying')
-    expect(voidZone.character).toBe('initiative')
-
-    const acceptedZone = r.zones.find(z => z.volumeClass === 'acceptance')!
-    expect(acceptedZone.deltaClass).toBe('balanced')
-    expect(acceptedZone.character).toBe('absorption')
-  })
-
-  it('reports unknown delta class when the profile carries no delta', () => {
+describe('assembleTerrain — volume-only zone facts', () => {
+  it('labels zones as position (volumeClass) with no order-flow character read', () => {
+    // Order-flow character was removed with the VbP/delta join (feat-036):
+    // absorption is detected from the delta exports (lib/engine/absorption.ts)
+    // and confirmed by the model, never by terrain assembly.
     const r = runMain(30250)
-    expect(r.zones.every(z => z.deltaClass === 'unknown')).toBe(true)
-    expect(r.zones.every(z => z.netDelta === null)).toBe(true)
+    for (const zone of r.zones) {
+      expect(zone.label).toMatch(/^[\w ]+ \((acceptance|void)\)$/)
+      expect(zone).not.toHaveProperty('deltaClass')
+      expect(zone).not.toHaveProperty('character')
+      expect(zone).not.toHaveProperty('netDelta')
+    }
   })
 })
 

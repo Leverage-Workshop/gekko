@@ -11,24 +11,22 @@ import type { AnalyzeDeps, BriefingInsert, EntryLevelInsert } from '@/lib/analyz
 import type { GenerateStructuredResult } from '@/lib/llm'
 import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
 
-const vbpContent = readFileSync(join(process.cwd(), 'chart-data/vbp_export.md'), 'utf-8')
-const deltaContent = readFileSync(
-  join(process.cwd(), 'chart-data/delta_vbp_export.md'),
-  'utf-8',
-)
-const execCsvContent = readFileSync(
-  join(process.cwd(), 'chart-data/execution_bar_data.rolling.csv'),
-  'utf-8',
-)
-const mgi = JSON.parse(
-  readFileSync(join(process.cwd(), 'chart-data/mgi_static_levels.json'), 'utf-8'),
-) as MgiStaticLevels
+const read = (name: string) => readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')
+
+const rotationVbpContent = read('four-hundred-rotation.vbp.md')
+const fiveDayVbpContent = read('rolling-five-day.vbp.md')
+const halfRotationDeltaContent = read('half-rotation-delta.vbp.md')
+const fullRotationDeltaContent = read('full-rotation-delta.vbp.md')
+const execCsvContent = read('execution_bar_data.rolling.csv')
+const mgi = JSON.parse(read('mgi_static_levels.json')) as MgiStaticLevels
 
 const NOW = new Date('2026-06-16T16:00:00Z')
 
 const facts = computeEngineFacts({
-  vbpContent,
-  deltaContent,
+  rotationVbpContent,
+  fiveDayVbpContent,
+  halfRotationDeltaContent,
+  fullRotationDeltaContent,
   execCsvContent,
   mgi,
   receivedAt: NOW.toISOString(),
@@ -49,11 +47,11 @@ function modelBriefing(): Briefing {
       currentPosition: ['above the Rip'],
       structuralArchitecture: ['balance over the POC shelf'],
       orderFlowContext: ['blue initiative holding'],
-      keyInflections: [{ level: facts.profileSummary.pocPrice, why: 'POC magnet' }],
+      keyInflections: [{ level: facts.profileSummary.rotation.pocPrice, why: 'POC magnet' }],
     },
     terrain: {
       zones: facts.terrain.zones.map((zone) => ({
-        color: zone.deltaClass === 'selling' ? 'red' : 'blue',
+        color: zone.volumeClass === 'void' ? 'red' : 'blue',
         top: zone.top,
         bottom: zone.bottom,
         label: zone.label,
@@ -96,8 +94,10 @@ function makeDeps(overrides: Partial<AnalyzeDeps> = {}) {
 
   const encoder = new TextEncoder()
   const objects: Record<string, Uint8Array> = {
-    'b1/vbp_export.md': encoder.encode(vbpContent),
-    'b1/delta_vbp_export.md': encoder.encode(deltaContent),
+    'b1/four-hundred-rotation.vbp.md': encoder.encode(rotationVbpContent),
+    'b1/rolling-five-day.vbp.md': encoder.encode(fiveDayVbpContent),
+    'b1/half-rotation-delta.vbp.md': encoder.encode(halfRotationDeltaContent),
+    'b1/full-rotation-delta.vbp.md': encoder.encode(fullRotationDeltaContent),
     'b1/execution_bars.csv': encoder.encode(execCsvContent),
     'b1/htf.png': encoder.encode('png-bytes'),
   }
@@ -111,8 +111,10 @@ function makeDeps(overrides: Partial<AnalyzeDeps> = {}) {
       current_price: facts.currentPrice,
       is_stale: false,
       exec_csv_ref: 'b1/execution_bars.csv',
-      vol_profile_ref: 'b1/vbp_export.md',
-      delta_profile_ref: 'b1/delta_vbp_export.md',
+      rotation_vbp_ref: 'b1/four-hundred-rotation.vbp.md',
+      five_day_vbp_ref: 'b1/rolling-five-day.vbp.md',
+      half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
+      full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
       htf_png_ref: 'b1/htf.png',
       tpo_png_ref: null,
       exec_png_ref: null,

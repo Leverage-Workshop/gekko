@@ -20,8 +20,10 @@ export interface BundleRow {
   current_price: number | null
   is_stale: boolean
   exec_csv_ref: string | null
-  vol_profile_ref: string | null
-  delta_profile_ref: string | null
+  rotation_vbp_ref: string | null
+  five_day_vbp_ref: string | null
+  half_rotation_delta_ref: string | null
+  full_rotation_delta_ref: string | null
   htf_png_ref: string | null
   tpo_png_ref: string | null
   exec_png_ref: string | null
@@ -36,8 +38,10 @@ export interface LoadBundleDeps {
 
 export interface LoadedBundle {
   row: BundleRow
-  vbpContent: string
-  deltaContent: string
+  rotationVbpContent: string
+  fiveDayVbpContent: string
+  halfRotationDeltaContent: string
+  fullRotationDeltaContent: string
   execCsvContent: string
   mgi: MgiStaticLevels
   /** Attached chart images, aligned index-for-index with `charts`. */
@@ -49,16 +53,22 @@ export interface LoadedBundle {
 
 /**
  * The relaxed (`requireTexts: 'exec-only'`) load for the eval-task: only the
- * exec CSV is required — the VbP/delta exports are neither required nor
+ * exec CSV is required — the profile exports are neither required nor
  * fetched, so the fields are absent rather than nullable.
  */
-export type LoadedExecBundle = Omit<LoadedBundle, 'vbpContent' | 'deltaContent'>
+export type LoadedExecBundle = Omit<
+  LoadedBundle,
+  | 'rotationVbpContent'
+  | 'fiveDayVbpContent'
+  | 'halfRotationDeltaContent'
+  | 'fullRotationDeltaContent'
+>
 
 export interface LoadBundleOptions {
   /**
    * Which text exports are hard requirements. `'all'` (default — analyze)
-   * requires VbP + delta + exec CSV; `'exec-only'` (eval) requires only the
-   * exec CSV and skips the other two entirely.
+   * requires the four profile exports + exec CSV; `'exec-only'` (eval)
+   * requires only the exec CSV and skips the profiles entirely.
    */
   requireTexts?: 'all' | 'exec-only'
 }
@@ -85,8 +95,8 @@ async function requireText(
  * Fetch the latest bundle and everything the engine + model call need from it.
  *
  * @throws {AnalyzeInputError} when there is no bundle, the MGI JSON is absent,
- *   or a required text export is missing (VbP / delta / exec CSV by default;
- *   exec CSV only with `requireTexts: 'exec-only'`).
+ *   or a required text export is missing (the four profile exports + exec CSV
+ *   by default; exec CSV only with `requireTexts: 'exec-only'`).
  */
 export async function loadLatestBundle(
   deps: LoadBundleDeps,
@@ -114,8 +124,10 @@ export async function loadLatestBundle(
   const profileTexts =
     requireTexts === 'all'
       ? await Promise.all([
-          requireText(deps, row.vol_profile_ref, 'VbP volume profile'),
-          requireText(deps, row.delta_profile_ref, 'delta profile'),
+          requireText(deps, row.rotation_vbp_ref, '400-pt rotation volume profile'),
+          requireText(deps, row.five_day_vbp_ref, 'rolling five-day volume profile'),
+          requireText(deps, row.half_rotation_delta_ref, 'half-rotation delta profile'),
+          requireText(deps, row.full_rotation_delta_ref, 'full-rotation delta profile'),
         ])
       : null
 
@@ -144,5 +156,11 @@ export async function loadLatestBundle(
   if (profileTexts === null) {
     return base
   }
-  return { ...base, vbpContent: profileTexts[0], deltaContent: profileTexts[1] }
+  return {
+    ...base,
+    rotationVbpContent: profileTexts[0],
+    fiveDayVbpContent: profileTexts[1],
+    halfRotationDeltaContent: profileTexts[2],
+    fullRotationDeltaContent: profileTexts[3],
+  }
 }

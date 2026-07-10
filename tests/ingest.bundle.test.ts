@@ -37,18 +37,20 @@ describe('ingestBundle', () => {
     form.set('tpo_png', pngFile('tpo.png'))
     form.set('exec_png', pngFile('exec.png'))
     form.set('exec_csv', new File(['DateTime,Open\n'], 'e.csv', { type: 'text/csv' }))
-    form.set('vol_profile', new File(['# vbp'], 'vbp.md', { type: 'text/markdown' }))
-    form.set('delta_profile', new File(['# delta'], 'delta.md', { type: 'text/markdown' }))
+    form.set('rotation_vbp', new File(['# rotation'], 'r.md', { type: 'text/markdown' }))
+    form.set('five_day_vbp', new File(['# five-day'], 'f.md', { type: 'text/markdown' }))
+    form.set('half_rotation_delta', new File(['# half'], 'h.md', { type: 'text/markdown' }))
+    form.set('full_rotation_delta', new File(['# full'], 'fu.md', { type: 'text/markdown' }))
 
     const result = await ingestBundle(form, deps)
 
     expect(result).toEqual({ id: 'abc' })
-    expect(uploads).toHaveLength(6)
+    expect(uploads).toHaveLength(8)
 
     const chartImages = uploads.filter((u) => u.bucket === 'chart-images')
     const csvs = uploads.filter((u) => u.bucket === 'bundle-csvs')
     expect(chartImages).toHaveLength(3)
-    expect(csvs).toHaveLength(3)
+    expect(csvs).toHaveLength(5)
 
     // every object is stored under the bundle-id prefix
     expect(uploads.every((u) => u.path.startsWith('abc/'))).toBe(true)
@@ -58,8 +60,10 @@ describe('ingestBundle', () => {
     expect(record.tpo_png_ref).toBe('abc/tpo.png')
     expect(record.exec_png_ref).toBe('abc/exec.png')
     expect(record.exec_csv_ref).toBe('abc/execution_bars.csv')
-    expect(record.vol_profile_ref).toBe('abc/vbp_export.md')
-    expect(record.delta_profile_ref).toBe('abc/delta_vbp_export.md')
+    expect(record.rotation_vbp_ref).toBe('abc/four-hundred-rotation.vbp.md')
+    expect(record.five_day_vbp_ref).toBe('abc/rolling-five-day.vbp.md')
+    expect(record.half_rotation_delta_ref).toBe('abc/half-rotation-delta.vbp.md')
+    expect(record.full_rotation_delta_ref).toBe('abc/full-rotation-delta.vbp.md')
     expect(record.is_stale).toBe(false)
   })
 

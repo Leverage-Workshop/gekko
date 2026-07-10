@@ -143,11 +143,13 @@ npm run uploader
 
 It reads `.env.local`/`.env` from the repo root — set `INGEST_URL`,
 `GEKKO_EXPORT_DIR`, `INGEST_BEARER_TOKEN` there (step 3). It watches for the
-seven export files Sierra writes (~every 30 s):
+nine export files Sierra writes (~every 30 s):
 
 ```
 htf_clean.png, tpo.png, execution_clean.png,
-execution_bar_data.rolling.csv, vbp_export.md, delta_vbp_export.md,
+execution_bar_data.rolling.csv,
+four-hundred-rotation.vbp.md, rolling-five-day.vbp.md,       (HTF volume profiles)
+half-rotation-delta.vbp.md, full-rotation-delta.vbp.md,      (execution delta profiles)
 mgi_static_levels.json      (current price/time come from this file)
 ```
 

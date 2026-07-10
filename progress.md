@@ -2,10 +2,51 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-08 (fifth session this date)
-**Active Feature:** none — all features `done` (feat-021 skipped). This session was a
-**full-codebase review + hardening pass** (no feature_list change) plus a new
-`docs/setup-walkthrough.md`.
+**Last Updated:** 2026-07-09
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-036**
+(four-profile export contract + code-owned absorption candidates).
+
+**feat-036 (2026-07-09) — four-profile export contract + absorption candidates.**
+Caleb's real charts no longer export `vbp_export.md`/`delta_vbp_export.md`; the export
+folder now writes FOUR profiles (all sampled in `chart-data/`): two HTF VbPs
+(`four-hundred-rotation.vbp.md` medium-term, `rolling-five-day.vbp.md` long-term — a
+big ledge on the 5-day outweighs one on the 400) and two execution delta profiles
+(`half-rotation-delta.vbp.md` ~35 pt, `full-rotation-delta.vbp.md` ~75 pt), used for
+spotting absorption.
+
+- **Join removed:** `parseProfiles`' per-bin VbP↔delta join deleted — it only fed
+  terrain zone character, and the new bin grids (2.0 vs 2.25-pt steps) can never
+  key-match. `parseVbpProfile` + new `parseDeltaProfile` parse each file standalone.
+  Terrain zones are volume-structure only now (deltaClass/character removed).
+- **NEW `lib/engine/absorption.ts`:** code-owned absorption-candidate detection over
+  the delta exports — stacks of same-sign bins ≥ threshold; gap bins tolerated at a
+  qualifying ratio (Caleb: "if I have five bins and 4 are over 50, that's good");
+  strong opposite-sign bin hard-breaks; span capped (configurable, default per
+  constant). Constants exported + drift-guard tested; prose defers to the module.
+  CANDIDATES ONLY — doctrine/prompt tell the model absorption requires price stalled
+  at the stack (execution chart); a stack alone means nothing. Raw delta text is NOT
+  in the prompt (token cost; the model sees the delta profiles in the exec screenshot).
+  NOTE: the real fixtures yield ZERO candidates at doctrine thresholds (verified —
+  longest qualifying run is 2 bins); positives are covered synthetically.
+- **Dual LVN/HVN:** detection runs on both VbPs → `facts.lvn.{rotation,fiveDay}` +
+  `profileSummary.{rotation,fiveDay}`; magnets + terrain stay rotation-anchored
+  (magnet tolerance is calibrated to rotation-scale geometry).
+- **Contract ripple:** migration `20260709090000_four_profile_refs.sql` (4 new
+  `raw_bundles` ref columns, old 2 dropped — bundles are transient, repurposing would
+  poison history), `FILE_FIELDS` (object name = local Sierra filename now), uploader
+  watch list (9 files), loadBundle, analyzeBundle, prompt, doctrine, setup walkthrough
+  step 7, architecture plan (Profile Export Format rewritten — no join), diagrams.
+- **Fixture re-anchor:** the refreshed `chart-data/` also changed the MGI + exec CSV,
+  so ripStatus/mgiPriority/parseExecBars/deltaTelemetry fixture tests were re-anchored
+  (price 29945.75 is now ABOVE the rip 29883.51 → fixture condition Green; recent
+  window holds 0 red extremes; nearest Tier-1 above/below = VRange High / Week Open).
+- **KNOWN SAMPLE QUIRK (tolerated, flagged):** `four-hundred-rotation.vbp.md` Summary
+  POC 29900 vs CSV prices ~57820–59988 (doubled scale) — the engine tolerates it, but
+  terrain/magnet output against this sample is degenerate. Caleb should re-export that
+  chart.
+
+Previous session (2026-07-08, fifth that date) was a **full-codebase review +
+hardening pass** (no feature_list change) plus a new `docs/setup-walkthrough.md`.
 
 **Review + hardening (2026-07-08, fifth session) — quality/integration audit of the
 whole codebase.**

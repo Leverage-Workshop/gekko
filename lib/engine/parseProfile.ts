@@ -1,9 +1,3 @@
-export type ProfileRow = {
-  price: number
-  volume: number
-  delta: number | null
-}
-
 export type ProfileMeta = {
   tickSize: number
   binSize: number
@@ -11,12 +5,6 @@ export type ProfileMeta = {
   pocPrice: number
   valueAreaHigh: number
   valueAreaLow: number
-}
-
-export type ParsedProfiles = {
-  rows: ProfileRow[]
-  vbpMeta: ProfileMeta
-  deltaMeta: ProfileMeta
 }
 
 type ProfileType = 'vbp' | 'delta'
@@ -122,40 +110,14 @@ function parseProfileFile(content: string): SingleProfile {
   }
 }
 
-export function parseProfiles(vbpContent: string, deltaContent: string): ParsedProfiles {
-  const vbp = parseProfileFile(vbpContent)
-  const delta = parseProfileFile(deltaContent)
-
-  if (vbp.type !== 'vbp') {
-    throw new Error('First argument must be the Volume (VbP) profile, got Delta profile')
-  }
-  if (delta.type !== 'delta') {
-    throw new Error('Second argument must be the Delta profile, got Volume (VbP) profile')
-  }
-
-  const deltaMap = new Map(delta.rows.map(r => [round4(r.price), r.value]))
-
-  const rows: ProfileRow[] = vbp.rows.map(r => ({
-    price: r.price,
-    volume: r.value,
-    delta: deltaMap.get(round4(r.price)) ?? null,
-  }))
-
-  return {
-    rows,
-    vbpMeta: vbp.meta,
-    deltaMeta: delta.meta,
-  }
-}
-
 export type VbpProfile = {
   rows: { price: number; volume: number }[]
   meta: ProfileMeta
 }
 
 /**
- * Parse a standalone Volume (VbP) profile file — no paired Delta profile.
- * Used by the LVN/HVN fixture loader, where fixtures carry only a `.vbp.md`.
+ * Parse a standalone Volume (VbP) profile file (e.g. the 400-pt rotation or
+ * rolling five-day HTF export, and the LVN/HVN fixtures' `.vbp.md`).
  */
 export function parseVbpProfile(vbpContent: string): VbpProfile {
   const vbp = parseProfileFile(vbpContent)
@@ -165,5 +127,27 @@ export function parseVbpProfile(vbpContent: string): VbpProfile {
   return {
     rows: vbp.rows.map(r => ({ price: r.price, volume: r.value })),
     meta: vbp.meta,
+  }
+}
+
+export type DeltaProfile = {
+  rows: { price: number; delta: number }[]
+  meta: ProfileMeta
+}
+
+/**
+ * Parse a standalone Delta profile file (the half- / full-rotation execution
+ * delta exports). There is deliberately no per-bin join against a volume
+ * profile: the delta exports sit on their own bin grid, and their engine
+ * consumer is absorption-stack detection (lib/engine/absorption.ts).
+ */
+export function parseDeltaProfile(deltaContent: string): DeltaProfile {
+  const delta = parseProfileFile(deltaContent)
+  if (delta.type !== 'delta') {
+    throw new Error('Expected a Delta profile, got a Volume (VbP) profile')
+  }
+  return {
+    rows: delta.rows.map(r => ({ price: r.price, delta: r.value })),
+    meta: delta.meta,
   }
 }

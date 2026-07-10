@@ -13,25 +13,25 @@ describe('parseExecBars', () => {
   it('first row matches expected values', () => {
     const bars = parseExecBarsFromFile(FIXTURE)
     const first = bars[0]
-    expect(first.dateTime).toEqual(new Date('2026-06-16 09:31:47'))
-    expect(first.open).toBe(30637.55)
-    expect(first.high).toBe(30637.55)
-    expect(first.low).toBe(30607.0)
-    expect(first.close).toBe(30617.19)
+    expect(first.dateTime).toEqual(new Date('2026-07-09 10:58:48'))
+    expect(first.open).toBe(29891.18)
+    expect(first.high).toBe(29898.75)
+    expect(first.low).toBe(29883.5)
+    expect(first.close).toBe(29893.81)
     expect(first.legVWAP).toBe(0.0)
-    expect(first.deltaIntensity).toBe(-4.0)
+    expect(first.deltaIntensity).toBe(-1.0)
   })
 
   it('last row matches expected values', () => {
     const bars = parseExecBarsFromFile(FIXTURE)
     const last = bars[bars.length - 1]
-    expect(last.dateTime).toEqual(new Date('2026-06-16 13:36:08'))
-    expect(last.open).toBe(30441.4)
-    expect(last.high).toBe(30441.4)
-    expect(last.low).toBe(30422.0)
-    expect(last.close).toBe(30436.25)
-    expect(last.legVWAP).toBe(30470.51)
-    expect(last.deltaIntensity).toBe(-4.0)
+    expect(last.dateTime).toEqual(new Date('2026-07-09 21:52:00'))
+    expect(last.open).toBe(29920.04)
+    expect(last.high).toBe(29949.0)
+    expect(last.low).toBe(29920.04)
+    expect(last.close).toBe(29945.75)
+    expect(last.legVWAP).toBe(29901.54)
+    expect(last.deltaIntensity).toBe(3.0)
   })
 
   it('rows are in ascending time order', () => {

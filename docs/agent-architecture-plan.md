@@ -54,7 +54,10 @@ bridges Sierra Chart to the app.
 [Sierra Chart / Windows]
   ├─ ACSIL export studies ──▶ C:\gekko\export\  (mgi_static_levels.json,
   │                                               execution_bar_data.rolling.csv,
-  │                                               vbp_export.md, delta_vbp_export.md)
+  │                                               four-hundred-rotation.vbp.md,
+  │                                               rolling-five-day.vbp.md,
+  │                                               half-rotation-delta.vbp.md,
+  │                                               full-rotation-delta.vbp.md)
   └─ Chart image auto-dump ──▶ C:\gekko\export\  (htf_clean.png, tpo.png,
                                                   execution_clean.png)
   Note: current price/time live in mgi_static_levels.json (current.price/.time),
@@ -125,31 +128,35 @@ renderings of the exact numeric data the engine already holds). The model reads 
 screenshots only for perception the data can't give (absorption/exhaustion shape, TPO
 single prints, delta clustering). See feat-014 / feat-018 in `feature_list.json`.
 
-### Profile Export Format (LOCKED — from samples `chart-data/vbp_export.md`, `chart-data/delta_vbp_export.md`)
+### Profile Export Format (LOCKED — from the four samples in `chart-data/`)
 
-Both exports are Markdown with an **identical structure**:
-- `## Metadata` bullets: Profile Name, Profile Description, **Tick Size** (0.25), **Bin Size (Ticks)** (5).
+Four profile exports, all Markdown with an **identical structure** (feat-036):
+- **HTF volume profiles** — `four-hundred-rotation.vbp.md` (anchored to the current 400-pt
+  rotation, medium-term) and `rolling-five-day.vbp.md` (last five days, long-term). Bin Size 8
+  ticks → 2.0-pt step; CSV header `Price,Volume`.
+- **Execution delta profiles** — `half-rotation-delta.vbp.md` (~35-pt anchor) and
+  `full-rotation-delta.vbp.md` (~75-pt anchor). Bin Size 9 ticks → 2.25-pt step; CSV header
+  `Price,Delta` — **signed** (buy − sell) per bin; negative = sell-dominant.
+
+Shared file shape:
+- `## Metadata` bullets: Profile Name, Profile Description, **Tick Size** (0.25), **Bin Size (Ticks)**.
 - `## Summary` bullets: **POC Price**, **Value Area High**, **Value Area Low** — read directly; do **not** recompute VA.
-- `## Volume Profile Data` → a fenced ` ```csv ` block, two columns, **prices descending**,
-  row step = `tickSize × binSize` (0.25 × 5 = 1.25):
-  - **VbP** header `Price,Volume` — non-negative total volume per bin.
-  - **Delta** header `Price,Delta` — **signed** (buy − sell) per bin; negative = sell-dominant.
+- `## Volume Profile Data` → a fenced ` ```csv ` block, two columns, **prices descending**.
 
 Parser rules (`/lib/engine/parseProfile.ts`):
-- Read `tickSize`/`binSize` from Metadata each run (don't hardcode the 1.25 step); derive the
+- Read `tickSize`/`binSize` from Metadata each run (don't hardcode the step); derive the
   expected step and validate row spacing.
-- Distinguish the two files by the CSV header's **2nd column** (`Volume` vs `Delta`), not just filename.
-- Parse into `{price, value}[]`, then **join VbP+Delta on the `Price` key** → `{price, volume, delta}`
-  (left-join on the volume series). Don't assume equal ranges/row-alignment — the two profiles
-  can differ in width and POC; tolerate gaps.
-- **Ingest invariant:** the uploader must export both profiles from the *same* session profile at
-  the *same* instant so prices align. (The two sample files were captured at different times —
-  POC 30236.25 vs 30293.75 — which is exactly the misalignment to prevent.)
+- Distinguish volume from delta files by the CSV header's **2nd column** (`Volume` vs `Delta`), not just filename.
+- Each file parses standalone (`parseVbpProfile` / `parseDeltaProfile`). There is **no VbP↔delta
+  join** — the volume and delta exports sit on different bin grids (2.0 vs 2.25-pt steps), so a
+  per-bin price join can never match (feat-036 removed it).
 
-Engine consumption: `lvnDetection.ts` runs on the **VbP volume** series (HVN peaks + low-volume
-valleys via local-minima/gradient detection); `magnetCheck.ts` magnets = POC/VAH/VAL (straight from
-Summary) + HVN peaks; `terrainZones.ts` classifies regions by **volume (acceptance/HVN vs
-rejection/LVN) cross-referenced with delta sign** (absorption vs initiative) on the joined series.
+Engine consumption: `lvnDetection.ts` runs on **both VbP volume** series independently (nodes
+labeled `rotation` / `fiveDay`; a five-day node is structurally more significant);
+`magnetCheck.ts` magnets = POC/VAH/VAL + HVN peaks from the **rotation** profile;
+`terrainZones.ts` assembles the zone stack over the **rotation** profile (volume structure only);
+`absorption.ts` scans each **delta** profile for one-sided bin stacks and reports them as
+**absorption candidates** — the model confirms each against price stalling on the execution chart.
 
 ---
 
@@ -270,8 +277,8 @@ if "tab fully closed" alerting is needed.
 ## Phased Build Order
 
 **Phase 0 — De-risk (do first; these are the real unknowns):**
-1. **DONE** — profile DATA format confirmed from samples now in the repo
-   (`chart-data/vbp_export.md`, `chart-data/delta_vbp_export.md`); parsing spec locked (see
+1. **DONE** — profile DATA format confirmed from the four samples now in the repo
+   (`chart-data/*.vbp.md` — two HTF volume, two execution delta); parsing spec locked (see
    *Profile Export Format*). Remaining Phase-0 step: validate `lvnDetection`/`magnetCheck`
    output against a hand-labeled chart. *(The engine is the system's main edge over the Gem.)*
 2. Prove Sierra Chart **chart-image auto-export** yields clean, consistently-cropped PNGs on

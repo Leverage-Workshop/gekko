@@ -31,28 +31,29 @@ describe('computeDeltaTelemetry — fixture', () => {
   it('counts ±3 / ±4 extremes over the whole series', () => {
     const t = computeDeltaTelemetry(bars)
     expect(t.extremes.posStrong).toBe(17)
-    expect(t.extremes.posExtreme).toBe(6)
-    expect(t.extremes.negStrong).toBe(42)
-    expect(t.extremes.negExtreme).toBe(20)
+    expect(t.extremes.posExtreme).toBe(17)
+    expect(t.extremes.negStrong).toBe(25)
+    expect(t.extremes.negExtreme).toBe(3)
   })
 
   it('reports the most recent extreme reading', () => {
     const t = computeDeltaTelemetry(bars)
-    expect(t.extremes.lastExtreme).toBe(-4)
+    expect(t.extremes.lastExtreme).toBe(3)
   })
 
   it('counts red-extreme prints within the recent window', () => {
-    // Last 20 fixture deltas hold five <= -3 readings (-3,-3,-3 ... -4,-4).
+    // The last 20 fixture deltas hold no <= -3 readings (blue tape into the
+    // close); the counting behavior itself is covered synthetically below.
     const t = computeDeltaTelemetry(bars)
-    expect(t.recentRedExtremeCount).toBe(5)
+    expect(t.recentRedExtremeCount).toBe(0)
   })
 
-  it('locates the latest Leg VWAP and prices the last close below it', () => {
+  it('locates the latest Leg VWAP and prices the last close above it', () => {
     const t = computeDeltaTelemetry(bars)
-    expect(t.legVwap.value).toBe(30470.51)
-    expect(t.legVwap.close).toBe(30436.25)
-    expect(t.legVwap.position).toBe('below')
-    expect(t.legVwap.distance).toBeCloseTo(-34.26, 2)
+    expect(t.legVwap.value).toBe(29901.54)
+    expect(t.legVwap.close).toBe(29945.75)
+    expect(t.legVwap.position).toBe('above')
+    expect(t.legVwap.distance).toBeCloseTo(44.21, 2)
   })
 
   it('produces sign / trend values within their unions', () => {

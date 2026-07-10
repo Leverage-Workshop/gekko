@@ -27,10 +27,23 @@ const SAMPLE = {
   tpo: 'tpo.png',
   exec: 'execution_clean.png',
   csv: 'execution_bar_data.rolling.csv',
-  vbp: 'vbp_export.md',
-  delta: 'delta_vbp_export.md',
+  rotationVbp: 'four-hundred-rotation.vbp.md',
+  fiveDayVbp: 'rolling-five-day.vbp.md',
+  halfDelta: 'half-rotation-delta.vbp.md',
+  fullDelta: 'full-rotation-delta.vbp.md',
   mgi: 'mgi_static_levels.json',
 }
+
+const ALL_FIELDS = [
+  'exec_csv',
+  'exec_png',
+  'five_day_vbp',
+  'full_rotation_delta',
+  'half_rotation_delta',
+  'htf_png',
+  'rotation_vbp',
+  'tpo_png',
+]
 
 describe('readBundle', () => {
   it('collects every present file with its ingest field/content-type', async () => {
@@ -40,15 +53,15 @@ describe('readBundle', () => {
         [SAMPLE.tpo]: new Uint8Array([2]),
         [SAMPLE.exec]: new Uint8Array([3]),
         [SAMPLE.csv]: 'DateTime,Open\n',
-        [SAMPLE.vbp]: '# vbp',
-        [SAMPLE.delta]: '# delta',
+        [SAMPLE.rotationVbp]: '# rotation vbp',
+        [SAMPLE.fiveDayVbp]: '# five-day vbp',
+        [SAMPLE.halfDelta]: '# half delta',
+        [SAMPLE.fullDelta]: '# full delta',
       }),
     )
 
     const fields = bundle.files.map((f) => f.field).sort()
-    expect(fields).toEqual(
-      ['delta_profile', 'exec_csv', 'exec_png', 'htf_png', 'tpo_png', 'vol_profile'].sort(),
-    )
+    expect(fields).toEqual(ALL_FIELDS)
     const htf = bundle.files.find((f) => f.field === 'htf_png')
     expect(htf?.filename).toBe(SAMPLE.htf)
     expect(htf?.contentType).toBe('image/png')
@@ -90,22 +103,22 @@ describe('readBundle', () => {
 
     // Every ingest field is satisfied by a real file in the sample folder, and
     // the MGI sidecar is found — i.e. BUNDLE_FILENAMES matches reality.
-    expect(bundle.files.map((f) => f.field).sort()).toEqual(
-      ['delta_profile', 'exec_csv', 'exec_png', 'htf_png', 'tpo_png', 'vol_profile'].sort(),
-    )
+    expect(bundle.files.map((f) => f.field).sort()).toEqual(ALL_FIELDS)
     expect(bundle.mgi).not.toBeNull()
   })
 })
 
 describe('BUNDLE_FILENAMES', () => {
-  it('watches Sierra’s six export files plus the mgi JSON', () => {
+  it('watches Sierra’s eight export files plus the mgi JSON', () => {
     expect(BUNDLE_FILENAMES).toEqual([
       'htf_clean.png',
       'tpo.png',
       'execution_clean.png',
       'execution_bar_data.rolling.csv',
-      'vbp_export.md',
-      'delta_vbp_export.md',
+      'four-hundred-rotation.vbp.md',
+      'rolling-five-day.vbp.md',
+      'half-rotation-delta.vbp.md',
+      'full-rotation-delta.vbp.md',
       'mgi_static_levels.json',
     ])
   })
