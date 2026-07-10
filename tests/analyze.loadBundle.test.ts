@@ -12,8 +12,10 @@ function row(overrides: Partial<BundleRow> = {}): BundleRow {
     current_price: 30255,
     is_stale: false,
     exec_csv_ref: 'bundle-1/execution_bars.csv',
-    vol_profile_ref: 'bundle-1/vbp_export.md',
-    delta_profile_ref: 'bundle-1/delta_vbp_export.md',
+    rotation_vbp_ref: 'bundle-1/four-hundred-rotation.vbp.md',
+    five_day_vbp_ref: 'bundle-1/rolling-five-day.vbp.md',
+    half_rotation_delta_ref: 'bundle-1/half-rotation-delta.vbp.md',
+    full_rotation_delta_ref: 'bundle-1/full-rotation-delta.vbp.md',
     htf_png_ref: 'bundle-1/htf.png',
     tpo_png_ref: 'bundle-1/tpo.png',
     exec_png_ref: 'bundle-1/exec.png',
@@ -41,8 +43,10 @@ function deps(
 }
 
 const objects = {
-  'bundle-1/vbp_export.md': 'VBP',
-  'bundle-1/delta_vbp_export.md': 'DELTA',
+  'bundle-1/four-hundred-rotation.vbp.md': 'ROTATION',
+  'bundle-1/rolling-five-day.vbp.md': 'FIVEDAY',
+  'bundle-1/half-rotation-delta.vbp.md': 'HALFDELTA',
+  'bundle-1/full-rotation-delta.vbp.md': 'FULLDELTA',
   'bundle-1/execution_bars.csv': 'CSV',
   'bundle-1/htf.png': 'Hi',
   'bundle-1/tpo.png': 'Yo',
@@ -54,14 +58,16 @@ describe('loadLatestBundle', () => {
     const d = deps(row(), objects)
     const bundle = await loadLatestBundle(d)
 
-    expect(bundle.vbpContent).toBe('VBP')
-    expect(bundle.deltaContent).toBe('DELTA')
+    expect(bundle.rotationVbpContent).toBe('ROTATION')
+    expect(bundle.fiveDayVbpContent).toBe('FIVEDAY')
+    expect(bundle.halfRotationDeltaContent).toBe('HALFDELTA')
+    expect(bundle.fullRotationDeltaContent).toBe('FULLDELTA')
     expect(bundle.execCsvContent).toBe('CSV')
     expect(bundle.mgi).toEqual({ current: { price: 30255 } })
     expect(bundle.images.map((i) => i.base64)).toEqual(['SGk=', 'WW8=', 'T2s='])
     expect(bundle.charts).toHaveLength(3)
     expect(bundle.warnings).toEqual([])
-    expect(d.downloads).toContain('bundle-csvs:bundle-1/vbp_export.md')
+    expect(d.downloads).toContain('bundle-csvs:bundle-1/four-hundred-rotation.vbp.md')
     expect(d.downloads).toContain('chart-images:bundle-1/htf.png')
   })
 
@@ -75,11 +81,19 @@ describe('loadLatestBundle', () => {
     ).rejects.toThrow(/mgi_json/)
   })
 
-  it('throws when a required text export is missing', async () => {
-    await expect(
-      loadLatestBundle(deps(row({ vol_profile_ref: null }), objects)),
-    ).rejects.toThrow(/VbP volume profile/)
-  })
+  it.each([
+    ['rotation_vbp_ref', /400-pt rotation volume profile/],
+    ['five_day_vbp_ref', /rolling five-day volume profile/],
+    ['half_rotation_delta_ref', /half-rotation delta profile/],
+    ['full_rotation_delta_ref', /full-rotation delta profile/],
+  ] as const)(
+    'throws a self-naming error when %s is missing under the default (all) mode',
+    async (column, message) => {
+      await expect(
+        loadLatestBundle(deps(row({ [column]: null }), objects)),
+      ).rejects.toThrow(message)
+    },
+  )
 
   it('degrades a missing screenshot to a warning, keeping labels aligned', async () => {
     const bundle = await loadLatestBundle(deps(row({ tpo_png_ref: null }), objects))
@@ -91,17 +105,19 @@ describe('loadLatestBundle', () => {
     ])
     expect(bundle.warnings.some((w) => w.includes('TPO'))).toBe(true)
   })
-
-  it('throws when the delta export is missing under the default (all) mode', async () => {
-    await expect(
-      loadLatestBundle(deps(row({ delta_profile_ref: null }), objects)),
-    ).rejects.toThrow(/delta profile/)
-  })
 })
 
 describe('loadLatestBundle with requireTexts: exec-only (eval)', () => {
-  it('loads a bundle missing the VbP/delta exports', async () => {
-    const d = deps(row({ vol_profile_ref: null, delta_profile_ref: null }), objects)
+  it('loads a bundle missing all four profile exports', async () => {
+    const d = deps(
+      row({
+        rotation_vbp_ref: null,
+        five_day_vbp_ref: null,
+        half_rotation_delta_ref: null,
+        full_rotation_delta_ref: null,
+      }),
+      objects,
+    )
     const bundle = await loadLatestBundle(d, { requireTexts: 'exec-only' })
 
     expect(bundle.execCsvContent).toBe('CSV')
@@ -109,7 +125,7 @@ describe('loadLatestBundle with requireTexts: exec-only (eval)', () => {
     expect(bundle.warnings).toEqual([])
   })
 
-  it('never downloads the VbP/delta exports, even when the refs exist', async () => {
+  it('never downloads the profile exports, even when the refs exist', async () => {
     const d = deps(row(), objects)
     await loadLatestBundle(d, { requireTexts: 'exec-only' })
 

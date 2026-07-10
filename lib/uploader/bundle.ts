@@ -21,8 +21,10 @@ const LOCAL_FILENAME_BY_FIELD: Readonly<Record<string, string>> = {
   tpo_png: 'tpo.png',
   exec_png: 'execution_clean.png',
   exec_csv: 'execution_bar_data.rolling.csv',
-  vol_profile: 'vbp_export.md',
-  delta_profile: 'delta_vbp_export.md',
+  rotation_vbp: 'four-hundred-rotation.vbp.md',
+  five_day_vbp: 'rolling-five-day.vbp.md',
+  half_rotation_delta: 'half-rotation-delta.vbp.md',
+  full_rotation_delta: 'full-rotation-delta.vbp.md',
 }
 
 type LocalFile = {

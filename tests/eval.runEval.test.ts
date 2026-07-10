@@ -10,11 +10,6 @@ import type {
 import { EvalInputError, runEval } from '@/lib/eval'
 import type { GenerateStructuredResult } from '@/lib/llm'
 
-const vbpContent = readFileSync(join(process.cwd(), 'chart-data/vbp_export.md'), 'utf-8')
-const deltaContent = readFileSync(
-  join(process.cwd(), 'chart-data/delta_vbp_export.md'),
-  'utf-8',
-)
 const execCsvContent = readFileSync(
   join(process.cwd(), 'chart-data/execution_bar_data.rolling.csv'),
   'utf-8',
@@ -79,9 +74,9 @@ function makeDeps(overrides: Partial<EvalDeps> = {}) {
   let insertedRow: EvalResultInsert | undefined
 
   const encoder = new TextEncoder()
+  // No profile-export objects: the eval-task's exec-only load never downloads
+  // them, even when the refs exist on the row.
   const objects: Record<string, Uint8Array> = {
-    'b1/vbp_export.md': encoder.encode(vbpContent),
-    'b1/delta_vbp_export.md': encoder.encode(deltaContent),
     'b1/execution_bars.csv': encoder.encode(execCsvContent),
     'b1/htf.png': encoder.encode('png-bytes'),
   }
@@ -95,8 +90,10 @@ function makeDeps(overrides: Partial<EvalDeps> = {}) {
       current_price: CURRENT_PRICE,
       is_stale: false,
       exec_csv_ref: 'b1/execution_bars.csv',
-      vol_profile_ref: 'b1/vbp_export.md',
-      delta_profile_ref: 'b1/delta_vbp_export.md',
+      rotation_vbp_ref: 'b1/four-hundred-rotation.vbp.md',
+      five_day_vbp_ref: 'b1/rolling-five-day.vbp.md',
+      half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
+      full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
       htf_png_ref: 'b1/htf.png',
       tpo_png_ref: null,
       exec_png_ref: null,
@@ -212,8 +209,10 @@ describe('runEval', () => {
         current_price: 31000,
         is_stale: false,
         exec_csv_ref: 'b1/execution_bars.csv',
-        vol_profile_ref: 'b1/vbp_export.md',
-        delta_profile_ref: 'b1/delta_vbp_export.md',
+        rotation_vbp_ref: 'b1/four-hundred-rotation.vbp.md',
+        five_day_vbp_ref: 'b1/rolling-five-day.vbp.md',
+        half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
+        full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
         htf_png_ref: 'b1/htf.png',
         tpo_png_ref: null,
         exec_png_ref: null,
@@ -299,7 +298,7 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('meta.nearEntry'))).toBe(true)
   })
 
-  it('tolerates a bundle missing the VbP/delta exports (exec-only load)', async () => {
+  it('tolerates a bundle missing the profile exports (exec-only load)', async () => {
     const harness = makeDeps({
       fetchLatestBundle: async () => ({
         id: 'b1',
@@ -308,8 +307,10 @@ describe('runEval', () => {
         current_price: CURRENT_PRICE,
         is_stale: false,
         exec_csv_ref: 'b1/execution_bars.csv',
-        vol_profile_ref: null,
-        delta_profile_ref: null,
+        rotation_vbp_ref: null,
+        five_day_vbp_ref: null,
+        half_rotation_delta_ref: null,
+        full_rotation_delta_ref: null,
         htf_png_ref: 'b1/htf.png',
         tpo_png_ref: null,
         exec_png_ref: null,
@@ -388,8 +389,10 @@ describe('runEval', () => {
         current_price: null,
         is_stale: false,
         exec_csv_ref: 'b1/execution_bars.csv',
-        vol_profile_ref: 'b1/vbp_export.md',
-        delta_profile_ref: 'b1/delta_vbp_export.md',
+        rotation_vbp_ref: 'b1/four-hundred-rotation.vbp.md',
+        five_day_vbp_ref: 'b1/rolling-five-day.vbp.md',
+        half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
+        full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
         htf_png_ref: null,
         tpo_png_ref: null,
         exec_png_ref: null,

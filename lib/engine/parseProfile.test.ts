@@ -1,59 +1,79 @@
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
-import { parseProfiles } from './parseProfile'
+import { parseDeltaProfile, parseVbpProfile } from './parseProfile'
 
-const vbpContent = readFileSync(join(process.cwd(), 'chart-data/vbp_export.md'), 'utf-8')
-const deltaContent = readFileSync(join(process.cwd(), 'chart-data/delta_vbp_export.md'), 'utf-8')
+const read = (name: string) => readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')
 
-describe('parseProfiles', () => {
-  it('extracts VbP metadata correctly', () => {
-    const { vbpMeta } = parseProfiles(vbpContent, deltaContent)
-    expect(vbpMeta.tickSize).toBe(0.25)
-    expect(vbpMeta.binSize).toBe(5)
-    expect(vbpMeta.step).toBe(1.25)
-    expect(vbpMeta.pocPrice).toBe(30236.25)
-    expect(vbpMeta.valueAreaHigh).toBe(30246.25)
-    expect(vbpMeta.valueAreaLow).toBe(30226.25)
+const rotationVbp = read('four-hundred-rotation.vbp.md')
+const fiveDayVbp = read('rolling-five-day.vbp.md')
+const halfRotationDelta = read('half-rotation-delta.vbp.md')
+const fullRotationDelta = read('full-rotation-delta.vbp.md')
+
+describe('parseVbpProfile', () => {
+  it('parses the 400-pt rotation export (bin 8 → 2.0-pt step)', () => {
+    const { rows, meta } = parseVbpProfile(rotationVbp)
+    expect(meta.tickSize).toBe(0.25)
+    expect(meta.binSize).toBe(8)
+    expect(meta.step).toBe(2)
+    expect(meta.pocPrice).toBe(29900)
+    expect(meta.valueAreaHigh).toBe(29992)
+    expect(meta.valueAreaLow).toBe(29342)
+    expect(rows).toHaveLength(1085)
+    expect(rows[0]).toEqual({ price: 59988, volume: 4 })
+    expect(rows[rows.length - 1]).toEqual({ price: 57820, volume: 5 })
   })
 
-  it('extracts delta metadata correctly', () => {
-    const { deltaMeta } = parseProfiles(vbpContent, deltaContent)
-    expect(deltaMeta.pocPrice).toBe(30293.75)
-    expect(deltaMeta.valueAreaHigh).toBe(30300.0)
-    expect(deltaMeta.valueAreaLow).toBe(30245.0)
+  it('parses the rolling five-day export', () => {
+    const { rows, meta } = parseVbpProfile(fiveDayVbp)
+    expect(meta.step).toBe(2)
+    expect(meta.pocPrice).toBe(29952)
+    expect(rows).toHaveLength(593)
+    expect(rows[0]).toEqual({ price: 30094, volume: 30 })
+    expect(rows[rows.length - 1]).toEqual({ price: 28910, volume: 8 })
   })
 
-  it('sets row count from VbP (left-join)', () => {
-    const { rows } = parseProfiles(vbpContent, deltaContent)
-    expect(rows).toHaveLength(33)
-  })
-
-  it('produces descending prices matching VbP', () => {
-    const { rows } = parseProfiles(vbpContent, deltaContent)
-    expect(rows[0].price).toBe(30258.75)
-    expect(rows[rows.length - 1].price).toBe(30218.75)
-  })
-
-  it('populates delta for overlapping prices (spot check)', () => {
-    const { rows } = parseProfiles(vbpContent, deltaContent)
-    const row = rows.find(r => r.price === 30258.75)
-    expect(row).toBeDefined()
-    expect(row!.volume).toBe(19)
-    expect(row!.delta).toBe(13)
-  })
-
-  it('sets delta to null for prices absent in delta profile', () => {
-    const { rows } = parseProfiles(vbpContent, deltaContent)
-    const row = rows.find(r => r.price === 30218.75)
-    expect(row).toBeDefined()
-    expect(row!.volume).toBe(42)
-    expect(row!.delta).toBeNull()
-  })
-
-  it('throws when arguments are supplied in wrong order', () => {
-    expect(() => parseProfiles(deltaContent, vbpContent)).toThrow(
-      'First argument must be the Volume (VbP) profile',
+  it('throws when handed a Delta profile', () => {
+    expect(() => parseVbpProfile(halfRotationDelta)).toThrow(
+      'Expected a Volume (VbP) profile, got a Delta profile',
     )
+  })
+})
+
+describe('parseDeltaProfile', () => {
+  it('parses the half-rotation export (bin 9 → 2.25-pt step)', () => {
+    const { rows, meta } = parseDeltaProfile(halfRotationDelta)
+    expect(meta.tickSize).toBe(0.25)
+    expect(meta.binSize).toBe(9)
+    expect(meta.step).toBe(2.25)
+    expect(meta.pocPrice).toBe(29877.75)
+    expect(rows).toHaveLength(43)
+    expect(rows[0]).toEqual({ price: 29949.75, delta: 7 })
+    expect(rows[rows.length - 1]).toEqual({ price: 29855.25, delta: -8 })
+  })
+
+  it('parses the full-rotation export, preserving negative deltas', () => {
+    const { rows } = parseDeltaProfile(fullRotationDelta)
+    expect(rows).toHaveLength(66)
+    expect(rows.find(r => r.price === 29943)).toEqual({ price: 29943, delta: -70 })
+    expect(rows[rows.length - 1]).toEqual({ price: 29803.5, delta: -3 })
+  })
+
+  it('throws when handed a Volume profile', () => {
+    expect(() => parseDeltaProfile(fiveDayVbp)).toThrow(
+      'Expected a Delta profile, got a Volume (VbP) profile',
+    )
+  })
+})
+
+describe('shared profile-file validation', () => {
+  it('still rejects a row-spacing violation', () => {
+    const broken = halfRotationDelta.replace('29947.50,34', '29947.25,34')
+    expect(() => parseDeltaProfile(broken)).toThrow('Row spacing violation')
+  })
+
+  it('still rejects a missing csv block', () => {
+    const noCsv = fiveDayVbp.replace(/```csv[\s\S]*```/, '')
+    expect(() => parseVbpProfile(noCsv)).toThrow('No fenced ```csv block')
   })
 })

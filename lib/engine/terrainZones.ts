@@ -34,9 +34,11 @@
  * 2. ZONE ASSEMBLY with the No-Gap invariant. The hard partitions (Trenches + Walls) plus the
  *    profile extremes divide the range into contiguous zones where each zone's bottom equals the
  *    next zone's top (Price[N] === Price2[N+1]). Every zone is classified by volume
- *    (acceptance/HVN vs void/rejection) cross-referenced with delta sign (absorption vs
- *    initiative), and given a vertical-map position relative to the current price
- *    (Stratosphere/Attic/Kill Box/Elevator Shaft/Foundation/Abyss).
+ *    (acceptance/HVN vs void/rejection) and given a vertical-map position relative to the
+ *    current price (Stratosphere/Attic/Kill Box/Elevator Shaft/Foundation/Abyss). Order-flow
+ *    character is NOT read here: the delta exports live on their own bin grid, so absorption is
+ *    detected separately (lib/engine/absorption.ts) and confirmed by the model against price
+ *    behavior on the execution chart.
  *
  * NOTE ON TUNING: unlike the LVN detector there is no labeled MGI-terrain fixture set, so the
  * local-profile thresholds are doctrine heuristics (recall-favoring), not eval-fitted numbers.
@@ -51,8 +53,8 @@ import type { LvnDetectionResult } from './lvnDetection'
 import type { MgiLevel, MgiPriority } from './mgiPriority'
 import { collectMagnets, classifyMagnet, DEFAULT_MAGNET_TOLERANCE, type Magnet, type MagnetHit, type ProfileSummary } from './magnetCheck'
 
-/** VbP row with optional paired delta (feat-002 parseProfiles rows structurally satisfy this). */
-export type TerrainProfileRow = { price: number; volume: number; delta?: number | null }
+/** VbP row (feat-002 parseVbpProfile rows structurally satisfy this). */
+export type TerrainProfileRow = { price: number; volume: number }
 
 /** Border classification — matches the Briefing schema `LevelKind`. */
 export type BorderKind = 'trench' | 'wall' | 'magnet' | 'mgi'
@@ -67,8 +69,6 @@ export type ZonePosition =
   | 'zone'
 
 export type ZoneVolumeClass = 'acceptance' | 'void'
-export type ZoneDeltaClass = 'buying' | 'selling' | 'balanced' | 'unknown'
-export type ZoneCharacter = 'absorption' | 'initiative' | 'neutral'
 
 /** Local volume shape around an anchor, all ratios normalised to the local peak. */
 export type LocalProfile = {
@@ -108,10 +108,7 @@ export type TerrainZoneFact = {
   bottom: number
   position: ZonePosition
   volumeClass: ZoneVolumeClass
-  deltaClass: ZoneDeltaClass
-  character: ZoneCharacter
   meanVolume: number
-  netDelta: number | null
   label: string
 }
 
@@ -143,8 +140,6 @@ export type TerrainParams = {
   valleyFrac: number
   /** A zone is "acceptance" when its mean volume is >= this fraction of the profile peak. */
   acceptanceFrac: number
-  /** A zone's net delta is "balanced" when |net| <= this fraction of its summed |delta|. */
-  balancedFrac: number
   /** Proximity (NQ points) for magnet alignment and detector-node corroboration. */
   magnetTolerance: number
 }
@@ -161,7 +156,6 @@ export const DEFAULT_TERRAIN_PARAMS: TerrainParams = {
   voidFrac: 0.5,
   valleyFrac: 0.6,
   acceptanceFrac: 0.4,
-  balancedFrac: 0.1,
   magnetTolerance: DEFAULT_MAGNET_TOLERANCE,
 }
 
@@ -191,31 +185,20 @@ type SliceStats = {
   mean: number
   max: number
   count: number
-  netDelta: number
-  sumAbsDelta: number
-  hasDelta: boolean
 }
 
-/** Volume/delta stats over bins whose price is within [loPrice, hiPrice] (inclusive). */
+/** Volume stats over bins whose price is within [loPrice, hiPrice] (inclusive). */
 function sliceStats(rowsAsc: TerrainProfileRow[], loPrice: number, hiPrice: number): SliceStats {
   let sum = 0
   let max = 0
   let count = 0
-  let netDelta = 0
-  let sumAbsDelta = 0
-  let hasDelta = false
   for (const r of rowsAsc) {
     if (r.price < loPrice || r.price > hiPrice) continue
     count++
     sum += r.volume
     if (r.volume > max) max = r.volume
-    if (isFiniteNumber(r.delta)) {
-      hasDelta = true
-      netDelta += r.delta
-      sumAbsDelta += Math.abs(r.delta)
-    }
   }
-  return { mean: count > 0 ? sum / count : 0, max, count, netDelta, sumAbsDelta, hasDelta }
+  return { mean: count > 0 ? sum / count : 0, max, count }
 }
 
 /** Sample the local volume shape around an anchor price, or null if there is nothing to read. */
@@ -336,21 +319,6 @@ function classifyBorder(
   return { ...base, kind: 'mgi', hard: false, reason: 'no local block/void structure to promote' }
 }
 
-/** Delta sign classification for a zone. */
-function classifyDelta(stats: SliceStats, balancedFrac: number): ZoneDeltaClass {
-  if (!stats.hasDelta) return 'unknown'
-  if (stats.sumAbsDelta === 0) return 'balanced'
-  if (Math.abs(stats.netDelta) <= balancedFrac * stats.sumAbsDelta) return 'balanced'
-  return stats.netDelta > 0 ? 'buying' : 'selling'
-}
-
-/** Absorption (accepted volume, neutral delta) vs initiative (thin volume, directional delta). */
-function classifyCharacter(volumeClass: ZoneVolumeClass, deltaClass: ZoneDeltaClass): ZoneCharacter {
-  if (volumeClass === 'acceptance' && deltaClass === 'balanced') return 'absorption'
-  if (volumeClass === 'void' && (deltaClass === 'buying' || deltaClass === 'selling')) return 'initiative'
-  return 'neutral'
-}
-
 /**
  * Assign each zone a vertical-map position relative to the current price. The zone containing
  * the price is the Kill Box; the top zone is the Stratosphere and the bottom the Abyss; the
@@ -419,15 +387,11 @@ function assembleZones(
     const stats = sliceStats(rowsAsc, bottom, top)
     const volumeClass: ZoneVolumeClass =
       profilePeak > 0 && stats.mean >= params.acceptanceFrac * profilePeak ? 'acceptance' : 'void'
-    const deltaClass = classifyDelta(stats, params.balancedFrac)
     return {
       top: round2(top),
       bottom: round2(bottom),
       volumeClass,
-      deltaClass,
-      character: classifyCharacter(volumeClass, deltaClass),
       meanVolume: round2(stats.mean),
-      netDelta: stats.hasDelta ? round2(stats.netDelta) : null,
     }
   })
 
@@ -435,7 +399,7 @@ function assembleZones(
   return bare.map((z, i) => ({
     ...z,
     position: positions[i],
-    label: `${positionLabel(positions[i])} (${z.volumeClass}${z.character !== 'neutral' ? `, ${z.character}` : ''})`,
+    label: `${positionLabel(positions[i])} (${z.volumeClass})`,
   }))
 }
 
@@ -457,7 +421,7 @@ function validateContiguity(zones: TerrainZoneFact[]): string[] {
  * Assemble the terrain: classify every major MGI anchor, promote Trench/Wall hard partitions,
  * and build the contiguous, classified Stratosphere→Abyss zone stack.
  *
- * @param input.profile  VbP rows with volume and optional paired delta (feat-002).
+ * @param input.profile  VbP rows (feat-002; the 400-pt rotation profile in production).
  * @param input.lvn      Detected LVN/HVN nodes (feat-014).
  * @param input.summary  VbP Summary POC/VAH/VAL (feat-002).
  * @param input.mgi      Classified MGI levels + current price (feat-012).

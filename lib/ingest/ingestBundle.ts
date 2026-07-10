@@ -22,8 +22,10 @@ export type RawBundleRecord = {
   tpo_png_ref: string | null
   exec_png_ref: string | null
   exec_csv_ref: string | null
-  vol_profile_ref: string | null
-  delta_profile_ref: string | null
+  rotation_vbp_ref: string | null
+  five_day_vbp_ref: string | null
+  half_rotation_delta_ref: string | null
+  full_rotation_delta_ref: string | null
 }
 
 /** Side effects injected so the orchestration stays pure and unit-testable. */
@@ -129,8 +131,10 @@ export async function ingestBundle(
     tpo_png_ref: null,
     exec_png_ref: null,
     exec_csv_ref: null,
-    vol_profile_ref: null,
-    delta_profile_ref: null,
+    rotation_vbp_ref: null,
+    five_day_vbp_ref: null,
+    half_rotation_delta_ref: null,
+    full_rotation_delta_ref: null,
   }
 
   const presentFiles = FILE_FIELDS.map((f) => ({ f, value: form.get(f.field) })).filter(
@@ -157,8 +161,10 @@ export async function ingestBundle(
     tpo_png_ref: refs.tpo_png_ref,
     exec_png_ref: refs.exec_png_ref,
     exec_csv_ref: refs.exec_csv_ref,
-    vol_profile_ref: refs.vol_profile_ref,
-    delta_profile_ref: refs.delta_profile_ref,
+    rotation_vbp_ref: refs.rotation_vbp_ref,
+    five_day_vbp_ref: refs.five_day_vbp_ref,
+    half_rotation_delta_ref: refs.half_rotation_delta_ref,
+    full_rotation_delta_ref: refs.full_rotation_delta_ref,
   }
 
   return deps.insertBundle(record)

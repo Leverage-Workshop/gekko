@@ -15,7 +15,7 @@ describe('computeMgiPriority — fixture', () => {
 
   it('uses current.price from the JSON as the current price', () => {
     const r = computeMgiPriority(mgi)
-    expect(r.currentPrice).toBe(30436.25)
+    expect(r.currentPrice).toBe(29945.75)
   })
 
   it('extracts every finite level (30: 12 daily + 4 weekly + 6 monthly + 6 vRange + 2 atr)', () => {
@@ -38,18 +38,18 @@ describe('computeMgiPriority — fixture', () => {
     expect(r.levels.find(l => l.code === 'pdh')?.tier).toBe(2)
   })
 
-  it('finds nearest Tier-1 border above = PM High (30536.00), distance 99.75', () => {
+  it('finds nearest Tier-1 border above = VRange High (30046.00), distance 100.25', () => {
     const r = computeMgiPriority(mgi)
-    expect(r.nearestTier1Above?.level.code).toBe('pmHigh')
-    expect(r.nearestTier1Above?.level.price).toBe(30536.0)
-    expect(r.nearestTier1Above?.distance).toBe(99.75)
+    expect(r.nearestTier1Above?.level.code).toBe('high')
+    expect(r.nearestTier1Above?.level.price).toBe(30046.0)
+    expect(r.nearestTier1Above?.distance).toBe(100.25)
   })
 
-  it('finds nearest Tier-1 border below = Month Open (30415.50), distance 20.75', () => {
+  it('finds nearest Tier-1 border below = Week Open (29930.25), distance 15.50', () => {
     const r = computeMgiPriority(mgi)
-    expect(r.nearestTier1Below?.level.code).toBe('mthOpen')
-    expect(r.nearestTier1Below?.level.price).toBe(30415.5)
-    expect(r.nearestTier1Below?.distance).toBe(20.75)
+    expect(r.nearestTier1Below?.level.code).toBe('wkOpen')
+    expect(r.nearestTier1Below?.level.price).toBe(29930.25)
+    expect(r.nearestTier1Below?.distance).toBe(15.5)
   })
 
   it('sorts the daily group by Daily MGI Priority Order (Rip first, then ONH/ONL)', () => {

@@ -16,25 +16,31 @@ describe('computeRipStatus — fixture', () => {
   const currentPrice = mgi.current!.price!
   const rip = mgi.daily!.rip!
 
-  it('fixture price (30436.25) is below the Rip (30632.53)', () => {
-    expect(currentPrice).toBe(30436.25)
-    expect(rip).toBe(30632.53)
+  it('fixture price (29945.75) is above the Rip (29883.51) → Green', () => {
+    expect(currentPrice).toBe(29945.75)
+    expect(rip).toBe(29883.51)
     const r = computeRipStatus({ currentPrice, rip, deltaIntensity: 0, redExtremeCount: 0 })
-    expect(r.position).toBe('below')
-    expect(r.distance).toBe(round2(currentPrice - rip)) // negative
-    expect(r.distance).toBeLessThan(0)
+    expect(r.position).toBe('above')
+    expect(r.distance).toBe(round2(currentPrice - rip))
+    expect(r.distance).toBeGreaterThan(0)
+    expect(r.condition).toBe('green')
   })
 
-  it('below the Rip without red extremes building → Yellow (breach, not flipped)', () => {
-    const r = computeRipStatus({ currentPrice, rip, deltaIntensity: -2, redExtremeCount: 0 })
+  it('below the fixture Rip without red extremes building → Yellow (breach, not flipped)', () => {
+    const r = computeRipStatus({
+      currentPrice: rip - 50,
+      rip,
+      deltaIntensity: -2,
+      redExtremeCount: 0,
+    })
     expect(r.condition).toBe('yellow')
     expect(r.redInitiative).toBe(false)
     expect(r.headline).toMatch(/Yellow/)
   })
 
-  it('below the Rip with red extremes building (count >= min bars) → Red (control flipped)', () => {
+  it('below the fixture Rip with red extremes building (count >= min bars) → Red (control flipped)', () => {
     const r = computeRipStatus({
-      currentPrice,
+      currentPrice: rip - 50,
       rip,
       deltaIntensity: -2.5,
       redExtremeCount: RED_BUILDING_MIN_BARS,

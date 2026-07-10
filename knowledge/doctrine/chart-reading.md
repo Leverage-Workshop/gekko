@@ -47,11 +47,19 @@ initiative flips at the exact point of contact.
    Acceptance Borders (LVNs), looking for **Trenches (Valley + MGI)** or **Walls (Shelf + MGI)**.
    - **Execute the Magnet Check.** If an MGI level sits in the center of thick volume, it is a
      **Magnet** and cannot serve as a structural border or a Target 3 (Campaign Max).
+   - LVN/HVN nodes and POC/value-area summaries come per volume profile: the **400-pt rotation**
+     (medium-term) and the **rolling five-day** (long-term). A node on the five-day profile is
+     structurally **more significant** than the same node on the rotation profile. The terrain
+     zone stack and magnet set are anchored to the rotation profile.
 3. **Execution CSV — raw telemetry.** Read infantry aggression (Delta Intensity) and micro-momentum
    (Leg VWAP). Leg VWAP is strictly micro-timing; HTF MGI wins unequivocally on any conflict.
 4. **Execution chart — frontline visual.** Confirm the strike at the border: look for **Absorption
    (clustered delta)** or **Exhaustion (tapered delta)** where the delta profiles meet the HTF
    borders from step 2.
+   - The engine scans the half- and full-rotation delta exports for stacks of one-sided bins and
+     reports them as **absorption candidates** (thresholds owned by `lib/engine/absorption.ts`).
+     A stack by itself means nothing: call absorption only where the execution chart shows price
+     **stalled** at the stack; otherwise discard the candidate.
 5. **Synthesize — the Law of Asymmetric Initiative.** If the terrain offers a valid setup for both
    fronts, the Primary Objective is awarded to the front aligned with the HTF trend. Ensure the final
    objective (T3) is a Shelf or Valley, never a Magnet. (Asymmetric Initiative + Campaign Boundary

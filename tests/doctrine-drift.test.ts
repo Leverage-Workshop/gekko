@@ -1,6 +1,13 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import {
+  ABSORPTION_DELTA_THRESHOLD,
+  MAX_STACK_BINS,
+  MIN_QUALIFYING_FRAC,
+  MIN_STACK_BINS,
+  detectAbsorptionStacks,
+} from '@/lib/engine/absorption'
 import { DEFAULT_MAGNET_TOLERANCE } from '@/lib/engine/magnetCheck'
 import { RED_EXTREME, RED_BUILDING_MIN_BARS, computeRipStatus } from '@/lib/engine/ripStatus'
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
@@ -122,6 +129,35 @@ describe('doctrine drift guard (feat-032)', () => {
         [RED_EXTREME, RED_EXTREME + 0.5, 0, RED_EXTREME - 1].map(bar),
       )
       expect(telemetry.recentRedExtremeCount).toBe(2)
+    })
+
+    it('the absorption constants are the exact stack boundaries in detectAbsorptionStacks', () => {
+      expect(Number.isInteger(MIN_STACK_BINS)).toBe(true)
+      expect(MIN_STACK_BINS).toBeGreaterThan(1)
+      expect(MAX_STACK_BINS).toBeGreaterThanOrEqual(MIN_STACK_BINS)
+      expect(MIN_QUALIFYING_FRAC).toBeGreaterThan(0.5)
+      expect(MIN_QUALIFYING_FRAC).toBeLessThanOrEqual(1)
+
+      const rows = (deltas: number[]) =>
+        deltas.map((delta, i) => ({ price: 30000 - i * 2.25, delta }))
+
+      // Exactly MIN_STACK_BINS bins at exactly the threshold fires ...
+      expect(
+        detectAbsorptionStacks(rows(Array(MIN_STACK_BINS).fill(ABSORPTION_DELTA_THRESHOLD)), 'half-rotation'),
+      ).toHaveLength(1)
+      // ... one bin fewer, or one delta unit weaker, does not.
+      expect(
+        detectAbsorptionStacks(rows(Array(MIN_STACK_BINS - 1).fill(ABSORPTION_DELTA_THRESHOLD)), 'half-rotation'),
+      ).toHaveLength(0)
+      expect(
+        detectAbsorptionStacks(rows(Array(MIN_STACK_BINS).fill(ABSORPTION_DELTA_THRESHOLD - 1)), 'half-rotation'),
+      ).toHaveLength(0)
+      // The span cap splits a longer one-sided region.
+      const capped = detectAbsorptionStacks(
+        rows(Array(MAX_STACK_BINS + MIN_STACK_BINS).fill(-ABSORPTION_DELTA_THRESHOLD)),
+        'full-rotation',
+      )
+      expect(capped[0]?.binCount).toBe(MAX_STACK_BINS)
     })
 
     it('the remaining engine-owned thresholds exist and are sane', () => {
@@ -247,6 +283,24 @@ describe('doctrine drift guard (feat-032)', () => {
           'i',
         )
         expect(readFileSync(path, 'utf8')).not.toMatch(pattern)
+      },
+    )
+
+    // Absorption stack thresholds (absorption.ts): neither the signed delta
+    // threshold ("+/-50", "±50") nor a bin-count rule ("3 bins", "3+ bins")
+    // may appear in prose — both are derived from the live constants.
+    it.each(proseFiles.map((f) => [relName(f), f]))(
+      '%s does not restate the absorption stack thresholds',
+      (_rel, path) => {
+        const prose = readFileSync(path, 'utf8')
+        expect(prose).not.toMatch(
+          new RegExp(`(?:\\+/?[-−]|±)\\s?${ABSORPTION_DELTA_THRESHOLD}\\b`),
+        )
+        for (const bins of [MIN_STACK_BINS, MAX_STACK_BINS]) {
+          expect(prose).not.toMatch(
+            new RegExp(`\\b${bins}\\+?\\s*(?:consecutive\\s+)?(?:one-sided\\s+|same-sign(?:ed)?\\s+)?bins?\\b`, 'i'),
+          )
+        }
       },
     )
   })

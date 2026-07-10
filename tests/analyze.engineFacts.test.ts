@@ -4,25 +4,23 @@ import { describe, expect, it } from 'vitest'
 import { computeEngineFacts, engineZoneBorders } from '@/lib/analyze'
 import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
 
-const vbpContent = readFileSync(join(process.cwd(), 'chart-data/vbp_export.md'), 'utf-8')
-const deltaContent = readFileSync(
-  join(process.cwd(), 'chart-data/delta_vbp_export.md'),
-  'utf-8',
-)
-const execCsvContent = readFileSync(
-  join(process.cwd(), 'chart-data/execution_bar_data.rolling.csv'),
-  'utf-8',
-)
-const mgi = JSON.parse(
-  readFileSync(join(process.cwd(), 'chart-data/mgi_static_levels.json'), 'utf-8'),
-) as MgiStaticLevels
+const read = (name: string) => readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')
+
+const rotationVbpContent = read('four-hundred-rotation.vbp.md')
+const fiveDayVbpContent = read('rolling-five-day.vbp.md')
+const halfRotationDeltaContent = read('half-rotation-delta.vbp.md')
+const fullRotationDeltaContent = read('full-rotation-delta.vbp.md')
+const execCsvContent = read('execution_bar_data.rolling.csv')
+const mgi = JSON.parse(read('mgi_static_levels.json')) as MgiStaticLevels
 
 const NOW = '2026-06-16T16:00:00Z'
 
 function facts(overrides: Partial<Parameters<typeof computeEngineFacts>[0]> = {}) {
   return computeEngineFacts({
-    vbpContent,
-    deltaContent,
+    rotationVbpContent,
+    fiveDayVbpContent,
+    halfRotationDeltaContent,
+    fullRotationDeltaContent,
     execCsvContent,
     mgi,
     receivedAt: NOW,
@@ -38,10 +36,48 @@ describe('computeEngineFacts', () => {
     expect(result.currentPrice).toBe(mgi.current!.price)
     expect(result.deltaTelemetry.barCount).toBeGreaterThan(0)
     expect(result.mgi.levels.length).toBeGreaterThan(0)
-    expect(result.lvn.hvn.length + result.lvn.lvn.length).toBeGreaterThan(0)
     expect(result.magnetCheck.magnets.length).toBeGreaterThan(0)
     expect(result.terrain.zones.length).toBeGreaterThan(0)
-    expect(result.profileSummary.pocPrice).toBe(30236.25)
+  })
+
+  it('detects LVN/HVN nodes independently on both volume profiles', () => {
+    const result = facts()
+    for (const source of ['rotation', 'fiveDay'] as const) {
+      const nodes = result.lvn[source]
+      expect(nodes.hvn.length + nodes.lvn.length).toBeGreaterThan(0)
+    }
+    // Different profiles, different structure — the node sets must differ.
+    expect(result.lvn.rotation).not.toEqual(result.lvn.fiveDay)
+  })
+
+  it('reports POC/VAH/VAL per volume profile', () => {
+    const result = facts()
+    expect(result.profileSummary.rotation.pocPrice).toBe(29900)
+    expect(result.profileSummary.fiveDay.pocPrice).toBe(29952)
+    expect(result.profileSummary.fiveDay.valueAreaHigh).toBe(30074)
+    expect(result.profileSummary.fiveDay.valueAreaLow).toBe(29400)
+  })
+
+  it('scans both delta exports for absorption candidates (none in the real fixtures)', () => {
+    const result = facts()
+    expect(result.absorption.candidates).toEqual([])
+  })
+
+  it('surfaces absorption candidates when a delta export carries a qualifying stack', () => {
+    // Turn three adjacent half-rotation bins into a one-sided stack at the
+    // doctrine threshold; the real export has no such run.
+    const stacked = halfRotationDeltaContent
+      .replace('29949.75,7', '29949.75,80')
+      .replace('29947.50,34', '29947.50,90')
+      .replace('29945.25,30', '29945.25,75')
+    const result = facts({ halfRotationDeltaContent: stacked })
+    expect(result.absorption.candidates).toHaveLength(1)
+    expect(result.absorption.candidates[0]).toMatchObject({
+      source: 'half-rotation',
+      side: 'buy',
+      top: 29949.75,
+      binCount: 3,
+    })
   })
 
   it('resolves the Rip condition from mgi.daily.rip', () => {
@@ -66,19 +102,8 @@ describe('computeEngineFacts', () => {
   })
 
   it('throws on a malformed bundle rather than briefing from bad facts', () => {
-    expect(() => facts({ vbpContent: deltaContent })).toThrow()
-  })
-
-  it('warns when the VbP/Delta bin grids do not join (delta null on every row)', () => {
-    // Shift every delta CSV bin price by half a bin: spacing stays valid, but
-    // no price matches the VbP grid, so the join yields delta:null throughout.
-    const shifted = deltaContent.replace(
-      /^(\d+\.\d{2}),/gm,
-      (_line, price: string) => `${(Number(price) + 0.5).toFixed(2)},`,
-    )
-    const result = facts({ deltaContent: shifted })
-
-    expect(result.warnings.some((w) => w.includes('bin-grid'))).toBe(true)
+    expect(() => facts({ rotationVbpContent: halfRotationDeltaContent })).toThrow()
+    expect(() => facts({ fullRotationDeltaContent: fiveDayVbpContent })).toThrow()
   })
 })
 

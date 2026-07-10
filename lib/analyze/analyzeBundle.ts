@@ -107,8 +107,10 @@ export async function runAnalysis(
   warnings.push(...bundle.warnings)
 
   const facts = computeEngineFacts({
-    vbpContent: bundle.vbpContent,
-    deltaContent: bundle.deltaContent,
+    rotationVbpContent: bundle.rotationVbpContent,
+    fiveDayVbpContent: bundle.fiveDayVbpContent,
+    halfRotationDeltaContent: bundle.halfRotationDeltaContent,
+    fullRotationDeltaContent: bundle.fullRotationDeltaContent,
     execCsvContent: bundle.execCsvContent,
     mgi: bundle.mgi,
     receivedAt: bundle.row.received_at,

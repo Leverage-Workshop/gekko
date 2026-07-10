@@ -1,3 +1,5 @@
+import { scanAbsorption } from '@/lib/engine/absorption'
+import type { AbsorptionScanResult } from '@/lib/engine/absorption'
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { detectLvnHvn } from '@/lib/engine/lvnDetection'
@@ -7,7 +9,7 @@ import type { MagnetCheck, ProfileSummary } from '@/lib/engine/magnetCheck'
 import { computeMgiPriority } from '@/lib/engine/mgiPriority'
 import type { MgiPriority, MgiStaticLevels } from '@/lib/engine/mgiPriority'
 import { parseExecBars } from '@/lib/engine/parseExecBars'
-import { parseProfiles } from '@/lib/engine/parseProfile'
+import { parseDeltaProfile, parseVbpProfile } from '@/lib/engine/parseProfile'
 import { computeRipStatus } from '@/lib/engine/ripStatus'
 import type { RipStatus } from '@/lib/engine/ripStatus'
 import { assessStaleness } from '@/lib/engine/staleness'
@@ -18,16 +20,21 @@ import type { TerrainZonesResult } from '@/lib/engine/terrainZones'
 /**
  * Deterministic engine pass over one export bundle: every computed fact the
  * model receives (and must not re-derive) in the analyze-task prompt.
- * LVN/HVN node prices, terrain borders, magnet set, MGI tiering, Rip condition
- * and staleness are all code-owned — the model supplies perception/judgment.
+ * LVN/HVN node prices (per volume profile), terrain borders, magnet set,
+ * absorption-candidate stacks, MGI tiering, Rip condition and staleness are
+ * all code-owned — the model supplies perception/judgment.
  */
 
 export interface EngineFactsInput {
-  /** Sierra VbP volume profile export (`vbp_export.md`). */
-  vbpContent: string
-  /** Sierra delta profile export (`delta_vbp_export.md`). */
-  deltaContent: string
-  /** Execution-bar CSV export (`execution_bars.csv`). */
+  /** HTF volume profile anchored to the current 400-pt rotation (`four-hundred-rotation.vbp.md`). */
+  rotationVbpContent: string
+  /** HTF volume profile over the last five days (`rolling-five-day.vbp.md`). */
+  fiveDayVbpContent: string
+  /** Execution delta profile, ~35-pt / half-rotation anchor (`half-rotation-delta.vbp.md`). */
+  halfRotationDeltaContent: string
+  /** Execution delta profile, ~75-pt / full-rotation anchor (`full-rotation-delta.vbp.md`). */
+  fullRotationDeltaContent: string
+  /** Execution-bar CSV export (`execution_bar_data.rolling.csv`). */
   execCsvContent: string
   /** Parsed `mgi_json` from the bundle row. */
   mgi: MgiStaticLevels
@@ -44,10 +51,22 @@ export interface EngineFacts {
   mgi: MgiPriority
   /** Resolved Vanguard condition, or null when `mgi.daily.rip` is absent. */
   ripStatus: RipStatus | null
-  lvn: LvnDetectionResult
+  /**
+   * LVN/HVN nodes per volume profile. The five-day nodes are structurally MORE
+   * significant than rotation nodes (longer-term acceptance), but terrain and
+   * magnets stay anchored to the rotation profile's geometry.
+   */
+  lvn: { rotation: LvnDetectionResult; fiveDay: LvnDetectionResult }
+  /**
+   * Absorption-candidate stacks from the half/full-rotation delta exports.
+   * Candidates only — the model must confirm price stalled at each stack on
+   * the execution chart before calling absorption.
+   */
+  absorption: AbsorptionScanResult
   magnetCheck: MagnetCheck
   terrain: TerrainZonesResult
-  profileSummary: ProfileSummary
+  /** POC/VAH/VAL per volume profile. */
+  profileSummary: { rotation: ProfileSummary; fiveDay: ProfileSummary }
   /** Non-fatal degradations (missing rip, terrain issues, ...). */
   warnings: string[]
 }
@@ -68,25 +87,36 @@ export function engineZoneBorders(terrain: TerrainZonesResult): number[] {
 export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const warnings: string[] = []
 
-  const profiles = parseProfiles(input.vbpContent, input.deltaContent)
-  // A VbP/Delta join is by exact bin price: if the two exports' bin grids
-  // drift apart, every joined row gets delta:null and terrain silently loses
-  // the order-flow read — surface that instead of failing quietly.
-  if (profiles.rows.length > 0 && profiles.rows.every((row) => row.delta === null)) {
-    warnings.push(
-      'VbP/Delta join matched no bins (delta is null on every row) — likely a bin-grid/step mismatch between the two exports; terrain loses the order-flow read',
-    )
-  }
+  const rotationVbp = parseVbpProfile(input.rotationVbpContent)
+  const fiveDayVbp = parseVbpProfile(input.fiveDayVbpContent)
+  const halfRotationDelta = parseDeltaProfile(input.halfRotationDeltaContent)
+  const fullRotationDelta = parseDeltaProfile(input.fullRotationDeltaContent)
+
   const bars = parseExecBars(input.execCsvContent)
   const deltaTelemetry = computeDeltaTelemetry(bars)
   const mgi = computeMgiPriority(input.mgi)
-  const lvn = detectLvnHvn(profiles.rows)
+  const lvn = {
+    rotation: detectLvnHvn(rotationVbp.rows),
+    fiveDay: detectLvnHvn(fiveDayVbp.rows),
+  }
+  const absorption = scanAbsorption({
+    halfRotation: halfRotationDelta.rows,
+    fullRotation: fullRotationDelta.rows,
+  })
   const staleness = assessStaleness({ receivedAt: input.receivedAt, now: input.now })
 
-  const profileSummary: ProfileSummary = {
-    pocPrice: profiles.vbpMeta.pocPrice,
-    valueAreaHigh: profiles.vbpMeta.valueAreaHigh,
-    valueAreaLow: profiles.vbpMeta.valueAreaLow,
+  const summaryOf = (meta: {
+    pocPrice: number
+    valueAreaHigh: number
+    valueAreaLow: number
+  }): ProfileSummary => ({
+    pocPrice: meta.pocPrice,
+    valueAreaHigh: meta.valueAreaHigh,
+    valueAreaLow: meta.valueAreaLow,
+  })
+  const profileSummary = {
+    rotation: summaryOf(rotationVbp.meta),
+    fiveDay: summaryOf(fiveDayVbp.meta),
   }
 
   const rip = input.mgi.daily?.rip
@@ -104,16 +134,20 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     warnings.push('mgi.daily.rip missing — Rip/Vanguard condition not computed')
   }
 
+  // Magnets and terrain read the ROTATION profile only: the magnet tolerance is
+  // calibrated to rotation-scale node geometry, and the terrain zone stack must
+  // partition one profile's range. Five-day structure reaches the model via
+  // `lvn.fiveDay` / `profileSummary.fiveDay` as judgment context instead.
   const magnetCheck = evaluateMagnetCheck({
-    summary: profileSummary,
-    hvn: lvn.hvn,
+    summary: profileSummary.rotation,
+    hvn: lvn.rotation.hvn,
     levels: mgi.tier1,
   })
 
   const terrain = assembleTerrain({
-    profile: profiles.rows,
-    lvn,
-    summary: profileSummary,
+    profile: rotationVbp.rows,
+    lvn: lvn.rotation,
+    summary: profileSummary.rotation,
     mgi,
   })
   if (!terrain.contiguityValid) {
@@ -130,6 +164,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     mgi,
     ripStatus,
     lvn,
+    absorption,
     magnetCheck,
     terrain,
     profileSummary,
