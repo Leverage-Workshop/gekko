@@ -48,9 +48,12 @@ initiative flips at the exact point of contact.
    - **Execute the Magnet Check.** If an MGI level sits in the center of thick volume, it is a
      **Magnet** and cannot serve as a structural border or a Target 3 (Campaign Max).
    - LVN/HVN nodes and POC/value-area summaries come per volume profile: the **400-pt rotation**
-     (medium-term) and the **rolling five-day** (long-term). A node on the five-day profile is
+     (medium-term) and the **balance-area** (long-term). A **Balance Area** begins when two days
+     of overlapping value occur and expands while subsequent days keep overlapping value, with
+     exceptions for a peak above/below the balance. A node on the balance-area profile is
      structurally **more significant** than the same node on the rotation profile. The terrain
-     zone stack and magnet set are anchored to the rotation profile.
+     zone stack is anchored to the rotation profile; the magnet set is anchored to the
+     balance-area profile.
 3. **Execution CSV — raw telemetry.** Read infantry aggression (Delta Intensity) and micro-momentum
    (Leg VWAP). Leg VWAP is strictly micro-timing; HTF MGI wins unequivocally on any conflict.
 4. **Execution chart — frontline visual.** Confirm the strike at the border: look for **Absorption

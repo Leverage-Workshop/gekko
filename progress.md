@@ -2,9 +2,32 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-09
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-036**
-(four-profile export contract + code-owned absorption candidates).
+**Last Updated:** 2026-07-10
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-037**
+(balance-area VBP rename + balance-area-anchored magnet set).
+
+**feat-037 (2026-07-10) — balance-area VBP replaces rolling five-day; magnets re-anchor.**
+Caleb replaced `rolling-five-day.vbp.md` with `balance-area.vbp.md` — an HTF VbP anchored
+to the current **Balance Area** (a balance starts when two days of overlapping value occur
+and expands while following days keep overlapping value; exceptions for a peak above/below).
+Same export format, so `parseVbpProfile` is unchanged.
+
+- **Full rename:** ingest field `balance_area_vbp`, migration
+  `20260710090000_balance_area_vbp_ref.sql` renames `raw_bundles.five_day_vbp_ref` →
+  `balance_area_vbp_ref` (guarded, applied to the live project), uploader watch list,
+  `loadBundle.balanceAreaVbpContent`, `facts.lvn.{rotation,balanceArea}` +
+  `profileSummary.{rotation,balanceArea}`, prompt, doctrine, docs, diagrams, tests.
+- **Magnet set re-anchored + single-sourced:** magnets (POC/VAH/VAL + HVN peaks) now come
+  from the **balance-area** profile — matching the Gem playbook, where the Magnet Check
+  runs on the HTF chart that shows the balance-area VbP. Built ONCE in `engineFacts` via
+  `collectMagnets` and passed to both `evaluateMagnetCheck({ magnets, levels })` and
+  `assembleTerrain({ ..., magnets })` — terrainZones no longer rebuilds the set (its
+  `summary` input is gone). The terrain zone stack itself stays rotation-anchored.
+- **Fixture re-anchor:** the last commit (51eea9b) had also refreshed
+  `four-hundred-rotation.vbp.md` (bin 4 → 1.0-pt step, CSV 28910–30072 — the feat-036
+  doubled-scale quirk is RESOLVED) without updating tests; parseProfile + engineFacts
+  expectations re-anchored to both current exports (balance-area: POC 29950 / VAH 30310 /
+  VAL 29496, 823 rows).
 
 **feat-036 (2026-07-09) — four-profile export contract + absorption candidates.**
 Caleb's real charts no longer export `vbp_export.md`/`delta_vbp_export.md`; the export
@@ -30,7 +53,8 @@ spotting absorption.
   longest qualifying run is 2 bins); positives are covered synthetically.
 - **Dual LVN/HVN:** detection runs on both VbPs → `facts.lvn.{rotation,fiveDay}` +
   `profileSummary.{rotation,fiveDay}`; magnets + terrain stay rotation-anchored
-  (magnet tolerance is calibrated to rotation-scale geometry).
+  (magnet tolerance is calibrated to rotation-scale geometry). *(Superseded by feat-037:
+  the five-day profile became the balance-area profile and magnets moved to it.)*
 - **Contract ripple:** migration `20260709090000_four_profile_refs.sql` (4 new
   `raw_bundles` ref columns, old 2 dropped — bundles are transient, repurposing would
   poison history), `FILE_FIELDS` (object name = local Sierra filename now), uploader

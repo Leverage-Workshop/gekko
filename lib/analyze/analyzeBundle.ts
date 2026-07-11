@@ -108,7 +108,7 @@ export async function runAnalysis(
 
   const facts = computeEngineFacts({
     rotationVbpContent: bundle.rotationVbpContent,
-    fiveDayVbpContent: bundle.fiveDayVbpContent,
+    balanceAreaVbpContent: bundle.balanceAreaVbpContent,
     halfRotationDeltaContent: bundle.halfRotationDeltaContent,
     fullRotationDeltaContent: bundle.fullRotationDeltaContent,
     execCsvContent: bundle.execCsvContent,

@@ -12,11 +12,13 @@
  *   - proximity = |price - magnet|, the nearest magnet to a queried price.
  *   - an MGI level is a Magnet when its nearest magnet is within `tolerance` (NQ points).
  *
- * It is the SINGLE SOURCE of magnet classification: feat-016 terrainZones consumes
- * {@link collectMagnets} / {@link classifyMagnet} for its "Peak + MGI = Magnet" branch rather
- * than re-deriving the magnet set (the two features overlap here by design — see the feat-016
- * spec note). terrainZones adds the local-profile Trench/Wall geometry on top; the magnet set
- * and the "is this price on a magnet" question live here.
+ * It is the SINGLE SOURCE of magnet classification: {@link collectMagnets} is the one
+ * constructor of the magnet set, built ONCE per bundle in engineFacts — from the
+ * BALANCE-AREA profile in production (feat-037; the Gem's Magnet Check reads the HTF
+ * chart's balance-area VbP) — and shared by {@link evaluateMagnetCheck} and feat-016
+ * terrainZones' "Peak + MGI = Magnet" branch. terrainZones adds the local-profile
+ * Trench/Wall geometry on top; the magnet set and the "is this price on a magnet"
+ * question live here.
  *
  * Pure + immutable; no file I/O. Plain TypeScript types (engine fact, not a Briefing output —
  * no Zod), mirroring the other lib/engine modules. MGI levels are accepted structurally so
@@ -142,17 +144,17 @@ export function classifyMagnet(
 }
 
 /**
- * Run the Magnet Check over a set of MGI levels: build the magnet set once, then classify each
- * level. Any level flagged `isMagnet` is a structural invalidation (cannot be a border or T3).
+ * Run the Magnet Check over a set of MGI levels: classify each level against a prebuilt
+ * magnet set. Any level flagged `isMagnet` is a structural invalidation (cannot be a border
+ * or T3). The caller builds the set with {@link collectMagnets} so the same magnets serve
+ * this check and terrainZones' border classification.
  *
- * @param input.summary    VbP Summary POC/VAH/VAL (feat-002).
- * @param input.hvn        Detected HVN peaks (feat-014).
+ * @param input.magnets    Prebuilt magnet set ({@link collectMagnets}).
  * @param input.levels     MGI levels to test (feat-012); typically the major/Tier-1 anchors.
  * @param input.tolerance  Magnet proximity in NQ points (default {@link DEFAULT_MAGNET_TOLERANCE}).
  */
 export function evaluateMagnetCheck(input: {
-  summary: ProfileSummary
-  hvn: HvnNode[]
+  magnets: Magnet[]
   levels: LevelRef[]
   tolerance?: number
 }): MagnetCheck {
@@ -161,7 +163,7 @@ export function evaluateMagnetCheck(input: {
     throw new Error(`evaluateMagnetCheck: tolerance must be a non-negative finite number, got ${tolerance}`)
   }
 
-  const magnets = collectMagnets({ summary: input.summary, hvn: input.hvn })
+  const { magnets } = input
 
   const verdicts: MagnetVerdict[] = input.levels.map((level) => {
     const { isMagnet, nearest } = classifyMagnet(level.price, magnets, tolerance)

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { assembleTerrain, selectAnchorLevels, type TerrainProfileRow } from './terrainZones'
+import { collectMagnets } from './magnetCheck'
 import type { LvnDetectionResult } from './lvnDetection'
 import type { MgiLevel, MgiPriority, MgiGroup, MgiTier } from './mgiPriority'
 
@@ -84,7 +85,7 @@ function runMain(currentPrice: number) {
   return assembleTerrain({
     profile: MAIN_PROFILE,
     lvn: MAIN_LVN,
-    summary: MAIN_SUMMARY,
+    magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
     mgi: makeMgi(currentPrice, MAIN_ANCHORS),
   })
 }
@@ -150,7 +151,7 @@ describe('assembleTerrain — border classification', () => {
     const out = assembleTerrain({
       profile: MAIN_PROFILE,
       lvn: MAIN_LVN,
-      summary: MAIN_SUMMARY,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
       mgi: makeMgi(30250, [{ price: 30700, label: 'ATR High', tier: 1 }]),
     })
     expect(out.levels[0].kind).toBe('mgi')
@@ -164,7 +165,11 @@ describe('assembleTerrain — border classification', () => {
     const out = assembleTerrain({
       profile,
       lvn: { hvn: [], lvn: [], peakVolume: 1000 },
-      summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 }, // all far from 30500
+      // all magnets far from 30500
+      magnets: collectMagnets({
+        summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+        hvn: [],
+      }),
       mgi: makeMgi(30500, [{ price: 30500, label: 'Week Open', tier: 1 }]),
     })
     expect(out.levels[0].kind).toBe('mgi')
@@ -227,7 +232,10 @@ describe('assembleTerrain — vertical positions', () => {
     const r = assembleTerrain({
       profile,
       lvn: { hvn: [], lvn: [], peakVolume: 1000 },
-      summary: { pocPrice: 30500, valueAreaHigh: 30510, valueAreaLow: 30490 },
+      magnets: collectMagnets({
+        summary: { pocPrice: 30500, valueAreaHigh: 30510, valueAreaLow: 30490 },
+        hvn: [],
+      }),
       mgi: makeMgi(30500, [
         { price: 30445, label: 'Wall Hi', tier: 1 }, // block above → void below = wall
         { price: 30160, label: 'Wall Lo', tier: 1 }, // block below → void above = wall
@@ -263,7 +271,10 @@ describe('assembleTerrain — degenerate inputs', () => {
     const r = assembleTerrain({
       profile: [{ price: 30100, volume: 500 }],
       lvn: { hvn: [], lvn: [], peakVolume: 500 },
-      summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+      magnets: collectMagnets({
+        summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+        hvn: [],
+      }),
       mgi: makeMgi(30100, [{ price: 30100, label: 'PW High', tier: 1 }]),
     })
     expect(r.zones).toEqual([])
@@ -275,7 +286,10 @@ describe('assembleTerrain — degenerate inputs', () => {
     const r = assembleTerrain({
       profile: [],
       lvn: { hvn: [], lvn: [], peakVolume: 0 },
-      summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+      magnets: collectMagnets({
+        summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+        hvn: [],
+      }),
       mgi: makeMgi(30100, [{ price: 30100, label: 'PW High', tier: 1 }]),
     })
     expect(r.zones).toEqual([])

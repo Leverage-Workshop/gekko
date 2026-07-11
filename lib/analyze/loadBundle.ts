@@ -21,7 +21,7 @@ export interface BundleRow {
   is_stale: boolean
   exec_csv_ref: string | null
   rotation_vbp_ref: string | null
-  five_day_vbp_ref: string | null
+  balance_area_vbp_ref: string | null
   half_rotation_delta_ref: string | null
   full_rotation_delta_ref: string | null
   htf_png_ref: string | null
@@ -39,7 +39,7 @@ export interface LoadBundleDeps {
 export interface LoadedBundle {
   row: BundleRow
   rotationVbpContent: string
-  fiveDayVbpContent: string
+  balanceAreaVbpContent: string
   halfRotationDeltaContent: string
   fullRotationDeltaContent: string
   execCsvContent: string
@@ -59,7 +59,7 @@ export interface LoadedBundle {
 export type LoadedExecBundle = Omit<
   LoadedBundle,
   | 'rotationVbpContent'
-  | 'fiveDayVbpContent'
+  | 'balanceAreaVbpContent'
   | 'halfRotationDeltaContent'
   | 'fullRotationDeltaContent'
 >
@@ -125,7 +125,7 @@ export async function loadLatestBundle(
     requireTexts === 'all'
       ? await Promise.all([
           requireText(deps, row.rotation_vbp_ref, '400-pt rotation volume profile'),
-          requireText(deps, row.five_day_vbp_ref, 'rolling five-day volume profile'),
+          requireText(deps, row.balance_area_vbp_ref, 'balance-area volume profile'),
           requireText(deps, row.half_rotation_delta_ref, 'half-rotation delta profile'),
           requireText(deps, row.full_rotation_delta_ref, 'full-rotation delta profile'),
         ])
@@ -159,7 +159,7 @@ export async function loadLatestBundle(
   return {
     ...base,
     rotationVbpContent: profileTexts[0],
-    fiveDayVbpContent: profileTexts[1],
+    balanceAreaVbpContent: profileTexts[1],
     halfRotationDeltaContent: profileTexts[2],
     fullRotationDeltaContent: profileTexts[3],
   }

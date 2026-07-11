@@ -90,13 +90,15 @@ describe('classifyMagnet', () => {
 })
 
 describe('evaluateMagnetCheck', () => {
+  const magnets = collectMagnets({ summary, hvn })
+
   it('classifies each MGI level and preserves input order', () => {
     const levels = [
       { price: 30401, label: 'Weekly VWAP' }, // ~on the 30400 HVN → magnet
       { price: 30500, label: 'PW High' }, // far from any magnet
       { price: 30236, label: 'Rip' }, // ~on POC → magnet
     ]
-    const check = evaluateMagnetCheck({ summary, hvn, levels, tolerance: 10 })
+    const check = evaluateMagnetCheck({ magnets, levels, tolerance: 10 })
     expect(check.verdicts.map(v => v.level.label)).toEqual(['Weekly VWAP', 'PW High', 'Rip'])
     expect(check.verdicts.map(v => v.isMagnet)).toEqual([true, false, true])
   })
@@ -106,26 +108,25 @@ describe('evaluateMagnetCheck', () => {
       { price: 30401, label: 'Weekly VWAP' },
       { price: 30500, label: 'PW High' },
     ]
-    const check = evaluateMagnetCheck({ summary, hvn, levels, tolerance: 10 })
+    const check = evaluateMagnetCheck({ magnets, levels, tolerance: 10 })
     expect(check.magnetLevels.map(l => l.label)).toEqual(['Weekly VWAP'])
   })
 
   it('exposes the magnet set and tolerance used', () => {
-    const check = evaluateMagnetCheck({ summary, hvn, levels: [], tolerance: 7 })
+    const check = evaluateMagnetCheck({ magnets, levels: [], tolerance: 7 })
     expect(check.tolerance).toBe(7)
     expect(check.magnets.length).toBe(5)
     expect(check.magnetLevels).toEqual([])
   })
 
   it('throws on a negative or non-finite tolerance', () => {
-    expect(() => evaluateMagnetCheck({ summary, hvn, levels: [], tolerance: -1 })).toThrow()
-    expect(() => evaluateMagnetCheck({ summary, hvn, levels: [], tolerance: NaN })).toThrow()
+    expect(() => evaluateMagnetCheck({ magnets, levels: [], tolerance: -1 })).toThrow()
+    expect(() => evaluateMagnetCheck({ magnets, levels: [], tolerance: NaN })).toThrow()
   })
 
   it('flags nothing when there are no magnets', () => {
     const check = evaluateMagnetCheck({
-      summary: { pocPrice: NaN, valueAreaHigh: NaN, valueAreaLow: NaN },
-      hvn: [] as HvnNode[],
+      magnets: [] as Magnet[],
       levels: [{ price: 30400, label: 'x' }],
     })
     expect(check.magnets).toEqual([] as Magnet[])

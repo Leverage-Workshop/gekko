@@ -148,7 +148,7 @@ nine export files Sierra writes (~every 30 s):
 ```
 htf_clean.png, tpo.png, execution_clean.png,
 execution_bar_data.rolling.csv,
-four-hundred-rotation.vbp.md, rolling-five-day.vbp.md,       (HTF volume profiles)
+four-hundred-rotation.vbp.md, balance-area.vbp.md,       (HTF volume profiles)
 half-rotation-delta.vbp.md, full-rotation-delta.vbp.md,      (execution delta profiles)
 mgi_static_levels.json      (current price/time come from this file)
 ```

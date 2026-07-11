@@ -7,7 +7,7 @@ import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
 const read = (name: string) => readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')
 
 const rotationVbpContent = read('four-hundred-rotation.vbp.md')
-const fiveDayVbpContent = read('rolling-five-day.vbp.md')
+const balanceAreaVbpContent = read('balance-area.vbp.md')
 const halfRotationDeltaContent = read('half-rotation-delta.vbp.md')
 const fullRotationDeltaContent = read('full-rotation-delta.vbp.md')
 const execCsvContent = read('execution_bar_data.rolling.csv')
@@ -18,7 +18,7 @@ const NOW = '2026-06-16T16:00:00Z'
 function facts(overrides: Partial<Parameters<typeof computeEngineFacts>[0]> = {}) {
   return computeEngineFacts({
     rotationVbpContent,
-    fiveDayVbpContent,
+    balanceAreaVbpContent,
     halfRotationDeltaContent,
     fullRotationDeltaContent,
     execCsvContent,
@@ -42,20 +42,31 @@ describe('computeEngineFacts', () => {
 
   it('detects LVN/HVN nodes independently on both volume profiles', () => {
     const result = facts()
-    for (const source of ['rotation', 'fiveDay'] as const) {
+    for (const source of ['rotation', 'balanceArea'] as const) {
       const nodes = result.lvn[source]
       expect(nodes.hvn.length + nodes.lvn.length).toBeGreaterThan(0)
     }
     // Different profiles, different structure — the node sets must differ.
-    expect(result.lvn.rotation).not.toEqual(result.lvn.fiveDay)
+    expect(result.lvn.rotation).not.toEqual(result.lvn.balanceArea)
   })
 
   it('reports POC/VAH/VAL per volume profile', () => {
     const result = facts()
     expect(result.profileSummary.rotation.pocPrice).toBe(29900)
-    expect(result.profileSummary.fiveDay.pocPrice).toBe(29952)
-    expect(result.profileSummary.fiveDay.valueAreaHigh).toBe(30074)
-    expect(result.profileSummary.fiveDay.valueAreaLow).toBe(29400)
+    expect(result.profileSummary.balanceArea.pocPrice).toBe(29950)
+    expect(result.profileSummary.balanceArea.valueAreaHigh).toBe(30310)
+    expect(result.profileSummary.balanceArea.valueAreaLow).toBe(29496)
+  })
+
+  it('builds the magnet set once from the balance-area profile and shares it with terrain', () => {
+    const result = facts()
+    // POC/VAH/VAL magnets carry the balance-area summary, not the rotation's.
+    const summaryPrices = result.magnetCheck.magnets
+      .filter((m) => m.kind !== 'hvn')
+      .map((m) => m.price)
+      .sort((a, b) => a - b)
+    expect(summaryPrices).toEqual([29496, 29950, 30310])
+    expect(result.terrain.magnets).toEqual(result.magnetCheck.magnets)
   })
 
   it('scans both delta exports for absorption candidates (none in the real fixtures)', () => {
@@ -103,7 +114,7 @@ describe('computeEngineFacts', () => {
 
   it('throws on a malformed bundle rather than briefing from bad facts', () => {
     expect(() => facts({ rotationVbpContent: halfRotationDeltaContent })).toThrow()
-    expect(() => facts({ fullRotationDeltaContent: fiveDayVbpContent })).toThrow()
+    expect(() => facts({ fullRotationDeltaContent: balanceAreaVbpContent })).toThrow()
   })
 })
 

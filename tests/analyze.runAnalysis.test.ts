@@ -14,7 +14,7 @@ import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
 const read = (name: string) => readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')
 
 const rotationVbpContent = read('four-hundred-rotation.vbp.md')
-const fiveDayVbpContent = read('rolling-five-day.vbp.md')
+const balanceAreaVbpContent = read('balance-area.vbp.md')
 const halfRotationDeltaContent = read('half-rotation-delta.vbp.md')
 const fullRotationDeltaContent = read('full-rotation-delta.vbp.md')
 const execCsvContent = read('execution_bar_data.rolling.csv')
@@ -24,7 +24,7 @@ const NOW = new Date('2026-06-16T16:00:00Z')
 
 const facts = computeEngineFacts({
   rotationVbpContent,
-  fiveDayVbpContent,
+  balanceAreaVbpContent,
   halfRotationDeltaContent,
   fullRotationDeltaContent,
   execCsvContent,
@@ -95,7 +95,7 @@ function makeDeps(overrides: Partial<AnalyzeDeps> = {}) {
   const encoder = new TextEncoder()
   const objects: Record<string, Uint8Array> = {
     'b1/four-hundred-rotation.vbp.md': encoder.encode(rotationVbpContent),
-    'b1/rolling-five-day.vbp.md': encoder.encode(fiveDayVbpContent),
+    'b1/balance-area.vbp.md': encoder.encode(balanceAreaVbpContent),
     'b1/half-rotation-delta.vbp.md': encoder.encode(halfRotationDeltaContent),
     'b1/full-rotation-delta.vbp.md': encoder.encode(fullRotationDeltaContent),
     'b1/execution_bars.csv': encoder.encode(execCsvContent),
@@ -112,7 +112,7 @@ function makeDeps(overrides: Partial<AnalyzeDeps> = {}) {
       is_stale: false,
       exec_csv_ref: 'b1/execution_bars.csv',
       rotation_vbp_ref: 'b1/four-hundred-rotation.vbp.md',
-      five_day_vbp_ref: 'b1/rolling-five-day.vbp.md',
+      balance_area_vbp_ref: 'b1/balance-area.vbp.md',
       half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
       full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
       htf_png_ref: 'b1/htf.png',

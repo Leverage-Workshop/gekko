@@ -87,6 +87,17 @@ describe('supabase migrations', () => {
     expect(content).not.toMatch(/delete\s+from/i)
   })
 
+  it('renames five_day_vbp_ref to balance_area_vbp_ref guarded and non-destructively (feat-037)', () => {
+    const file = sql.files.find((f) => f.includes('balance_area_vbp_ref'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    expect(content).toMatch(/rename column five_day_vbp_ref to balance_area_vbp_ref/)
+    // Guarded so a re-run (column already renamed) is a no-op.
+    expect(content).toMatch(/if exists\s*\(/i)
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+
   it('seeds the singleton config row with the documented defaults', () => {
     expect(sql.combined).toContain('insert into public.config')
     expect(sql.combined).toContain("'anthropic/claude-sonnet-4-6'")

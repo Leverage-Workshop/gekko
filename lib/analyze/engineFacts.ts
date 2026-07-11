@@ -4,7 +4,7 @@ import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { detectLvnHvn } from '@/lib/engine/lvnDetection'
 import type { LvnDetectionResult } from '@/lib/engine/lvnDetection'
-import { evaluateMagnetCheck } from '@/lib/engine/magnetCheck'
+import { collectMagnets, evaluateMagnetCheck } from '@/lib/engine/magnetCheck'
 import type { MagnetCheck, ProfileSummary } from '@/lib/engine/magnetCheck'
 import { computeMgiPriority } from '@/lib/engine/mgiPriority'
 import type { MgiPriority, MgiStaticLevels } from '@/lib/engine/mgiPriority'
@@ -28,8 +28,8 @@ import type { TerrainZonesResult } from '@/lib/engine/terrainZones'
 export interface EngineFactsInput {
   /** HTF volume profile anchored to the current 400-pt rotation (`four-hundred-rotation.vbp.md`). */
   rotationVbpContent: string
-  /** HTF volume profile over the last five days (`rolling-five-day.vbp.md`). */
-  fiveDayVbpContent: string
+  /** HTF volume profile anchored to the current Balance Area (`balance-area.vbp.md`). */
+  balanceAreaVbpContent: string
   /** Execution delta profile, ~35-pt / half-rotation anchor (`half-rotation-delta.vbp.md`). */
   halfRotationDeltaContent: string
   /** Execution delta profile, ~75-pt / full-rotation anchor (`full-rotation-delta.vbp.md`). */
@@ -52,11 +52,12 @@ export interface EngineFacts {
   /** Resolved Vanguard condition, or null when `mgi.daily.rip` is absent. */
   ripStatus: RipStatus | null
   /**
-   * LVN/HVN nodes per volume profile. The five-day nodes are structurally MORE
-   * significant than rotation nodes (longer-term acceptance), but terrain and
-   * magnets stay anchored to the rotation profile's geometry.
+   * LVN/HVN nodes per volume profile. The balance-area nodes are structurally
+   * MORE significant than rotation nodes (longer-term acceptance). The terrain
+   * zone stack stays anchored to the rotation profile's geometry; the magnet
+   * set is anchored to the balance-area profile (feat-037).
    */
-  lvn: { rotation: LvnDetectionResult; fiveDay: LvnDetectionResult }
+  lvn: { rotation: LvnDetectionResult; balanceArea: LvnDetectionResult }
   /**
    * Absorption-candidate stacks from the half/full-rotation delta exports.
    * Candidates only — the model must confirm price stalled at each stack on
@@ -66,7 +67,7 @@ export interface EngineFacts {
   magnetCheck: MagnetCheck
   terrain: TerrainZonesResult
   /** POC/VAH/VAL per volume profile. */
-  profileSummary: { rotation: ProfileSummary; fiveDay: ProfileSummary }
+  profileSummary: { rotation: ProfileSummary; balanceArea: ProfileSummary }
   /** Non-fatal degradations (missing rip, terrain issues, ...). */
   warnings: string[]
 }
@@ -88,7 +89,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const warnings: string[] = []
 
   const rotationVbp = parseVbpProfile(input.rotationVbpContent)
-  const fiveDayVbp = parseVbpProfile(input.fiveDayVbpContent)
+  const balanceAreaVbp = parseVbpProfile(input.balanceAreaVbpContent)
   const halfRotationDelta = parseDeltaProfile(input.halfRotationDeltaContent)
   const fullRotationDelta = parseDeltaProfile(input.fullRotationDeltaContent)
 
@@ -97,7 +98,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const mgi = computeMgiPriority(input.mgi)
   const lvn = {
     rotation: detectLvnHvn(rotationVbp.rows),
-    fiveDay: detectLvnHvn(fiveDayVbp.rows),
+    balanceArea: detectLvnHvn(balanceAreaVbp.rows),
   }
   const absorption = scanAbsorption({
     halfRotation: halfRotationDelta.rows,
@@ -116,7 +117,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   })
   const profileSummary = {
     rotation: summaryOf(rotationVbp.meta),
-    fiveDay: summaryOf(fiveDayVbp.meta),
+    balanceArea: summaryOf(balanceAreaVbp.meta),
   }
 
   const rip = input.mgi.daily?.rip
@@ -134,20 +135,24 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     warnings.push('mgi.daily.rip missing — Rip/Vanguard condition not computed')
   }
 
-  // Magnets and terrain read the ROTATION profile only: the magnet tolerance is
-  // calibrated to rotation-scale node geometry, and the terrain zone stack must
-  // partition one profile's range. Five-day structure reaches the model via
-  // `lvn.fiveDay` / `profileSummary.fiveDay` as judgment context instead.
+  // Magnet set: built ONCE from the BALANCE-AREA profile (feat-037 — the Gem's
+  // Magnet Check reads the HTF chart's balance-area VbP) and shared by the
+  // magnetCheck fact and terrain border classification, so there is exactly one
+  // magnet definition. The terrain zone stack itself stays anchored to the
+  // rotation profile's geometry (it must partition one profile's range).
+  const magnets = collectMagnets({
+    summary: profileSummary.balanceArea,
+    hvn: lvn.balanceArea.hvn,
+  })
   const magnetCheck = evaluateMagnetCheck({
-    summary: profileSummary.rotation,
-    hvn: lvn.rotation.hvn,
+    magnets,
     levels: mgi.tier1,
   })
 
   const terrain = assembleTerrain({
     profile: rotationVbp.rows,
     lvn: lvn.rotation,
-    summary: profileSummary.rotation,
+    magnets,
     mgi,
   })
   if (!terrain.contiguityValid) {

@@ -12,7 +12,7 @@ inputs the caller passes in. `✓` = built, `✗` = planned (feature id in paren
 ```mermaid
 graph TD
   subgraph inputs["Raw bundle inputs"]
-    VBP["four-hundred-rotation.vbp.md + rolling-five-day.vbp.md"]
+    VBP["four-hundred-rotation.vbp.md + balance-area.vbp.md"]
     DELTA["half-rotation-delta.vbp.md + full-rotation-delta.vbp.md"]
     CSV["execution_bar_data.rolling.csv"]
     MGIJSON["mgi_static_levels.json"]
@@ -60,8 +60,8 @@ What each module computes:
 - **mgiPriority.ts** — MGI Tier 1/2/3 hierarchy + daily priority; nearest Tier-1 border above/below price.
 - **ripStatus.ts** — Vanguard Protocol Green/Yellow/Red from price-vs-Rip + DeltaIntensity.
 - **riskReward.ts** — direction-aware 3:1 R/R gate; enforces "stops never widen" vs the prior briefing.
-- **lvnDetection.ts** — LVN valleys + HVN peaks, run on each VbP volume series (rotation + five-day).
-- **magnetCheck.ts** — Trench/Wall/Magnet = POC/VAH/VAL + HVN peaks (rotation profile), cross-referenced to MGI.
+- **lvnDetection.ts** — LVN valleys + HVN peaks, run on each VbP volume series (rotation + balance-area).
+- **magnetCheck.ts** — Trench/Wall/Magnet = POC/VAH/VAL + HVN peaks (balance-area profile, built once and shared with terrain), cross-referenced to MGI.
 - **terrainZones.ts** — contiguous Stratosphere→Abyss zone stack (rotation profile, volume structure) with the No-Gap invariant.
 - **absorption.ts** — one-sided bin stacks on the half/full-rotation delta profiles → absorption **candidates** (model confirms price stalled).
 

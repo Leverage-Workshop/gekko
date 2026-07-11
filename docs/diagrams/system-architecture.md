@@ -19,7 +19,7 @@ graph TD
     EXPORT["folder: C:\gekko\export"]
     SC --> ACSIL
     SC --> DUMP
-    ACSIL -->|"mgi_static_levels.json · execution_bar_data.rolling.csv<br/>four-hundred-rotation.vbp.md · rolling-five-day.vbp.md<br/>half-rotation-delta.vbp.md · full-rotation-delta.vbp.md"| EXPORT
+    ACSIL -->|"mgi_static_levels.json · execution_bar_data.rolling.csv<br/>four-hundred-rotation.vbp.md · balance-area.vbp.md<br/>half-rotation-delta.vbp.md · full-rotation-delta.vbp.md"| EXPORT
     DUMP -->|"htf_clean.png · tpo.png · execution_clean.png"| EXPORT
   end
 

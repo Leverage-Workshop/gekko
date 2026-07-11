@@ -38,7 +38,7 @@ describe('ingestBundle', () => {
     form.set('exec_png', pngFile('exec.png'))
     form.set('exec_csv', new File(['DateTime,Open\n'], 'e.csv', { type: 'text/csv' }))
     form.set('rotation_vbp', new File(['# rotation'], 'r.md', { type: 'text/markdown' }))
-    form.set('five_day_vbp', new File(['# five-day'], 'f.md', { type: 'text/markdown' }))
+    form.set('balance_area_vbp', new File(['# balance-area'], 'f.md', { type: 'text/markdown' }))
     form.set('half_rotation_delta', new File(['# half'], 'h.md', { type: 'text/markdown' }))
     form.set('full_rotation_delta', new File(['# full'], 'fu.md', { type: 'text/markdown' }))
 
@@ -61,7 +61,7 @@ describe('ingestBundle', () => {
     expect(record.exec_png_ref).toBe('abc/exec.png')
     expect(record.exec_csv_ref).toBe('abc/execution_bars.csv')
     expect(record.rotation_vbp_ref).toBe('abc/four-hundred-rotation.vbp.md')
-    expect(record.five_day_vbp_ref).toBe('abc/rolling-five-day.vbp.md')
+    expect(record.balance_area_vbp_ref).toBe('abc/balance-area.vbp.md')
     expect(record.half_rotation_delta_ref).toBe('abc/half-rotation-delta.vbp.md')
     expect(record.full_rotation_delta_ref).toBe('abc/full-rotation-delta.vbp.md')
     expect(record.is_stale).toBe(false)
