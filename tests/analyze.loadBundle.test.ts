@@ -13,7 +13,7 @@ function row(overrides: Partial<BundleRow> = {}): BundleRow {
     is_stale: false,
     exec_csv_ref: 'bundle-1/execution_bars.csv',
     rotation_vbp_ref: 'bundle-1/four-hundred-rotation.vbp.md',
-    five_day_vbp_ref: 'bundle-1/rolling-five-day.vbp.md',
+    balance_area_vbp_ref: 'bundle-1/balance-area.vbp.md',
     half_rotation_delta_ref: 'bundle-1/half-rotation-delta.vbp.md',
     full_rotation_delta_ref: 'bundle-1/full-rotation-delta.vbp.md',
     htf_png_ref: 'bundle-1/htf.png',
@@ -44,7 +44,7 @@ function deps(
 
 const objects = {
   'bundle-1/four-hundred-rotation.vbp.md': 'ROTATION',
-  'bundle-1/rolling-five-day.vbp.md': 'FIVEDAY',
+  'bundle-1/balance-area.vbp.md': 'BALANCEAREA',
   'bundle-1/half-rotation-delta.vbp.md': 'HALFDELTA',
   'bundle-1/full-rotation-delta.vbp.md': 'FULLDELTA',
   'bundle-1/execution_bars.csv': 'CSV',
@@ -59,7 +59,7 @@ describe('loadLatestBundle', () => {
     const bundle = await loadLatestBundle(d)
 
     expect(bundle.rotationVbpContent).toBe('ROTATION')
-    expect(bundle.fiveDayVbpContent).toBe('FIVEDAY')
+    expect(bundle.balanceAreaVbpContent).toBe('BALANCEAREA')
     expect(bundle.halfRotationDeltaContent).toBe('HALFDELTA')
     expect(bundle.fullRotationDeltaContent).toBe('FULLDELTA')
     expect(bundle.execCsvContent).toBe('CSV')
@@ -83,7 +83,7 @@ describe('loadLatestBundle', () => {
 
   it.each([
     ['rotation_vbp_ref', /400-pt rotation volume profile/],
-    ['five_day_vbp_ref', /rolling five-day volume profile/],
+    ['balance_area_vbp_ref', /balance-area volume profile/],
     ['half_rotation_delta_ref', /half-rotation delta profile/],
     ['full_rotation_delta_ref', /full-rotation delta profile/],
   ] as const)(
@@ -112,7 +112,7 @@ describe('loadLatestBundle with requireTexts: exec-only (eval)', () => {
     const d = deps(
       row({
         rotation_vbp_ref: null,
-        five_day_vbp_ref: null,
+        balance_area_vbp_ref: null,
         half_rotation_delta_ref: null,
         full_rotation_delta_ref: null,
       }),

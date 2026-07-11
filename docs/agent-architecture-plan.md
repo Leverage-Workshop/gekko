@@ -55,7 +55,7 @@ bridges Sierra Chart to the app.
   ├─ ACSIL export studies ──▶ C:\gekko\export\  (mgi_static_levels.json,
   │                                               execution_bar_data.rolling.csv,
   │                                               four-hundred-rotation.vbp.md,
-  │                                               rolling-five-day.vbp.md,
+  │                                               balance-area.vbp.md,
   │                                               half-rotation-delta.vbp.md,
   │                                               full-rotation-delta.vbp.md)
   └─ Chart image auto-dump ──▶ C:\gekko\export\  (htf_clean.png, tpo.png,
@@ -132,8 +132,10 @@ single prints, delta clustering). See feat-014 / feat-018 in `feature_list.json`
 
 Four profile exports, all Markdown with an **identical structure** (feat-036):
 - **HTF volume profiles** — `four-hundred-rotation.vbp.md` (anchored to the current 400-pt
-  rotation, medium-term) and `rolling-five-day.vbp.md` (last five days, long-term). Bin Size 8
-  ticks → 2.0-pt step; CSV header `Price,Volume`.
+  rotation, medium-term) and `balance-area.vbp.md` (anchored to the current Balance Area,
+  long-term — a balance starts when two days of overlapping value occur and expands while
+  following days keep overlapping value, with exceptions for a peak above/below). Bin Size
+  varies per export (read it from Metadata); CSV header `Price,Volume`.
 - **Execution delta profiles** — `half-rotation-delta.vbp.md` (~35-pt anchor) and
   `full-rotation-delta.vbp.md` (~75-pt anchor). Bin Size 9 ticks → 2.25-pt step; CSV header
   `Price,Delta` — **signed** (buy − sell) per bin; negative = sell-dominant.
@@ -152,8 +154,9 @@ Parser rules (`/lib/engine/parseProfile.ts`):
   per-bin price join can never match (feat-036 removed it).
 
 Engine consumption: `lvnDetection.ts` runs on **both VbP volume** series independently (nodes
-labeled `rotation` / `fiveDay`; a five-day node is structurally more significant);
-`magnetCheck.ts` magnets = POC/VAH/VAL + HVN peaks from the **rotation** profile;
+labeled `rotation` / `balanceArea`; a balance-area node is structurally more significant);
+`magnetCheck.ts` magnets = POC/VAH/VAL + HVN peaks from the **balance-area** profile, built
+once in `engineFacts` and shared with terrain border classification (feat-037);
 `terrainZones.ts` assembles the zone stack over the **rotation** profile (volume structure only);
 `absorption.ts` scans each **delta** profile for one-sided bin stacks and reports them as
 **absorption candidates** — the model confirms each against price stalling on the execution chart.

@@ -23,7 +23,7 @@ export type RawBundleRecord = {
   exec_png_ref: string | null
   exec_csv_ref: string | null
   rotation_vbp_ref: string | null
-  five_day_vbp_ref: string | null
+  balance_area_vbp_ref: string | null
   half_rotation_delta_ref: string | null
   full_rotation_delta_ref: string | null
 }
@@ -132,7 +132,7 @@ export async function ingestBundle(
     exec_png_ref: null,
     exec_csv_ref: null,
     rotation_vbp_ref: null,
-    five_day_vbp_ref: null,
+    balance_area_vbp_ref: null,
     half_rotation_delta_ref: null,
     full_rotation_delta_ref: null,
   }
@@ -162,7 +162,7 @@ export async function ingestBundle(
     exec_png_ref: refs.exec_png_ref,
     exec_csv_ref: refs.exec_csv_ref,
     rotation_vbp_ref: refs.rotation_vbp_ref,
-    five_day_vbp_ref: refs.five_day_vbp_ref,
+    balance_area_vbp_ref: refs.balance_area_vbp_ref,
     half_rotation_delta_ref: refs.half_rotation_delta_ref,
     full_rotation_delta_ref: refs.full_rotation_delta_ref,
   }

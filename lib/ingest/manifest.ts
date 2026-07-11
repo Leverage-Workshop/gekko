@@ -44,10 +44,10 @@ export const FILE_FIELDS: readonly FileField[] = [
     contentType: 'text/markdown',
   },
   {
-    field: 'five_day_vbp',
+    field: 'balance_area_vbp',
     bucket: 'bundle-csvs',
-    column: 'five_day_vbp_ref',
-    filename: 'rolling-five-day.vbp.md',
+    column: 'balance_area_vbp_ref',
+    filename: 'balance-area.vbp.md',
     contentType: 'text/markdown',
   },
   {

@@ -22,7 +22,7 @@ const LOCAL_FILENAME_BY_FIELD: Readonly<Record<string, string>> = {
   exec_png: 'execution_clean.png',
   exec_csv: 'execution_bar_data.rolling.csv',
   rotation_vbp: 'four-hundred-rotation.vbp.md',
-  five_day_vbp: 'rolling-five-day.vbp.md',
+  balance_area_vbp: 'balance-area.vbp.md',
   half_rotation_delta: 'half-rotation-delta.vbp.md',
   full_rotation_delta: 'full-rotation-delta.vbp.md',
 }

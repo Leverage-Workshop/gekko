@@ -117,7 +117,7 @@ export type VbpProfile = {
 
 /**
  * Parse a standalone Volume (VbP) profile file (e.g. the 400-pt rotation or
- * rolling five-day HTF export, and the LVN/HVN fixtures' `.vbp.md`).
+ * balance-area HTF export, and the LVN/HVN fixtures' `.vbp.md`).
  */
 export function parseVbpProfile(vbpContent: string): VbpProfile {
   const vbp = parseProfileFile(vbpContent)

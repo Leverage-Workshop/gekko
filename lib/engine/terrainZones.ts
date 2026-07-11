@@ -51,7 +51,7 @@
 
 import type { LvnDetectionResult } from './lvnDetection'
 import type { MgiLevel, MgiPriority } from './mgiPriority'
-import { collectMagnets, classifyMagnet, DEFAULT_MAGNET_TOLERANCE, type Magnet, type MagnetHit, type ProfileSummary } from './magnetCheck'
+import { classifyMagnet, DEFAULT_MAGNET_TOLERANCE, type Magnet, type MagnetHit } from './magnetCheck'
 
 /** VbP row (feat-002 parseVbpProfile rows structurally satisfy this). */
 export type TerrainProfileRow = { price: number; volume: number }
@@ -140,7 +140,10 @@ export type TerrainParams = {
   valleyFrac: number
   /** A zone is "acceptance" when its mean volume is >= this fraction of the profile peak. */
   acceptanceFrac: number
-  /** Proximity (NQ points) for magnet alignment and detector-node corroboration. */
+  /**
+   * Proximity (NQ points) serving double duty: magnet alignment (against the
+   * balance-area magnet set) and detector-node corroboration (rotation nodes).
+   */
   magnetTolerance: number
 }
 
@@ -423,20 +426,21 @@ function validateContiguity(zones: TerrainZoneFact[]): string[] {
  *
  * @param input.profile  VbP rows (feat-002; the 400-pt rotation profile in production).
  * @param input.lvn      Detected LVN/HVN nodes (feat-014).
- * @param input.summary  VbP Summary POC/VAH/VAL (feat-002).
+ * @param input.magnets  Prebuilt magnet set (feat-015 collectMagnets; built once in
+ *   engineFacts from the balance-area profile in production — feat-037).
  * @param input.mgi      Classified MGI levels + current price (feat-012).
  * @param input.params   Optional overrides for the doctrine heuristics.
  */
 export function assembleTerrain(input: {
   profile: TerrainProfileRow[]
   lvn: LvnDetectionResult
-  summary: ProfileSummary
+  magnets: Magnet[]
   mgi: MgiPriority
   params?: Partial<TerrainParams>
 }): TerrainZonesResult {
   const params = { ...DEFAULT_TERRAIN_PARAMS, ...input.params }
   const currentPrice = input.mgi.currentPrice
-  const magnets = collectMagnets({ summary: input.summary, hvn: input.lvn.hvn })
+  const { magnets } = input
 
   const rowsAsc = input.profile.filter(r => isFiniteNumber(r.price) && isFiniteNumber(r.volume)).sort((a, b) => a.price - b.price)
 
