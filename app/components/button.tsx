@@ -4,17 +4,36 @@ import type { ComponentPropsWithoutRef } from 'react'
 // - primary  → solid bmw-blue fill, white label (the single brand-color CTA)
 // - outline  → transparent + white outline (the secondary action)
 type Variant = 'primary' | 'outline'
+type Size = 'md' | 'sm'
 
 const base =
-  'inline-flex h-12 items-center justify-center px-8 text-sm font-bold uppercase tracking-[1.5px] transition-colors rounded-none disabled:pointer-events-none disabled:opacity-40'
+  'inline-flex items-center justify-center font-bold uppercase tracking-[1.5px] transition-colors rounded-none disabled:pointer-events-none disabled:opacity-40'
+
+const sizes: Record<Size, string> = {
+  md: 'h-12 px-8 text-sm',
+  sm: 'h-9 px-4 text-xs',
+}
 
 const variants: Record<Variant, string> = {
   primary: 'bg-bmw-blue text-ink hover:bg-electric-blue',
   outline: 'border border-ink text-ink hover:bg-ink hover:text-canvas',
 }
 
-type ButtonProps = ComponentPropsWithoutRef<'button'> & { variant?: Variant }
+type ButtonProps = ComponentPropsWithoutRef<'button'> & {
+  variant?: Variant
+  size?: Size
+}
 
-export function Button({ variant = 'primary', className = '', ...props }: ButtonProps) {
-  return <button className={`${base} ${variants[variant]} ${className}`} {...props} />
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  className = '',
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={`${base} ${sizes[size]} ${variants[variant]} ${className}`}
+      {...props}
+    />
+  )
 }

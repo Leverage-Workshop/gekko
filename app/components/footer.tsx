@@ -9,7 +9,7 @@ export function Footer() {
       <MStripe />
       {/* Extra bottom padding keeps the fixed AlertsCenter strip from covering
           the disclaimer at the end of the scroll. */}
-      <div className="mx-auto max-w-[1440px] px-6 pb-24 pt-10">
+      <div className="mx-auto max-w-[1800px] px-6 pb-24 pt-10">
         <p className="max-w-3xl text-xs font-light leading-relaxed tracking-wide text-muted">
           Gekko is an advisory-only research tool running locally on the trading machine.
           Nothing presented constitutes financial advice, a solicitation, or a recommendation

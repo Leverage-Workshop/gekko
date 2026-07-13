@@ -11,14 +11,11 @@ export { formatPrice } from './format'
 export {
   buildExecutionChart,
   wallClockUtcSeconds,
-  CHART_LEVEL_STYLES,
-  CURRENT_PRICE_STYLE,
   DEFAULT_ZONE_FILL,
   ZONE_FILLS,
   type ChartCandle,
-  type ChartPriceLine,
+  type ChartEntryZone,
   type ExecutionChartModel,
-  type PriceLineStyle,
 } from './executionChart'
 export {
   buildHighlightTerms,

@@ -32,6 +32,8 @@ interface TriggerRunButtonProps {
   /** Trails "Queued — run <id>." in the success note. */
   successHint: string
   variant?: 'primary' | 'outline'
+  /** 'sm' renders the compact nav variant with a floating status note. */
+  size?: 'md' | 'sm'
 }
 
 export function TriggerRunButton({
@@ -39,6 +41,7 @@ export function TriggerRunButton({
   label,
   successHint,
   variant = 'primary',
+  size = 'md',
 }: TriggerRunButtonProps) {
   const [state, setState] = useState<RunState>({ phase: 'idle' })
 
@@ -60,42 +63,58 @@ export function TriggerRunButton({
     }
   }
 
+  // Compact (nav) buttons float their status note below the header so the
+  // 64px nav row never reflows.
+  const statusClass =
+    size === 'sm'
+      ? 'absolute right-0 top-full z-30 mt-2 w-72 border border-hairline bg-surface-card px-3 py-2 text-right'
+      : ''
+
   return (
-    <div>
-      <Button variant={variant} onClick={run} disabled={state.phase === 'pending'}>
+    <div className={size === 'sm' ? 'relative' : ''}>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={run}
+        disabled={state.phase === 'pending'}
+      >
         {state.phase === 'pending' ? 'Queuing…' : label}
       </Button>
       <div role="status">
         {state.phase === 'success' && (
-          <p className="mt-2 text-xs font-light tracking-wide text-success">
+          <p className={`mt-2 text-xs font-light tracking-wide text-success ${statusClass}`}>
             Queued — run {state.runId}. {successHint}
           </p>
         )}
         {state.phase === 'error' && (
-          <p className="mt-2 text-xs font-light tracking-wide text-m-red">{state.message}</p>
+          <p className={`mt-2 text-xs font-light tracking-wide text-m-red ${statusClass}`}>
+            {state.message}
+          </p>
         )}
       </div>
     </div>
   )
 }
 
-export function RunBriefingButton() {
+export function RunBriefingButton({ size }: { size?: 'md' | 'sm' }) {
   return (
     <TriggerRunButton
       url="/api/briefings/run"
       label="Run Briefing"
       successHint="Reload in a minute for the new briefing."
+      size={size}
     />
   )
 }
 
-export function CheckEntryButton() {
+export function CheckEntryButton({ size }: { size?: 'md' | 'sm' }) {
   return (
     <TriggerRunButton
       url="/api/eval/run"
       label="Check Entry at Current Price"
       successHint="Reload in a minute for the eval verdict."
       variant="outline"
+      size={size}
     />
   )
 }

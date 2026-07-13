@@ -5,29 +5,92 @@ import {
   CandlestickSeries,
   ColorType,
   CrosshairMode,
-  LineStyle,
   createChart,
   type AutoscaleInfo,
   type CandlestickData,
+  type IPrimitivePaneRenderer,
+  type IPrimitivePaneView,
+  type ISeriesApi,
+  type ISeriesPrimitive,
+  type PrimitivePaneViewZOrder,
+  type Time,
   type UTCTimestamp,
 } from 'lightweight-charts'
 import type {
+  ChartEntryZone,
   ExecutionChartModel,
-  PriceLineStyle,
 } from '@/lib/briefing/executionChart'
 
 /**
  * Execution candlestick chart (lightweight-charts v5): paints the
  * plain-serializable model computed server-side by
- * lib/briefing/executionChart.ts — 750-volume candles plus terrain-level
- * price lines. All data decisions live in the lib module; this component
- * only owns chart-library lifecycle.
+ * lib/briefing/executionChart.ts — 750-volume candles in the theme voltage
+ * (bmw-blue up / m-red down) plus one shaded band per objective entry zone.
+ * All data decisions live in the lib module; this component only owns
+ * chart-library lifecycle.
  */
 
-const LINE_STYLES: Record<PriceLineStyle, LineStyle> = {
-  solid: LineStyle.Solid,
-  dashed: LineStyle.Dashed,
-  dotted: LineStyle.SparseDotted,
+const ZONE_COLORS = {
+  long: { fill: 'rgba(28, 105, 212, 0.16)', edge: '#1c69d4' },
+  short: { fill: 'rgba(226, 39, 24, 0.16)', edge: '#e22718' },
+} as const
+
+/** Draws the entry-zone bands behind the candles across the full pane width. */
+class EntryZonesPrimitive implements ISeriesPrimitive<Time> {
+  private readonly view: EntryZonesPaneView
+
+  constructor(zones: ChartEntryZone[], series: ISeriesApi<'Candlestick'>) {
+    this.view = new EntryZonesPaneView(zones, series)
+  }
+
+  paneViews(): IPrimitivePaneView[] {
+    return [this.view]
+  }
+}
+
+class EntryZonesPaneView implements IPrimitivePaneView {
+  constructor(
+    private readonly zones: ChartEntryZone[],
+    private readonly series: ISeriesApi<'Candlestick'>,
+  ) {}
+
+  zOrder(): PrimitivePaneViewZOrder {
+    return 'bottom'
+  }
+
+  renderer(): IPrimitivePaneRenderer {
+    const { zones, series } = this
+    return {
+      draw: (target) => {
+        target.useBitmapCoordinateSpace((scope) => {
+          for (const zone of zones) {
+            const yTop = series.priceToCoordinate(zone.to)
+            const yBottom = series.priceToCoordinate(zone.from)
+            const yEntry = series.priceToCoordinate(zone.entry)
+            if (yTop === null || yBottom === null || yEntry === null) continue
+
+            const ratio = scope.verticalPixelRatio
+            const colors = ZONE_COLORS[zone.direction]
+            scope.context.fillStyle = colors.fill
+            scope.context.fillRect(
+              0,
+              yTop * ratio,
+              scope.bitmapSize.width,
+              Math.max((yBottom - yTop) * ratio, 1),
+            )
+            // Solid edge on the entry level itself.
+            scope.context.fillStyle = colors.edge
+            scope.context.fillRect(
+              0,
+              yEntry * ratio - 1,
+              scope.bitmapSize.width,
+              Math.max(2 * ratio, 2),
+            )
+          }
+        })
+      },
+    }
+  }
 }
 
 export function ExecutionChart({ model }: { model: ExecutionChartModel }) {
@@ -58,13 +121,13 @@ export function ExecutionChart({ model }: { model: ExecutionChartModel }) {
     })
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: '#0fa336',
+      upColor: '#1c69d4',
       downColor: '#e22718',
-      wickUpColor: '#0fa336',
+      wickUpColor: '#1c69d4',
       wickDownColor: '#e22718',
       borderVisible: false,
-      // Stretch autoscale so every plotted level line stays on screen even
-      // when it sits outside the candles' own high/low range.
+      // Stretch autoscale so every entry zone stays on screen even when it
+      // sits outside the candles' own high/low range.
       autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
         const base = original()
         if (!base?.priceRange) return base
@@ -87,20 +150,10 @@ export function ExecutionChart({ model }: { model: ExecutionChartModel }) {
       ),
     )
 
-    for (const line of model.priceLines) {
-      series.createPriceLine({
-        price: line.price,
-        color: line.color,
-        lineWidth: 1,
-        lineStyle: LINE_STYLES[line.lineStyle],
-        axisLabelVisible: true,
-        title: line.title,
-      })
-    }
-
+    series.attachPrimitive(new EntryZonesPrimitive(model.zones, series))
     chart.timeScale().fitContent()
     return () => chart.remove()
   }, [model])
 
-  return <div ref={containerRef} className="h-[480px] w-full" />
+  return <div ref={containerRef} className="h-[560px] w-full" />
 }

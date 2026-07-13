@@ -37,11 +37,38 @@ dev server) and called out four problems; all fixed and verified visually:
   success/warning/m-red); footer got bottom padding so the fixed AlertsCenter strip
   can't cover the disclaimer.
 
-Verification: `./init.sh` passes (typecheck, lint, 29 new/updated tests among the
-suite, build); before/after full-page Playwright screenshots confirmed the fixes.
-New dep: `lightweight-charts` ^5.2.0. Playwright itself is NOT a project dep — it
-runs from a scratchpad install (system libs `libnspr4 libnss3 libasound2t64` were
-apt-installed for headless Chromium).
+**Round 2 (same session, from Caleb's annotated screenshots):** the page became a
+dense tool view.
+
+- **Header collapsed:** stale banner, "Advisory Only · NQ Futures" eyebrow, the big
+  MORNING BRIEFING title, and the Key Inflection Points section are all gone. The
+  Run Briefing / Check Entry buttons moved into the top-right of the nav (new
+  `size="sm"` button variant; compact status notes float under the header). Nav
+  links trimmed to Eval + Settings (the old section anchors died with the tabs).
+- **Compact meta strip** under the nav: current price, color-coded rip status, HTF
+  trend, and the run meta (date · trigger · model + STALE badge with the full
+  warning as its tooltip).
+- **Two-tab body** (`briefing-tabs.tsx`, panes stay server-rendered as ReactNode
+  props): tab 1 **Objectives** = chart (left, 3fr) + stacked objective cards
+  (right, 2fr) + danger zones; tab 2 **Tactical Overview** = the three prose
+  groups stacked. Page width widened to `max-w-[1800px]`.
+- **Chart restyled to theme voltage:** candles are bmw-blue up / m-red down; ALL
+  level price-lines, the level legend, and the off-map list are gone ("get rid of
+  all the stuff on chart"). Instead, one shaded band per objective entry —
+  entry→stop, blue for long, red for short — drawn by a lightweight-charts
+  series-primitive (`EntryZonesPrimitive`, canvas fillRect behind the candles),
+  with a solid edge on the entry level. Model builder reworked accordingly
+  (`buildExecutionChart(bars, objectives)`), tests rewritten.
+- **All times are Chicago (CME):** `fmtDate` renders `America/Chicago` with a "CT"
+  suffix; the chart axis shows the CSV's wall-clock (which is Chicago) via the
+  wall-clock→UTC re-anchor, labeled "All times CT".
+
+Verification: `./init.sh` passes (typecheck, lint — 3 pre-existing warnings in
+tests/briefing.schema.test.ts, 547 tests, build); full-page Playwright screenshots
+of both tabs confirmed the layout. New dep: `lightweight-charts` ^5.2.0.
+Playwright itself is NOT a project dep — it runs from a scratchpad install
+(system libs `libnspr4 libnss3 libasound2t64` were apt-installed for headless
+Chromium). PR #40.
 
 **feat-037 live smoke test (2026-07-11) — PASSED.** The end-to-end check noted in PR #39
 ran against the live Sierra export folder (`C:\gekko\export`, accessed from WSL as
