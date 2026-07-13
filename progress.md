@@ -2,9 +2,40 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-10
+**Last Updated:** 2026-07-11
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-037**
 (balance-area VBP rename + balance-area-anchored magnet set).
+
+**feat-037 live smoke test (2026-07-11) — PASSED.** The end-to-end check noted in PR #39
+ran against the live Sierra export folder (`C:\gekko\export`, accessed from WSL as
+`/mnt/c/gekko/export` via a `GEKKO_EXPORT_DIR` env override — the `.env` value stays the
+Windows path for normal operation). Uploader POSTed on attempt 1 → bundle
+`dc2641ae-60d4-4073-9052-44e95eef8b68`: `raw_bundles` row has all four profile refs
+populated (`balance_area_vbp_ref` = `<id>/balance-area.vbp.md`), `is_stale` false,
+`current_price` 30068.5, and all 8 Storage objects landed with byte-exact sizes
+(balance-area.vbp.md 12,533 B matches the local export).
+
+**analyze-task live smoke test (2026-07-11) — first LLM run; model swapped to
+`openai/gpt-5.6-terra`.** The first-ever live analyze-task run (dev env, trigger.dev dev
+server) failed on `anthropic/claude-sonnet-5`: Anthropic's structured-output grammar
+compiler rejects the Briefing schema (`AI_APICallError: The compiled grammar is too
+large`). Root cause isolated by bisection: the schema is only 3.7 KB, but `primary` and
+`secondary` inline the large `Objective` shape twice and Anthropic counts both copies —
+every section individually passes, `Briefing.omit({secondary})` passes, and a
+`$defs`/`$ref`-deduplicated emission (`z.toJSONSchema(Briefing, { reused: 'ref' })`,
+2.9 KB) passes. Per Caleb's direction the fix was a **non-Anthropic model** instead of a
+schema workaround: five vision + structured-output candidates were verified against the
+real Briefing schema via OpenRouter (gpt-5.6-terra, gpt-5.4, grok-4.5,
+gemini-3.1-pro-preview, qwen3-vl-235b — all pass; the limit is Anthropic-specific).
+`config.model_id` updated in the live DB to `openai/gpt-5.6-terra` ($2.50/$15 per MTok,
+automatic OpenAI prompt caching; `assertModelMatch` accepts its dated serve id). Rerun
+succeeded end-to-end: briefing `a0f52291-e349-4b92-9aa3-e70185320844` persisted (6 terrain
+zones, primary long, 2 entry_levels), engine fact-enforcement overwrote a model ripStatus
+claim, cost $0.16 / 41k in + 2.2k out / 17 s. Code untouched — `DEFAULT_MODEL_ID` in
+`lib/llm/generateStructured.ts` is still `anthropic/claude-sonnet-5` (config-row fallback
+only); if a Briefing-shaped schema must ever run on Anthropic again, the `$ref` dedup in
+`generateStructured` is the known fix. `triage_model_id` (haiku, small schema — safe) and
+`high_conviction_model_id` (opus, disabled, would hit the same limit) are unchanged.
 
 **feat-037 (2026-07-10) — balance-area VBP replaces rolling five-day; magnets re-anchor.**
 Caleb replaced `rolling-five-day.vbp.md` with `balance-area.vbp.md` — an HTF VbP anchored
