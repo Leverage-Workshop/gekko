@@ -2,9 +2,46 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-11
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-037**
-(balance-area VBP rename + balance-area-anchored magnet set).
+**Last Updated:** 2026-07-12
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: ad-hoc
+**dashboard display overhaul** (branch `feat-ui-briefing-display`) on top of feat-037.
+
+**Dashboard display overhaul (2026-07-12) — briefing page redesign per Caleb's review.**
+Caleb reviewed the rendered briefing (screenshotted headlessly via Playwright + the
+dev server) and called out four problems; all fixed and verified visually:
+
+- **Terrain SVG replaced with a real chart:** the hand-rolled SVG map (which a
+  placeholder "overnight high unavailable" level at price 0 stretched to a 0–30,975
+  axis, crushing everything into an unreadable smear) is gone — deleted
+  `app/components/terrain-map.tsx`, `lib/briefing/terrainMap.ts`, and its test. New:
+  **lightweight-charts v5** candlestick chart of the latest bundle's
+  `execution_bars.csv` with terrain levels overlaid as styled price lines.
+  `lib/briefing/executionChart.ts` (pure, tested) builds the model: wall-clock→UTC
+  time anchoring, time-dedup, junk-level filtering (price ≤ 0), a ±35%-of-range
+  window that lists far-away levels "beyond the traded range" instead of plotting
+  them, and autoscale bounds covering every plotted line. The dashboard loader
+  gained `fetchLatestExecCsv` (latest `raw_bundles.exec_csv_ref` →
+  `bundle-csvs` download, reusing `parseExecBars`); chart failures degrade to a
+  fallback note, never the page. Zones render as a color-chip strip below the chart.
+- **Objectives are direction-keyed:** `ObjectiveCard` now reads bmw-blue for
+  long/bullish and m-red for short/bearish (top accent border, LONG · BULLISH /
+  SHORT · BEARISH badge, macro goal + price column in the accent).
+- **Prices and doctrine terms pop in prose:** `lib/briefing/highlight.ts` (pure,
+  tested) segments briefing text; `HighlightedText` bolds NQ-scale prices
+  (years/small counts excluded) and level/zone labels + doctrine vocabulary
+  (longest-match-first, word-boundary, case-insensitive) across overview bullets,
+  inflections, objective rationale/tables, danger zones, HTF trend, and eval reason.
+- **Hero fixed:** the HTF-trend paragraph was rendered as a giant uppercase stat in
+  a narrow cell (stretching the hero and leaving the left half empty) — now a
+  full-width sentence-case cell; rip status is color-coded (Green/Yellow/Red →
+  success/warning/m-red); footer got bottom padding so the fixed AlertsCenter strip
+  can't cover the disclaimer.
+
+Verification: `./init.sh` passes (typecheck, lint, 29 new/updated tests among the
+suite, build); before/after full-page Playwright screenshots confirmed the fixes.
+New dep: `lightweight-charts` ^5.2.0. Playwright itself is NOT a project dep — it
+runs from a scratchpad install (system libs `libnspr4 libnss3 libasound2t64` were
+apt-installed for headless Chromium).
 
 **feat-037 live smoke test (2026-07-11) — PASSED.** The end-to-end check noted in PR #39
 ran against the live Sierra export folder (`C:\gekko\export`, accessed from WSL as

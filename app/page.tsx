@@ -1,16 +1,19 @@
 import type { DangerZone, Objective, Overview } from '@/knowledge/schema/briefing.schema'
 import {
+  buildExecutionChart,
+  buildHighlightTerms,
+  formatPrice,
   loadDashboardData,
   realDashboardDeps,
   type DashboardData,
   type DashboardEvalRow,
 } from '@/lib/briefing'
-import { formatPrice } from '@/lib/briefing/terrainMap'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
+import { ExecutionChartSection } from './components/execution-chart-section'
 import { Footer } from './components/footer'
+import { HighlightedText } from './components/highlighted-text'
 import { MStripe } from './components/m-stripe'
 import { CheckEntryButton, RunBriefingButton } from './components/trigger-run-button'
-import { TerrainMap } from './components/terrain-map'
 import { TopNav } from './components/top-nav'
 
 /**
@@ -41,7 +44,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function BulletList({ items }: { items: string[] }) {
+function BulletList({ items, terms }: { items: string[]; terms: string[] }) {
   if (items.length === 0) {
     return <p className="text-sm font-light text-muted">—</p>
   }
@@ -50,11 +53,22 @@ function BulletList({ items }: { items: string[] }) {
       {items.map((item) => (
         <li key={item} className="flex gap-3 text-sm font-light leading-relaxed text-body">
           <span className="mt-[7px] h-1 w-1 shrink-0 bg-bmw-blue" aria-hidden="true" />
-          {item}
+          <span>
+            <HighlightedText text={item} terms={terms} />
+          </span>
         </li>
       ))}
     </ul>
   )
+}
+
+/** Rip-status condition color: Green/Yellow/Red map onto the semantic tones. */
+function ripStatusTone(status: string): string {
+  const value = status.toLowerCase()
+  if (value.includes('green')) return 'text-success'
+  if (value.includes('red')) return 'text-m-red'
+  if (value.includes('yellow') || value.includes('amber')) return 'text-warning'
+  return 'text-ink'
 }
 
 function StaleBanner({ staleness }: { staleness: StalenessAssessment }) {
@@ -71,7 +85,7 @@ function StaleBanner({ staleness }: { staleness: StalenessAssessment }) {
   )
 }
 
-function OverviewSection({ overview }: { overview: Overview }) {
+function OverviewSection({ overview, terms }: { overview: Overview; terms: string[] }) {
   return (
     <section id="overview" className="border-b border-hairline">
       <div className="mx-auto max-w-[1440px] px-6 py-16">
@@ -81,19 +95,19 @@ function OverviewSection({ overview }: { overview: Overview }) {
             <h3 className="mb-4 text-sm font-bold uppercase tracking-[1.5px] text-ink">
               Current Position
             </h3>
-            <BulletList items={overview.currentPosition} />
+            <BulletList items={overview.currentPosition} terms={terms} />
           </div>
           <div>
             <h3 className="mb-4 text-sm font-bold uppercase tracking-[1.5px] text-ink">
               Structural Architecture
             </h3>
-            <BulletList items={overview.structuralArchitecture} />
+            <BulletList items={overview.structuralArchitecture} terms={terms} />
           </div>
           <div>
             <h3 className="mb-4 text-sm font-bold uppercase tracking-[1.5px] text-ink">
               Order Flow Context
             </h3>
-            <BulletList items={overview.orderFlowContext} />
+            <BulletList items={overview.orderFlowContext} terms={terms} />
           </div>
         </div>
 
@@ -114,7 +128,7 @@ function OverviewSection({ overview }: { overview: Overview }) {
                     {formatPrice(inflection.level)}
                   </p>
                   <p className="mt-1 text-sm font-light leading-relaxed text-body">
-                    {inflection.why}
+                    <HighlightedText text={inflection.why} terms={terms} />
                   </p>
                 </div>
               ))}
@@ -126,7 +140,15 @@ function OverviewSection({ overview }: { overview: Overview }) {
   )
 }
 
-function ObjectiveCard({ heading, objective }: { heading: string; objective: Objective }) {
+function ObjectiveCard({
+  heading,
+  objective,
+  terms,
+}: {
+  heading: string
+  objective: Objective
+  terms: string[]
+}) {
   const rows: { point: string; price: number; description: string }[] = [
     ...objective.entries.map((entry) => ({
       point: entry.label,
@@ -146,27 +168,39 @@ function ObjectiveCard({ heading, objective }: { heading: string; objective: Obj
   ]
   const sequence = objective.targets.map((t) => t.label).join(' → ')
 
+  // Direction identity: bullish campaigns read bmw-blue, bearish read m-red.
+  const isLong = objective.direction === 'long'
+  const accentText = isLong ? 'text-bmw-blue' : 'text-m-red'
+  const accentTop = isLong ? 'border-t-bmw-blue' : 'border-t-m-red'
+  const accentBadge = isLong
+    ? 'border-bmw-blue text-bmw-blue'
+    : 'border-m-red text-m-red'
+
   return (
-    <article className="border border-hairline bg-surface-card p-6">
+    <article
+      className={`border border-hairline border-t-2 ${accentTop} bg-surface-card p-6`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
         <span className="text-xs font-bold uppercase tracking-[1.5px] text-ink">
           {heading}
         </span>
         <span className="flex items-center gap-4">
-          <span className="text-xs font-bold uppercase tracking-[1.5px] text-body-strong">
-            {objective.direction}
+          <span
+            className={`border px-2.5 py-1 text-xs font-bold uppercase tracking-[1.5px] ${accentBadge}`}
+          >
+            {isLong ? 'Long · Bullish' : 'Short · Bearish'}
           </span>
-          <span className="text-xs font-bold uppercase tracking-[1.5px] text-bmw-blue">
+          <span className="text-xs font-bold uppercase tracking-[1.5px] text-body-strong">
             R/R {objective.rr.toFixed(1)} : 1
           </span>
         </span>
       </div>
 
-      <h3 className="mt-4 text-xl font-bold tracking-tight text-ink">
+      <h3 className={`mt-4 text-xl font-bold tracking-tight ${accentText}`}>
         {objective.macroGoal}
       </h3>
       <p className="mt-2 text-sm font-light leading-relaxed text-body">
-        {objective.rationale}
+        <HighlightedText text={objective.rationale} terms={terms} />
       </p>
       {sequence && (
         <p className="mt-3 text-xs font-light uppercase tracking-wide text-muted">
@@ -192,11 +226,13 @@ function ObjectiveCard({ heading, objective }: { heading: string; objective: Obj
           {rows.map((row) => (
             <tr key={`${row.point}-${row.price}`} className="border-b border-hairline-strong">
               <td className="py-2 pr-3 text-sm font-bold text-ink">{row.point}</td>
-              <td className="py-2 pr-3 text-sm font-bold tracking-tight text-bmw-blue">
+              <td
+                className={`py-2 pr-3 text-sm font-bold tracking-tight ${accentText}`}
+              >
                 {formatPrice(row.price)}
               </td>
               <td className="py-2 text-sm font-light leading-relaxed text-body">
-                {row.description}
+                <HighlightedText text={row.description} terms={terms} />
               </td>
             </tr>
           ))}
@@ -206,7 +242,7 @@ function ObjectiveCard({ heading, objective }: { heading: string; objective: Obj
   )
 }
 
-function DangerZones({ zones }: { zones: DangerZone[] }) {
+function DangerZones({ zones, terms }: { zones: DangerZone[]; terms: string[] }) {
   return (
     <div className="mt-10">
       <h3 className="mb-4 text-sm font-bold uppercase tracking-[1.5px] text-m-red">
@@ -222,7 +258,9 @@ function DangerZones({ zones }: { zones: DangerZone[] }) {
               className="border-l-4 border-m-red bg-surface-card p-4"
             >
               <p className="text-sm font-bold text-ink">Avoid: {zone.area}</p>
-              <p className="mt-1 text-sm font-light leading-relaxed text-body">{zone.why}</p>
+              <p className="mt-1 text-sm font-light leading-relaxed text-body">
+                <HighlightedText text={zone.why} terms={terms} />
+              </p>
             </li>
           ))}
         </ul>
@@ -241,10 +279,12 @@ const EVAL_STATUS_CLASS: Record<string, string> = {
 function EvalSection({
   evalResult,
   unavailable,
+  terms,
 }: {
   evalResult: DashboardEvalRow | null
   /** Dashboard load failed — don't render the run-your-first-eval CTA. */
   unavailable: boolean
+  terms: string[]
 }) {
   return (
     <section id="eval" className="border-b border-hairline">
@@ -302,7 +342,7 @@ function EvalSection({
             </div>
 
             <p className="mt-5 text-sm font-light leading-relaxed text-body">
-              {evalResult.reason ?? ''}
+              <HighlightedText text={evalResult.reason ?? ''} terms={terms} />
             </p>
           </div>
         )}
@@ -322,6 +362,11 @@ export default async function Home() {
 
   const briefing = data?.briefing ?? null
   const payload = briefing?.payload ?? null
+  const terms = payload ? buildHighlightTerms(payload) : []
+  const chartModel =
+    payload && data?.execBars
+      ? buildExecutionChart(data.execBars, payload.terrain, payload.meta.currentPrice)
+      : null
 
   return (
     <>
@@ -348,7 +393,7 @@ export default async function Home() {
               </div>
             )}
 
-            <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-end">
+            <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-start">
               <div>
                 <span className="text-xs font-bold uppercase tracking-[0.3em] text-muted">
                   Advisory Only · NQ Futures
@@ -382,7 +427,7 @@ export default async function Home() {
 
               {/* Meta spec cells */}
               {payload && (
-                <div className="grid grid-cols-1 gap-px bg-hairline sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-px bg-hairline">
                   <div className="bg-surface-soft p-5">
                     <p className="text-3xl font-bold tracking-tight text-bmw-blue">
                       {formatPrice(payload.meta.currentPrice)}
@@ -392,19 +437,23 @@ export default async function Home() {
                     </p>
                   </div>
                   <div className="bg-surface-soft p-5">
-                    <p className="text-lg font-bold uppercase tracking-tight text-ink">
-                      {payload.meta.htfTrend}
-                    </p>
-                    <p className="mt-2 text-xs font-bold uppercase tracking-[1.5px] text-muted">
-                      HTF Trend
-                    </p>
-                  </div>
-                  <div className="bg-surface-soft p-5">
-                    <p className="text-lg font-bold uppercase tracking-tight text-ink">
+                    <p
+                      className={`text-3xl font-bold uppercase tracking-tight ${ripStatusTone(
+                        payload.meta.ripStatus,
+                      )}`}
+                    >
                       {payload.meta.ripStatus}
                     </p>
                     <p className="mt-2 text-xs font-bold uppercase tracking-[1.5px] text-muted">
                       Rip Status
+                    </p>
+                  </div>
+                  <div className="col-span-2 bg-surface-soft p-5">
+                    <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
+                      HTF Trend
+                    </p>
+                    <p className="mt-2 text-sm font-light leading-relaxed text-body-strong">
+                      <HighlightedText text={payload.meta.htfTrend} terms={terms} />
                     </p>
                   </div>
                 </div>
@@ -419,20 +468,17 @@ export default async function Home() {
 
         {payload ? (
           <>
-            <OverviewSection overview={payload.overview} />
+            <OverviewSection overview={payload.overview} terms={terms} />
 
-            {/* Terrain zone map */}
+            {/* Execution chart: candles + terrain-level overlay */}
             <section id="terrain" className="border-b border-hairline bg-surface-soft">
               <div className="mx-auto max-w-[1440px] px-6 py-16">
                 <SectionLabel>Terrain · Campaign Map</SectionLabel>
                 <h2 className="mt-4 text-3xl font-bold uppercase tracking-tight text-ink">
                   Stratosphere to Abyss.
                 </h2>
-                <div className="mt-8 border border-hairline bg-canvas p-6">
-                  <TerrainMap
-                    terrain={payload.terrain}
-                    currentPrice={payload.meta.currentPrice}
-                  />
+                <div className="mt-8">
+                  <ExecutionChartSection model={chartModel} terrain={payload.terrain} />
                 </div>
               </div>
             </section>
@@ -442,13 +488,18 @@ export default async function Home() {
               <div className="mx-auto max-w-[1440px] px-6 py-16">
                 <SectionLabel>2 · Strategic Alignment</SectionLabel>
                 <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                  <ObjectiveCard heading="I · Primary Objective" objective={payload.primary} />
+                  <ObjectiveCard
+                    heading="I · Primary Objective"
+                    objective={payload.primary}
+                    terms={terms}
+                  />
                   <ObjectiveCard
                     heading="II · Secondary Objective"
                     objective={payload.secondary}
+                    terms={terms}
                   />
                 </div>
-                <DangerZones zones={payload.dangerZones} />
+                <DangerZones zones={payload.dangerZones} terms={terms} />
               </div>
             </section>
           </>
@@ -471,7 +522,11 @@ export default async function Home() {
           )
         )}
 
-        <EvalSection evalResult={data?.evalResult ?? null} unavailable={loadError !== null} />
+        <EvalSection
+          evalResult={data?.evalResult ?? null}
+          unavailable={loadError !== null}
+          terms={terms}
+        />
       </main>
 
       <Footer />

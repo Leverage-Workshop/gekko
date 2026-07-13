@@ -7,20 +7,22 @@ export {
   type DashboardEvalRow,
 } from './dashboardData'
 export { realDashboardDeps } from './deps'
+export { formatPrice } from './format'
 export {
-  buildTerrainMap,
-  formatPrice,
-  priceToY,
+  buildExecutionChart,
+  wallClockUtcSeconds,
+  CHART_LEVEL_STYLES,
+  CURRENT_PRICE_STYLE,
   DEFAULT_ZONE_FILL,
-  LEVEL_STYLES,
   ZONE_FILLS,
-  ZONE_FILL_OPACITY,
-  type AxisTick,
-  type LevelLine,
-  type PlotArea,
-  type PriceDomain,
-  type PriceMarker,
-  type TerrainMapModel,
-  type TerrainMapOptions,
-  type ZoneRect,
-} from './terrainMap'
+  type ChartCandle,
+  type ChartPriceLine,
+  type ExecutionChartModel,
+  type PriceLineStyle,
+} from './executionChart'
+export {
+  buildHighlightTerms,
+  segmentBriefingText,
+  type SegmentKind,
+  type TextSegment,
+} from './highlight'
