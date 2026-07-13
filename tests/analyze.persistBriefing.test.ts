@@ -89,6 +89,39 @@ describe('buildBriefingRow', () => {
     expect(row.overview).toEqual(briefing.overview)
     expect(row.raw_model_json).toEqual(briefing)
   })
+
+  it('omits the update columns entirely for analyze rows (DB default kind=morning applies)', () => {
+    const row = buildBriefingRow({
+      bundleId: 'bundle-1',
+      triggerReason: 'manual',
+      model: 'anthropic/claude-sonnet-5',
+      briefing,
+    })
+
+    expect('kind' in row).toBe(false)
+    expect('parent_briefing_id' in row).toBe(false)
+    expect('tactical_read' in row).toBe(false)
+  })
+
+  it('stamps kind/parent/tactical_read for update rows (feat-038)', () => {
+    const tacticalRead = {
+      location: 'Killbox, wall above at 30300',
+      ripStatus: 'Holding as support',
+      initiative: 'Buyers on positive delta',
+    }
+    const row = buildBriefingRow({
+      bundleId: 'bundle-1',
+      triggerReason: 'manual',
+      model: 'anthropic/claude-sonnet-5',
+      briefing,
+      update: { kind: 'update', parentBriefingId: 'briefing-0', tacticalRead },
+    })
+
+    expect(row.kind).toBe('update')
+    expect(row.parent_briefing_id).toBe('briefing-0')
+    expect(row.tactical_read).toEqual(tacticalRead)
+    expect(row.raw_model_json).toEqual(briefing)
+  })
 })
 
 describe('buildEntryLevelRows', () => {

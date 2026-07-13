@@ -3,8 +3,40 @@
 ## Current State
 
 **Last Updated:** 2026-07-13
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: ad-hoc
-**gem-docs ↔ code alignment audit + fixes** (branch `claude/gem-docs-code-alignment-vxcsly`).
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
+action** (branch `feat-038-update-action`).
+
+**feat-038 — the Gem's "Update" prompt reinstated (2026-07-13).** The doctrine's Update
+(`gem-files/instructions.md` 113–118: Immediate Tactical Read + "the exact Primary, Secondary,
+and Danger Zone sections from the Morning Brief format, updated for current realities") had been
+retired in the structured-output rewrite; it's now a first-class vertical mirroring the eval
+slice:
+
+- **Contract:** `BriefingUpdate` (+ `TacticalRead`) in `knowledge/schema/briefing.schema.ts` —
+  meta + tacticalRead{location, ripStatus, initiative} + primary/secondary/dangerZones. No
+  overview/terrain: `lib/update/composeBriefing.ts` composes the stored full `Briefing` from the
+  parent's overview/terrain + the fresh alignment, so the dashboard's `Briefing.safeParse` and
+  the entry_levels refresh (eval) work unchanged. The smaller schema also sidesteps the
+  Anthropic "grammar too large" issue.
+- **Pipeline:** `lib/update/updateBundle.ts` `runUpdate` — config (same high-conviction
+  routing), latest briefing as parent (`UpdateInputError`, abort-no-retry, when missing or
+  unparseable), full bundle load, engine facts, LLM with the parent briefing embedded verbatim
+  in the prompt (labeled with age + kind; chained updates inherit transitively), then
+  `enforceCodeOwnedFacts` on the composed briefing (inherited-terrain drift off fresh engine
+  borders surfaces as the existing warning) and `persistBriefing` with
+  `kind='update'/parent_briefing_id/tactical_read` (analyze rows omit the columns — DB default
+  `'morning'`).
+- **Surface:** `update-task` (trigger/updateTask.ts, parentBriefingId in run metadata, push
+  after persist), POST `/api/briefings/update`, "Run Update" outline button in the TopNav,
+  UPDATE chip in the MetaStrip, and a three-cell Tactical Read strip beneath it (update rows
+  only; degrades to null on bad tactical_read).
+- **Doctrine:** `output-schema.md` gained the BriefingUpdate section; the eval NO_ENTRY_NEAR
+  prompt regained the Gem's "Run an Update for a full tactical read" hand-off;
+  `gem-alignment-audit.md` §C bullet rewritten (the "no update task exists" adaptation is
+  history now).
+- **Migration `20260713090000_briefing_updates.sql`** applied to the live project BEFORE the
+  dashboard select change ships (the explicit column list would 42703 otherwise).
+- **Verification:** ./init.sh green — 46 test files, 583 tests, typecheck + lint clean, build OK.
 
 **Gem alignment audit (2026-07-13) — follow-up to PR #37's doctrine-drift finding.**
 Full review of every Gem-document rule (`gem-files/`) against the code; findings +

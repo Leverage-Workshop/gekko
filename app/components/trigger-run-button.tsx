@@ -11,6 +11,7 @@ import { Button } from './button'
  * region so screen readers hear the queued/failed outcome.
  *
  * - "Run Briefing" (feat-020) → POST /api/briefings/run → analyze-task
+ * - "Run Update" (feat-038) → POST /api/briefings/update → update-task
  * - "Check Entry at Current Price" (feat-025) → POST /api/eval/run → eval-task
  */
 
@@ -102,6 +103,18 @@ export function RunBriefingButton({ size }: { size?: 'md' | 'sm' }) {
       url="/api/briefings/run"
       label="Run Briefing"
       successHint="Reload in a minute for the new briefing."
+      size={size}
+    />
+  )
+}
+
+export function RunUpdateButton({ size }: { size?: 'md' | 'sm' }) {
+  return (
+    <TriggerRunButton
+      url="/api/briefings/update"
+      label="Run Update"
+      successHint="Reload in a minute for the updated read."
+      variant="outline"
       size={size}
     />
   )

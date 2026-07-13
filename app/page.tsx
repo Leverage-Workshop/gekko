@@ -1,4 +1,9 @@
-import type { DangerZone, Objective, Overview } from '@/knowledge/schema/briefing.schema'
+import type {
+  DangerZone,
+  Objective,
+  Overview,
+  TacticalRead,
+} from '@/knowledge/schema/briefing.schema'
 import {
   buildExecutionChart,
   buildHighlightTerms,
@@ -14,7 +19,11 @@ import { ExecutionChartSection } from './components/execution-chart-section'
 import { Footer } from './components/footer'
 import { HighlightedText } from './components/highlighted-text'
 import { MStripe } from './components/m-stripe'
-import { CheckEntryButton, RunBriefingButton } from './components/trigger-run-button'
+import {
+  CheckEntryButton,
+  RunBriefingButton,
+  RunUpdateButton,
+} from './components/trigger-run-button'
 import { TopNav } from './components/top-nav'
 
 /**
@@ -23,8 +32,9 @@ import { TopNav } from './components/top-nav'
  * then renders the briefing as a dense tool view: compact meta strip, a
  * two-tab body (Objectives = execution chart + objective cards + danger
  * zones; Tactical Overview = the stacked prose read), and the latest entry
- * eval. The trigger buttons ("Run Briefing" feat-020, "Check Entry" feat-025)
- * live in the top-right of the nav.
+ * eval. The trigger buttons ("Run Briefing" feat-020, "Run Update" feat-038,
+ * "Check Entry" feat-025) live in the top-right of the nav. Update briefings
+ * additionally carry an UPDATE chip and an Immediate Tactical Read strip.
  */
 
 // Always render at request time: the page reads the live DB and must never be
@@ -116,7 +126,12 @@ function MetaStrip({
   staleWarning,
   terms,
 }: {
-  briefing: { createdAt: string; triggerReason: string; modelId: string | null }
+  briefing: {
+    createdAt: string
+    triggerReason: string
+    modelId: string | null
+    kind: 'morning' | 'update'
+  }
   payload: Briefing
   isStale: boolean
   staleWarning: string | null
@@ -157,6 +172,14 @@ function MetaStrip({
           <div className="bg-surface-soft px-5 py-4 md:text-right">
             <p className="text-xs font-light tracking-wide text-body">
               {fmtDate(briefing.createdAt)}
+              {briefing.kind === 'update' && (
+                <span
+                  className="ml-3 border border-bmw-blue px-2 py-0.5 text-xs font-bold uppercase tracking-[1.5px] text-bmw-blue"
+                  title="Update briefing — objectives and danger zones regenerated; overview and terrain inherited from the previous briefing"
+                >
+                  Update
+                </span>
+              )}
               {isStale && (
                 <span
                   className="ml-3 border border-m-red px-2 py-0.5 text-xs font-bold uppercase tracking-[1.5px] text-m-red"
@@ -171,6 +194,37 @@ function MetaStrip({
               {briefing.modelId && ` · ${briefing.modelId}`}
             </p>
           </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Immediate Tactical Read strip (feat-038) — the Gem Update's three 1-line
+ * reads, rendered as a compact cell row directly beneath the MetaStrip.
+ * Update briefings only; morning briefings have no tactical read.
+ */
+function TacticalReadStrip({ read, terms }: { read: TacticalRead; terms: string[] }) {
+  const cells: { title: string; text: string }[] = [
+    { title: 'Location', text: read.location },
+    { title: 'Rip Status', text: read.ripStatus },
+    { title: 'Initiative', text: read.initiative },
+  ]
+  return (
+    <section className="border-b border-hairline bg-surface-soft">
+      <div className="mx-auto max-w-[1800px] px-6 pb-4">
+        <div className="grid gap-px border border-hairline border-t-0 bg-hairline md:grid-cols-3">
+          {cells.map((cell) => (
+            <div key={cell.title} className="bg-surface-soft px-5 py-3">
+              <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
+                {cell.title}
+              </p>
+              <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
+                <HighlightedText text={cell.text} terms={terms} />
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -408,6 +462,7 @@ export default async function Home() {
         actions={
           <>
             <CheckEntryButton size="sm" />
+            <RunUpdateButton size="sm" />
             <RunBriefingButton size="sm" />
           </>
         }
@@ -442,6 +497,9 @@ export default async function Home() {
               staleWarning={data?.staleness.warning ?? null}
               terms={terms}
             />
+            {briefing.tacticalRead && (
+              <TacticalReadStrip read={briefing.tacticalRead} terms={terms} />
+            )}
 
             <section className="border-b border-hairline">
               <div className="mx-auto max-w-[1800px] px-6 py-8">

@@ -148,9 +148,13 @@ holds; Tier 3 (Leg-VWAP micro-timing) would be wrong.
 - **Bolding all prices in the UI** (`highlight.ts`) matches `instructions.md` line 43 ("Bold all
   references to price levels…"); the ADHD "max 2" rule governs Key Inflection Points — now
   enforced by A5.
-- **The "Use 'update' for full tactical read" sentence** was dropped from the eval "no entry
-  near" response because no `update` task exists — scheduled/proximity-triggered analyze runs
-  replace the Gem's Update prompt. Intentional adaptation.
+- **The Gem's "Update" prompt is reinstated as `update-task` (feat-038)** — an Immediate
+  Tactical Read plus a fresh Strategic Alignment (primary/secondary/danger zones) regenerated
+  against the previous briefing, persisted as a `briefings` row with `kind='update'` whose
+  overview/terrain carry forward from the parent. The eval "no entry near" response regained
+  its "Run an Update for a full tactical read" hand-off (`lib/eval/prompt.ts`). (Historical
+  note: between the structured-output rewrite and feat-038, no update task existed and analyze
+  runs stood in for it.)
 - **Exhaustion shapes and the named multi-leg patterns** (Three-Push Exhaustion Trap, Controlled
   Flush & Reload) are not engine-detected; they remain LLM-visual judgment with the chart PNGs
   attached — the same architecture as the original Gem. The engine's absorption module is

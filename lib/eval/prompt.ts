@@ -85,7 +85,7 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
         nearest
           ? `: nearest is ${nearest.distancePoints} points away, threshold ${proximity.thresholdPoints}`
           : ': there are no usable active levels'
-      }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level." Leave evaluatedLevel/direction/trigger/stop/targets absent.`
+      }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level. Run an Update for a full tactical read." Leave evaluatedLevel/direction/trigger/stop/targets absent.`
 
   return [
     '# Mission',
