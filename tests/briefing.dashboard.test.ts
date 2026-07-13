@@ -51,7 +51,15 @@ const briefingRow: DashboardBriefingRow = {
   created_at: '2026-07-08T12:00:05Z',
   trigger_reason: 'manual',
   model_id: 'anthropic/claude-sonnet-5',
+  kind: 'morning',
+  tactical_read: null,
   raw_model_json: briefingPayload,
+}
+
+const tacticalRead = {
+  location: 'Killbox, wall above at 30300',
+  ripStatus: 'Holding as support',
+  initiative: 'Buyers on positive delta',
 }
 
 const evalRow: DashboardEvalRow = {
@@ -155,6 +163,37 @@ describe('loadDashboardData', () => {
     expect(data.briefing).toBeNull()
     expect(data.briefingError).toContain('briefing-1')
     expect(data.briefingError).toContain('schema validation')
+  })
+
+  it('normalizes kind: update rows read as update, everything else as morning (feat-038)', async () => {
+    const asKind = async (kind: string | null) => {
+      const data = await loadDashboardData(
+        fakeDeps({ fetchLatestBriefing: async () => ({ ...briefingRow, kind }) }),
+        { now: NOW },
+      )
+      return data.briefing!.kind
+    }
+
+    expect(await asKind('update')).toBe('update')
+    expect(await asKind('morning')).toBe('morning')
+    expect(await asKind(null)).toBe('morning') // pre-migration rows
+    expect(await asKind('unexpected')).toBe('morning')
+  })
+
+  it('parses tactical_read for update rows and degrades to null on bad data (feat-038)', async () => {
+    const asRead = async (tactical_read: unknown) => {
+      const data = await loadDashboardData(
+        fakeDeps({
+          fetchLatestBriefing: async () => ({ ...briefingRow, kind: 'update', tactical_read }),
+        }),
+        { now: NOW },
+      )
+      return data.briefing!.tacticalRead
+    }
+
+    expect(await asRead(tacticalRead)).toEqual(tacticalRead)
+    expect(await asRead(null)).toBeNull()
+    expect(await asRead({ location: 'only one line' })).toBeNull()
   })
 
   it('falls back to the payload triggerReason when the column is null', async () => {

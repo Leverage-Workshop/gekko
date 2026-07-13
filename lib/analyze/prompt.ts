@@ -24,7 +24,8 @@ export interface AnalysisPromptInput {
   rrMin: number
 }
 
-function chartManifest(charts: readonly ChartAttachment[]): string {
+/** Shared with the update-task prompt (lib/update/prompt.ts). */
+export function chartManifest(charts: readonly ChartAttachment[]): string {
   if (charts.length === 0) {
     return 'No chart screenshots are attached to this run — rely on the engine facts alone and say so in the overview.'
   }
@@ -33,8 +34,11 @@ function chartManifest(charts: readonly ChartAttachment[]): string {
     .join('\n')
 }
 
-/** Compact, model-facing projection of the engine facts (no bulky raw rows). */
-function factsPayload(facts: EngineFacts): Record<string, unknown> {
+/**
+ * Compact, model-facing projection of the engine facts (no bulky raw rows).
+ * Shared with the update-task prompt (lib/update/prompt.ts).
+ */
+export function factsPayload(facts: EngineFacts): Record<string, unknown> {
   return {
     currentPrice: facts.currentPrice,
     staleness: facts.staleness,

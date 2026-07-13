@@ -1,10 +1,13 @@
-import type { Briefing } from '@/knowledge/schema/briefing.schema'
+import type { Briefing, TacticalRead } from '@/knowledge/schema/briefing.schema'
 import type { RiskReward } from '@/lib/engine/riskReward'
 
 /**
- * Persistence step of the analyze-task: one `briefings` row, then refresh
- * `entry_levels` (insert the new set, deactivate every prior set — eval-task
- * only ever evaluates `active=true` rows). Side effects are injected.
+ * Persistence step of the analyze-task AND update-task: one `briefings` row,
+ * then refresh `entry_levels` (insert the new set, deactivate every prior set
+ * — eval-task only ever evaluates `active=true` rows). Side effects are
+ * injected. Update runs additionally stamp kind/parent/tactical_read
+ * (feat-038); analyze runs omit them so the DB default `kind='morning'`
+ * applies.
  */
 
 /** Insert shape for `public.briefings`. */
@@ -27,6 +30,10 @@ export interface BriefingInsert {
    * when enabled.
    */
   raw_model_json: Briefing
+  /** feat-038: 'update' rows only — omitted for analyze so the DB default applies. */
+  kind?: 'update'
+  parent_briefing_id?: string
+  tactical_read?: TacticalRead
 }
 
 /** Insert shape for `public.entry_levels`. */
@@ -60,10 +67,12 @@ export interface PersistInput {
   briefing: Briefing
   /** Engine R/R verdicts — the protective stop per objective. */
   riskReward: { primary: RiskReward; secondary: RiskReward }
+  /** feat-038: present only for update-task runs. */
+  update?: { kind: 'update'; parentBriefingId: string; tacticalRead: TacticalRead }
 }
 
 export function buildBriefingRow(
-  input: Pick<PersistInput, 'bundleId' | 'triggerReason' | 'model' | 'briefing'>,
+  input: Pick<PersistInput, 'bundleId' | 'triggerReason' | 'model' | 'briefing' | 'update'>,
 ): BriefingInsert {
   const { briefing } = input
   return {
@@ -78,6 +87,11 @@ export function buildBriefingRow(
     danger_zones: briefing.dangerZones,
     overview: briefing.overview,
     raw_model_json: briefing,
+    ...(input.update && {
+      kind: input.update.kind,
+      parent_briefing_id: input.update.parentBriefingId,
+      tactical_read: input.update.tacticalRead,
+    }),
   }
 }
 

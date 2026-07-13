@@ -1,14 +1,16 @@
 # Output Schema
 
 Output is **structured JSON, not markdown**. The single source of truth for the shape is the Zod
-contract in `knowledge/schema/briefing.schema.ts` — the `analyze-task` and `eval-task` generate
-objects against those schemas (`generateObject`), and the Next.js UI renders tables and the terrain
-map from the returned object. This file is the human-readable mirror of that contract; if the two
-ever disagree, the Zod schema wins.
+contract in `knowledge/schema/briefing.schema.ts` — the `analyze-task`, `update-task` and
+`eval-task` generate objects against those schemas (`generateObject`), and the Next.js UI renders
+tables and the terrain map from the returned object. This file is the human-readable mirror of that
+contract; if the two ever disagree, the Zod schema wins.
 
-The old free-text Morning-Briefing / Update / CSV-terrain-map templates are **retired** — they are
-replaced by the structured `Briefing` object below. The model supplies perception and judgment; the
-engine supplies all computed fields (e.g. `rr` from `riskReward.ts`, validated terrain borders).
+The old free-text markdown templates are **retired** — replaced by the structured objects below:
+the Morning Briefing became `Briefing`, the Gem's "Update" prompt became `BriefingUpdate`
+(feat-038), and the CSV terrain map is engine-owned. The model supplies perception and judgment;
+the engine supplies all computed fields (e.g. `rr` from `riskReward.ts`, validated terrain
+borders).
 
 ## `Briefing` (output of `analyze-task`)
 
@@ -55,6 +57,35 @@ Objective = {
   - **T3 (Campaign Max)** — the full traverse of the HTF distribution / a major HTF MGI at an LVN.
     T3 must land on a Valley (Trench) or Shelf (Wall) — never a Magnet (see Magnet Prohibition in
     `system/constraints.md`).
+
+## `BriefingUpdate` (output of `update-task` — the "Run Update" button)
+
+The Gem's "Update" prompt as a structured contract: a lighter re-read between full briefings. It
+regenerates the **Strategic Alignment** (primary / secondary / danger zones) against the previous
+briefing, prefixed by an **Immediate Tactical Read**.
+
+```
+BriefingUpdate = {
+  meta: BriefingMeta,     // same meta block as Briefing
+  tacticalRead: {
+    location,             // 1-line: current zone + immediate borders above/below
+    ripStatus,            // 1-line narrative read: "Holding as support" / "Breached" / "Flipped to resistance"
+    initiative            // 1-line: who has control based on current delta/telemetry
+  },
+  primary:   Objective,   // fresh — same Objective shape as Briefing
+  secondary: Objective,
+  dangerZones: { area: string, why: string }[]
+}
+```
+
+- There is **no `overview` or `terrain`** in the update: those carry forward from the previous
+  briefing. Persistence composes a full `Briefing` (parent overview/terrain + fresh alignment)
+  before storing, so downstream consumers always see a complete briefing.
+- The previous briefing is embedded in the update prompt as inherited context; objectives should
+  stay consistent with its terrain unless fresh engine facts contradict it (flag the drift in the
+  rationale when they do).
+- `tacticalRead.ripStatus` is the narrative read; `meta.ripStatus` stays the code-owned engine
+  condition, exactly as in `Briefing`.
 
 ## `EvalResult` (output of `eval-task` — the "Check Entry" button)
 

@@ -16,7 +16,7 @@ export function realDashboardDeps(): DashboardDeps {
     fetchLatestBriefing: async () => {
       const { data, error } = await supabase
         .from('briefings')
-        .select('id, created_at, trigger_reason, model_id, raw_model_json')
+        .select('id, created_at, trigger_reason, model_id, kind, tactical_read, raw_model_json')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()

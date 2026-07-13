@@ -1,4 +1,4 @@
-import { Briefing } from '@/knowledge/schema/briefing.schema'
+import { Briefing, TacticalRead } from '@/knowledge/schema/briefing.schema'
 import { parseExecBars, type ExecBar } from '@/lib/engine/parseExecBars'
 import { assessStaleness, type StalenessAssessment } from '@/lib/engine/staleness'
 
@@ -17,6 +17,10 @@ export interface DashboardBriefingRow {
   created_at: string
   trigger_reason: string | null
   model_id: string | null
+  /** 'morning' | 'update' (feat-038); null on pre-migration rows. */
+  kind: string | null
+  /** Update rows only: the Immediate Tactical Read jsonb (feat-038). */
+  tactical_read: unknown
   /** Full Briefing payload as persisted; re-validated against the Zod schema. */
   raw_model_json: unknown
 }
@@ -52,6 +56,10 @@ export interface DashboardBriefing {
   createdAt: string
   triggerReason: string
   modelId: string | null
+  /** Anything other than 'update' (including pre-migration null) reads as 'morning'. */
+  kind: 'morning' | 'update'
+  /** Non-null only for update rows whose tactical_read parses; degrades to null. */
+  tacticalRead: TacticalRead | null
   payload: Briefing
 }
 
@@ -100,11 +108,16 @@ export async function loadDashboardData(
   if (briefingRow) {
     const parsed = Briefing.safeParse(briefingRow.raw_model_json)
     if (parsed.success) {
+      // The tactical read degrades to null on any parse failure — it is an
+      // update-only garnish and must never block the briefing render.
+      const tacticalRead = TacticalRead.safeParse(briefingRow.tactical_read)
       briefing = {
         id: briefingRow.id,
         createdAt: briefingRow.created_at,
         triggerReason: briefingRow.trigger_reason ?? parsed.data.meta.triggerReason,
         modelId: briefingRow.model_id,
+        kind: briefingRow.kind === 'update' ? 'update' : 'morning',
+        tacticalRead: tacticalRead.success ? tacticalRead.data : null,
         payload: parsed.data,
       }
     } else {

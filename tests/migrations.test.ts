@@ -106,6 +106,43 @@ describe('supabase migrations', () => {
   })
 })
 
+// feat-038: briefing "Update" action — kind / parent / tactical_read columns.
+describe('briefing updates migration (feat-038)', () => {
+  const file = sql.files.find((f) => f.includes('briefing_updates'))
+  const content = file ? readFileSync(join(MIGRATIONS_DIR, file), 'utf8') : ''
+
+  it('exists', () => {
+    expect(file).toBeDefined()
+  })
+
+  it('adds the kind column idempotently with a morning default (backfills old rows)', () => {
+    expect(content).toContain("add column if not exists kind text not null default 'morning'")
+  })
+
+  it('constrains kind to morning|update', () => {
+    expect(content).toContain("check (kind in ('morning', 'update'))")
+  })
+
+  it('adds parent_briefing_id as a self-FK that survives parent deletion (set null, not cascade)', () => {
+    expect(content).toMatch(
+      /add column if not exists parent_briefing_id uuid references public\.briefings \(id\) on delete set null/,
+    )
+    expect(content).not.toMatch(/parent_briefing_id[^;]*cascade/i)
+  })
+
+  it('adds the tactical_read jsonb column and a parent index', () => {
+    expect(content).toContain('add column if not exists tactical_read jsonb')
+    expect(content).toContain(
+      'create index if not exists briefings_parent_briefing_id_idx',
+    )
+  })
+
+  it('contains no destructive DDL', () => {
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+})
+
 // feat-026: Realtime notifications go out over Broadcast (realtime.send from
 // an AFTER INSERT trigger), NOT postgres_changes — so no anon SELECT policy
 // on any public table and no publication change is ever needed.

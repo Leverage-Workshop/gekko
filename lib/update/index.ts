@@ -1,0 +1,6 @@
+export { composeUpdateBriefing } from './composeBriefing'
+export { realUpdateDeps } from './deps'
+export { buildUpdatePrompt } from './prompt'
+export type { ParentBriefingContext, UpdatePromptInput } from './prompt'
+export { UpdateInputError, runUpdate } from './updateBundle'
+export type { ParentBriefingRow, UpdateDeps, UpdateResult } from './updateBundle'

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   Briefing,
+  BriefingUpdate,
   EvalResult,
   Objective,
   Direction,
@@ -148,6 +149,42 @@ describe('Objective', () => {
       targets: [{ label: 'T9', price: 1, description: 'x' }],
     }
     expect(Objective.safeParse(bad).success).toBe(false)
+  })
+})
+
+describe('BriefingUpdate', () => {
+  const validUpdate = {
+    meta: validBriefing.meta,
+    tacticalRead: {
+      location: 'Attic, between VAL 24000 below and POC 24200 above',
+      ripStatus: 'Holding as support',
+      initiative: 'Blue in control on sustained positive delta',
+    },
+    primary: validObjective,
+    secondary: { ...validObjective, direction: 'short' as const },
+    dangerZones: [{ area: 'Mid-range chop', why: 'No edge between magnets' }],
+  }
+
+  it('accepts a complete, valid update', () => {
+    const parsed = BriefingUpdate.parse(validUpdate)
+    expect(parsed.tacticalRead.ripStatus).toBe('Holding as support')
+    expect(parsed.primary.direction).toBe('long')
+  })
+
+  it('has no overview or terrain — they carry forward from the parent', () => {
+    expect('overview' in BriefingUpdate.shape).toBe(false)
+    expect('terrain' in BriefingUpdate.shape).toBe(false)
+  })
+
+  it('requires all three tactical read lines', () => {
+    const { initiative: _i, ...twoLines } = validUpdate.tacticalRead
+    const bad = { ...validUpdate, tacticalRead: twoLines }
+    expect(BriefingUpdate.safeParse(bad).success).toBe(false)
+  })
+
+  it('rejects a missing objective', () => {
+    const { secondary: _s, ...noSecondary } = validUpdate
+    expect(BriefingUpdate.safeParse(noSecondary).success).toBe(false)
   })
 })
 

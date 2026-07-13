@@ -1,8 +1,9 @@
 import { z } from 'zod'
 
 /**
- * Output contracts (source of truth) for the two model-facing tasks:
+ * Output contracts (source of truth) for the three model-facing tasks:
  *   - analyze-task → Briefing
+ *   - update-task  → BriefingUpdate
  *   - eval-task    → EvalResult
  *
  * These mirror the "Output contract" section of docs/agent-architecture-plan.md.
@@ -125,6 +126,39 @@ export const Briefing = z.object({
   dangerZones: z.array(DangerZone),
 })
 export type Briefing = z.infer<typeof Briefing>
+
+// --- BriefingUpdate ---------------------------------------------------------
+
+/**
+ * The Gem "Update" prompt's Immediate Tactical Read — three 1-line prose
+ * reads. `ripStatus` here is the model's narrative read ("Holding as support")
+ * and is distinct from the code-owned condition in `meta.ripStatus`.
+ */
+export const TacticalRead = z.object({
+  /** Current zone + immediate borders above/below. */
+  location: z.string(),
+  /** e.g. "Holding as support" / "Breached" / "Flipped to resistance". */
+  ripStatus: z.string(),
+  /** Who has control based on current delta/telemetry. */
+  initiative: z.string(),
+})
+export type TacticalRead = z.infer<typeof TacticalRead>
+
+/**
+ * update-task output: the Gem's "Update" — Immediate Tactical Read + a fresh
+ * Strategic Alignment (primary / secondary / danger zones). No overview or
+ * terrain: those carry forward from the parent briefing, and persistence
+ * composes a full {@link Briefing} from parent + update before writing
+ * `raw_model_json`.
+ */
+export const BriefingUpdate = z.object({
+  meta: BriefingMeta,
+  tacticalRead: TacticalRead,
+  primary: Objective,
+  secondary: Objective,
+  dangerZones: z.array(DangerZone),
+})
+export type BriefingUpdate = z.infer<typeof BriefingUpdate>
 
 // --- EvalResult -------------------------------------------------------------
 
