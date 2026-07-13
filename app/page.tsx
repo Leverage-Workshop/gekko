@@ -80,7 +80,7 @@ function ripStatusTone(status: string): string {
   return 'text-ink'
 }
 
-/** Tactical Overview tab: the three prose groups, stacked. */
+/** Tactical Overview tab: the three prose groups as stacked cards. */
 function OverviewPane({ overview, terms }: { overview: Overview; terms: string[] }) {
   const groups: { title: string; items: string[] }[] = [
     { title: 'Current Position', items: overview.currentPosition },
@@ -88,14 +88,21 @@ function OverviewPane({ overview, terms }: { overview: Overview; terms: string[]
     { title: 'Order Flow Context', items: overview.orderFlowContext },
   ]
   return (
-    <div className="max-w-3xl space-y-10">
+    <div className="flex flex-col gap-6">
       {groups.map((group) => (
-        <div key={group.title}>
-          <h3 className="mb-4 text-sm font-bold uppercase tracking-[1.5px] text-ink">
-            {group.title}
-          </h3>
-          <BulletList items={group.items} terms={terms} />
-        </div>
+        <article
+          key={group.title}
+          className="border border-hairline border-t-2 border-t-hairline bg-surface-card p-6"
+        >
+          <div className="border-b border-hairline pb-4">
+            <span className="text-xs font-bold uppercase tracking-[1.5px] text-ink">
+              {group.title}
+            </span>
+          </div>
+          <div className="mt-4">
+            <BulletList items={group.items} terms={terms} />
+          </div>
+        </article>
       ))}
     </div>
   )
@@ -272,30 +279,27 @@ function ObjectiveCard({
   )
 }
 
+/** Danger Zones tab: one card per no-trade area. */
 function DangerZones({ zones, terms }: { zones: DangerZone[]; terms: string[] }) {
+  if (zones.length === 0) {
+    return <p className="text-sm font-light text-muted">None flagged.</p>
+  }
   return (
-    <div className="mt-10">
-      <h3 className="mb-4 text-sm font-bold uppercase tracking-[1.5px] text-m-red">
-        III · Danger Zones
-      </h3>
-      {zones.length === 0 ? (
-        <p className="text-sm font-light text-muted">None flagged.</p>
-      ) : (
-        <ul className="space-y-3">
-          {zones.map((zone) => (
-            <li
-              key={`${zone.area}-${zone.why}`}
-              className="border-l-4 border-m-red bg-surface-card p-4"
-            >
-              <p className="text-sm font-bold text-ink">Avoid: {zone.area}</p>
-              <p className="mt-1 text-sm font-light leading-relaxed text-body">
-                <HighlightedText text={zone.why} terms={terms} />
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <ul className="flex flex-col gap-6">
+      {zones.map((zone) => (
+        <li
+          key={`${zone.area}-${zone.why}`}
+          className="border border-hairline border-t-2 border-t-m-red bg-surface-card p-6"
+        >
+          <p className="text-sm font-bold uppercase tracking-wide text-m-red">
+            Avoid: {zone.area}
+          </p>
+          <p className="mt-2 text-sm font-light leading-relaxed text-body">
+            <HighlightedText text={zone.why} terms={terms} />
+          </p>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -441,32 +445,30 @@ export default async function Home() {
 
             <section className="border-b border-hairline">
               <div className="mx-auto max-w-[1800px] px-6 py-8">
-                <BriefingTabs
-                  objectives={
-                    <div>
-                      <div className="grid gap-6 xl:grid-cols-[3fr_2fr]">
-                        <ExecutionChartSection
-                          model={chartModel}
-                          terrain={payload.terrain}
+                <div className="grid gap-6 xl:grid-cols-[3fr_2fr]">
+                  {/* Chart column: always visible */}
+                  <ExecutionChartSection model={chartModel} terrain={payload.terrain} />
+
+                  {/* Tabbed column */}
+                  <BriefingTabs
+                    objectives={
+                      <div className="flex flex-col gap-6">
+                        <ObjectiveCard
+                          heading="I · Primary Objective"
+                          objective={payload.primary}
+                          terms={terms}
                         />
-                        <div className="flex flex-col gap-6">
-                          <ObjectiveCard
-                            heading="I · Primary Objective"
-                            objective={payload.primary}
-                            terms={terms}
-                          />
-                          <ObjectiveCard
-                            heading="II · Secondary Objective"
-                            objective={payload.secondary}
-                            terms={terms}
-                          />
-                        </div>
+                        <ObjectiveCard
+                          heading="II · Secondary Objective"
+                          objective={payload.secondary}
+                          terms={terms}
+                        />
                       </div>
-                      <DangerZones zones={payload.dangerZones} terms={terms} />
-                    </div>
-                  }
-                  overview={<OverviewPane overview={payload.overview} terms={terms} />}
-                />
+                    }
+                    overview={<OverviewPane overview={payload.overview} terms={terms} />}
+                    danger={<DangerZones zones={payload.dangerZones} terms={terms} />}
+                  />
+                </div>
               </div>
             </section>
           </>

@@ -151,9 +151,22 @@ export function ExecutionChart({ model }: { model: ExecutionChartModel }) {
     )
 
     series.attachPrimitive(new EntryZonesPrimitive(model.zones, series))
+
+    // Entry levels on the price scale: axis label only — the shaded band
+    // already marks the level on the pane.
+    for (const zone of model.zones) {
+      series.createPriceLine({
+        price: zone.entry,
+        color: ZONE_COLORS[zone.direction].edge,
+        lineVisible: false,
+        axisLabelVisible: true,
+        title: '',
+      })
+    }
+
     chart.timeScale().fitContent()
     return () => chart.remove()
   }, [model])
 
-  return <div ref={containerRef} className="h-[560px] w-full" />
+  return <div ref={containerRef} className="h-[900px] w-full" />
 }

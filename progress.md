@@ -63,12 +63,19 @@ dense tool view.
   suffix; the chart axis shows the CSV's wall-clock (which is Chicago) via the
   wall-clock→UTC re-anchor, labeled "All times CT".
 
+**Round 3 (same session):** chart pinned in the left column (always visible,
+taller at 900px so chart + campaign zones ≈ objectives column height); the tabs
+moved into the right column and grew a third tab — Objectives / Tactical
+Overview / Danger Zones. Overview groups and danger zones restyled as cards
+matching the objective cards; entry prices now sit on the chart's price scale as
+colored axis labels (blue long / red short, `lineVisible: false` price lines).
+
 Verification: `./init.sh` passes (typecheck, lint — 3 pre-existing warnings in
 tests/briefing.schema.test.ts, 547 tests, build); full-page Playwright screenshots
-of both tabs confirmed the layout. New dep: `lightweight-charts` ^5.2.0.
+of all three tabs confirmed the layout. New dep: `lightweight-charts` ^5.2.0.
 Playwright itself is NOT a project dep — it runs from a scratchpad install
 (system libs `libnspr4 libnss3 libasound2t64` were apt-installed for headless
-Chromium). PR #40.
+Chromium). PR #40, squash-merged.
 
 **feat-037 live smoke test (2026-07-11) — PASSED.** The end-to-end check noted in PR #39
 ran against the live Sierra export folder (`C:\gekko\export`, accessed from WSL as
