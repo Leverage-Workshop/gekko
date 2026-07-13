@@ -53,5 +53,26 @@ export function realDashboardDeps(): DashboardDeps {
       }
       return (data?.received_at as string | undefined) ?? null
     },
+
+    fetchLatestExecCsv: async () => {
+      const { data, error } = await supabase
+        .from('raw_bundles')
+        .select('exec_csv_ref')
+        .order('received_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (error) {
+        throw error
+      }
+      const ref = (data?.exec_csv_ref as string | undefined | null) ?? null
+      if (!ref) return null
+      const { data: blob, error: downloadError } = await supabase.storage
+        .from('bundle-csvs')
+        .download(ref)
+      if (downloadError || !blob) {
+        throw downloadError ?? new Error(`Empty download for ${ref}`)
+      }
+      return blob.text()
+    },
   }
 }

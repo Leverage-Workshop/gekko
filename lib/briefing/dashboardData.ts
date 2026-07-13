@@ -1,11 +1,13 @@
 import { Briefing } from '@/knowledge/schema/briefing.schema'
+import { parseExecBars, type ExecBar } from '@/lib/engine/parseExecBars'
 import { assessStaleness, type StalenessAssessment } from '@/lib/engine/staleness'
 
 /**
  * Dashboard data loading (feat-019): the latest `briefings` row, the latest
- * `eval_results` row, and the latest bundle's `received_at` (for staleness via
- * assessStaleness). Side effects are injected (`DashboardDeps`) so the loader
- * is unit-testable offline; `realDashboardDeps()` in ./deps.ts wires the
+ * `eval_results` row, the latest bundle's `received_at` (for staleness via
+ * assessStaleness), and the latest bundle's execution bars (for the terrain
+ * chart). Side effects are injected (`DashboardDeps`) so the loader is
+ * unit-testable offline; `realDashboardDeps()` in ./deps.ts wires the
  * service-role Supabase client.
  */
 
@@ -41,6 +43,8 @@ export interface DashboardDeps {
   fetchLatestEvalResult(): Promise<DashboardEvalRow | null>
   /** Latest `raw_bundles.received_at`, or null when no bundle was ever ingested. */
   fetchLatestBundleReceivedAt(): Promise<string | null>
+  /** Latest bundle's execution_bars.csv content, or null when none exists. */
+  fetchLatestExecCsv(): Promise<string | null>
 }
 
 export interface DashboardBriefing {
@@ -60,19 +64,36 @@ export interface DashboardData {
   briefingError: string | null
   evalResult: DashboardEvalRow | null
   staleness: StalenessAssessment
+  /**
+   * Parsed execution bars from the latest bundle, or null when the CSV is
+   * missing, unreadable, or malformed — the chart degrades, never the page.
+   */
+  execBars: ExecBar[] | null
 }
 
 export async function loadDashboardData(
   deps: DashboardDeps,
   opts: { now?: Date } = {},
 ): Promise<DashboardData> {
-  const [briefingRow, evalRow, receivedAt] = await Promise.all([
+  const [briefingRow, evalRow, receivedAt, execCsv] = await Promise.all([
     deps.fetchLatestBriefing(),
     deps.fetchLatestEvalResult(),
     deps.fetchLatestBundleReceivedAt(),
+    // The chart is progressive enhancement: a storage failure must not take
+    // down the briefing view.
+    deps.fetchLatestExecCsv().catch(() => null),
   ])
 
   const staleness = assessStaleness({ receivedAt, now: opts.now })
+
+  let execBars: ExecBar[] | null = null
+  if (execCsv) {
+    try {
+      execBars = parseExecBars(execCsv)
+    } catch {
+      execBars = null
+    }
+  }
 
   let briefing: DashboardBriefing | null = null
   let briefingError: string | null = null
@@ -93,5 +114,5 @@ export async function loadDashboardData(
     }
   }
 
-  return { briefing, briefingError, evalResult: evalRow, staleness }
+  return { briefing, briefingError, evalResult: evalRow, staleness, execBars }
 }

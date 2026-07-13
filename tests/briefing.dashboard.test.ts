@@ -73,9 +73,16 @@ function fakeDeps(overrides: Partial<DashboardDeps> = {}): DashboardDeps {
     fetchLatestBriefing: async () => null,
     fetchLatestEvalResult: async () => null,
     fetchLatestBundleReceivedAt: async () => null,
+    fetchLatestExecCsv: async () => null,
     ...overrides,
   }
 }
+
+const EXEC_CSV = [
+  'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
+  '2026-07-08 11:58:00,30240.00,30252.50,30238.25,30250.00,0.00,1.00',
+  '2026-07-08 11:59:00,30250.00,30255.00,30244.75,30246.50,0.00,-1.00',
+].join('\n')
 
 const NOW = new Date('2026-07-08T12:10:00Z')
 
@@ -159,5 +166,44 @@ describe('loadDashboardData', () => {
     )
 
     expect(data.briefing!.triggerReason).toBe('manual')
+  })
+
+  it('parses the latest execution-bar CSV into bars', async () => {
+    const data = await loadDashboardData(
+      fakeDeps({ fetchLatestExecCsv: async () => EXEC_CSV }),
+      { now: NOW },
+    )
+
+    expect(data.execBars).toHaveLength(2)
+    expect(data.execBars![0].open).toBe(30240)
+    expect(data.execBars![1].close).toBe(30246.5)
+  })
+
+  it('returns null execBars when no CSV exists', async () => {
+    const data = await loadDashboardData(fakeDeps(), { now: NOW })
+    expect(data.execBars).toBeNull()
+  })
+
+  it('degrades to null execBars on a fetch failure — never fails the page', async () => {
+    const data = await loadDashboardData(
+      fakeDeps({
+        fetchLatestExecCsv: async () => {
+          throw new Error('storage down')
+        },
+      }),
+      { now: NOW },
+    )
+
+    expect(data.execBars).toBeNull()
+    expect(data.staleness).toBeDefined()
+  })
+
+  it('degrades to null execBars on a malformed CSV', async () => {
+    const data = await loadDashboardData(
+      fakeDeps({ fetchLatestExecCsv: async () => 'Wrong,Header\n1,2' }),
+      { now: NOW },
+    )
+
+    expect(data.execBars).toBeNull()
   })
 })

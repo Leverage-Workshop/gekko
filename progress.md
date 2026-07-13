@@ -2,9 +2,111 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-10
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-037**
-(balance-area VBP rename + balance-area-anchored magnet set).
+**Last Updated:** 2026-07-12
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: ad-hoc
+**dashboard display overhaul** (branch `feat-ui-briefing-display`) on top of feat-037.
+
+**Dashboard display overhaul (2026-07-12) — briefing page redesign per Caleb's review.**
+Caleb reviewed the rendered briefing (screenshotted headlessly via Playwright + the
+dev server) and called out four problems; all fixed and verified visually:
+
+- **Terrain SVG replaced with a real chart:** the hand-rolled SVG map (which a
+  placeholder "overnight high unavailable" level at price 0 stretched to a 0–30,975
+  axis, crushing everything into an unreadable smear) is gone — deleted
+  `app/components/terrain-map.tsx`, `lib/briefing/terrainMap.ts`, and its test. New:
+  **lightweight-charts v5** candlestick chart of the latest bundle's
+  `execution_bars.csv` with terrain levels overlaid as styled price lines.
+  `lib/briefing/executionChart.ts` (pure, tested) builds the model: wall-clock→UTC
+  time anchoring, time-dedup, junk-level filtering (price ≤ 0), a ±35%-of-range
+  window that lists far-away levels "beyond the traded range" instead of plotting
+  them, and autoscale bounds covering every plotted line. The dashboard loader
+  gained `fetchLatestExecCsv` (latest `raw_bundles.exec_csv_ref` →
+  `bundle-csvs` download, reusing `parseExecBars`); chart failures degrade to a
+  fallback note, never the page. Zones render as a color-chip strip below the chart.
+- **Objectives are direction-keyed:** `ObjectiveCard` now reads bmw-blue for
+  long/bullish and m-red for short/bearish (top accent border, LONG · BULLISH /
+  SHORT · BEARISH badge, macro goal + price column in the accent).
+- **Prices and doctrine terms pop in prose:** `lib/briefing/highlight.ts` (pure,
+  tested) segments briefing text; `HighlightedText` bolds NQ-scale prices
+  (years/small counts excluded) and level/zone labels + doctrine vocabulary
+  (longest-match-first, word-boundary, case-insensitive) across overview bullets,
+  inflections, objective rationale/tables, danger zones, HTF trend, and eval reason.
+- **Hero fixed:** the HTF-trend paragraph was rendered as a giant uppercase stat in
+  a narrow cell (stretching the hero and leaving the left half empty) — now a
+  full-width sentence-case cell; rip status is color-coded (Green/Yellow/Red →
+  success/warning/m-red); footer got bottom padding so the fixed AlertsCenter strip
+  can't cover the disclaimer.
+
+**Round 2 (same session, from Caleb's annotated screenshots):** the page became a
+dense tool view.
+
+- **Header collapsed:** stale banner, "Advisory Only · NQ Futures" eyebrow, the big
+  MORNING BRIEFING title, and the Key Inflection Points section are all gone. The
+  Run Briefing / Check Entry buttons moved into the top-right of the nav (new
+  `size="sm"` button variant; compact status notes float under the header). Nav
+  links trimmed to Eval + Settings (the old section anchors died with the tabs).
+- **Compact meta strip** under the nav: current price, color-coded rip status, HTF
+  trend, and the run meta (date · trigger · model + STALE badge with the full
+  warning as its tooltip).
+- **Two-tab body** (`briefing-tabs.tsx`, panes stay server-rendered as ReactNode
+  props): tab 1 **Objectives** = chart (left, 3fr) + stacked objective cards
+  (right, 2fr) + danger zones; tab 2 **Tactical Overview** = the three prose
+  groups stacked. Page width widened to `max-w-[1800px]`.
+- **Chart restyled to theme voltage:** candles are bmw-blue up / m-red down; ALL
+  level price-lines, the level legend, and the off-map list are gone ("get rid of
+  all the stuff on chart"). Instead, one shaded band per objective entry —
+  entry→stop, blue for long, red for short — drawn by a lightweight-charts
+  series-primitive (`EntryZonesPrimitive`, canvas fillRect behind the candles),
+  with a solid edge on the entry level. Model builder reworked accordingly
+  (`buildExecutionChart(bars, objectives)`), tests rewritten.
+- **All times are Chicago (CME):** `fmtDate` renders `America/Chicago` with a "CT"
+  suffix; the chart axis shows the CSV's wall-clock (which is Chicago) via the
+  wall-clock→UTC re-anchor, labeled "All times CT".
+
+**Round 3 (same session):** chart pinned in the left column (always visible,
+taller at 900px so chart + campaign zones ≈ objectives column height); the tabs
+moved into the right column and grew a third tab — Objectives / Tactical
+Overview / Danger Zones. Overview groups and danger zones restyled as cards
+matching the objective cards; entry prices now sit on the chart's price scale as
+colored axis labels (blue long / red short, `lineVisible: false` price lines).
+
+Verification: `./init.sh` passes (typecheck, lint — 3 pre-existing warnings in
+tests/briefing.schema.test.ts, 547 tests, build); full-page Playwright screenshots
+of all three tabs confirmed the layout. New dep: `lightweight-charts` ^5.2.0.
+Playwright itself is NOT a project dep — it runs from a scratchpad install
+(system libs `libnspr4 libnss3 libasound2t64` were apt-installed for headless
+Chromium). PR #40, squash-merged.
+
+**feat-037 live smoke test (2026-07-11) — PASSED.** The end-to-end check noted in PR #39
+ran against the live Sierra export folder (`C:\gekko\export`, accessed from WSL as
+`/mnt/c/gekko/export` via a `GEKKO_EXPORT_DIR` env override — the `.env` value stays the
+Windows path for normal operation). Uploader POSTed on attempt 1 → bundle
+`dc2641ae-60d4-4073-9052-44e95eef8b68`: `raw_bundles` row has all four profile refs
+populated (`balance_area_vbp_ref` = `<id>/balance-area.vbp.md`), `is_stale` false,
+`current_price` 30068.5, and all 8 Storage objects landed with byte-exact sizes
+(balance-area.vbp.md 12,533 B matches the local export).
+
+**analyze-task live smoke test (2026-07-11) — first LLM run; model swapped to
+`openai/gpt-5.6-terra`.** The first-ever live analyze-task run (dev env, trigger.dev dev
+server) failed on `anthropic/claude-sonnet-5`: Anthropic's structured-output grammar
+compiler rejects the Briefing schema (`AI_APICallError: The compiled grammar is too
+large`). Root cause isolated by bisection: the schema is only 3.7 KB, but `primary` and
+`secondary` inline the large `Objective` shape twice and Anthropic counts both copies —
+every section individually passes, `Briefing.omit({secondary})` passes, and a
+`$defs`/`$ref`-deduplicated emission (`z.toJSONSchema(Briefing, { reused: 'ref' })`,
+2.9 KB) passes. Per Caleb's direction the fix was a **non-Anthropic model** instead of a
+schema workaround: five vision + structured-output candidates were verified against the
+real Briefing schema via OpenRouter (gpt-5.6-terra, gpt-5.4, grok-4.5,
+gemini-3.1-pro-preview, qwen3-vl-235b — all pass; the limit is Anthropic-specific).
+`config.model_id` updated in the live DB to `openai/gpt-5.6-terra` ($2.50/$15 per MTok,
+automatic OpenAI prompt caching; `assertModelMatch` accepts its dated serve id). Rerun
+succeeded end-to-end: briefing `a0f52291-e349-4b92-9aa3-e70185320844` persisted (6 terrain
+zones, primary long, 2 entry_levels), engine fact-enforcement overwrote a model ripStatus
+claim, cost $0.16 / 41k in + 2.2k out / 17 s. Code untouched — `DEFAULT_MODEL_ID` in
+`lib/llm/generateStructured.ts` is still `anthropic/claude-sonnet-5` (config-row fallback
+only); if a Briefing-shaped schema must ever run on Anthropic again, the `$ref` dedup in
+`generateStructured` is the known fix. `triage_model_id` (haiku, small schema — safe) and
+`high_conviction_model_id` (opus, disabled, would hit the same limit) are unchanged.
 
 **feat-037 (2026-07-10) — balance-area VBP replaces rolling five-day; magnets re-anchor.**
 Caleb replaced `rolling-five-day.vbp.md` with `balance-area.vbp.md` — an HTF VbP anchored
