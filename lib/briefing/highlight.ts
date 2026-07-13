@@ -24,7 +24,6 @@ const PRICE_RE =
 
 /** Doctrine vocabulary always worth emphasis, beyond the briefing's own labels. */
 const DOCTRINE_TERMS = [
-  'Rip Wall',
   'Kill Box',
   'Rip',
   'Wall',

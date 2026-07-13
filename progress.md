@@ -2,9 +2,26 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-12
+**Last Updated:** 2026-07-13
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: ad-hoc
-**dashboard display overhaul** (branch `feat-ui-briefing-display`) on top of feat-037.
+**gem-docs ↔ code alignment audit + fixes** (branch `claude/gem-docs-code-alignment-vxcsly`).
+
+**Gem alignment audit (2026-07-13) — follow-up to PR #37's doctrine-drift finding.**
+Full review of every Gem-document rule (`gem-files/`) against the code; findings +
+verdicts with file:line evidence in **`docs/gem-alignment-audit.md`**. Fixed (A2–A9):
+delta-sign-before-ENTER is now code-enforced in `lib/eval/validateEval.ts` (contradicting
+ENTER demoted to WAIT); a void zone above the Kill Box now reads Elevator Shaft
+(`terrainZones.positionZones`); T1/T2 target-rung semantics restored to
+`knowledge/system/output-schema.md` + the analyze prompt; `keyInflections` bounded
+`.min(1).max(2)` (ADHD max-2 rule); orphan "Rip Wall" term removed from `highlight.ts`;
+`constraints.md` no longer claims the unwired stop-widening check is enforced;
+Stratosphere/Abyss now anchor to the outermost of the profile extremes and the Tier-1
+HTF envelope (extension zones classify void; 0.00 placeholders guarded); ATR High/Low
+demoted Tier 1 → Tier 2 in `mgiPriority.ts`. Waived by operator: wiring `priorStop`
+(A1). Flagged, not changed (operator doctrine calls, see report §B): the >50-pt
+Green-Line partition trigger, magnet-geometry symmetry/proximity drift, warn-vs-reject
+on the R/R gate, snapshot-based Rip "closes below", and the unchecked `meta.htfTrend`
+that drives Asymmetric Initiative.
 
 **Dashboard display overhaul (2026-07-12) — briefing page redesign per Caleb's review.**
 Caleb reviewed the rendered briefing (screenshotted headlessly via Playwright + the

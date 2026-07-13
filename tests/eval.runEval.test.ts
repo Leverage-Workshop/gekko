@@ -234,6 +234,47 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('coerced to NO_ENTRY_NEAR'))).toBe(true)
   })
 
+  it('demotes ENTER to WAIT when the engine delta sign contradicts the direction', async () => {
+    // The fixture exec CSV computes a POSITIVE recent delta sign; a short
+    // ENTER contradicts it (doctrine: Delta < 0 for shorts) — code demotes.
+    const shortLevel: EntryLevelRow = { ...activeLevels()[0], direction: 'short' }
+    const harness = makeDeps({
+      fetchActiveEntryLevels: async () => [shortLevel],
+      generate: async (params) => ({
+        object: {
+          ...modelEval(),
+          evaluatedLevel: { label: 'Entry A (Ideal)', price: 30245, direction: 'short' },
+          direction: 'short',
+        },
+        model: params.model,
+        usage: {
+          inputTokens: 40,
+          outputTokens: 20,
+          totalTokens: 60,
+        } as GenerateStructuredResult<EvalResult>['usage'],
+        cost: 0.0012,
+        cachedInputTokens: 2100,
+        latencyMs: 456,
+      }),
+    })
+    const result = await runEval(harness.deps)
+    const row = harness.getInsertedRow()!
+
+    expect(result.status).toBe('WAIT')
+    expect(row.status).toBe('WAIT')
+    // The model's uncoerced answer stays auditable.
+    expect(row.raw_model_json.status).toBe('ENTER')
+    expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(true)
+  })
+
+  it('keeps ENTER when the engine delta sign matches the direction', async () => {
+    // Positive fixture sign + the default long ENTER: the gate passes.
+    const harness = makeDeps()
+    const result = await runEval(harness.deps)
+    expect(result.status).toBe('ENTER')
+    expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
+  })
+
   it('skips the LLM call entirely when no active entry levels exist', async () => {
     const harness = makeDeps({ fetchActiveEntryLevels: async () => [] })
     const result = await runEval(harness.deps)

@@ -72,7 +72,9 @@ describe('buildHighlightTerms', () => {
 
     const terms = buildHighlightTerms(payload)
     expect(terms).toContain('Weekly VWAP Trench')
-    expect(terms).toContain('Rip Wall')
+    expect(terms).toContain('Trench')
+    // 'Rip Wall' is not doctrine vocabulary (defined nowhere in knowledge/ or gem-files/).
+    expect(terms).not.toContain('Rip Wall')
     expect(terms.filter((t) => t === 'Kill Box')).toHaveLength(1)
   })
 })

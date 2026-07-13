@@ -27,15 +27,18 @@ describe('computeMgiPriority — fixture', () => {
     }
   })
 
-  it('classifies 20 Tier-1 campaign borders (weekly + monthly + vRange + ONH/ONL + ATR)', () => {
+  it('classifies 18 Tier-1 campaign borders (weekly + monthly + vRange + ONH/ONL)', () => {
     const r = computeMgiPriority(mgi)
-    expect(r.tier1).toHaveLength(20)
+    expect(r.tier1).toHaveLength(18)
     expect(r.tier1.every(l => l.tier === 1)).toBe(true)
     // ONH/ONL are Tier 1; Rip/PDH/IB/OR are Tier 2.
     const onh = r.levels.find(l => l.code === 'onh')
     expect(onh?.tier).toBe(1)
     expect(r.levels.find(l => l.code === 'rip')?.tier).toBe(2)
     expect(r.levels.find(l => l.code === 'pdh')?.tier).toBe(2)
+    // Doctrine's Tier-1 list has no ATR — the projections are Tier-2 context,
+    // never campaign borders or partition anchors (audit finding A9).
+    expect(r.levels.filter(l => l.group === 'atr').map(l => l.tier)).toEqual([2, 2])
   })
 
   it('finds nearest Tier-1 border above = VRange High (30046.00), distance 100.25', () => {

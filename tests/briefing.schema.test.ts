@@ -122,6 +122,18 @@ describe('Briefing', () => {
     const parsed = Briefing.parse({ ...validBriefing, extra: 'ignored' })
     expect('extra' in parsed).toBe(false)
   })
+
+  it('bounds keyInflections to 1–2 entries (ADHD max-2 doctrine)', () => {
+    const inflection = { level: 24000, why: 'Value-area low' }
+    const withCount = (n: number) => ({
+      ...validBriefing,
+      overview: { ...validBriefing.overview, keyInflections: Array(n).fill(inflection) },
+    })
+    expect(Briefing.safeParse(withCount(0)).success).toBe(false)
+    expect(Briefing.safeParse(withCount(1)).success).toBe(true)
+    expect(Briefing.safeParse(withCount(2)).success).toBe(true)
+    expect(Briefing.safeParse(withCount(3)).success).toBe(false)
+  })
 })
 
 describe('Objective', () => {

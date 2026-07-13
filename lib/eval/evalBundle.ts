@@ -168,6 +168,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
     currentPrice,
     proximity,
     levels,
+    deltaSign: deltaTelemetry.sign,
   })
   warnings.push(...validated.warnings)
 

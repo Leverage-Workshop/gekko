@@ -33,8 +33,10 @@ These are the guardrails the model must never violate. They split into two kinds
 - **Minimum risk/reward.** The minimum R/R gate is enforced by `lib/engine/riskReward.ts`
   (`evaluateRiskReward`, default from `config.rr_min`). Do not restate or recompute the ratio in
   prose — respect the engine's `meetsGate` / `rr`.
-- **Stops never widen.** A new stop may only move closer to entry, never farther. Enforced by
-  `lib/engine/riskReward.ts` (`stopWidened` against the prior briefing). Only tighten with
+- **Stops never widen.** A new stop may only move closer to entry, never farther. The check lives
+  in `lib/engine/riskReward.ts` (`stopWidened` against a prior stop), but the analyze pipeline does
+  not currently feed it the prior briefing's stop — so today the model must hold this rule itself
+  (a known, deliberately unwired gap; see `docs/gem-alignment-audit.md`). Only tighten with
   structural justification (VWAP flip in favor, failed breakout behind position, POC/shelf now
   protecting, delta trap behind position).
 - **Leg-VWAP is Tier 3.** The Tier 1/2/3 structural hierarchy (and the resulting rule that Leg VWAP
