@@ -8,11 +8,13 @@
  * Tiering is the `tactical-companion-playbook.md` `<mgi_reference>` "Structural Hierarchy
  * Rule" (the source of truth; the glossary doc only names levels):
  *   - Tier 1 (Campaign Borders): HTF MGI — Weekly/Monthly levels, VRange extremes, ONH/ONL.
- *     ATR projected high/low are volatility-based campaign extremes, treated as Tier 1.
  *     These are the true Acceptance Borders that dictate Primary/Secondary objectives,
- *     targets, and hard invalidations.
+ *     targets, and hard invalidations. Doctrine's Tier-1 list does NOT include ATR: the
+ *     ATR projected high/low are volatility context, classified Tier 2 (gem-alignment
+ *     audit finding A9 — they are not campaign borders or partition anchors).
  *   - Tier 2 (Intraday Direction): the Rip and Session VWAPs plus the other intraday daily
- *     reference levels (PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low). These set daily bias.
+ *     reference levels (PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low) and the ATR projections.
+ *     These set daily bias.
  *   - Tier 3 (Micro-Timing): Leg VWAP — lives in the exec CSV (see deltaTelemetry), not in
  *     this static JSON, so it never appears here.
  *
@@ -110,8 +112,8 @@ const LEVEL_SPECS: Record<MgiGroup, Record<string, LevelSpec>> = {
     extMinus3: { label: 'VRange -3', tier: 1 },
   },
   atr: {
-    high: { label: 'ATR High', tier: 1 },
-    low: { label: 'ATR Low', tier: 1 },
+    high: { label: 'ATR High', tier: 2 },
+    low: { label: 'ATR Low', tier: 2 },
   },
 }
 

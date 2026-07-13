@@ -32,9 +32,13 @@
  *    "is this price a Magnet" question are SINGLE-SOURCED from feat-015 magnetCheck.
  *
  * 2. ZONE ASSEMBLY with the No-Gap invariant. The hard partitions (Trenches + Walls) plus the
- *    profile extremes divide the range into contiguous zones where each zone's bottom equals the
- *    next zone's top (Price[N] === Price2[N+1]). Every zone is classified by volume
- *    (acceptance/HVN vs void/rejection) and given a vertical-map position relative to the
+ *    campaign extremes divide the range into contiguous zones where each zone's bottom equals the
+ *    next zone's top (Price[N] === Price2[N+1]). The campaign ceiling (Stratosphere top) and
+ *    floor (Abyss bottom) anchor to the OUTERMOST of the profile extremes and the Tier-1 HTF
+ *    levels (doctrine: "the highest/lowest relevant HTF structure"; the profile's own edges are
+ *    composite edges, so whichever reaches farther wins — audit finding A8). A zone extending
+ *    beyond the profile has no volume data and classifies as void. Every zone is classified by
+ *    volume (acceptance/HVN vs void/rejection) and given a vertical-map position relative to the
  *    current price (Stratosphere/Attic/Kill Box/Elevator Shaft/Foundation/Abyss). Order-flow
  *    character is NOT read here: the delta exports live on their own bin grid, so absorption is
  *    detected separately (lib/engine/absorption.ts) and confirmed by the model against price
@@ -325,9 +329,9 @@ function classifyBorder(
 /**
  * Assign each zone a vertical-map position relative to the current price. The zone containing
  * the price is the Kill Box; the top zone is the Stratosphere and the bottom the Abyss; the
- * zone just above the Kill Box is the Attic and the one just below is the Foundation — or an
- * Elevator Shaft when that lower zone is a void (a steep drop below support). Extremes win over
- * Attic/Foundation when they coincide.
+ * zone just above the Kill Box is the Attic and the one just below is the Foundation — either
+ * becomes an Elevator Shaft when it is a void (doctrine: a steep void immediately below support
+ * OR above resistance). Extremes win over Attic/Foundation when they coincide.
  */
 function positionZones(
   zones: Omit<TerrainZoneFact, 'position' | 'label'>[],
@@ -341,7 +345,7 @@ function positionZones(
     if (i === k) return 'killbox'
     if (i === 0) return 'stratosphere'
     if (i === n - 1) return 'abyss'
-    if (i === k - 1) return 'attic'
+    if (i === k - 1) return z.volumeClass === 'void' ? 'elevator-shaft' : 'attic'
     if (i === k + 1) return z.volumeClass === 'void' ? 'elevator-shaft' : 'foundation'
     return 'zone'
   })
@@ -367,23 +371,34 @@ function positionLabel(position: ZonePosition): string {
 }
 
 /**
- * Build the contiguous zone stack from the profile extremes + hard-partition prices, classify
+ * Build the contiguous zone stack from the campaign extremes + hard-partition prices, classify
  * each zone, and assign vertical positions. Borders are shared values, so the No-Gap invariant
  * (zone[N].bottom === zone[N+1].top) holds by construction.
+ *
+ * The campaign ceiling/floor is the outermost of the profile extremes and `campaign` (the
+ * Tier-1 HTF envelope). When the campaign reaches beyond the profile, the profile edge itself
+ * becomes a border (it is a composite edge) and the extension zone carries no volume data —
+ * it classifies as void.
  */
 function assembleZones(
   rowsAsc: TerrainProfileRow[],
   partitionPrices: number[],
   currentPrice: number,
   params: TerrainParams,
+  campaign?: { top: number; bottom: number },
 ): TerrainZoneFact[] {
   const minP = rowsAsc[0].price
   const maxP = rowsAsc[rowsAsc.length - 1].price
+  const top = Math.max(maxP, campaign?.top ?? maxP)
+  const bottom = Math.min(minP, campaign?.bottom ?? minP)
   const profilePeak = Math.max(...rowsAsc.map(r => r.volume), 0)
 
   // Interior partitions only (extremes are the campaign ceiling/floor), unique, descending.
-  const interior = Array.from(new Set(partitionPrices.filter(p => p > minP && p < maxP)))
-  const borders = [maxP, ...interior, minP].sort((a, b) => b - a)
+  // The profile edges join the border set when the campaign extends beyond them.
+  const interior = partitionPrices.filter(p => p > bottom && p < top)
+  if (top > maxP) interior.push(maxP)
+  if (bottom < minP) interior.push(minP)
+  const borders = [top, ...new Set(interior), bottom].sort((a, b) => b - a)
 
   const bare = borders.slice(0, -1).map((top, i) => {
     const bottom = borders[i + 1]
@@ -450,10 +465,21 @@ export function assembleTerrain(input: {
     .sort((a, b) => b.level.price - a.level.price)
   const partitions = levels.filter(v => v.hard)
 
+  // Campaign extremes (audit A8): the Stratosphere ceiling / Abyss floor anchor to the
+  // outermost Tier-1 HTF level when one lies beyond the profile's price range. Non-positive
+  // prices are unset placeholders in the export (e.g. ONH/ONL as 0.00) and never anchor.
+  const tier1Prices = input.mgi.tier1
+    .map(l => l.price)
+    .filter(p => isFiniteNumber(p) && p > 0)
+  const campaign =
+    tier1Prices.length > 0
+      ? { top: Math.max(...tier1Prices), bottom: Math.min(...tier1Prices) }
+      : undefined
+
   // Need at least a 2-point profile to form a zone; otherwise return borders only.
   const zones =
     rowsAsc.length >= 2
-      ? assembleZones(rowsAsc, partitions.map(p => p.level.price), currentPrice, params)
+      ? assembleZones(rowsAsc, partitions.map(p => p.level.price), currentPrice, params, campaign)
       : []
   const issues = validateContiguity(zones)
 

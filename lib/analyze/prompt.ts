@@ -73,7 +73,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- `terrain.levels` MUST carry the engine border verdicts (price + kind verbatim); you supply the label wording.',
     '- Read the attached screenshots ONLY for perception the numeric data cannot give: absorption vs exhaustion shape, TPO single prints / poor highs-lows, delta clustering quality, and the doctrine patterns.',
     `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly from your chosen entry/stop/T1. The R/R gate is ${input.rrMin}:1 — do not propose objectives that cannot clear it.`,
-    '- Entries only at engine-verified acceptance borders. T3 must land on a Trench or Wall, never a Magnet.',
+    '- Entries only at engine-verified acceptance borders. Target rungs: T1 = the first obstacle / immediate S/R, T2 = the next acceptance border, T3 (Campaign Max) = the full traverse of the HTF distribution — and T3 must land on a Trench or Wall, never a Magnet.',
     '',
     '# Meta fields',
     `- meta.createdAt = "${input.now}"`,

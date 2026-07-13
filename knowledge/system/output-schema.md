@@ -49,8 +49,12 @@ Objective = {
 
 - `terrain.zones[]` must be **contiguous** (no gaps): the bottom of zone N equals the top of zone
   N+1. The engine assembles and validates these borders.
-- `targets` T3 (Campaign Max) must land on a Valley (Trench) or Shelf (Wall) — never a Magnet
-  (see Magnet Prohibition in `system/constraints.md`).
+- Target rung semantics (from the Gem's Strategic Alignment table):
+  - **T1 (Tactical)** — the first obstacle / immediate S/R in the trade direction.
+  - **T2 (Objective)** — the next acceptance border (the standard target).
+  - **T3 (Campaign Max)** — the full traverse of the HTF distribution / a major HTF MGI at an LVN.
+    T3 must land on a Valley (Trench) or Shelf (Wall) — never a Magnet (see Magnet Prohibition in
+    `system/constraints.md`).
 
 ## `EvalResult` (output of `eval-task` — the "Check Entry" button)
 
@@ -73,4 +77,5 @@ EvalResult = {
 - `ENTER` / `WAIT` / `NOT_VALID` apply only when price IS near an active entry; the long/short
   ENTER/WAIT/NOT_VALID decision logic lives with the eval-task (see `doctrine/patterns.md` for the
   qualitative confirmation cues, and `system/constraints.md` for the colors=side rule: Delta > 0 for
-  longs, Delta < 0 for shorts before any ENTER).
+  longs, Delta < 0 for shorts before any ENTER — code-enforced in `lib/eval/validateEval.ts`, which
+  demotes an ENTER that contradicts the engine delta sign to WAIT).

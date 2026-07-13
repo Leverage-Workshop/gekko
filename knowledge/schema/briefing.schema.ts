@@ -41,7 +41,8 @@ export const Overview = z.object({
   currentPosition: z.array(z.string()),
   structuralArchitecture: z.array(z.string()),
   orderFlowContext: z.array(z.string()),
-  keyInflections: z.array(KeyInflection),
+  // Gem doctrine (ADHD profile): max 2 key areas per briefing.
+  keyInflections: z.array(KeyInflection).min(1).max(2),
 })
 export type Overview = z.infer<typeof Overview>
 

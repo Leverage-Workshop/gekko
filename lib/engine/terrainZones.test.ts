@@ -204,6 +204,36 @@ describe('assembleTerrain — zone stack', () => {
     expect(r.zones[0].volumeClass).toBe('void') // 30500–30440, above the shelf
     expect(r.zones[1].volumeClass).toBe('acceptance') // 30440–30325, holds block C
   })
+
+  it('extends the campaign ceiling to a Tier-1 level beyond the profile top (A8)', () => {
+    const rExt = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [...MAIN_ANCHORS, { price: 30650, label: 'PW High', tier: 1 }]),
+    })
+    // Stratosphere top = the Tier-1 level, with the profile edge as a border below it.
+    expect(rExt.zones[0].top).toBe(30650)
+    expect(rExt.zones[0].bottom).toBe(30500)
+    // The extension zone has no volume data → void.
+    expect(rExt.zones[0].volumeClass).toBe('void')
+    expect(rExt.zones[0].position).toBe('stratosphere')
+    // No-Gap invariant survives the extension.
+    expect(rExt.contiguityValid).toBe(true)
+    expect(rExt.zones[rExt.zones.length - 1].bottom).toBe(30000)
+  })
+
+  it('ignores non-positive placeholder prices when anchoring the campaign floor (A8)', () => {
+    const rZero = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [...MAIN_ANCHORS, { price: 0, label: 'ONL', tier: 1 }]),
+    })
+    // An unset 0.00 export value must not drag the Abyss floor to zero.
+    expect(rZero.zones[rZero.zones.length - 1].bottom).toBe(30000)
+    expect(rZero.contiguityValid).toBe(true)
+  })
 })
 
 // --- vertical-map positions -------------------------------------------------
@@ -244,6 +274,36 @@ describe('assembleTerrain — vertical positions', () => {
     const shaft = r.zones.find(z => z.position === 'elevator-shaft')
     expect(shaft).toBeDefined()
     expect(shaft?.volumeClass).toBe('void')
+  })
+
+  it('labels a void zone immediately above the Kill Box an Elevator Shaft (not Attic)', () => {
+    // Doctrine: an Elevator Shaft sits immediately below support OR above resistance.
+    // Block (killbox) at the bottom, a void zone above it, a block ceiling at the top.
+    const profile = buildProfile(
+      [
+        [30450, 30550, 1000], // top block
+        [30050, 30150, 1000], // bottom block (killbox, price 30100)
+      ],
+      30000,
+      30600,
+    )
+    const r = assembleTerrain({
+      profile,
+      lvn: { hvn: [], lvn: [], peakVolume: 1000 },
+      magnets: collectMagnets({
+        summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+        hvn: [],
+      }),
+      mgi: makeMgi(30100, [
+        { price: 30445, label: 'Wall Hi', tier: 1 }, // block above → void below = wall
+        { price: 30160, label: 'Wall Lo', tier: 1 }, // block below → void above = wall
+      ]),
+    })
+    const killboxIndex = r.zones.findIndex(z => z.position === 'killbox')
+    expect(killboxIndex).toBeGreaterThan(0)
+    const above = r.zones[killboxIndex - 1]
+    expect(above.volumeClass).toBe('void')
+    expect(above.position).toBe('elevator-shaft')
   })
 })
 
