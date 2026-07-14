@@ -240,28 +240,34 @@ function ObjectiveCard({
   objective: Objective
   terms: string[]
 }) {
-  const rows: { point: string; price: number; description: string }[] = [
+  const rows: { point: string; price: number; description: string; isStop: boolean }[] = [
     ...objective.entries.map((entry) => ({
       point: entry.label,
       price: entry.price,
       description: entry.trigger,
+      isStop: false,
     })),
     ...objective.stops.map((stop) => ({
       point: stop.label,
       price: stop.price,
       description: stop.invalidation,
+      isStop: true,
     })),
     ...objective.targets.map((target) => ({
       point: `Target ${target.label.slice(1)} (${target.label})`,
       price: target.price,
       description: target.description,
+      isStop: false,
     })),
   ]
   const sequence = objective.targets.map((t) => t.label).join(' → ')
 
   // Direction identity: bullish campaigns read bmw-blue, bearish read m-red.
+  // Structural invalidation (stop) prices flip to the opposite accent so the
+  // level that kills the campaign reads against the direction color.
   const isLong = objective.direction === 'long'
   const accentText = isLong ? 'text-bmw-blue' : 'text-m-red'
+  const counterAccentText = isLong ? 'text-m-red' : 'text-bmw-blue'
   const accentTop = isLong ? 'border-t-bmw-blue' : 'border-t-m-red'
   const accentBadge = isLong
     ? 'border-bmw-blue text-bmw-blue'
@@ -318,7 +324,9 @@ function ObjectiveCard({
             <tr key={`${row.point}-${row.price}`} className="border-b border-hairline-strong">
               <td className="py-2 pr-3 text-sm font-bold text-ink">{row.point}</td>
               <td
-                className={`py-2 pr-3 text-sm font-bold tracking-tight ${accentText}`}
+                className={`py-2 pr-3 text-sm font-bold tracking-tight ${
+                  row.isStop ? counterAccentText : accentText
+                }`}
               >
                 {formatPrice(row.price)}
               </td>

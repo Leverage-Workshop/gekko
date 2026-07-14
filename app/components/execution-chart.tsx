@@ -164,7 +164,13 @@ export function ExecutionChart({ model }: { model: ExecutionChartModel }) {
       })
     }
 
-    chart.timeScale().fitContent()
+    // fitContent() would butt the last candle against the price axis; leave a
+    // few bars of breathing room on the right instead.
+    const RIGHT_GAP_BARS = 4
+    chart.timeScale().setVisibleLogicalRange({
+      from: -0.5,
+      to: model.candles.length - 0.5 + RIGHT_GAP_BARS,
+    })
     return () => chart.remove()
   }, [model])
 
