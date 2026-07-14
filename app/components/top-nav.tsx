@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 
 // DESIGN.md top-nav: 64px, canvas background, hairline base, nav-link items,
-// brand mark with the tricolor signature. The dashboard passes its trigger
-// buttons as `actions` (top-right); pages without actions fall back to the
-// Advisory Only wordmark.
+// brand mark with the tricolor signature plus a muted Gekko-quote tagline
+// (hidden below lg to keep the bar uncrowded). The dashboard passes its
+// trigger buttons as `actions` (top-right); pages without actions fall back
+// to the Advisory Only wordmark.
 const links = [
   { label: 'Eval', href: '/#eval' },
   { label: 'Settings', href: '/settings' },
@@ -20,6 +21,10 @@ export function TopNav({ actions }: { actions?: ReactNode }) {
             <span className="flex-1 bg-m-red" />
           </span>
           <span className="text-lg font-bold uppercase tracking-[0.2em] text-ink">Gekko</span>
+          <span className="hidden h-4 w-px bg-hairline lg:block" aria-hidden="true" />
+          <span className="hidden text-xs font-light italic tracking-wide text-muted lg:block">
+            &ldquo;The most valuable commodity I know of is information.&rdquo;
+          </span>
         </div>
 
         <div className="flex items-center gap-8">
