@@ -1,0 +1,10 @@
+# Let's print out the relationships and see how the zones stack up cleanly:
+print("Top / Stratosphere:", 30094.00, "(Prior Week High)")
+print("Level / Boundary 1:", 29952.00, "(Weekly Open)")
+print("Level / Boundary 2:", 29815.75, "(IB High / OR High)")
+print("Level / Boundary 3:", 29752.50, "(PDH / OR Mid / Rip cluster around 29746-29752)")
+print("Level / Boundary 4:", 29624.62, "(Weekly VWAP / 24h VWAP cluster around 29624-29640)")
+print("Level / Boundary 5:", 29567.50, "(IB Low)")
+print("Level / Boundary 6:", 29393.25, "(PDL)")
+print("Level / Boundary 7:", 29303.50, "(ONL)")
+print("Bottom / Abyss:", 28909.75, "(Prior Week Low)")
