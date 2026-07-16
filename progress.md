@@ -79,6 +79,17 @@ no warnings, ~$0.098) and a dashboard screenshot.
   aggressor-color read ("Red aggression reached the support area and price held") and no
   Reclaim gate check; dashboard screenshot clean.
 
+**Meta + eval two-column top strip (2026-07-16, branch `feat-meta-eval-columns`).** The meta
+strip and the entry-eval strip now sit side by side in one section (`lg:grid-cols-2`,
+stacking on smaller screens): left = `MetaColumn` (price / rip-status / run-meta cells, HTF
+trend full-width row, and the feat-038 Immediate Tactical Read stacked inside an attached
+`<details>` expander); right = `EvalStrip` slimmed to the verdict cell + targets with the
+Conditions expander. Stop / Trigger / Next Signal are persisted but no longer displayed
+(operator call — display only; the schema, prompt and columns are unchanged). The old
+full-width `MetaStrip`/`TacticalReadStrip` components are gone; `#eval` still anchors the
+eval column. Verified via `./init.sh` (600 tests) and Playwright screenshots with both
+expanders open.
+
 **Dashboard auto-refresh on run completion (2026-07-16, branch
 `claude/briefing-auto-refresh-pc3bju`).** The three on-demand action buttons (Run Briefing,
 Run Update, Check Entry) previously said "Queued — reload in a minute". They now subscribe to
