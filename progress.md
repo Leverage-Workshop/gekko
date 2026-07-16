@@ -2,9 +2,36 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-13
+**Last Updated:** 2026-07-16
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
 action** (branch `feat-038-update-action`).
+
+**LangSmith telemetry reworked onto the official wrapper (2026-07-16, branch
+`claude/langsmith-vercel-ai-setup-sz3nu3`).** Per Caleb's request, feat-030's hand-rolled
+OTel pipeline (private `NodeTracerProvider` + OTLP-proto exporter + redacting span
+exporter + `experimental_telemetry`) was replaced with LangSmith's documented Vercel AI
+SDK integration for AI SDK v5/v6: `wrapAISDK` from `langsmith/experimental/vercel`
+(`langsmith@0.8.3`). `lib/observability/telemetry.ts` now builds a `langsmith` `Client`
++ wrapped `generateObject` once per process; `generateStructured` routes through the
+wrapped function when telemetry is opted in and passes per-call config (run name =
+`functionId`, metadata) via `providerOptions.langsmith`
+(`createLangSmithProviderOptions`) — the wrapper strips that key before OpenRouter sees
+the call. **Preserved invariants:** (1) env gate unchanged — `LANGSMITH_API_KEY` set ⇒
+tracing on (we pass `tracingEnabled: true`, so `LANGSMITH_TRACING` is NOT required),
+unset ⇒ fully inert; (2) chart-image redaction — `redactImageParts` now runs in the
+wrapper's `processInputs` (parent run: only system/prompt/messages recorded, model/schema
+objects dropped) and `processChildLLMRunInputs` (provider-level file parts, incl.
+Uint8Array payloads) hooks, recorded-only, never mutating what is sent; (3) per-call
+flush via `client.awaitPendingTraceBatches()`, still best-effort. Env var rename:
+`LANGSMITH_OTEL_ENDPOINT` → standard `LANGSMITH_ENDPOINT` (API base URL, EU:
+`https://eu.api.smith.langchain.com`); `LANGSMITH_WORKSPACE_ID` supported. Dropped all
+five `@opentelemetry/*` deps (only feat-030 used them). Tests rewritten:
+`tests/observability.telemetry.test.ts` (gating, provider options, redaction hooks) and
+the telemetry cases in `tests/llm.generateStructured.test.ts` (providerOptions.langsmith
+presence/omission, wrapped-generateObject routing, flush). Verification: ./init.sh green
+— 46 test files, 581 tests, typecheck + lint clean, build OK. NOTE for live
+verification: the env vars must live on the **trigger.dev environment** (dashboard →
+Environment Variables) for deployed tasks; local `trigger.dev dev` reads `.env`.
 
 **feat-038 — the Gem's "Update" prompt reinstated (2026-07-13).** The doctrine's Update
 (`gem-files/instructions.md` 113–118: Immediate Tactical Read + "the exact Primary, Secondary,
