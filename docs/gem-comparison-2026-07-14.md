@@ -19,6 +19,13 @@ comparison-folder data.)
 **Scope:** analysis only. No code was changed. Findings are ranked by how much of the observed
 quality gap they explain.
 
+> **Status update (2026-07-16):** F1–F6 are implemented on this branch (F7 — the model id —
+> deliberately left as-is per the operator). Re-running the engine over this bundle now produces
+> an 8-zone, 1,184-pt PW High→PW Low map with composite borders ("OR Mid / PDH / Rip / Monthly
+> VWAP", "VRange Low / OR Low", "24 VWAP / Weekly VWAP"), IBH/IBL walls at 29815.75/29567.50,
+> acceptance across the value area, and the thin-tail VRange −2/−3 trenches demoted. See
+> `progress.md` and `decisions-log.md` for the parameter judgment calls.
+
 ---
 
 ## 1. The two outputs, side by side

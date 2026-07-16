@@ -16,9 +16,9 @@ const briefingPayload: Briefing = {
     ripStatus: 'green — above the Rip',
   },
   overview: {
-    currentPosition: ['inside value'],
-    structuralArchitecture: ['acceptance above'],
-    orderFlowContext: ['buyers hold'],
+    currentPosition: ['inside value', 'above the Rip'],
+    structuralArchitecture: ['acceptance above', 'void below the shelf'],
+    orderFlowContext: ['buyers hold', 'no playbook pattern active'],
     keyInflections: [{ level: 30300, why: 'attic border' }],
   },
   terrain: {

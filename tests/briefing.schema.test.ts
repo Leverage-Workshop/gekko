@@ -34,9 +34,9 @@ const validBriefing = {
     ripStatus: 'Green',
   },
   overview: {
-    currentPosition: ['Holding above VAL'],
-    structuralArchitecture: ['Balanced HTF distribution'],
-    orderFlowContext: ['Blue initiative building'],
+    currentPosition: ['Holding above VAL', 'Rip green with price above the reclaim'],
+    structuralArchitecture: ['Balanced HTF distribution', 'Void below the VAL trench'],
+    orderFlowContext: ['Blue initiative building', 'No playbook pattern active'],
     keyInflections: [{ level: 24000, why: 'Value-area low' }],
   },
   terrain: {
@@ -122,6 +122,16 @@ describe('Briefing', () => {
   it('strips unknown keys by default (non-strict object)', () => {
     const parsed = Briefing.parse({ ...validBriefing, extra: 'ignored' })
     expect('extra' in parsed).toBe(false)
+  })
+
+  it('requires at least two bullets in each overview prose section (F6)', () => {
+    for (const section of ['currentPosition', 'structuralArchitecture', 'orderFlowContext'] as const) {
+      const bad = {
+        ...validBriefing,
+        overview: { ...validBriefing.overview, [section]: ['only one bullet'] },
+      }
+      expect(Briefing.safeParse(bad).success).toBe(false)
+    }
   })
 
   it('bounds keyInflections to 1–2 entries (ADHD max-2 doctrine)', () => {

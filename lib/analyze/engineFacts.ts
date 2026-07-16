@@ -149,11 +149,34 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     levels: mgi.tier1,
   })
 
+  // Campaign extent (gem-comparison F3): the outermost span of BOTH volume profiles is the
+  // "visible HTF structure" the campaign envelope must cover; assembleTerrain then anchors the
+  // ceiling/floor to the innermost Tier-1 level at-or-beyond each edge.
+  const extentOf = (rows: readonly { price: number }[]) => {
+    let top = -Infinity
+    let bottom = Infinity
+    for (const r of rows) {
+      if (r.price > top) top = r.price
+      if (r.price < bottom) bottom = r.price
+    }
+    return top >= bottom ? { top, bottom } : null
+  }
+  const rotationExtent = extentOf(rotationVbp.rows)
+  const balanceExtent = extentOf(balanceAreaVbp.rows)
+  const campaignExtent =
+    rotationExtent && balanceExtent
+      ? {
+          top: Math.max(rotationExtent.top, balanceExtent.top),
+          bottom: Math.min(rotationExtent.bottom, balanceExtent.bottom),
+        }
+      : (rotationExtent ?? balanceExtent ?? undefined)
+
   const terrain = assembleTerrain({
     profile: rotationVbp.rows,
     lvn: lvn.rotation,
     magnets,
     mgi,
+    campaignExtent,
   })
   if (!terrain.contiguityValid) {
     warnings.push(`terrain contiguity invalid: ${terrain.issues.join('; ')}`)

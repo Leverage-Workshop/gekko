@@ -93,15 +93,17 @@ function runMain(currentPrice: number) {
 // --- selectAnchorLevels -----------------------------------------------------
 
 describe('selectAnchorLevels', () => {
-  it('keeps Tier-1 levels and the Rip (Tier-2), drops other Tier-2/3', () => {
+  it('keeps Tier-1 levels and the daily session structure, drops ATR and Tier-3 (F2)', () => {
     const mgi = makeMgi(30300, [
       { price: 30500, label: 'PW High', tier: 1 },
-      { price: 30400, label: 'Rip', tier: 2, code: 'rip' },
-      { price: 30300, label: 'PDH', tier: 2, code: 'pdh' }, // dropped (Tier-2, not Rip)
+      { price: 30450, label: 'ATR High', tier: 2, code: 'high', group: 'atr' }, // dropped (A9)
+      { price: 30400, label: 'Rip', tier: 2, code: 'rip', group: 'daily' },
+      { price: 30300, label: 'PDH', tier: 2, code: 'pdh', group: 'daily' }, // kept (session structure)
+      { price: 30250, label: 'IBL', tier: 2, code: 'ibl', group: 'daily' }, // kept (session structure)
       { price: 30200, label: 'Leg VWAP', tier: 3 }, // dropped
     ])
     const anchors = selectAnchorLevels(mgi)
-    expect(anchors.map(a => a.label)).toEqual(['PW High', 'Rip'])
+    expect(anchors.map(a => a.label)).toEqual(['PW High', 'Rip', 'PDH', 'IBL'])
   })
 
   it('dedups anchors that share a price and returns them price-descending', () => {
@@ -233,6 +235,125 @@ describe('assembleTerrain — zone stack', () => {
     // An unset 0.00 export value must not drag the Abyss floor to zero.
     expect(rZero.zones[rZero.zones.length - 1].bottom).toBe(30000)
     expect(rZero.contiguityValid).toBe(true)
+  })
+})
+
+// --- composite borders + campaign envelope (gem-comparison F1/F3/F5) ---------
+
+describe('assembleTerrain — composite borders (F1)', () => {
+  it('merges hard partitions within mergeTolerancePts into one composite border', () => {
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        // 3 pts below the 30175 trench, inside the same valley → same border band.
+        { price: 30172, label: 'Rip', tier: 2, code: 'rip', group: 'daily' },
+      ]),
+    })
+    const composite = r.borders.find(b => b.members.length === 2)
+    expect(composite).toBeDefined()
+    expect(composite!.kind).toBe('trench')
+    expect(composite!.label).toContain('Weekly VWAP')
+    expect(composite!.label).toContain('Rip')
+    // The zone stack splits ONCE in the 30172–30175 band, not twice.
+    const bordersNear = r.zones
+      .flatMap(z => [z.top, z.bottom])
+      .filter(p => p >= 30170 && p <= 30180)
+    expect(new Set(bordersNear).size).toBe(1)
+    expect(r.contiguityValid).toBe(true)
+    // Raw verdicts stay visible pre-merge.
+    expect(r.partitions.filter(p => p.level.price >= 30170 && p.level.price <= 30180)).toHaveLength(2)
+  })
+
+  it('does not add a profile-edge border when a wall already marks that shelf (no sliver zones)', () => {
+    // Block ends at 30490; wall anchor at 30498, 2 pts from the profile top 30500; the
+    // campaign extends to a Tier-1 level at 30650. Pre-F1 this minted a 30650/30500/30498
+    // stack with a 2-pt sliver.
+    const profile = buildProfile([[30380, 30490, 1000]], 30000, 30500)
+    const r = assembleTerrain({
+      profile,
+      lvn: { hvn: [], lvn: [], peakVolume: 1000 },
+      magnets: collectMagnets({
+        summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+        hvn: [],
+      }),
+      mgi: makeMgi(30100, [
+        { price: 30498, label: 'ONH', tier: 1 },
+        { price: 30650, label: 'PW High', tier: 1 },
+      ]),
+    })
+    expect(r.zones.map(z => z.top)).toEqual([30650, 30498])
+    expect(r.contiguityValid).toBe(true)
+  })
+})
+
+describe('assembleTerrain — promotion volume floor (F5)', () => {
+  it('does not promote trench-shaped structure whose flanking blocks are too thin', () => {
+    // The real distribution sits far below; the anchor sees a "valley between blocks" in the
+    // thin tail — perfect normalised ratios, negligible absolute volume.
+    const profile = buildProfile(
+      [
+        [30050, 30150, 1000], // the real distribution
+        [30350, 30370, 60], // thin tail bump
+        [30371, 30409, 5], // dip between the bumps
+        [30410, 30430, 60], // thin tail bump
+      ],
+      30000,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile,
+      lvn: { hvn: [], lvn: [], peakVolume: 1000 },
+      magnets: collectMagnets({
+        summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+        hvn: [],
+      }),
+      mgi: makeMgi(30100, [{ price: 30390, label: 'VRange +2', tier: 1 }]),
+    })
+    const verdict = r.levels.find(l => l.level.price === 30390)!
+    expect(verdict.kind).toBe('mgi')
+    expect(verdict.hard).toBe(false)
+    expect(verdict.reason).toMatch(/too thin/)
+  })
+})
+
+describe('assembleTerrain — campaign envelope (F3)', () => {
+  const magnets = collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn })
+
+  it('anchors the ceiling to the INNERMOST Tier-1 level beyond the extent, not the outermost', () => {
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets,
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 30650, label: 'PW High', tier: 1 },
+        { price: 31500, label: 'PM High', tier: 1 }, // pre-F3 this won and inflated the map
+      ]),
+    })
+    expect(r.zones[0].top).toBe(30650)
+    expect(r.contiguityValid).toBe(true)
+  })
+
+  it('honors an explicit campaignExtent when picking the envelope', () => {
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets,
+      campaignExtent: { top: 30700, bottom: 29900 },
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 30650, label: 'PW High', tier: 1 }, // inside the extent → cannot be the ceiling
+        { price: 31500, label: 'PM High', tier: 1 },
+      ]),
+    })
+    // Ceiling: innermost Tier-1 at-or-beyond the 30700 extent top.
+    expect(r.zones[0].top).toBe(31500)
+    // Floor: no Tier-1 at-or-below the 29900 extent bottom → the extent edge itself.
+    expect(r.zones[r.zones.length - 1].bottom).toBe(29900)
+    expect(r.contiguityValid).toBe(true)
   })
 })
 
