@@ -63,6 +63,12 @@ describe('supabase migrations', () => {
     }
   })
 
+  it('adds the structured eval verdict columns idempotently', () => {
+    expect(sql.combined).toContain('add column if not exists checks jsonb')
+    expect(sql.combined).toContain('add column if not exists next_signal text')
+    expect(sql.combined).toContain('add column if not exists caution text')
+  })
+
   it('creates private storage buckets for PNGs and CSVs', () => {
     expect(sql.combined).toContain('storage.buckets')
     expect(sql.combined).toContain("'chart-images'")

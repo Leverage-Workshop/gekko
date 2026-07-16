@@ -6,6 +6,27 @@
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
 action** (branch `feat-038-update-action`).
 
+**Entry-eval strip + structured checks (2026-07-16, branch `feat-eval-strip`).** The Latest
+Entry Eval no longer sits below the fold as a prose paragraph; it is now a compact strip
+directly beneath the meta strip, and the eval's reasoning is structured:
+
+- `EvalResult` schema gains optional `checks` (`EvalCheck[]`: name / pass|fail|pending verdict /
+  one-line note), `nextSignal` (what flips a WAIT/NOT_VALID to ENTER) and `caution`; `reason`
+  becomes a 1–2 sentence summary. The eval prompt instructs the model accordingly; the
+  NO_ENTRY_NEAR coercion in `enforceEvalFacts` drops them with the rest of the level verdict.
+- Migration `20260716090000_eval_structured_checks.sql` adds `eval_results.checks jsonb`,
+  `next_signal text`, `caution text` (applied to the live project). `persistEval`,
+  the dashboard deps select and `DashboardEvalRow` carry them; `parseEvalChecks` validates the
+  jsonb and degrades to null (strip falls back to the `reason` prose for pre-migration rows).
+- New `app/components/eval-strip.tsx` (`EvalStrip`) replaces the bottom `EvalSection` in
+  `app/page.tsx`: cell row (verdict chip + stop + targets + trigger + next signal) plus an
+  always-visible condition-chip rail that expands (native `<details>`) into per-condition
+  notes, caution and the summary. Keeps the `#eval` nav anchor.
+- The latest live eval row was backfilled with checks decomposed from its own reason text so
+  the strip demonstrates the structured format; future evals get checks from the model.
+- Verified via `./init.sh` (all green) and Playwright screenshots of the live dashboard
+  (both the checks path and the pre-migration prose fallback; no console errors).
+
 **Dashboard auto-refresh on run completion (2026-07-16, branch
 `claude/briefing-auto-refresh-pc3bju`).** The three on-demand action buttons (Run Briefing,
 Run Update, Check Entry) previously said "Queued — reload in a minute". They now subscribe to

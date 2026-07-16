@@ -63,6 +63,11 @@ const validEvalResult = {
   trigger: 'Blue initiative reclaims VAL',
   stop: 23950,
   targets: [24100, 24200, 24350],
+  checks: [
+    { name: 'Structure', verdict: 'pass' as const, note: 'Border is a proven acceptance edge' },
+    { name: 'Delta', verdict: 'pass' as const, note: 'Positive mean, blue sign' },
+  ],
+  caution: 'No adds above T1',
   reason: 'Absorption confirmed at the border with blue continuation',
 }
 
@@ -230,5 +235,29 @@ describe('EvalResult', () => {
   it('requires a reason', () => {
     const { reason: _reason, ...noReason } = validEvalResult
     expect(EvalResult.safeParse(noReason).success).toBe(false)
+  })
+
+  it('parses the structured verdict fields (checks / nextSignal / caution)', () => {
+    const parsed = EvalResult.parse({
+      ...validEvalResult,
+      status: 'WAIT',
+      nextSignal: 'Blue delta emergence on the border retest',
+    })
+    expect(parsed.checks).toHaveLength(2)
+    expect(parsed.checks?.[0]).toEqual({
+      name: 'Structure',
+      verdict: 'pass',
+      note: 'Border is a proven acceptance edge',
+    })
+    expect(parsed.nextSignal).toBe('Blue delta emergence on the border retest')
+    expect(parsed.caution).toBe('No adds above T1')
+  })
+
+  it('constrains check verdicts to pass/fail/pending', () => {
+    const bad = {
+      ...validEvalResult,
+      checks: [{ name: 'Delta', verdict: 'maybe', note: 'unclear' }],
+    }
+    expect(EvalResult.safeParse(bad).success).toBe(false)
   })
 })

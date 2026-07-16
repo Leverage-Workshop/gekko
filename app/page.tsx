@@ -11,10 +11,10 @@ import {
   loadDashboardData,
   realDashboardDeps,
   type DashboardData,
-  type DashboardEvalRow,
 } from '@/lib/briefing'
 import type { Briefing } from '@/knowledge/schema/briefing.schema'
 import { BriefingTabs } from './components/briefing-tabs'
+import { EvalStrip } from './components/eval-strip'
 import { ExecutionChartSection } from './components/execution-chart-section'
 import { Footer } from './components/footer'
 import { HighlightedText } from './components/highlighted-text'
@@ -29,10 +29,11 @@ import { TopNav } from './components/top-nav'
 /**
  * Gekko dashboard (feat-019) — a server component that fetches the latest
  * briefing, eval result, and bundle freshness via the service-role client,
- * then renders the briefing as a dense tool view: compact meta strip, a
- * two-tab body (Objectives = execution chart + objective cards + danger
- * zones; Tactical Overview = the stacked prose read), and the latest entry
- * eval. The trigger buttons ("Run Briefing" feat-020, "Run Update" feat-038,
+ * then renders the briefing as a dense tool view: compact meta strip, the
+ * latest entry eval strip (EvalStrip — verdict, stop/targets, condition
+ * checks) directly beneath it, and a two-tab body (Objectives = execution
+ * chart + objective cards + danger zones; Tactical Overview = the stacked
+ * prose read). The trigger buttons ("Run Briefing" feat-020, "Run Update" feat-038,
  * "Check Entry" feat-025) live in the top-right of the nav. Update briefings
  * additionally carry an UPDATE chip and an Immediate Tactical Read strip.
  */
@@ -53,14 +54,6 @@ function fmtDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
   return `${CT_FORMAT.format(date).replace(', ', ' ')} CT`
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-xs font-bold uppercase tracking-[1.5px] text-bmw-blue">
-      {children}
-    </span>
-  )
 }
 
 function BulletList({ items, terms }: { items: string[]; terms: string[] }) {
@@ -365,88 +358,6 @@ function DangerZones({ zones, terms }: { zones: DangerZone[]; terms: string[] })
   )
 }
 
-const EVAL_STATUS_CLASS: Record<string, string> = {
-  ENTER: 'text-success border-success',
-  WAIT: 'text-warning border-warning',
-  NOT_VALID: 'text-m-red border-m-red',
-  NO_ENTRY_NEAR: 'text-muted border-muted',
-}
-
-function EvalSection({
-  evalResult,
-  unavailable,
-  terms,
-}: {
-  evalResult: DashboardEvalRow | null
-  /** Dashboard load failed — don't render the run-your-first-eval CTA. */
-  unavailable: boolean
-  terms: string[]
-}) {
-  return (
-    <section id="eval" className="border-b border-hairline">
-      <div className="mx-auto max-w-[1800px] px-6 py-16">
-        <SectionLabel>Latest Entry Eval</SectionLabel>
-        {evalResult === null ? (
-          <p className="mt-6 max-w-xl text-sm font-light leading-relaxed text-muted">
-            {unavailable
-              ? 'Entry evals unavailable — the database could not be reached.'
-              : 'No entry evals yet — press Check Entry at Current Price above to run the first check against the active entry levels.'}
-          </p>
-        ) : (
-          <div className="mt-6 border border-hairline bg-surface-card p-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <span
-                className={`border px-3 py-1 text-sm font-bold uppercase tracking-[1.5px] ${
-                  EVAL_STATUS_CLASS[evalResult.status] ?? 'text-body border-hairline'
-                }`}
-              >
-                {evalResult.status.replaceAll('_', ' ')}
-              </span>
-              {evalResult.direction && (
-                <span className="text-xs font-bold uppercase tracking-[1.5px] text-body-strong">
-                  {evalResult.direction}
-                </span>
-              )}
-              <span className="text-xs font-light uppercase tracking-wide text-muted">
-                {fmtDate(evalResult.created_at)}
-                {evalResult.current_price !== null &&
-                  ` · at ${formatPrice(evalResult.current_price)}`}
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-px bg-hairline sm:grid-cols-3">
-              <div className="bg-surface-card p-4">
-                <p className="text-xs font-light uppercase tracking-wide text-muted">Trigger</p>
-                <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
-                  {evalResult.trigger ?? '—'}
-                </p>
-              </div>
-              <div className="bg-surface-card p-4">
-                <p className="text-xs font-light uppercase tracking-wide text-muted">Stop</p>
-                <p className="mt-1 text-lg font-bold tracking-tight text-ink">
-                  {evalResult.stop !== null ? formatPrice(evalResult.stop) : '—'}
-                </p>
-              </div>
-              <div className="bg-surface-card p-4">
-                <p className="text-xs font-light uppercase tracking-wide text-muted">Targets</p>
-                <p className="mt-1 text-lg font-bold tracking-tight text-ink">
-                  {evalResult.targets && evalResult.targets.length > 0
-                    ? evalResult.targets.map(formatPrice).join(' → ')
-                    : '—'}
-                </p>
-              </div>
-            </div>
-
-            <p className="mt-5 text-sm font-light leading-relaxed text-body">
-              <HighlightedText text={evalResult.reason ?? ''} terms={terms} />
-            </p>
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
-
 export default async function Home() {
   let data: DashboardData | null = null
   let loadError: string | null = null
@@ -508,6 +419,11 @@ export default async function Home() {
             {briefing.tacticalRead && (
               <TacticalReadStrip read={briefing.tacticalRead} terms={terms} />
             )}
+            <EvalStrip
+              evalResult={data?.evalResult ?? null}
+              unavailable={false}
+              terms={terms}
+            />
 
             <section className="border-b border-hairline">
               <div className="mx-auto max-w-[1800px] px-6 py-8">
@@ -539,29 +455,30 @@ export default async function Home() {
             </section>
           </>
         ) : (
-          !loadError && (
-            <section className="border-b border-hairline">
-              <div className="mx-auto max-w-[1800px] px-6 py-24">
-                <div className="mx-auto max-w-xl border border-hairline bg-surface-card p-10 text-center">
-                  <h2 className="text-2xl font-bold uppercase tracking-tight text-ink">
-                    No Briefing Yet
-                  </h2>
-                  <p className="mt-4 text-sm font-light leading-relaxed text-body">
-                    Once Sierra Chart bundles are flowing, press Run Briefing (top right) to
-                    produce the first tactical read. The objectives, execution chart, and
-                    tactical overview render here.
-                  </p>
+          <>
+            {!loadError && (
+              <section className="border-b border-hairline">
+                <div className="mx-auto max-w-[1800px] px-6 py-24">
+                  <div className="mx-auto max-w-xl border border-hairline bg-surface-card p-10 text-center">
+                    <h2 className="text-2xl font-bold uppercase tracking-tight text-ink">
+                      No Briefing Yet
+                    </h2>
+                    <p className="mt-4 text-sm font-light leading-relaxed text-body">
+                      Once Sierra Chart bundles are flowing, press Run Briefing (top right)
+                      to produce the first tactical read. The objectives, execution chart,
+                      and tactical overview render here.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </section>
-          )
+              </section>
+            )}
+            <EvalStrip
+              evalResult={data?.evalResult ?? null}
+              unavailable={loadError !== null}
+              terms={terms}
+            />
+          </>
         )}
-
-        <EvalSection
-          evalResult={data?.evalResult ?? null}
-          unavailable={loadError !== null}
-          terms={terms}
-        />
       </main>
 
       <Footer />
