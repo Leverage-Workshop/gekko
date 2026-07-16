@@ -57,6 +57,28 @@ fails CI instead of the first live call. Verified with a real dev-environment ev
 `openai/gpt-5.6-terra` (run `run_cmro4l6us7l2x0vn2pytjlaub`: WAIT, 4 model-authored checks,
 no warnings, ~$0.098) and a dashboard screenshot.
 
+**Triage → gpt-5.6-luna + absorption-color doctrine + reclaim demoted (2026-07-16, branch
+`fix-eval-luna-absorption-doctrine`).** Operator feedback on the first terra eval:
+
+- Migration `20260716110000_triage_model_gpt_5_6_luna.sql` moves `config.triage_model_id`
+  (default + still-on-terra rows) to `openai/gpt-5.6-luna` — same 5.6 series, ~2.5x cheaper
+  ($1/$6 vs $2.50/$15 per M), vision + structured outputs. Applied live; measured eval:
+  $0.037 / 4.9s on luna vs $0.098 / 8.9s on terra. `DEFAULT_TRIAGE_MODEL_ID` mirrors it.
+- **Absorption prints in the aggressor's color** (operator doctrine): price falling into
+  support absorbs RED — the blue appears after, as the response. The old
+  `knowledge/doctrine/chart-reading.md` "Tactical fusion" line literally said long entries
+  show "a blue absorption cluster" — corrected there (shared analyze+eval system prefix)
+  and in the eval decision logic ("Red aggression absorbed at the border, then blue
+  continuation"). The rewritten fusion line also drops "Leg VWAP holds" (same always-fail
+  wrong-way condition the eval prompt already bans).
+- **Retest/reclaim is never a gate**: strengthens conviction only. Removed the "Structure
+  valid but waiting for retest → WAIT" doctrine line and added an explicit never-a-gate
+  rule; the model must not fail/pend a check solely because a retest hasn't printed.
+- Verified: `./init.sh` green (600 tests, incl. prompt-content pins), live dev eval run
+  `run_cmro4vh537r0i0joi9tivi230` on luna — WAIT with Absorption now PASS on the
+  aggressor-color read ("Red aggression reached the support area and price held") and no
+  Reclaim gate check; dashboard screenshot clean.
+
 **Dashboard auto-refresh on run completion (2026-07-16, branch
 `claude/briefing-auto-refresh-pc3bju`).** The three on-demand action buttons (Run Briefing,
 Run Update, Check Entry) previously said "Queued — reload in a minute". They now subscribe to

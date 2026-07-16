@@ -69,13 +69,24 @@ describe('supabase migrations', () => {
     expect(sql.combined).toContain('add column if not exists caution text')
   })
 
-  it('promotes the triage model default to gpt-5.6-terra, sparing overrides', () => {
+  it('promotes the triage model default haiku → terra → luna, sparing overrides', () => {
     expect(sql.combined).toMatch(
       /alter column triage_model_id set default 'openai\/gpt-5\.6-terra'/,
     )
     expect(sql.combined).toMatch(
       /and triage_model_id = 'anthropic\/claude-haiku-4-5'/,
     )
+    expect(sql.combined).toMatch(
+      /alter column triage_model_id set default 'openai\/gpt-5\.6-luna'/,
+    )
+    expect(sql.combined).toMatch(
+      /and triage_model_id = 'openai\/gpt-5\.6-terra'/,
+    )
+    // The luna migration must sort after the terra one so it wins.
+    const terraIdx = sql.files.findIndex((f) => f.includes('terra'))
+    const lunaIdx = sql.files.findIndex((f) => f.includes('luna'))
+    expect(terraIdx).toBeGreaterThanOrEqual(0)
+    expect(lunaIdx).toBeGreaterThan(terraIdx)
   })
 
   it('creates private storage buckets for PNGs and CSVs', () => {

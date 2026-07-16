@@ -160,12 +160,19 @@ Before authorizing any entry, confirm alignment:
 - **Reward** — the R/R gate (computed by `riskReward.ts`) is met to the next target.
 
 ## Tactical fusion (telemetry + visuals)
-- **Long entries (blue initiative):** price approaches an LVN support border; Delta Intensity shifts
-  positive (or spikes to its extreme); execution chart shows a blue absorption cluster or red
-  exhaustion cone; Leg VWAP holds.
-- **Short entries (red initiative):** price rallies to an LVN resistance border; Delta Intensity hits
-  its red extreme; execution chart shows a reoffer sequence or a failed-breakout trap; price snaps
-  back below the Rip.
+
+**Absorption prints in the aggressor's color.** Price falling into a border absorbs RED (aggressive
+sellers eaten by passive buyers); price rising into a border absorbs BLUE. There is no such thing as
+blue absorption at support or red absorption at resistance — the entry-side color appears *after*
+absorption, as the response (rebid/reoffer, initiative flip).
+
+- **Long entries (blue initiative):** price falls into an LVN support border; execution chart shows
+  red aggression being absorbed at the border (or a red exhaustion cone); confirmation is the blue
+  response after — Delta Intensity shifting positive and a rebid holding the border.
+- **Short entries (red initiative):** price rallies into an LVN resistance border; execution chart
+  shows blue aggression being absorbed at the border (or a blue exhaustion cone / failed-breakout
+  trap); confirmation is the red response after — Delta Intensity hitting its red extreme, a reoffer
+  sequence, price snapping back below the Rip.
 - **Conflict resolution:** if the CSV shows extreme delta but the HTF chart shows price stalling in
   the middle of a value area, stand down.
 
