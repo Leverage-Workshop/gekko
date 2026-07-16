@@ -186,6 +186,18 @@ describe('runEval', () => {
     expect(captured.prompt).toContain('Image 1: HTF planning chart')
   })
 
+  it('never shows the eval model the Leg VWAP and forbids it as a check', async () => {
+    // Leg VWAP is Tier-3 micro-timing the operator does not trade off; fed to
+    // the eval it produced always-fail "momentum" conditions on reversal entries.
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('Never use Leg VWAP as a check')
+    expect(prompt).not.toContain('legVwap')
+    expect(prompt).toContain('recentMeanDelta')
+  })
+
   it('maps the evaluated level to its entry_levels id and persists the row', async () => {
     const harness = makeDeps()
     await runEval(harness.deps)
@@ -310,7 +322,7 @@ describe('runEval', () => {
     const harness = makeDeps({ fetchConfig: async () => null })
     const result = await runEval(harness.deps)
 
-    expect(harness.getCaptured()!.model).toBe('anthropic/claude-haiku-4-5')
+    expect(harness.getCaptured()!.model).toBe('openai/gpt-5.6-terra')
     expect(result.warnings.some((w) => w.includes('config row missing'))).toBe(true)
   })
 

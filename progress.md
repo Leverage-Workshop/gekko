@@ -27,6 +27,20 @@ directly beneath the meta strip, and the eval's reasoning is structured:
 - Verified via `./init.sh` (all green) and Playwright screenshots of the live dashboard
   (both the checks path and the pre-migration prose fallback; no console errors).
 
+**Eval triage model → gpt-5.6-terra + Leg-VWAP ban in eval checks (2026-07-16, branch
+`fix-eval-triage-model-legvwap`).** Operator feedback on the first structured eval:
+
+- Migration `20260716100000_triage_model_gpt_5_6_terra.sql` moves `config.triage_model_id`
+  (default + still-on-default rows) from `anthropic/claude-haiku-4-5` to
+  `openai/gpt-5.6-terra` — same price as gpt-5.4, newer, and already serving briefings.
+  Applied live; `DEFAULT_TRIAGE_MODEL_ID` in `lib/eval/evalBundle.ts` mirrors it.
+- The eval model no longer sees `legVwap` (omitted from the telemetry JSON in
+  `buildEvalPrompt`) and the prompt forbids Leg VWAP as a check: at a reversal/reload entry
+  price is definitionally on the counter side of Leg VWAP, so "price under leg VWAP" was an
+  always-fail momentum condition. "Momentum" removed from the example check names.
+  Briefing/update tasks still receive full telemetry (doctrine keeps Leg VWAP as Tier-3
+  micro-timing).
+
 **Dashboard auto-refresh on run completion (2026-07-16, branch
 `claude/briefing-auto-refresh-pc3bju`).** The three on-demand action buttons (Run Briefing,
 Run Update, Check Entry) previously said "Queued — reload in a minute". They now subscribe to

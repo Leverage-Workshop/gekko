@@ -69,6 +69,15 @@ describe('supabase migrations', () => {
     expect(sql.combined).toContain('add column if not exists caution text')
   })
 
+  it('promotes the triage model default to gpt-5.6-terra, sparing overrides', () => {
+    expect(sql.combined).toMatch(
+      /alter column triage_model_id set default 'openai\/gpt-5\.6-terra'/,
+    )
+    expect(sql.combined).toMatch(
+      /and triage_model_id = 'anthropic\/claude-haiku-4-5'/,
+    )
+  })
+
   it('creates private storage buckets for PNGs and CSVs', () => {
     expect(sql.combined).toContain('storage.buckets')
     expect(sql.combined).toContain("'chart-images'")
