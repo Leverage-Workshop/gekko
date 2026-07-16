@@ -29,9 +29,9 @@ import { enforceEvalFacts } from './validateEval'
 
 /**
  * Default triage model id, mirroring the `config.triage_model_id` column
- * default — the tier for entry checks (never hardcode elsewhere).
+ * default — the cheap/fast tier for entry checks (never hardcode elsewhere).
  */
-export const DEFAULT_TRIAGE_MODEL_ID = 'openai/gpt-5.6-terra'
+export const DEFAULT_TRIAGE_MODEL_ID = 'openai/gpt-5.6-luna'
 
 /** Thrown when the latest bundle cannot support an eval — retrying cannot help. */
 export class EvalInputError extends Error {}

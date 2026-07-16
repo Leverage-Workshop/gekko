@@ -187,6 +187,20 @@ describe('runEval', () => {
     expect(captured.prompt).toContain('Image 1: HTF planning chart')
   })
 
+  it('teaches aggressor-color absorption and demotes retest/reclaim from gate', async () => {
+    // Operator doctrine (2026-07-16): a falling market absorbs RED at support
+    // (blue comes after, as continuation), and a retest/reclaim strengthens
+    // conviction but never blocks an otherwise-confirmed entry.
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain("Absorption prints in the AGGRESSOR's color")
+    expect(prompt).toContain('Red aggression absorbed at the border, then blue continuation')
+    expect(prompt).toContain('NEVER a gate')
+    expect(prompt).not.toContain('waiting for retest → WAIT')
+  })
+
   it('never shows the eval model the Leg VWAP and forbids it as a check', async () => {
     // Leg VWAP is Tier-3 micro-timing the operator does not trade off; fed to
     // the eval it produced always-fail "momentum" conditions on reversal entries.
@@ -323,7 +337,7 @@ describe('runEval', () => {
     const harness = makeDeps({ fetchConfig: async () => null })
     const result = await runEval(harness.deps)
 
-    expect(harness.getCaptured()!.model).toBe('openai/gpt-5.6-terra')
+    expect(harness.getCaptured()!.model).toBe('openai/gpt-5.6-luna')
     expect(result.warnings.some((w) => w.includes('config row missing'))).toBe(true)
   })
 
