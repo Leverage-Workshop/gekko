@@ -85,7 +85,7 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
         nearest
           ? `: nearest is ${nearest.distancePoints} points away, threshold ${proximity.thresholdPoints}`
           : ': there are no usable active levels'
-      }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level. Run an Update for a full tactical read." Leave evaluatedLevel/direction/trigger/stop/targets/checks/nextSignal/caution absent.`
+      }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level. Run an Update for a full tactical read." Set evaluatedLevel/direction/trigger/stop/targets/checks/nextSignal/caution to null.`
 
   return [
     '# Mission',
@@ -96,8 +96,8 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '# Verdict structure (level verdicts only — ENTER / WAIT / NOT_VALID)',
     'Decompose your judgment into `checks`: 3–6 named conditions, each with a verdict and a one-line note. Use short stable names the operator can scan (e.g. "Structure", "Delta", "Absorption", "DOM"). Verdicts: "pass" = supports the entry, "fail" = argues against it right now, "pending" = not yet confirmed either way.',
     'Never use Leg VWAP as a check or as evidence in one. At a reversal or reload entry, price is by definition on the counter-trend side of Leg VWAP — citing that as momentum against the entry rejects every valid reversal. Judge initiative from delta telemetry and the execution chart action at the border, not VWAP position.',
-    '`nextSignal`: for WAIT or NOT_VALID, the single concrete observable that would flip this to ENTER (e.g. "blue delta emergence on the 29256 retest"). Omit for ENTER.',
-    '`caution`: one line of what NOT to do right now (e.g. "do not chase price higher into the void"). Omit if nothing needs flagging.',
+    '`nextSignal`: for WAIT or NOT_VALID, the single concrete observable that would flip this to ENTER (e.g. "blue delta emergence on the 29256 retest"). Null for ENTER.',
+    '`caution`: one line of what NOT to do right now (e.g. "do not chase price higher into the void"). Null if nothing needs flagging.',
     '`reason`: a 1–2 sentence summary of the verdict — the checks carry the detail, so do not repeat them.',
     '',
     '# Data ownership (non-negotiable)',

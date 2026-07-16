@@ -117,8 +117,16 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
   if (levels.length === 0) {
     warnings.push('no active entry_levels exist — skipped the LLM call')
     const result: EvalResult = {
-      meta: { createdAt: nowIso, currentPrice, nearEntry: false },
+      meta: { createdAt: nowIso, currentPrice, nearEntry: false, zone: null },
       status: 'NO_ENTRY_NEAR',
+      evaluatedLevel: null,
+      direction: null,
+      trigger: null,
+      stop: null,
+      targets: null,
+      checks: null,
+      nextSignal: null,
+      caution: null,
       reason:
         'No entry near. There are no active entry levels — run a briefing first to map entries.',
     }

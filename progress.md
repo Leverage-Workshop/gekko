@@ -41,6 +41,22 @@ directly beneath the meta strip, and the eval's reasoning is structured:
   Briefing/update tasks still receive full telemetry (doctrine keeps Leg VWAP as Tier-3
   micro-timing).
 
+**EvalResult schema: optionals → nullables for OpenAI strict mode (2026-07-16, branch
+`fix-eval-schema-openai-strict`).** The first terra eval failed before the call ran:
+`[Azure] Invalid schema … 'required' is required to be … including every key. Missing
+'zone'.` OpenAI strict structured outputs reject any object whose `required` omits a
+property; Anthropic tolerated `.optional()`, which is why this never bit on haiku and why
+the Briefing schema (no optionals) always worked on terra. Every absent-able EvalResult
+field (`meta.zone`, `evaluatedLevel`, `direction`, `trigger`, `stop`, `targets`, `checks`,
+`nextSignal`, `caution`) is now `.nullable()` — required key, null value. Prompt says "set
+to null" instead of "leave absent"; `enforceEvalFacts`' NO_ENTRY_NEAR coercion and the
+no-levels short-circuit emit explicit nulls. A strict-mode walker test in
+`tests/briefing.schema.test.ts` asserts every model-facing schema (Briefing,
+BriefingUpdate, EvalResult) lists every property as required, so a stray `.optional()`
+fails CI instead of the first live call. Verified with a real dev-environment eval run on
+`openai/gpt-5.6-terra` (run `run_cmro4l6us7l2x0vn2pytjlaub`: WAIT, 4 model-authored checks,
+no warnings, ~$0.098) and a dashboard screenshot.
+
 **Dashboard auto-refresh on run completion (2026-07-16, branch
 `claude/briefing-auto-refresh-pc3bju`).** The three on-demand action buttons (Run Briefing,
 Run Update, Check Entry) previously said "Queued — reload in a minute". They now subscribe to

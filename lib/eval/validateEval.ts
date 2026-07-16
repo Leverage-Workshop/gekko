@@ -110,6 +110,14 @@ export function enforceEvalFacts(
     result = {
       meta: result.meta,
       status: 'NO_ENTRY_NEAR',
+      evaluatedLevel: null,
+      direction: null,
+      trigger: null,
+      stop: null,
+      targets: null,
+      checks: null,
+      nextSignal: null,
+      caution: null,
       reason: result.reason,
     }
   }
