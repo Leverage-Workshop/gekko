@@ -13,8 +13,8 @@ describe('POST /api/eval/run', () => {
     trigger.mockReset()
   })
 
-  it('triggers eval-task with an empty payload and returns the run id', async () => {
-    trigger.mockResolvedValue({ id: 'run_eval123' })
+  it('triggers eval-task with an empty payload and returns the run id + realtime token', async () => {
+    trigger.mockResolvedValue({ id: 'run_eval123', publicAccessToken: 'pat_eval123' })
 
     const res = await POST()
     const body = await res.json()
@@ -22,7 +22,10 @@ describe('POST /api/eval/run', () => {
     expect(trigger).toHaveBeenCalledTimes(1)
     expect(trigger).toHaveBeenCalledWith('eval-task', {})
     expect(res.status).toBe(202)
-    expect(body).toEqual({ success: true, data: { runId: 'run_eval123' } })
+    expect(body).toEqual({
+      success: true,
+      data: { runId: 'run_eval123', publicAccessToken: 'pat_eval123' },
+    })
   })
 
   it('returns a clean 500 body when triggering fails', async () => {

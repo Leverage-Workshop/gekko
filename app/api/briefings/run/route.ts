@@ -25,7 +25,15 @@ export async function POST(): Promise<Response> {
     const handle = await tasks.trigger<typeof analyzeTask>('analyze-task', {
       triggerReason: 'manual',
     })
-    return json({ success: true, data: { runId: handle.id } }, 202)
+    // publicAccessToken is scoped to reading this one run; the dashboard uses
+    // it to subscribe via Realtime and auto-refresh when the run finishes.
+    return json(
+      {
+        success: true,
+        data: { runId: handle.id, publicAccessToken: handle.publicAccessToken },
+      },
+      202,
+    )
   } catch (error) {
     console.error('Failed to trigger analyze-task:', error)
     const message =
