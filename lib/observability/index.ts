@@ -1,18 +1,10 @@
+export { redactImageParts } from './redact'
 export {
-  RedactingSpanExporter,
-  redactImageParts,
-  redactPromptAttribute,
-  redactSpanAttributes,
-} from './redact'
-export {
-  DEFAULT_LANGSMITH_OTLP_ENDPOINT,
-  buildLangsmithOtlpConfig,
-  buildTelemetrySettings,
+  buildLangsmithProviderOptions,
   getLlmTelemetry,
   resetLlmTelemetryForTests,
 } from './telemetry'
 export type {
-  LangsmithOtlpConfig,
   LlmTelemetryRuntime,
   TelemetryEnv,
   TelemetryOptions,

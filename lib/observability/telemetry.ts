@@ -1,77 +1,53 @@
-import type { Tracer } from '@opentelemetry/api'
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto'
-import { resourceFromAttributes } from '@opentelemetry/resources'
-import { BatchSpanProcessor, NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
-import { RedactingSpanExporter } from './redact'
+import * as ai from 'ai'
+import { Client } from 'langsmith'
+import {
+  createLangSmithProviderOptions,
+  wrapAISDK,
+} from 'langsmith/experimental/vercel'
+import { redactImageParts } from './redact'
 
 /**
  * LangSmith LLM-call telemetry (feat-030).
  *
- * The AI SDK's `experimental_telemetry` emits OpenTelemetry spans carrying
- * the exact prompt sent and the model's JSON response. We export those spans
- * to LangSmith's OTLP ingestion endpoint so every analyze/eval LLM call is
- * inspectable per run.
+ * Uses LangSmith's official Vercel AI SDK integration: `wrapAISDK` (the
+ * documented wrapper for AI SDK v5/v6) wraps `generateObject` so every
+ * analyze/eval/update LLM call is recorded as a LangSmith run — call inputs,
+ * the provider-level prompt, and the model's JSON response — inspectable per
+ * run. This replaced the original hand-rolled OTel pipeline (private
+ * NodeTracerProvider + OTLP exporter + `experimental_telemetry`); the wrapper
+ * is simpler and is what LangSmith maintains against AI SDK changes.
  *
- * Wiring decision: we deliberately run a PRIVATE `NodeTracerProvider` here
- * (never `provider.register()`d as the global one) and hand its tracer to the
- * AI SDK via `experimental_telemetry.tracer`, instead of using trigger.dev
- * v4's `telemetry.exporters` hook in trigger.config.ts. Reasons:
- *   - trigger.dev's `telemetry.exporters` receives EVERY span of the worker's
- *     global provider (all internal run spans) — noise LangSmith doesn't need;
- *   - more importantly, if AI SDK spans went through the global provider,
- *     the multi-MB base64 chart images recorded in `ai.prompt.messages` would
- *     also be shipped to trigger.dev's own exporter. The private provider
- *     guarantees the only consumer is our redacting LangSmith exporter (see
- *     ./redact.ts), which strips image payloads before export.
- * Spans still start under the active trigger.dev run context, so they carry
- * the run's trace id (correlating LangSmith traces with trigger.dev runs).
+ * Redaction: the multi-hundred-KB base64 chart images in our prompts are
+ * stripped from what gets recorded via the wrapper's `processInputs` /
+ * `processChildLLMRunInputs` hooks (see ./redact.ts) — never from what is
+ * sent to the model.
  *
- * Env-gated: without `LANGSMITH_API_KEY` everything here is a no-op — no
- * provider, no exporter, no network — so offline tests and keyless runs are
- * unaffected.
+ * Env-gated: `LANGSMITH_API_KEY` set ⇒ tracing on (we pass
+ * `tracingEnabled: true` explicitly, so `LANGSMITH_TRACING` is NOT also
+ * required); unset ⇒ everything here is a no-op — no client, no network — so
+ * offline tests and keyless runs are unaffected.
  */
 
-/** LangSmith's OpenTelemetry trace-ingestion endpoint (overridable via env). */
-export const DEFAULT_LANGSMITH_OTLP_ENDPOINT =
-  'https://api.smith.langchain.com/otel/v1/traces'
-
-export interface LangsmithOtlpConfig {
-  url: string
-  headers: Record<string, string>
-}
-
-/** The env vars the LangSmith exporter reads (process.env-compatible). */
+/** The env vars the LangSmith runtime reads (process.env-compatible). */
 export interface TelemetryEnv {
   LANGSMITH_API_KEY?: string
+  /** LangSmith project to file traces under (defaults to "default"). */
   LANGSMITH_PROJECT?: string
-  LANGSMITH_OTEL_ENDPOINT?: string
+  /** API base URL override, e.g. https://eu.api.smith.langchain.com */
+  LANGSMITH_ENDPOINT?: string
+  /** Workspace id, needed only when the API key spans multiple workspaces. */
+  LANGSMITH_WORKSPACE_ID?: string
   [key: string]: string | undefined
-}
-
-/**
- * Build the OTLP exporter config for LangSmith from the environment, or null
- * when telemetry is disabled (no `LANGSMITH_API_KEY`).
- */
-export function buildLangsmithOtlpConfig(
-  env: TelemetryEnv = process.env,
-): LangsmithOtlpConfig | null {
-  const apiKey = env.LANGSMITH_API_KEY
-  if (!apiKey) return null
-
-  const headers: Record<string, string> = { 'x-api-key': apiKey }
-  if (env.LANGSMITH_PROJECT) {
-    headers['Langsmith-Project'] = env.LANGSMITH_PROJECT
-  }
-  return {
-    url: env.LANGSMITH_OTEL_ENDPOINT || DEFAULT_LANGSMITH_OTLP_ENDPOINT,
-    headers,
-  }
 }
 
 /** What the LLM wrapper needs from the telemetry runtime. */
 export interface LlmTelemetryRuntime {
-  tracer: Tracer
-  /** Flush buffered spans to LangSmith (awaited after each LLM call). */
+  /**
+   * LangSmith-wrapped `generateObject` — a drop-in replacement for the AI
+   * SDK function that traces the call as a LangSmith run.
+   */
+  generateObject: typeof ai.generateObject
+  /** Flush buffered trace batches to LangSmith (awaited after each LLM call). */
   flush(): Promise<void>
 }
 
@@ -87,24 +63,37 @@ export function getLlmTelemetry(
 ): LlmTelemetryRuntime | null {
   if (runtimeSingleton !== undefined) return runtimeSingleton
 
-  const config = buildLangsmithOtlpConfig(env)
-  if (!config) {
+  const apiKey = env.LANGSMITH_API_KEY
+  if (!apiKey) {
     runtimeSingleton = null
     return null
   }
 
-  const provider = new NodeTracerProvider({
-    resource: resourceFromAttributes({ 'service.name': 'gekko-llm' }),
-    spanProcessors: [
-      new BatchSpanProcessor(
-        new RedactingSpanExporter(new OTLPTraceExporter(config)),
-      ),
-    ],
+  // The Client would read LANGSMITH_* from process.env on its own, but we
+  // pass the values through explicitly so the gate above and the client
+  // always agree (and so tests can inject a fake env).
+  const client = new Client({
+    apiKey,
+    ...(env.LANGSMITH_ENDPOINT ? { apiUrl: env.LANGSMITH_ENDPOINT } : {}),
+    ...(env.LANGSMITH_WORKSPACE_ID
+      ? { workspaceId: env.LANGSMITH_WORKSPACE_ID }
+      : {}),
+  })
+
+  const wrapped = wrapAISDK(ai, {
+    client,
+    // LANGSMITH_API_KEY presence is Gekko's single on/off switch (see
+    // .env.example) — force tracing on rather than also requiring the
+    // standard LANGSMITH_TRACING=true.
+    tracingEnabled: true,
+    ...(env.LANGSMITH_PROJECT ? { project_name: env.LANGSMITH_PROJECT } : {}),
   })
 
   runtimeSingleton = {
-    tracer: provider.getTracer('gekko-llm'),
-    flush: () => provider.forceFlush(),
+    generateObject: wrapped.generateObject,
+    // Ship pending run batches now — trigger.dev workers can be recycled
+    // between runs, so we never rely on process-exit flushing.
+    flush: () => client.awaitPendingTraceBatches(),
   }
   return runtimeSingleton
 }
@@ -116,35 +105,36 @@ export function resetLlmTelemetryForTests(): void {
 
 /** Per-call telemetry options the pipelines pass to `generateStructured`. */
 export interface TelemetryOptions {
-  /** Groups traces in LangSmith (e.g. 'analyze-task', 'eval-task'). */
+  /** LangSmith run name, grouping traces (e.g. 'analyze-task', 'eval-task'). */
   functionId: string
   /** Extra attributes recorded on the trace. */
   metadata?: Record<string, string | number | boolean>
 }
 
 /**
- * The AI SDK `experimental_telemetry` settings for one call: inputs and
- * outputs are recorded (image parts are redacted downstream by the
- * exporter — see ./redact.ts), grouped under `functionId`, on our private
- * tracer.
+ * Build the per-call `providerOptions.langsmith` payload for a wrapped
+ * `generateObject` call: run name + metadata, plus the image-redaction hooks
+ * for both the parent run (`processInputs`, AI SDK call inputs) and the child
+ * LLM run (`processChildLLMRunInputs`, provider prompt). The wrapper strips
+ * the `langsmith` key before the provider sees the call, and the hooks only
+ * shape what is recorded — never what is sent.
  */
-export function buildTelemetrySettings(
+export function buildLangsmithProviderOptions(
   options: TelemetryOptions,
-  runtime: LlmTelemetryRuntime,
-): {
-  isEnabled: true
-  recordInputs: true
-  recordOutputs: true
-  functionId: string
-  metadata?: Record<string, string | number | boolean>
-  tracer: Tracer
-} {
-  return {
-    isEnabled: true,
-    recordInputs: true,
-    recordOutputs: true,
-    functionId: options.functionId,
+): ReturnType<typeof createLangSmithProviderOptions> {
+  return createLangSmithProviderOptions<typeof ai.generateObject>({
+    name: options.functionId,
     ...(options.metadata ? { metadata: options.metadata } : {}),
-    tracer: runtime.tracer,
-  }
+    processInputs: (inputs) => {
+      // Record only the prompt-bearing fields (system/prompt/messages), not
+      // the model instance or Zod schema objects the call params also carry.
+      const { system, prompt, messages } = inputs as Record<string, unknown>
+      return redactImageParts({ system, prompt, messages }) as Record<
+        string,
+        unknown
+      >
+    },
+    processChildLLMRunInputs: (inputs) =>
+      redactImageParts({ prompt: inputs.prompt }) as Record<string, unknown>,
+  })
 }

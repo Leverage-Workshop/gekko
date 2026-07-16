@@ -288,9 +288,8 @@ describe('generateStructured', () => {
     expect(result.latencyMs).toBeGreaterThanOrEqual(0)
   })
 
-  it('passes experimental_telemetry when opted in and the runtime is enabled', async () => {
+  it('passes providerOptions.langsmith when opted in and the runtime is enabled', async () => {
     let captured: Record<string, unknown> | undefined
-    const tracer = { startActiveSpan: () => undefined }
     let flushed = 0
     await generateStructured({
       schema: Out,
@@ -298,7 +297,9 @@ describe('generateStructured', () => {
       telemetry: { functionId: 'analyze-task', metadata: { bundleId: 'b1' } },
       getTelemetry: () =>
         ({
-          tracer,
+          generateObject: () => {
+            throw new Error('injected generate should take precedence')
+          },
           flush: async () => {
             flushed += 1
           },
@@ -313,18 +314,48 @@ describe('generateStructured', () => {
       }),
     })
 
-    expect(captured!.experimental_telemetry).toEqual({
-      isEnabled: true,
-      recordInputs: true,
-      recordOutputs: true,
-      functionId: 'analyze-task',
-      metadata: { bundleId: 'b1' },
-      tracer,
-    })
+    const providerOptions = captured!.providerOptions as {
+      langsmith: Record<string, unknown>
+    }
+    expect(providerOptions.langsmith.name).toBe('analyze-task')
+    expect(providerOptions.langsmith.metadata).toEqual({ bundleId: 'b1' })
+    expect(typeof providerOptions.langsmith.processInputs).toBe('function')
+    expect(typeof providerOptions.langsmith.processChildLLMRunInputs).toBe(
+      'function',
+    )
     expect(flushed).toBe(1)
   })
 
-  it('omits experimental_telemetry when the runtime is disabled (no env key)', async () => {
+  it('routes through the LangSmith-wrapped generateObject when none is injected', async () => {
+    let wrappedCalls = 0
+    const result = await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      telemetry: { functionId: 'eval-task' },
+      getTelemetry: () =>
+        ({
+          generateObject: (async () => {
+            wrappedCalls += 1
+            return {
+              object: { bias: 'short', score: 0.2 },
+              response: {
+                id: 'resp_1',
+                timestamp: new Date(),
+                modelId: DEFAULT_MODEL_ID,
+              },
+              usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+            }
+          }) as never,
+          flush: async () => {},
+        }) as never,
+      resolveModel,
+    })
+
+    expect(wrappedCalls).toBe(1)
+    expect(result.object).toEqual({ bias: 'short', score: 0.2 })
+  })
+
+  it('omits providerOptions.langsmith when the runtime is disabled (no env key)', async () => {
     let captured: Record<string, unknown> | undefined
     await generateStructured({
       schema: Out,
@@ -340,10 +371,10 @@ describe('generateStructured', () => {
         },
       }),
     })
-    expect(captured!).not.toHaveProperty('experimental_telemetry')
+    expect(captured!).not.toHaveProperty('providerOptions')
   })
 
-  it('omits experimental_telemetry when the caller does not opt in', async () => {
+  it('omits providerOptions.langsmith when the caller does not opt in', async () => {
     let captured: Record<string, unknown> | undefined
     let consulted = 0
     await generateStructured({
@@ -362,7 +393,7 @@ describe('generateStructured', () => {
         },
       }),
     })
-    expect(captured!).not.toHaveProperty('experimental_telemetry')
+    expect(captured!).not.toHaveProperty('providerOptions')
     expect(consulted).toBe(0)
   })
 

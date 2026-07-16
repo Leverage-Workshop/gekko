@@ -7,7 +7,7 @@ import type {
 } from 'ai'
 import type { z } from 'zod'
 import {
-  buildTelemetrySettings,
+  buildLangsmithProviderOptions,
   getLlmTelemetry,
 } from '@/lib/observability'
 import type { LlmTelemetryRuntime, TelemetryOptions } from '@/lib/observability'
@@ -47,8 +47,8 @@ export interface GenerateStructuredParams<T> {
   /** Chart images to attach as vision parts. */
   images?: readonly ChartImage[]
   /**
-   * Opt-in LLM telemetry (feat-030): record this call's prompt + response as
-   * an OTel trace exported to LangSmith. Only active when `LANGSMITH_API_KEY`
+   * Opt-in LLM telemetry (feat-030): record this call as a LangSmith run via
+   * LangSmith's `wrapAISDK` integration. Only active when `LANGSMITH_API_KEY`
    * is configured — otherwise silently disabled. Image parts are redacted
    * from the recorded inputs (never from what is sent to the model).
    */
@@ -58,7 +58,10 @@ export interface GenerateStructuredParams<T> {
    * provider. Injectable for tests.
    */
   resolveModel?: (modelId: string) => LanguageModel
-  /** AI SDK `generateObject` implementation. Injectable for tests. */
+  /**
+   * AI SDK `generateObject` implementation. Injectable for tests. When unset
+   * and telemetry is active, the LangSmith-wrapped `generateObject` is used.
+   */
   generate?: typeof generateObject
   /** Telemetry runtime accessor. Injectable for tests. */
   getTelemetry?: () => LlmTelemetryRuntime | null
@@ -157,7 +160,7 @@ export async function generateStructured<T>(
     images = [],
     telemetry,
     resolveModel = (id) => getOpenRouter()(id, { usage: { include: true } }),
-    generate = generateObject,
+    generate,
     getTelemetry = getLlmTelemetry,
   } = params
 
@@ -182,24 +185,31 @@ export async function generateStructured<T>(
   // recorded and nothing is exported.
   const telemetryRuntime = telemetry ? getTelemetry() : null
 
+  // With telemetry active, route through the LangSmith-wrapped
+  // `generateObject` and pass the per-call run config (name, metadata, image
+  // redaction) via `providerOptions.langsmith` — the wrapper consumes and
+  // strips that key before the OpenRouter provider sees the call.
+  const doGenerate =
+    generate ?? telemetryRuntime?.generateObject ?? generateObject
+
   const startedAt = Date.now()
-  const result = await generate({
+  const result = await doGenerate({
     model: resolveModel(model),
     schema,
     messages,
     ...(telemetry && telemetryRuntime
       ? {
-          experimental_telemetry: buildTelemetrySettings(
-            telemetry,
-            telemetryRuntime,
-          ),
+          providerOptions: {
+            langsmith: buildLangsmithProviderOptions(telemetry),
+          },
         }
       : {}),
   })
   const latencyMs = Date.now() - startedAt
 
   if (telemetryRuntime) {
-    // Ship the buffered spans now; a LangSmith outage must never fail a run.
+    // Ship the buffered trace batches now; a LangSmith outage must never
+    // fail a run.
     try {
       await telemetryRuntime.flush()
     } catch {

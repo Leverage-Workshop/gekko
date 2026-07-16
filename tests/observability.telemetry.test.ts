@@ -1,54 +1,16 @@
-import type { Tracer } from '@opentelemetry/api'
-import { ExportResultCode } from '@opentelemetry/core'
-import type { ExportResult } from '@opentelemetry/core'
-import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  DEFAULT_LANGSMITH_OTLP_ENDPOINT,
-  RedactingSpanExporter,
-  buildLangsmithOtlpConfig,
-  buildTelemetrySettings,
+  buildLangsmithProviderOptions,
   getLlmTelemetry,
   redactImageParts,
-  redactPromptAttribute,
-  redactSpanAttributes,
   resetLlmTelemetryForTests,
 } from '@/lib/observability'
 
-// feat-030: LangSmith LLM telemetry — env gating, exporter config, and the
-// image-redaction path that keeps base64 chart PNGs out of recorded traces.
+// feat-030: LangSmith LLM telemetry via the official wrapAISDK integration —
+// env gating, per-call provider options, and the image-redaction hooks that
+// keep base64 chart PNGs out of recorded traces.
 
 const BASE64_PNG = 'A'.repeat(4000) // ~3000 bytes decoded
-
-describe('buildLangsmithOtlpConfig', () => {
-  it('is null (telemetry disabled) without LANGSMITH_API_KEY', () => {
-    expect(buildLangsmithOtlpConfig({})).toBeNull()
-    expect(buildLangsmithOtlpConfig({ LANGSMITH_PROJECT: 'gekko' })).toBeNull()
-  })
-
-  it('points at the LangSmith OTLP endpoint with the x-api-key header', () => {
-    const config = buildLangsmithOtlpConfig({ LANGSMITH_API_KEY: 'ls-key' })
-    expect(config).toEqual({
-      url: DEFAULT_LANGSMITH_OTLP_ENDPOINT,
-      headers: { 'x-api-key': 'ls-key' },
-    })
-    expect(DEFAULT_LANGSMITH_OTLP_ENDPOINT).toBe(
-      'https://api.smith.langchain.com/otel/v1/traces',
-    )
-  })
-
-  it('adds the Langsmith-Project header and honors the endpoint override', () => {
-    const config = buildLangsmithOtlpConfig({
-      LANGSMITH_API_KEY: 'ls-key',
-      LANGSMITH_PROJECT: 'gekko-prod',
-      LANGSMITH_OTEL_ENDPOINT: 'https://eu.api.smith.langchain.com/otel/v1/traces',
-    })
-    expect(config).toEqual({
-      url: 'https://eu.api.smith.langchain.com/otel/v1/traces',
-      headers: { 'x-api-key': 'ls-key', 'Langsmith-Project': 'gekko-prod' },
-    })
-  })
-})
 
 describe('getLlmTelemetry', () => {
   afterEach(() => {
@@ -58,6 +20,7 @@ describe('getLlmTelemetry', () => {
   it('is null — cleanly disabled — without LANGSMITH_API_KEY', () => {
     resetLlmTelemetryForTests()
     expect(getLlmTelemetry({})).toBeNull()
+    expect(getLlmTelemetry({ LANGSMITH_PROJECT: 'gekko' })).toBeNull()
   })
 
   it('caches the disabled state (still null on a second call)', () => {
@@ -67,42 +30,104 @@ describe('getLlmTelemetry', () => {
     expect(getLlmTelemetry({ LANGSMITH_API_KEY: 'late' })).toBeNull()
   })
 
-  it('builds a tracer + flush runtime when the key is present', () => {
+  it('builds a wrapped generateObject + flush runtime when the key is present', () => {
     resetLlmTelemetryForTests()
-    const runtime = getLlmTelemetry({ LANGSMITH_API_KEY: 'ls-key' })
+    const runtime = getLlmTelemetry({
+      LANGSMITH_API_KEY: 'ls-key',
+      LANGSMITH_PROJECT: 'gekko-prod',
+    })
     expect(runtime).not.toBeNull()
-    expect(typeof runtime!.tracer.startActiveSpan).toBe('function')
+    expect(typeof runtime!.generateObject).toBe('function')
     expect(typeof runtime!.flush).toBe('function')
     // Singleton: same runtime on repeat calls.
     expect(getLlmTelemetry({ LANGSMITH_API_KEY: 'ls-key' })).toBe(runtime)
   })
 })
 
-describe('buildTelemetrySettings', () => {
-  const tracer = { startActiveSpan: () => undefined } as unknown as Tracer
-  const runtime = { tracer, flush: async () => {} }
-
-  it('enables recording of inputs and outputs under the functionId', () => {
-    const settings = buildTelemetrySettings({ functionId: 'analyze-task' }, runtime)
-    expect(settings).toEqual({
-      isEnabled: true,
-      recordInputs: true,
-      recordOutputs: true,
-      functionId: 'analyze-task',
-      tracer,
-    })
+describe('buildLangsmithProviderOptions', () => {
+  it('names the run after the functionId', () => {
+    const options = buildLangsmithProviderOptions({ functionId: 'analyze-task' })
+    expect(options.name).toBe('analyze-task')
+    expect(options).not.toHaveProperty('metadata')
   })
 
   it('threads optional metadata through', () => {
-    const settings = buildTelemetrySettings(
-      { functionId: 'eval-task', metadata: { bundleId: 'b1' } },
-      runtime,
-    )
-    expect(settings.metadata).toEqual({ bundleId: 'b1' })
+    const options = buildLangsmithProviderOptions({
+      functionId: 'eval-task',
+      metadata: { bundleId: 'b1' },
+    })
+    expect(options.name).toBe('eval-task')
+    expect(options.metadata).toEqual({ bundleId: 'b1' })
+  })
+
+  it('processInputs records prompt fields with images redacted, dropping model/schema', () => {
+    const options = buildLangsmithProviderOptions({ functionId: 'analyze-task' })
+    const processInputs = options.processInputs as unknown as (
+      inputs: Record<string, unknown>,
+    ) => Record<string, unknown>
+
+    const messages = [
+      { role: 'system', content: 'DOCTRINE' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'engine facts' },
+          { type: 'image', image: BASE64_PNG, mediaType: 'image/png' },
+        ],
+      },
+    ]
+    const recorded = processInputs({
+      model: { modelId: 'anthropic/claude-sonnet-5', huge: 'not-json' },
+      schema: { parse: () => undefined },
+      messages,
+    })
+
+    expect(recorded).not.toHaveProperty('model')
+    expect(recorded).not.toHaveProperty('schema')
+    const out = recorded.messages as typeof messages
+    expect(out[0]).toEqual({ role: 'system', content: 'DOCTRINE' })
+    expect(out[1].content[0]).toEqual({ type: 'text', text: 'engine facts' })
+    expect(out[1].content[1]).toEqual({
+      type: 'image',
+      image: '[image: image/png, ~3000 bytes]',
+      mediaType: 'image/png',
+    })
+    // Never mutates the real call inputs.
+    expect((messages[1].content[1] as { image: string }).image).toBe(BASE64_PNG)
+  })
+
+  it('processChildLLMRunInputs redacts provider-level file parts', () => {
+    const options = buildLangsmithProviderOptions({ functionId: 'eval-task' })
+    const processChild = options.processChildLLMRunInputs as unknown as (
+      inputs: Record<string, unknown>,
+    ) => Record<string, unknown>
+
+    const recorded = processChild({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'read the chart' },
+            { type: 'file', data: BASE64_PNG, mediaType: 'image/png' },
+          ],
+        },
+      ],
+      maxOutputTokens: 4096,
+    })
+
+    const prompt = recorded.prompt as {
+      content: Record<string, unknown>[]
+    }[]
+    expect(prompt[0].content[0]).toEqual({ type: 'text', text: 'read the chart' })
+    expect(prompt[0].content[1]).toEqual({
+      type: 'file',
+      data: '[image: image/png, ~3000 bytes]',
+      mediaType: 'image/png',
+    })
   })
 })
 
-describe('image redaction', () => {
+describe('redactImageParts', () => {
   it('replaces ModelMessage image parts with a placeholder, keeping text', () => {
     const prompt = {
       messages: [
@@ -127,7 +152,7 @@ describe('image redaction', () => {
     })
   })
 
-  it('replaces LanguageModel file parts (the ai.prompt.messages shape)', () => {
+  it('replaces LanguageModel file parts (the child-run prompt shape)', () => {
     const messages = [
       {
         role: 'user',
@@ -145,105 +170,31 @@ describe('image redaction', () => {
     })
   })
 
+  it('replaces binary (Uint8Array) file payloads', () => {
+    const part = {
+      type: 'file',
+      data: new Uint8Array(3000),
+      mediaType: 'image/png',
+    }
+    expect(redactImageParts(part)).toEqual({
+      type: 'file',
+      data: '[image: image/png, ~3000 bytes]',
+      mediaType: 'image/png',
+    })
+  })
+
   it('does not mutate its input', () => {
     const part = { type: 'image', image: BASE64_PNG }
     redactImageParts([part])
     expect(part.image).toBe(BASE64_PNG)
   })
 
-  it('passes non-JSON attribute values through unchanged', () => {
-    expect(redactPromptAttribute('not json {')).toBe('not json {')
-  })
-
-  it('redacts only the ai.prompt* span attributes', () => {
-    const attributes: Record<string, unknown> = {
-      'ai.prompt': JSON.stringify({
-        system: 'DOCTRINE',
-        messages: [
-          {
-            role: 'user',
-            content: [{ type: 'image', image: BASE64_PNG, mediaType: 'image/png' }],
-          },
-        ],
-      }),
-      'ai.prompt.messages': JSON.stringify([
-        {
-          role: 'user',
-          content: [{ type: 'file', data: BASE64_PNG, mediaType: 'image/png' }],
-        },
-      ]),
-      'ai.response.object': '{"status":"WAIT"}',
-      'gen_ai.request.model': 'anthropic/claude-sonnet-5',
-    }
-
-    redactSpanAttributes(attributes)
-
-    expect(attributes['ai.prompt']).toContain('DOCTRINE')
-    expect(attributes['ai.prompt']).toContain('[image: image/png, ~3000 bytes]')
-    expect(attributes['ai.prompt']).not.toContain(BASE64_PNG)
-    expect(attributes['ai.prompt.messages']).toContain(
-      '[image: image/png, ~3000 bytes]',
-    )
-    expect(attributes['ai.prompt.messages']).not.toContain(BASE64_PNG)
-    // Non-prompt attributes untouched.
-    expect(attributes['ai.response.object']).toBe('{"status":"WAIT"}')
-    expect(attributes['gen_ai.request.model']).toBe('anthropic/claude-sonnet-5')
-  })
-})
-
-describe('RedactingSpanExporter', () => {
-  function fakeSpan(attributes: Record<string, unknown>): ReadableSpan {
-    return { attributes } as unknown as ReadableSpan
-  }
-
-  it('strips image payloads before forwarding spans to the inner exporter', () => {
-    const exported: ReadableSpan[][] = []
-    const inner: SpanExporter = {
-      export: (spans, cb) => {
-        exported.push(spans as ReadableSpan[])
-        cb({ code: ExportResultCode.SUCCESS })
-      },
-      shutdown: async () => {},
-    }
-    const exporter = new RedactingSpanExporter(inner)
-
-    const span = fakeSpan({
-      'ai.prompt.messages': JSON.stringify([
-        {
-          role: 'user',
-          content: [{ type: 'file', data: BASE64_PNG, mediaType: 'image/png' }],
-        },
-      ]),
-      'ai.usage.inputTokens': 100,
+  it('passes primitives and non-image structures through unchanged', () => {
+    expect(redactImageParts('DOCTRINE')).toBe('DOCTRINE')
+    expect(redactImageParts(42)).toBe(42)
+    expect(redactImageParts({ type: 'text', text: 'hi' })).toEqual({
+      type: 'text',
+      text: 'hi',
     })
-
-    let result: ExportResult | undefined
-    exporter.export([span], (r) => {
-      result = r
-    })
-
-    expect(result?.code).toBe(ExportResultCode.SUCCESS)
-    expect(exported).toHaveLength(1)
-    const attrs = exported[0][0].attributes as Record<string, unknown>
-    expect(attrs['ai.prompt.messages']).not.toContain(BASE64_PNG)
-    expect(attrs['ai.prompt.messages']).toContain('[image: image/png, ~3000 bytes]')
-    expect(attrs['ai.usage.inputTokens']).toBe(100)
-  })
-
-  it('delegates shutdown and forceFlush to the inner exporter', async () => {
-    const calls: string[] = []
-    const inner: SpanExporter = {
-      export: () => {},
-      shutdown: async () => {
-        calls.push('shutdown')
-      },
-      forceFlush: async () => {
-        calls.push('forceFlush')
-      },
-    }
-    const exporter = new RedactingSpanExporter(inner)
-    await exporter.forceFlush()
-    await exporter.shutdown()
-    expect(calls).toEqual(['forceFlush', 'shutdown'])
   })
 })
