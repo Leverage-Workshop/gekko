@@ -66,6 +66,7 @@ function modelEval(): EvalResult {
       { name: 'Structure', verdict: 'pass', note: 'Border is a proven acceptance edge' },
       { name: 'Delta', verdict: 'pass', note: 'Positive mean confirming the long' },
     ],
+    nextSignal: null,
     caution: 'No adds above T1',
     reason: 'Absorption at the border, positive delta confirming the long.',
   }

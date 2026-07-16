@@ -164,11 +164,18 @@ export type BriefingUpdate = z.infer<typeof BriefingUpdate>
 
 // --- EvalResult -------------------------------------------------------------
 
+// NOTE (2026-07-16): every "absent" field below is `.nullable()`, never
+// `.optional()` — OpenAI strict structured outputs (the triage model's
+// endpoint) require every key in each object's `required` array; a key that
+// can be missing is rejected before the call runs. Anthropic tolerated
+// optionals, OpenAI does not. Guarded by the strict-mode walker in
+// tests/briefing.schema.test.ts.
+
 export const EvalMeta = z.object({
   createdAt: z.string(),
   currentPrice: z.number(),
   nearEntry: z.boolean(),
-  zone: z.string().optional(),
+  zone: z.string().nullable(),
 })
 export type EvalMeta = z.infer<typeof EvalMeta>
 
@@ -193,21 +200,20 @@ export type EvalCheck = z.infer<typeof EvalCheck>
 export const EvalResult = z.object({
   meta: EvalMeta,
   status: EvalStatus,
-  evaluatedLevel: EvaluatedLevel.optional(),
-  direction: Direction.optional(),
-  trigger: z.string().optional(),
-  stop: z.number().optional(),
-  targets: z.array(z.number()).optional(),
+  evaluatedLevel: EvaluatedLevel.nullable(),
+  direction: Direction.nullable(),
+  trigger: z.string().nullable(),
+  stop: z.number().nullable(),
+  targets: z.array(z.number()).nullable(),
   /**
-   * The reason decomposed into named conditions (Structure, Delta, Momentum,
-   * Absorption, …). Optional: absent on level-less NO_ENTRY_NEAR verdicts and
-   * on pre-migration rows.
+   * The reason decomposed into named conditions (Structure, Delta,
+   * Absorption, …). Null on level-less NO_ENTRY_NEAR verdicts.
    */
-  checks: z.array(EvalCheck).optional(),
+  checks: z.array(EvalCheck).nullable(),
   /** The single concrete signal that would flip a WAIT/NOT_VALID to ENTER. */
-  nextSignal: z.string().optional(),
+  nextSignal: z.string().nullable(),
   /** One line of what NOT to do right now (e.g. "do not chase into the void"). */
-  caution: z.string().optional(),
+  caution: z.string().nullable(),
   reason: z.string(),
 })
 export type EvalResult = z.infer<typeof EvalResult>

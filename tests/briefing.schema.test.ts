@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { z } from 'zod'
 import {
   Briefing,
   BriefingUpdate,
@@ -67,6 +68,7 @@ const validEvalResult = {
     { name: 'Structure', verdict: 'pass' as const, note: 'Border is a proven acceptance edge' },
     { name: 'Delta', verdict: 'pass' as const, note: 'Positive mean, blue sign' },
   ],
+  nextSignal: null,
   caution: 'No adds above T1',
   reason: 'Absorption confirmed at the border with blue continuation',
 }
@@ -210,16 +212,40 @@ describe('EvalResult', () => {
     expect(parsed.targets).toEqual([24100, 24200, 24350])
   })
 
-  it('accepts a minimal NO_ENTRY_NEAR result with only required fields', () => {
-    const minimal = {
+  it('accepts a NO_ENTRY_NEAR result with the level fields nulled', () => {
+    // Absence is null, never a missing key — OpenAI strict mode requires
+    // every property present (see the strict-mode compatibility suite below).
+    const noEntry = {
+      meta: {
+        createdAt: '2026-06-20T16:05:00.000Z',
+        currentPrice: 24005,
+        nearEntry: false,
+        zone: null,
+      },
+      status: 'NO_ENTRY_NEAR' as const,
+      evaluatedLevel: null,
+      direction: null,
+      trigger: null,
+      stop: null,
+      targets: null,
+      checks: null,
+      nextSignal: null,
+      caution: null,
+      reason: 'No active level within range',
+    }
+    const parsed = EvalResult.parse(noEntry)
+    expect(parsed.status).toBe('NO_ENTRY_NEAR')
+    expect(parsed.evaluatedLevel).toBeNull()
+    expect(parsed.meta.zone).toBeNull()
+  })
+
+  it('rejects a result that omits the nullable keys instead of nulling them', () => {
+    const missingKeys = {
       meta: { createdAt: '2026-06-20T16:05:00.000Z', currentPrice: 24005, nearEntry: false },
       status: 'NO_ENTRY_NEAR' as const,
       reason: 'No active level within range',
     }
-    const parsed = EvalResult.parse(minimal)
-    expect(parsed.status).toBe('NO_ENTRY_NEAR')
-    expect(parsed.evaluatedLevel).toBeUndefined()
-    expect(parsed.meta.zone).toBeUndefined()
+    expect(EvalResult.safeParse(missingKeys).success).toBe(false)
   })
 
   it('requires meta.nearEntry to be a boolean', () => {
@@ -259,5 +285,42 @@ describe('EvalResult', () => {
       checks: [{ name: 'Delta', verdict: 'maybe', note: 'unclear' }],
     }
     expect(EvalResult.safeParse(bad).success).toBe(false)
+  })
+})
+
+/**
+ * OpenAI strict structured outputs (Azure included) require every object's
+ * `required` array to list every key in `properties` — a key that can be
+ * absent is rejected with "'required' is required to be supplied and to be an
+ * array including every key". Absence must be modeled as `.nullable()`, never
+ * `.optional()`. This walker enforces that for every model-facing schema so a
+ * stray .optional() fails CI instead of the first live OpenRouter call.
+ */
+function assertAllKeysRequired(schema: z.ZodType, name: string) {
+  const walk = (node: unknown, path: string) => {
+    if (node === null || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      node.forEach((item, i) => walk(item, `${path}[${i}]`))
+      return
+    }
+    const obj = node as Record<string, unknown>
+    if (obj.type === 'object' && obj.properties && typeof obj.properties === 'object') {
+      const keys = Object.keys(obj.properties as object)
+      const required = Array.isArray(obj.required) ? (obj.required as string[]) : []
+      const missing = keys.filter((k) => !required.includes(k))
+      expect(missing, `${name}: optional keys at ${path}`).toEqual([])
+    }
+    for (const [key, value] of Object.entries(obj)) walk(value, `${path}.${key}`)
+  }
+  walk(z.toJSONSchema(schema), 'root')
+}
+
+describe('OpenAI strict-mode compatibility (every key required)', () => {
+  it.each([
+    ['Briefing', Briefing],
+    ['BriefingUpdate', BriefingUpdate],
+    ['EvalResult', EvalResult],
+  ] as const)('%s declares every property as required', (name, schema) => {
+    assertAllKeysRequired(schema, name)
   })
 })
