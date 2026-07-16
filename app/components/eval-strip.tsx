@@ -3,13 +3,16 @@ import { formatPrice, parseEvalChecks, type DashboardEvalRow } from '@/lib/brief
 import { HighlightedText } from './highlighted-text'
 
 /**
- * Latest Entry Eval strip — the most actionable read on the page, so it sits
- * directly beneath the meta strip instead of below the fold. One cell row
- * carries the verdict chip, stop, targets, trigger and next-signal; the
+ * Latest Entry Eval column — the most actionable read on the page, so it sits
+ * beside the meta cells at the top instead of below the fold. Renders column
+ * content only (no section chrome); the page composes it into the meta/eval
+ * two-column grid. A cell row carries the verdict chip and targets; the
  * structured condition checks (schema `checks`, when present) render as an
  * always-visible chip rail that expands (native <details>) into per-condition
  * notes, caution and the reason summary. Pre-migration rows without checks
- * degrade to the reason prose inside the same expander.
+ * degrade to the reason prose inside the same expander. Stop / trigger /
+ * next-signal are persisted but deliberately not displayed (operator call,
+ * 2026-07-16).
  */
 
 const EVAL_STATUS_CLASS: Record<string, string> = {
@@ -139,92 +142,60 @@ export function EvalStrip({
 }) {
   if (evalResult === null) {
     return (
-      <section id="eval" className="border-b border-hairline bg-surface-soft">
-        <div className="mx-auto max-w-[1800px] px-6 pb-4">
-          <div className="border border-hairline bg-surface-soft px-5 py-3">
-            <CellLabel>Latest Entry Eval</CellLabel>
-            <p className="mt-1 text-sm font-light leading-relaxed text-muted">
-              {unavailable
-                ? 'Entry evals unavailable — the database could not be reached.'
-                : 'No entry evals yet — press Check Entry at Current Price above to run the first check against the active entry levels.'}
-            </p>
-          </div>
-        </div>
-      </section>
+      <div id="eval" className="border border-hairline bg-surface-soft px-5 py-3">
+        <CellLabel>Latest Entry Eval</CellLabel>
+        <p className="mt-1 text-sm font-light leading-relaxed text-muted">
+          {unavailable
+            ? 'Entry evals unavailable — the database could not be reached.'
+            : 'No entry evals yet — press Check Entry at Current Price above to run the first check against the active entry levels.'}
+        </p>
+      </div>
     )
   }
 
   const checks = parseEvalChecks(evalResult.checks)
 
   return (
-    <section id="eval" className="border-b border-hairline bg-surface-soft">
-      <div className="mx-auto max-w-[1800px] px-6 pb-4">
-        <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_auto_1fr_1fr]">
-          <div className="bg-surface-soft px-5 py-3">
-            <CellLabel>Latest Entry Eval</CellLabel>
-            <p className="mt-1 flex flex-wrap items-center gap-3">
-              <span
-                className={`border px-2.5 py-0.5 text-sm font-bold uppercase tracking-[1.5px] ${
-                  EVAL_STATUS_CLASS[evalResult.status] ?? 'text-body border-hairline'
-                }`}
-              >
-                {evalResult.status.replaceAll('_', ' ')}
+    <div id="eval">
+      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[1fr_auto]">
+        <div className="bg-surface-soft px-5 py-3">
+          <CellLabel>Latest Entry Eval</CellLabel>
+          <p className="mt-1 flex flex-wrap items-center gap-3">
+            <span
+              className={`border px-2.5 py-0.5 text-sm font-bold uppercase tracking-[1.5px] ${
+                EVAL_STATUS_CLASS[evalResult.status] ?? 'text-body border-hairline'
+              }`}
+            >
+              {evalResult.status.replaceAll('_', ' ')}
+            </span>
+            {evalResult.direction && (
+              <span className="text-xs font-bold uppercase tracking-[1.5px] text-body-strong">
+                {evalResult.direction}
               </span>
-              {evalResult.direction && (
-                <span className="text-xs font-bold uppercase tracking-[1.5px] text-body-strong">
-                  {evalResult.direction}
-                </span>
-              )}
-              <span className="text-xs font-light uppercase tracking-wide text-muted">
-                {fmtDate(evalResult.created_at)}
-                {evalResult.current_price !== null &&
-                  ` · at ${formatPrice(evalResult.current_price)}`}
-              </span>
-            </p>
-          </div>
-          <div className="bg-surface-soft px-5 py-3">
-            <CellLabel>Stop</CellLabel>
-            <p className="mt-1 text-lg font-bold tracking-tight text-ink">
-              {evalResult.stop !== null ? formatPrice(evalResult.stop) : '—'}
-            </p>
-          </div>
-          <div className="bg-surface-soft px-5 py-3">
-            <CellLabel>Targets</CellLabel>
-            <p className="mt-1 text-lg font-bold tracking-tight text-ink">
-              {evalResult.targets && evalResult.targets.length > 0
-                ? evalResult.targets.map(formatPrice).join(' → ')
-                : '—'}
-            </p>
-          </div>
-          <div className="bg-surface-soft px-5 py-3">
-            <CellLabel>Trigger</CellLabel>
-            <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
-              {evalResult.trigger ? (
-                <HighlightedText text={evalResult.trigger} terms={terms} />
-              ) : (
-                '—'
-              )}
-            </p>
-          </div>
-          <div className="bg-surface-soft px-5 py-3">
-            <CellLabel>Next Signal</CellLabel>
-            <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
-              {evalResult.next_signal ? (
-                <HighlightedText text={evalResult.next_signal} terms={terms} />
-              ) : (
-                '—'
-              )}
-            </p>
-          </div>
+            )}
+            <span className="text-xs font-light uppercase tracking-wide text-muted">
+              {fmtDate(evalResult.created_at)}
+              {evalResult.current_price !== null &&
+                ` · at ${formatPrice(evalResult.current_price)}`}
+            </span>
+          </p>
         </div>
-
-        <ConditionsDetail
-          checks={checks}
-          caution={evalResult.caution}
-          reason={evalResult.reason}
-          terms={terms}
-        />
+        <div className="bg-surface-soft px-5 py-3">
+          <CellLabel>Targets</CellLabel>
+          <p className="mt-1 text-lg font-bold tracking-tight text-ink">
+            {evalResult.targets && evalResult.targets.length > 0
+              ? evalResult.targets.map(formatPrice).join(' → ')
+              : '—'}
+          </p>
+        </div>
       </div>
-    </section>
+
+      <ConditionsDetail
+        checks={checks}
+        caution={evalResult.caution}
+        reason={evalResult.reason}
+        terms={terms}
+      />
+    </div>
   )
 }

@@ -29,11 +29,12 @@ import { TopNav } from './components/top-nav'
 /**
  * Gekko dashboard (feat-019) — a server component that fetches the latest
  * briefing, eval result, and bundle freshness via the service-role client,
- * then renders the briefing as a dense tool view: compact meta strip, the
- * latest entry eval strip (EvalStrip — verdict, stop/targets, condition
- * checks) directly beneath it, and a two-tab body (Objectives = execution
- * chart + objective cards + danger zones; Tactical Overview = the stacked
- * prose read). The trigger buttons ("Run Briefing" feat-020, "Run Update" feat-038,
+ * then renders the briefing as a dense tool view: a two-column top strip
+ * (left = MetaColumn: price/rip/HTF-trend cells with the Tactical Read in an
+ * expander; right = EvalStrip: verdict + targets with the condition checks in
+ * an expander), and a tabbed body (Objectives = execution chart + objective
+ * cards + danger zones; Tactical Overview = the stacked prose read). The
+ * trigger buttons ("Run Briefing" feat-020, "Run Update" feat-038,
  * "Check Entry" feat-025) live in the top-right of the nav. Update briefings
  * additionally carry an UPDATE chip and an Immediate Tactical Read strip.
  */
@@ -111,13 +112,19 @@ function OverviewPane({ overview, terms }: { overview: Overview; terms: string[]
   )
 }
 
-/** Compact meta strip under the nav: price, rip status, HTF trend, run meta. */
-function MetaStrip({
+/**
+ * Meta column (left of the eval): price, rip status, HTF trend and run meta
+ * as one cell grid, with the Immediate Tactical Read (feat-038; update
+ * briefings only) stacked inside an attached <details> expander — mirroring
+ * the eval column's Conditions expander.
+ */
+function MetaColumn({
   briefing,
   payload,
   isStale,
   staleWarning,
   terms,
+  tacticalRead,
 }: {
   briefing: {
     createdAt: string
@@ -129,98 +136,99 @@ function MetaStrip({
   isStale: boolean
   staleWarning: string | null
   terms: string[]
+  tacticalRead: TacticalRead | null
 }) {
-  return (
-    <section className="border-b border-hairline bg-surface-soft">
-      <div className="mx-auto max-w-[1800px] px-6 py-4">
-        <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_1fr_auto]">
-          <div className="bg-surface-soft px-5 py-4">
-            <p className="text-2xl font-bold tracking-tight text-bmw-blue">
-              {formatPrice(payload.meta.currentPrice)}
-            </p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">
-              Current Price
-            </p>
-          </div>
-          <div className="bg-surface-soft px-5 py-4">
-            <p
-              className={`text-2xl font-bold uppercase tracking-tight ${ripStatusTone(
-                payload.meta.ripStatus,
-              )}`}
-            >
-              {payload.meta.ripStatus}
-            </p>
-            <p className="mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">
-              Rip Status
-            </p>
-          </div>
-          <div className="min-w-[280px] bg-surface-soft px-5 py-4">
-            <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
-              HTF Trend
-            </p>
-            <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
-              <HighlightedText text={payload.meta.htfTrend} terms={terms} />
-            </p>
-          </div>
-          <div className="bg-surface-soft px-5 py-4 md:text-right">
-            <p className="text-xs font-light tracking-wide text-body">
-              {fmtDate(briefing.createdAt)}
-              {briefing.kind === 'update' && (
-                <span
-                  className="ml-3 border border-bmw-blue px-2 py-0.5 text-xs font-bold uppercase tracking-[1.5px] text-bmw-blue"
-                  title="Update briefing — objectives and danger zones regenerated; overview and terrain inherited from the previous briefing"
-                >
-                  Update
-                </span>
-              )}
-              {isStale && (
-                <span
-                  className="ml-3 border border-m-red px-2 py-0.5 text-xs font-bold uppercase tracking-[1.5px] text-m-red"
-                  title={staleWarning ?? undefined}
-                >
-                  Stale
-                </span>
-              )}
-            </p>
-            <p className="mt-2 text-xs font-light tracking-wide text-muted">
-              {briefing.triggerReason}
-              {briefing.modelId && ` · ${briefing.modelId}`}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
+  const readRows: { title: string; text: string }[] = tacticalRead
+    ? [
+        { title: 'Location', text: tacticalRead.location },
+        { title: 'Rip Status', text: tacticalRead.ripStatus },
+        { title: 'Initiative', text: tacticalRead.initiative },
+      ]
+    : []
 
-/**
- * Immediate Tactical Read strip (feat-038) — the Gem Update's three 1-line
- * reads, rendered as a compact cell row directly beneath the MetaStrip.
- * Update briefings only; morning briefings have no tactical read.
- */
-function TacticalReadStrip({ read, terms }: { read: TacticalRead; terms: string[] }) {
-  const cells: { title: string; text: string }[] = [
-    { title: 'Location', text: read.location },
-    { title: 'Rip Status', text: read.ripStatus },
-    { title: 'Initiative', text: read.initiative },
-  ]
   return (
-    <section className="border-b border-hairline bg-surface-soft">
-      <div className="mx-auto max-w-[1800px] px-6 pb-4">
-        <div className="grid gap-px border border-hairline border-t-0 bg-hairline md:grid-cols-3">
-          {cells.map((cell) => (
-            <div key={cell.title} className="bg-surface-soft px-5 py-3">
-              <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
-                {cell.title}
-              </p>
-              <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
-                <HighlightedText text={cell.text} terms={terms} />
-              </p>
-            </div>
-          ))}
+    <div>
+      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_1fr]">
+        <div className="bg-surface-soft px-5 py-3">
+          <p className="text-2xl font-bold tracking-tight text-bmw-blue">
+            {formatPrice(payload.meta.currentPrice)}
+          </p>
+          <p className="mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+            Current Price
+          </p>
+        </div>
+        <div className="bg-surface-soft px-5 py-3">
+          <p
+            className={`text-2xl font-bold uppercase tracking-tight ${ripStatusTone(
+              payload.meta.ripStatus,
+            )}`}
+          >
+            {payload.meta.ripStatus}
+          </p>
+          <p className="mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+            Rip Status
+          </p>
+        </div>
+        <div className="bg-surface-soft px-5 py-3 md:text-right">
+          <p className="text-xs font-light tracking-wide text-body">
+            {fmtDate(briefing.createdAt)}
+            {briefing.kind === 'update' && (
+              <span
+                className="ml-3 border border-bmw-blue px-2 py-0.5 text-xs font-bold uppercase tracking-[1.5px] text-bmw-blue"
+                title="Update briefing — objectives and danger zones regenerated; overview and terrain inherited from the previous briefing"
+              >
+                Update
+              </span>
+            )}
+            {isStale && (
+              <span
+                className="ml-3 border border-m-red px-2 py-0.5 text-xs font-bold uppercase tracking-[1.5px] text-m-red"
+                title={staleWarning ?? undefined}
+              >
+                Stale
+              </span>
+            )}
+          </p>
+          <p className="mt-2 text-xs font-light tracking-wide text-muted">
+            {briefing.triggerReason}
+            {briefing.modelId && ` · ${briefing.modelId}`}
+          </p>
+        </div>
+        <div className="bg-surface-soft px-5 py-3 md:col-span-3">
+          <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">HTF Trend</p>
+          <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
+            <HighlightedText text={payload.meta.htfTrend} terms={terms} />
+          </p>
         </div>
       </div>
-    </section>
+
+      {tacticalRead && (
+        <details className="border border-t-0 border-hairline bg-surface-soft">
+          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-6 gap-y-1 px-5 py-3 [&::-webkit-details-marker]:hidden">
+            <span className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
+              Tactical Read
+            </span>
+            <span className="ml-auto text-xs font-light uppercase tracking-wide text-muted">
+              Detail ▾
+            </span>
+          </summary>
+          <div className="border-t border-hairline px-5 py-4">
+            <ul className="space-y-3">
+              {readRows.map((row) => (
+                <li key={row.title} className="flex gap-3 text-sm leading-relaxed">
+                  <span className="w-28 shrink-0 font-bold uppercase tracking-wide text-ink">
+                    {row.title}
+                  </span>
+                  <span className="font-light text-body">
+                    <HighlightedText text={row.text} terms={terms} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      )}
+    </div>
   )
 }
 
@@ -409,21 +417,25 @@ export default async function Home() {
 
         {payload && briefing ? (
           <>
-            <MetaStrip
-              briefing={briefing}
-              payload={payload}
-              isStale={data?.staleness.isStale ?? false}
-              staleWarning={data?.staleness.warning ?? null}
-              terms={terms}
-            />
-            {briefing.tacticalRead && (
-              <TacticalReadStrip read={briefing.tacticalRead} terms={terms} />
-            )}
-            <EvalStrip
-              evalResult={data?.evalResult ?? null}
-              unavailable={false}
-              terms={terms}
-            />
+            <section className="border-b border-hairline bg-surface-soft">
+              <div className="mx-auto max-w-[1800px] px-6 py-4">
+                <div className="grid items-start gap-6 lg:grid-cols-2">
+                  <MetaColumn
+                    briefing={briefing}
+                    payload={payload}
+                    isStale={data?.staleness.isStale ?? false}
+                    staleWarning={data?.staleness.warning ?? null}
+                    terms={terms}
+                    tacticalRead={briefing.tacticalRead}
+                  />
+                  <EvalStrip
+                    evalResult={data?.evalResult ?? null}
+                    unavailable={false}
+                    terms={terms}
+                  />
+                </div>
+              </div>
+            </section>
 
             <section className="border-b border-hairline">
               <div className="mx-auto max-w-[1800px] px-6 py-8">
@@ -472,11 +484,15 @@ export default async function Home() {
                 </div>
               </section>
             )}
-            <EvalStrip
-              evalResult={data?.evalResult ?? null}
-              unavailable={loadError !== null}
-              terms={terms}
-            />
+            <section className="border-b border-hairline bg-surface-soft">
+              <div className="mx-auto max-w-[1800px] px-6 py-4">
+                <EvalStrip
+                  evalResult={data?.evalResult ?? null}
+                  unavailable={loadError !== null}
+                  terms={terms}
+                />
+              </div>
+            </section>
           </>
         )}
       </main>
