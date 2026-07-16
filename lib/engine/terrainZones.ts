@@ -33,13 +33,19 @@
  *
  * 2. ZONE ASSEMBLY with the No-Gap invariant. The hard partitions (Trenches + Walls) plus the
  *    campaign extremes divide the range into contiguous zones where each zone's bottom equals the
- *    next zone's top (Price[N] === Price2[N+1]). The campaign ceiling (Stratosphere top) and
- *    floor (Abyss bottom) anchor to the OUTERMOST of the profile extremes and the Tier-1 HTF
- *    levels (doctrine: "the highest/lowest relevant HTF structure"; the profile's own edges are
- *    composite edges, so whichever reaches farther wins — audit finding A8). A zone extending
- *    beyond the profile has no volume data and classifies as void. Every zone is classified by
- *    volume (acceptance/HVN vs void/rejection) and given a vertical-map position relative to the
- *    current price (Stratosphere/Attic/Kill Box/Elevator Shaft/Foundation/Abyss). Order-flow
+ *    next zone's top (Price[N] === Price2[N+1]). Hard partitions within `mergeTolerancePts` of
+ *    each other first MERGE into one COMPOSITE border (the Gem treats level clusters like
+ *    PDH / OR Mid / Rip / Monthly VWAP as a single border band — gem-comparison F1), so the
+ *    stack never carries sliver zones a few points wide. The campaign ceiling (Stratosphere top)
+ *    and floor (Abyss bottom) anchor to the INNERMOST Tier-1 HTF level at-or-beyond each edge of
+ *    the HTF reference extent (`campaignExtent`, production: the outermost span of the rotation +
+ *    balance-area profiles) — the smallest Tier-1 envelope that still covers the visible HTF
+ *    structure. This is the doctrine's "highest/lowest RELEVANT HTF structure"; anchoring to the
+ *    outermost Tier-1 level (the pre-F3 behavior) inflated the map ~2.3x with off-profile void
+ *    (gem-comparison F3). A zone extending beyond the profile has no volume data and classifies
+ *    as void. Every zone is classified by volume (acceptance/HVN vs void/rejection — zone mean
+ *    against the PROFILE MEAN, gem-comparison F4) and given a vertical-map position relative to
+ *    the current price (Stratosphere/Attic/Kill Box/Elevator Shaft/Foundation/Abyss). Order-flow
  *    character is NOT read here: the delta exports live on their own bin grid, so absorption is
  *    detected separately (lib/engine/absorption.ts) and confirmed by the model against price
  *    behavior on the execution chart.
@@ -116,14 +122,29 @@ export type TerrainZoneFact = {
   label: string
 }
 
+/**
+ * A merged zone divider: one or more hard partitions within `mergeTolerancePts` collapsed into
+ * a single composite border (gem-comparison F1). `price` is the representative member's price
+ * (the deepest local dip); `label` names every member, e.g. "Rip / Monthly VWAP".
+ */
+export type CompositeBorder = {
+  price: number
+  /** Trench wins over Wall when a cluster mixes kinds (doctrine priority). */
+  kind: 'trench' | 'wall'
+  label: string
+  members: BorderVerdict[]
+}
+
 export type TerrainZonesResult = {
   currentPrice: number
   /** Contiguous zone stack, top zone first (price-descending). */
   zones: TerrainZoneFact[]
   /** Every anchor classified, price-descending. Maps onto Briefing terrain.levels. */
   levels: BorderVerdict[]
-  /** Hard partitions only (Trench/Wall) — the zone dividers. */
+  /** Hard partitions only (Trench/Wall), pre-merge — the raw promotion verdicts. */
   partitions: BorderVerdict[]
+  /** Merged hard partitions actually used as zone dividers (composite borders — F1). */
+  borders: CompositeBorder[]
   /** The magnet set (single-sourced from feat-015), for the model + transparency. */
   magnets: Magnet[]
   /** No-Gap invariant held on assembly. */
@@ -142,19 +163,33 @@ export type TerrainParams = {
   voidFrac: number
   /** The center counts as a "dip" at <= this fraction of the local peak. */
   valleyFrac: number
-  /** A zone is "acceptance" when its mean volume is >= this fraction of the profile peak. */
+  /** A zone is "acceptance" when its mean volume is >= this fraction of the PROFILE MEAN volume (F4). */
   acceptanceFrac: number
   /**
    * Proximity (NQ points) serving double duty: magnet alignment (against the
    * balance-area magnet set) and detector-node corroboration (rotation nodes).
    */
   magnetTolerance: number
+  /**
+   * Hard partitions within this distance (NQ points) merge into ONE composite border, and
+   * profile-edge/extreme borders within it of a partition are deduped (F1). The Gem composes
+   * clusters this wide (Weekly VWAP 29624.62 / 24h VWAP 29640.52 read as one border band).
+   */
+  mergeTolerancePts: number
+  /**
+   * Trench/Wall promotion additionally requires the flanking block(s) to reach this fraction
+   * of the profile mean volume (F5) — kills "structure" found in a profile's thin tails, where
+   * the normalised ratios are pure noise, without touching real distribution edges.
+   */
+  promoteMinVolFrac: number
 }
 
 /**
  * Recall-favoring doctrine heuristics (no MGI-terrain eval fixtures exist — see the module
  * header). `blockFrac`/`voidFrac` leave a small ambiguity band so a flank must be clearly a
  * block or clearly a void to force a promotion; `valleyFrac` fires a Trench on a modest dip.
+ * `acceptanceFrac`/`mergeTolerancePts`/`promoteMinVolFrac` were sanity-checked against the
+ * 2026-07-14 comparison bundle (docs/gem-comparison-2026-07-14.md).
  */
 export const DEFAULT_TERRAIN_PARAMS: TerrainParams = {
   centerHalfPts: 5,
@@ -162,8 +197,10 @@ export const DEFAULT_TERRAIN_PARAMS: TerrainParams = {
   blockFrac: 0.55,
   voidFrac: 0.5,
   valleyFrac: 0.6,
-  acceptanceFrac: 0.4,
+  acceptanceFrac: 0.75,
   magnetTolerance: DEFAULT_MAGNET_TOLERANCE,
+  mergeTolerancePts: 16,
+  promoteMinVolFrac: 0.5,
 }
 
 function round2(n: number): number {
@@ -174,9 +211,16 @@ function isFiniteNumber(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v)
 }
 
-/** Major MGI anchors: Tier-1 campaign borders plus the Rip (the primary structural pivot). */
+/**
+ * Major MGI anchors: Tier-1 campaign borders plus the intraday session structure (the whole
+ * `daily` group — Rip, PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low, 24h VWAP). The Gem's working
+ * partitions and target rungs live on the session levels (Kill Box = IBL→IBH, T1 = OR Low,
+ * T3 = IB Low); anchoring Tier-1 only erased them from the terrain entirely (gem-comparison
+ * F2). Promotion still requires local volume geometry, so a noise level stays a plain `mgi`
+ * coordinate. ATR projections stay excluded (volatility context, not structure — audit A9).
+ */
 export function selectAnchorLevels(mgi: MgiPriority): MgiLevel[] {
-  const chosen = mgi.levels.filter(l => l.tier === 1 || l.code === 'rip')
+  const chosen = mgi.levels.filter(l => l.tier === 1 || l.group === 'daily' || l.code === 'rip')
   const seen = new Set<number>()
   const unique: MgiLevel[] = []
   for (const l of chosen.sort((a, b) => b.price - a.price)) {
@@ -259,7 +303,9 @@ function nearestDetectorNode(
 
 /**
  * Classify one MGI anchor by its LOCAL volume geometry (recall-favoring), single-sourcing the
- * Magnet question from feat-015. Priority: Trench > Wall > Magnet > plain mgi.
+ * Magnet question from feat-015. Priority: Trench > Wall > Magnet > plain mgi. Trench/Wall
+ * additionally require the flanking block(s) to clear `promoteMinVolFrac` of the profile mean
+ * volume (F5) — normalised ratios in a profile's thin tail look like structure but aren't.
  */
 function classifyBorder(
   level: MgiLevel,
@@ -267,6 +313,7 @@ function classifyBorder(
   magnets: Magnet[],
   lvn: LvnDetectionResult,
   params: TerrainParams,
+  profileMeanVol: number,
 ): BorderVerdict {
   const local = localProfileAt(rowsAsc, level.price, params)
   const magnet = classifyMagnet(level.price, magnets, params.magnetTolerance)
@@ -290,9 +337,19 @@ function classifyBorder(
   const rightVoid = R <= params.voidFrac
   const centerDip = C <= params.valleyFrac
   const centerBlock = C >= params.blockFrac
+  // F5: the absolute-volume floor a flanking "block" must clear to promote.
+  const promoteFloor = params.promoteMinVolFrac * profileMeanVol
+  const tooThin = (blockVol: number): BorderVerdict => ({
+    ...base,
+    kind: 'mgi',
+    hard: false,
+    reason: `structure-shaped but too thin to promote (block ${blockVol} < floor ${round2(promoteFloor)})`,
+  })
 
   // 1. Trench — a dip flanked by blocks on both sides (Valley + MGI).
   if (centerDip && leftBlock && rightBlock) {
+    const thinner = Math.min(local.leftMax, local.rightMax)
+    if (thinner < promoteFloor) return tooThin(thinner)
     return {
       ...base,
       kind: 'trench',
@@ -304,9 +361,11 @@ function classifyBorder(
   // 2. Wall — a block on one side dropping into a void on the other, MGI at the edge (Shelf +
   //    MGI). Checked before Magnet: an MGI at a block EDGE is a Wall, not a Magnet.
   if (!centerBlock && leftBlock && rightVoid) {
+    if (local.leftMax < promoteFloor) return tooThin(local.leftMax)
     return { ...base, kind: 'wall', hard: true, reason: `block below (L ${L}) drops into void above (R ${R})` }
   }
   if (!centerBlock && rightBlock && leftVoid) {
+    if (local.rightMax < promoteFloor) return tooThin(local.rightMax)
     return { ...base, kind: 'wall', hard: true, reason: `block above (R ${R}) drops into void below (L ${L})` }
   }
 
@@ -324,6 +383,35 @@ function classifyBorder(
 
   // 4. Plain coordinate — no volume-structure promotion.
   return { ...base, kind: 'mgi', hard: false, reason: 'no local block/void structure to promote' }
+}
+
+/**
+ * Chain-merge hard partitions within `tolerance` of each other into composite borders (F1).
+ * Input must be price-descending. The representative price is the member with the deepest
+ * local dip (lowest centerRatio) — the actual valley of the cluster; the label names every
+ * member. Adjacent composites stay > tolerance apart by construction (chain clustering).
+ */
+function mergePartitions(partitions: BorderVerdict[], tolerance: number): CompositeBorder[] {
+  const clusters: BorderVerdict[][] = []
+  for (const p of partitions) {
+    const last = clusters[clusters.length - 1]
+    if (last && last[last.length - 1].level.price - p.level.price <= tolerance) {
+      last.push(p)
+    } else {
+      clusters.push([p])
+    }
+  }
+  return clusters.map(members => {
+    const rep = members.reduce((a, b) =>
+      (b.local?.centerRatio ?? Infinity) < (a.local?.centerRatio ?? Infinity) ? b : a,
+    )
+    return {
+      price: rep.level.price,
+      kind: members.some(m => m.kind === 'trench') ? ('trench' as const) : ('wall' as const),
+      label: [...new Set(members.map(m => m.level.label))].join(' / '),
+      members,
+    }
+  })
 }
 
 /**
@@ -371,18 +459,18 @@ function positionLabel(position: ZonePosition): string {
 }
 
 /**
- * Build the contiguous zone stack from the campaign extremes + hard-partition prices, classify
+ * Build the contiguous zone stack from the campaign extremes + merged-border prices, classify
  * each zone, and assign vertical positions. Borders are shared values, so the No-Gap invariant
  * (zone[N].bottom === zone[N+1].top) holds by construction.
  *
- * The campaign ceiling/floor is the outermost of the profile extremes and `campaign` (the
- * Tier-1 HTF envelope). When the campaign reaches beyond the profile, the profile edge itself
- * becomes a border (it is a composite edge) and the extension zone carries no volume data —
- * it classifies as void.
+ * When the campaign reaches beyond the profile, the profile edge itself becomes a border (it
+ * is a composite edge) and the extension zone carries no volume data — it classifies as void.
+ * Sliver-zone guards (F1): a border within `mergeTolerancePts` of a campaign extreme is
+ * dropped, and the profile edge is NOT added when a partition already marks that shelf.
  */
 function assembleZones(
   rowsAsc: TerrainProfileRow[],
-  partitionPrices: number[],
+  borderPrices: number[],
   currentPrice: number,
   params: TerrainParams,
   campaign?: { top: number; bottom: number },
@@ -391,20 +479,25 @@ function assembleZones(
   const maxP = rowsAsc[rowsAsc.length - 1].price
   const top = Math.max(maxP, campaign?.top ?? maxP)
   const bottom = Math.min(minP, campaign?.bottom ?? minP)
-  const profilePeak = Math.max(...rowsAsc.map(r => r.volume), 0)
+  // F4: acceptance is judged against the profile MEAN (a robust whole-profile baseline), not
+  // the single peak bin — mean-vs-peak marked even the value area void on real exports.
+  const profileMean = rowsAsc.reduce((sum, r) => sum + r.volume, 0) / rowsAsc.length
 
-  // Interior partitions only (extremes are the campaign ceiling/floor), unique, descending.
-  // The profile edges join the border set when the campaign extends beyond them.
-  const interior = partitionPrices.filter(p => p > bottom && p < top)
-  if (top > maxP) interior.push(maxP)
-  if (bottom < minP) interior.push(minP)
+  const tol = params.mergeTolerancePts
+  // Interior borders only (extremes are the campaign ceiling/floor), kept clear of the
+  // extremes so no sliver zone forms against them.
+  const interior = borderPrices.filter(p => p - bottom > tol && top - p > tol)
+  // The profile edges join the border set when the campaign extends beyond them — unless a
+  // partition already marks that same shelf within tolerance.
+  if (top > maxP && !interior.some(p => Math.abs(p - maxP) <= tol)) interior.push(maxP)
+  if (bottom < minP && !interior.some(p => Math.abs(p - minP) <= tol)) interior.push(minP)
   const borders = [top, ...new Set(interior), bottom].sort((a, b) => b - a)
 
   const bare = borders.slice(0, -1).map((top, i) => {
     const bottom = borders[i + 1]
     const stats = sliceStats(rowsAsc, bottom, top)
     const volumeClass: ZoneVolumeClass =
-      profilePeak > 0 && stats.mean >= params.acceptanceFrac * profilePeak ? 'acceptance' : 'void'
+      profileMean > 0 && stats.mean >= params.acceptanceFrac * profileMean ? 'acceptance' : 'void'
     return {
       top: round2(top),
       bottom: round2(bottom),
@@ -437,13 +530,19 @@ function validateContiguity(zones: TerrainZoneFact[]): string[] {
 
 /**
  * Assemble the terrain: classify every major MGI anchor, promote Trench/Wall hard partitions,
- * and build the contiguous, classified Stratosphere→Abyss zone stack.
+ * merge partition clusters into composite borders, and build the contiguous, classified
+ * Stratosphere→Abyss zone stack.
  *
  * @param input.profile  VbP rows (feat-002; the 400-pt rotation profile in production).
  * @param input.lvn      Detected LVN/HVN nodes (feat-014).
  * @param input.magnets  Prebuilt magnet set (feat-015 collectMagnets; built once in
  *   engineFacts from the balance-area profile in production — feat-037).
  * @param input.mgi      Classified MGI levels + current price (feat-012).
+ * @param input.campaignExtent  HTF reference extent for the campaign envelope (production: the
+ *   outermost span of the rotation + balance-area profiles). The ceiling/floor anchor to the
+ *   INNERMOST Tier-1 level at-or-beyond each extent edge — the smallest Tier-1 envelope still
+ *   covering the visible HTF structure (doctrine's "highest/lowest RELEVANT HTF structure",
+ *   gem-comparison F3). Defaults to the anchoring profile's own extent.
  * @param input.params   Optional overrides for the doctrine heuristics.
  */
 export function assembleTerrain(input: {
@@ -451,6 +550,7 @@ export function assembleTerrain(input: {
   lvn: LvnDetectionResult
   magnets: Magnet[]
   mgi: MgiPriority
+  campaignExtent?: { top: number; bottom: number }
   params?: Partial<TerrainParams>
 }): TerrainZonesResult {
   const params = { ...DEFAULT_TERRAIN_PARAMS, ...input.params }
@@ -458,28 +558,39 @@ export function assembleTerrain(input: {
   const { magnets } = input
 
   const rowsAsc = input.profile.filter(r => isFiniteNumber(r.price) && isFiniteNumber(r.volume)).sort((a, b) => a.price - b.price)
+  const profileMeanVol =
+    rowsAsc.length > 0 ? rowsAsc.reduce((sum, r) => sum + r.volume, 0) / rowsAsc.length : 0
 
   const anchors = selectAnchorLevels(input.mgi)
   const levels = anchors
-    .map(level => classifyBorder(level, rowsAsc, magnets, input.lvn, params))
+    .map(level => classifyBorder(level, rowsAsc, magnets, input.lvn, params, profileMeanVol))
     .sort((a, b) => b.level.price - a.level.price)
   const partitions = levels.filter(v => v.hard)
+  const borders = mergePartitions(partitions, params.mergeTolerancePts)
 
-  // Campaign extremes (audit A8): the Stratosphere ceiling / Abyss floor anchor to the
-  // outermost Tier-1 HTF level when one lies beyond the profile's price range. Non-positive
-  // prices are unset placeholders in the export (e.g. ONH/ONL as 0.00) and never anchor.
+  // Campaign extremes (F3, superseding audit A8's outermost rule): the Stratosphere ceiling /
+  // Abyss floor anchor to the INNERMOST Tier-1 level at-or-beyond each edge of the HTF
+  // reference extent. Non-positive prices are unset placeholders in the export (e.g. ONH/ONL
+  // as 0.00) and never anchor.
   const tier1Prices = input.mgi.tier1
     .map(l => l.price)
     .filter(p => isFiniteNumber(p) && p > 0)
-  const campaign =
-    tier1Prices.length > 0
-      ? { top: Math.max(...tier1Prices), bottom: Math.min(...tier1Prices) }
-      : undefined
+  let campaign: { top: number; bottom: number } | undefined
+  if (rowsAsc.length >= 2) {
+    const extentTop = Math.max(rowsAsc[rowsAsc.length - 1].price, input.campaignExtent?.top ?? -Infinity)
+    const extentBottom = Math.min(rowsAsc[0].price, input.campaignExtent?.bottom ?? Infinity)
+    const above = tier1Prices.filter(p => p >= extentTop)
+    const below = tier1Prices.filter(p => p <= extentBottom)
+    campaign = {
+      top: above.length > 0 ? Math.min(...above) : extentTop,
+      bottom: below.length > 0 ? Math.max(...below) : extentBottom,
+    }
+  }
 
   // Need at least a 2-point profile to form a zone; otherwise return borders only.
   const zones =
     rowsAsc.length >= 2
-      ? assembleZones(rowsAsc, partitions.map(p => p.level.price), currentPrice, params, campaign)
+      ? assembleZones(rowsAsc, borders.map(b => b.price), currentPrice, params, campaign)
       : []
   const issues = validateContiguity(zones)
 
@@ -488,6 +599,7 @@ export function assembleTerrain(input: {
     zones,
     levels,
     partitions,
+    borders,
     magnets,
     contiguityValid: issues.length === 0,
     issues,

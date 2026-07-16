@@ -6,6 +6,43 @@
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
 action** (branch `feat-038-update-action`).
 
+**Gem-comparison fixes F1–F6 (2026-07-16, branch
+`claude/windows-uploader-briefing-analysis-b7s6z4`).** The first real Windows-uploader briefing
+was compared against the operator's Google Gem run on the same 2026-07-14 bundle
+(`chart-data/comparison-examples/2026-07-14/09-45/`, analysis in
+`docs/gem-comparison-2026-07-14.md`); findings F1–F6 are now implemented (F7 — the model id —
+deliberately left as-is per the operator):
+
+- **F1 — composite borders:** `terrainZones.ts` chain-merges hard partitions within
+  `mergeTolerancePts` (16) into `CompositeBorder`s (representative price = deepest local dip,
+  label names every member); profile-edge/extreme borders within tolerance are deduped, so no
+  more 0.25–3.33-pt sliver zones.
+- **F2 — session structure anchors:** `selectAnchorLevels` now includes the whole `daily` MGI
+  group (PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low, 24h VWAP) alongside Tier-1 + Rip; ATR stays
+  excluded (A9). Analyze/update prompts now allow entries/stops/T1 on any engine level, not just
+  zone borders.
+- **F3 — campaign envelope:** ceiling/floor anchor to the INNERMOST Tier-1 level at-or-beyond
+  the HTF reference extent (outermost span of rotation + balance-area profiles, passed from
+  `engineFacts` as `campaignExtent`) instead of the outermost Tier-1 level. On the comparison
+  bundle: 30094/28909.75 (PW High/Low, = the Gem) instead of 30975.5/28227.75 (PM High/Low).
+- **F4 — acceptance classification:** zone mean volume is judged against the PROFILE MEAN
+  (`acceptanceFrac` 0.75) instead of 0.4× the single peak bin; the value area no longer
+  classifies as void.
+- **F5 — promotion volume floor:** Trench/Wall promotion requires flanking blocks ≥
+  `promoteMinVolFrac` (0.5) of the profile mean; kills thin-tail false trenches (VRange −2/−3 on
+  the comparison bundle) while real distribution edges (IBL wall) still promote.
+- **F6 — overview density:** `Overview` prose sections require ≥2 bullets (schema `.min(2)`);
+  the analyze prompt now mandates an Active Pattern Scan verdict in `orderFlowContext`.
+
+Verified: `./init.sh` green (46 files / 587 tests, lint 0 errors, build OK) and the engine
+re-run over the comparison bundle now yields an 8-zone, 1,184-pt map with composite borders
+"OR Mid / PDH / Rip / Monthly VWAP", "VRange Low / OR Low", "24 VWAP / Weekly VWAP", walls at
+IBH 29815.75 / IBL 29567.5 (the Gem's Kill Box + T3), acceptance across 29815.75–29567.5, and
+void below IBL — closely matching the Gem's five-zone map. NOTE: old stored briefings with
+single-bullet overviews will no longer `Briefing.safeParse` (dashboard shows "run a new
+briefing"; update-task asks for a fresh full briefing) — both existing DB rows have 2 bullets,
+so nothing breaks today.
+
 **LangSmith telemetry reworked onto the official wrapper (2026-07-16, branch
 `claude/langsmith-vercel-ai-setup-sz3nu3`).** Per Caleb's request, feat-030's hand-rolled
 OTel pipeline (private `NodeTracerProvider` + OTLP-proto exporter + redacting span

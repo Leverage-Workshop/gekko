@@ -12,9 +12,9 @@ const parent: Briefing = {
     ripStatus: 'Green',
   },
   overview: {
-    currentPosition: ['parent position'],
-    structuralArchitecture: ['parent architecture'],
-    orderFlowContext: ['parent flow'],
+    currentPosition: ['parent position', 'parent rip status'],
+    structuralArchitecture: ['parent architecture', 'parent voids'],
+    orderFlowContext: ['parent flow', 'parent pattern scan'],
     keyInflections: [{ level: 30200, why: 'parent inflection' }],
   },
   terrain: {

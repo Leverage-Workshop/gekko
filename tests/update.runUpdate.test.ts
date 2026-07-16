@@ -43,9 +43,9 @@ function parentBriefing(): Briefing {
       ripStatus: facts.ripStatus?.condition ?? 'unknown',
     },
     overview: {
-      currentPosition: ['PARENT: above the Rip'],
-      structuralArchitecture: ['PARENT: balance over the POC shelf'],
-      orderFlowContext: ['PARENT: blue initiative holding'],
+      currentPosition: ['PARENT: above the Rip', 'PARENT: inside upper value'],
+      structuralArchitecture: ['PARENT: balance over the POC shelf', 'PARENT: void below the shelf'],
+      orderFlowContext: ['PARENT: blue initiative holding', 'PARENT: no playbook pattern'],
       keyInflections: [{ level: facts.profileSummary.rotation.pocPrice, why: 'POC magnet' }],
     },
     terrain: {
@@ -236,7 +236,10 @@ describe('runUpdate', () => {
     expect(row.parent_briefing_id).toBe('parent-1')
     expect(row.tactical_read).toEqual(modelUpdate().tacticalRead)
     // Inherited from the parent:
-    expect(row.overview.currentPosition).toEqual(['PARENT: above the Rip'])
+    expect(row.overview.currentPosition).toEqual([
+      'PARENT: above the Rip',
+      'PARENT: inside upper value',
+    ])
     expect(row.terrain.zones[0].label).toMatch(/^PARENT /)
     // Fresh from the update, with engine-recomputed rr:
     expect(row.primary_obj.macroGoal).toBe('FRESH long the shelf reclaim')

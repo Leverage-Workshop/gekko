@@ -39,9 +39,11 @@ export const KeyInflection = z.object({
 export type KeyInflection = z.infer<typeof KeyInflection>
 
 export const Overview = z.object({
-  currentPosition: z.array(z.string()),
-  structuralArchitecture: z.array(z.string()),
-  orderFlowContext: z.array(z.string()),
+  // Gem template floor: two concise bullets per prose section (gem-comparison F6 —
+  // single-bullet overviews read as sparse).
+  currentPosition: z.array(z.string()).min(2),
+  structuralArchitecture: z.array(z.string()).min(2),
+  orderFlowContext: z.array(z.string()).min(2),
   // Gem doctrine (ADHD profile): max 2 key areas per briefing.
   keyInflections: z.array(KeyInflection).min(1).max(2),
 })

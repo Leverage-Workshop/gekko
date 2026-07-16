@@ -24,10 +24,10 @@ Briefing = {
     ripStatus             // resolved Vanguard condition (see ripStatus.ts)
   },
   overview: {
-    currentPosition: string[],        // price location vs multi-timeframe structure + Rip status
-    structuralArchitecture: string[], // active acceptance zones / void zones (Elevator Shafts)
-    orderFlowContext: string[],       // current delta initiative; active absorption/exhaustion
-    keyInflections: { level: number, why: string }[]   // why each level matters right now
+    currentPosition: string[],        // >=2 bullets: price location vs multi-timeframe structure + Rip status
+    structuralArchitecture: string[], // >=2 bullets: active acceptance zones / void zones (Elevator Shafts)
+    orderFlowContext: string[],       // >=2 bullets: delta initiative; MUST carry the Active Pattern Scan verdict
+    keyInflections: { level: number, why: string }[]   // why each level matters right now (max 2)
   },
   terrain: {
     zones:  { color, top, bottom, label }[],  // contiguous Stratosphere->Abyss, engine-validated
@@ -55,8 +55,9 @@ Objective = {
   - **T1 (Tactical)** — the first obstacle / immediate S/R in the trade direction.
   - **T2 (Objective)** — the next acceptance border (the standard target).
   - **T3 (Campaign Max)** — the full traverse of the HTF distribution / a major HTF MGI at an LVN.
-    T3 must land on a Valley (Trench) or Shelf (Wall) — never a Magnet (see Magnet Prohibition in
-    `system/constraints.md`).
+    T3 must land on a Valley (Trench) or Shelf (Wall) at the NEAR edge of the void being traversed —
+    never a Magnet (see Magnet Prohibition in `system/constraints.md`), and never a level that can
+    only be reached by crossing a second void.
 
 ## `BriefingUpdate` (output of `update-task` — the "Run Update" button)
 
