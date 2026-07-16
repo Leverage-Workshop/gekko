@@ -14,8 +14,8 @@ describe('POST /api/briefings/run', () => {
     trigger.mockReset()
   })
 
-  it('triggers analyze-task with triggerReason "manual" and returns the run id', async () => {
-    trigger.mockResolvedValue({ id: 'run_abc123' })
+  it('triggers analyze-task with triggerReason "manual" and returns the run id + realtime token', async () => {
+    trigger.mockResolvedValue({ id: 'run_abc123', publicAccessToken: 'pat_abc123' })
 
     const res = await POST()
     const body = await res.json()
@@ -23,7 +23,10 @@ describe('POST /api/briefings/run', () => {
     expect(trigger).toHaveBeenCalledTimes(1)
     expect(trigger).toHaveBeenCalledWith('analyze-task', { triggerReason: 'manual' })
     expect(res.status).toBe(202)
-    expect(body).toEqual({ success: true, data: { runId: 'run_abc123' } })
+    expect(body).toEqual({
+      success: true,
+      data: { runId: 'run_abc123', publicAccessToken: 'pat_abc123' },
+    })
   })
 
   it('returns a clean 500 body when triggering fails', async () => {

@@ -1,14 +1,18 @@
 'use client'
 
+import { useRealtimeRun } from '@trigger.dev/react-hooks'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from './button'
 
 /**
  * Shared trigger button for the dashboard's on-demand runs. POSTs an API
- * route that queues exactly one trigger.dev run and reports queue/success/
- * error states per DESIGN.md — bmw-blue primary CTA (or outline secondary),
- * m-red reserved for the failure callout. The status line is a polite live
- * region so screen readers hear the queued/failed outcome.
+ * route that queues exactly one trigger.dev run, then subscribes to that run
+ * via Realtime (`useRealtimeRun` with the run-scoped public access token the
+ * route returns) and calls `router.refresh()` the moment the run completes —
+ * no manual reload needed. Styling per DESIGN.md — bmw-blue primary CTA (or
+ * outline secondary), m-red reserved for the failure callout. The status line
+ * is a polite live region so screen readers hear each phase change.
  *
  * - "Run Briefing" (feat-020) → POST /api/briefings/run → analyze-task
  * - "Run Update" (feat-038) → POST /api/briefings/update → update-task
@@ -17,37 +21,80 @@ import { Button } from './button'
 
 type RunState =
   | { phase: 'idle' }
-  | { phase: 'pending' }
-  | { phase: 'success'; runId: string }
+  | { phase: 'queuing' }
+  | { phase: 'watching'; runId: string; publicAccessToken: string }
+  /** Queued but the route returned no token — the pre-Realtime fallback. */
+  | { phase: 'queued-untracked'; runId: string }
+  | { phase: 'done'; runId: string }
   | { phase: 'error'; message: string }
 
 interface RunResponse {
   success?: boolean
-  data?: { runId?: string }
+  data?: { runId?: string; publicAccessToken?: string }
   error?: string
 }
 
 interface TriggerRunButtonProps {
   url: string
   label: string
-  /** Trails "Queued — run <id>." in the success note. */
-  successHint: string
+  /** Trails "Run complete — dashboard refreshed." in the done note. */
+  doneHint: string
   variant?: 'primary' | 'outline'
   /** 'sm' renders the compact nav variant with a floating status note. */
   size?: 'md' | 'sm'
 }
 
+/** Human label for the in-flight Realtime statuses. */
+function statusLabel(status: string | undefined): string {
+  switch (status) {
+    case 'EXECUTING':
+    case 'REATTEMPTING':
+      return 'Running'
+    case 'DELAYED':
+      return 'Delayed'
+    default:
+      return 'Queued'
+  }
+}
+
 export function TriggerRunButton({
   url,
   label,
-  successHint,
+  doneHint,
   variant = 'primary',
   size = 'md',
 }: TriggerRunButtonProps) {
   const [state, setState] = useState<RunState>({ phase: 'idle' })
+  const router = useRouter()
 
-  async function run() {
-    setState({ phase: 'pending' })
+  const watching = state.phase === 'watching' ? state : null
+  const { run, error: realtimeError } = useRealtimeRun(watching?.runId, {
+    accessToken: watching?.publicAccessToken,
+    enabled: watching !== null,
+    // Status-only subscription: the dashboard re-fetches its own data on
+    // refresh, so never ship the run payload/output over the wire.
+    skipColumns: ['payload', 'output'],
+    onComplete: (completedRun, err) => {
+      if (err) {
+        setState({ phase: 'error', message: `Live status lost: ${err.message}` })
+        return
+      }
+      if (completedRun.status === 'COMPLETED') {
+        setState({ phase: 'done', runId: completedRun.id })
+        // Re-render the server component tree so the fresh briefing/eval
+        // rows appear without a manual reload.
+        router.refresh()
+        return
+      }
+      setState({
+        phase: 'error',
+        message: `Run ${completedRun.id} finished as ${completedRun.status} — check the trigger.dev dashboard.`,
+      })
+    },
+  })
+
+  async function runAction() {
+    setState({ phase: 'queuing' })
     try {
       const res = await fetch(url, { method: 'POST' })
       const body = (await res.json().catch(() => null)) as RunResponse | null
@@ -58,11 +105,32 @@ export function TriggerRunButton({
         })
         return
       }
-      setState({ phase: 'success', runId: body.data.runId })
+      if (!body.data.publicAccessToken) {
+        setState({ phase: 'queued-untracked', runId: body.data.runId })
+        return
+      }
+      setState({
+        phase: 'watching',
+        runId: body.data.runId,
+        publicAccessToken: body.data.publicAccessToken,
+      })
     } catch {
       setState({ phase: 'error', message: 'Network error — is the app server running?' })
     }
   }
+
+  // If the Realtime subscription itself fails, the run is still going — drop
+  // the auto-refresh promise but don't block a re-run behind a dead socket.
+  const watchBroken = watching !== null && realtimeError !== undefined
+  const inFlight =
+    state.phase === 'queuing' || (state.phase === 'watching' && !watchBroken)
+
+  const buttonLabel =
+    state.phase === 'queuing'
+      ? 'Queuing…'
+      : state.phase === 'watching' && !watchBroken
+        ? `${statusLabel(run?.status)}…`
+        : label
 
   // Compact (nav) buttons float their status note below the header so the
   // 64px nav row never reflows.
@@ -73,18 +141,30 @@ export function TriggerRunButton({
 
   return (
     <div className={size === 'sm' ? 'relative' : ''}>
-      <Button
-        variant={variant}
-        size={size}
-        onClick={run}
-        disabled={state.phase === 'pending'}
-      >
-        {state.phase === 'pending' ? 'Queuing…' : label}
+      <Button variant={variant} size={size} onClick={runAction} disabled={inFlight}>
+        {buttonLabel}
       </Button>
       <div role="status">
-        {state.phase === 'success' && (
+        {state.phase === 'watching' && !watchBroken && (
+          <p className={`mt-2 text-xs font-light tracking-wide text-muted ${statusClass}`}>
+            {statusLabel(run?.status)} — run {state.runId}. The dashboard refreshes
+            automatically when it finishes.
+          </p>
+        )}
+        {watchBroken && (
+          <p className={`mt-2 text-xs font-light tracking-wide text-warning ${statusClass}`}>
+            Queued — run {state.phase === 'watching' ? state.runId : ''}, but live
+            status is unavailable. Reload in a minute for the result.
+          </p>
+        )}
+        {state.phase === 'queued-untracked' && (
           <p className={`mt-2 text-xs font-light tracking-wide text-success ${statusClass}`}>
-            Queued — run {state.runId}. {successHint}
+            Queued — run {state.runId}. Reload in a minute for the result.
+          </p>
+        )}
+        {state.phase === 'done' && (
+          <p className={`mt-2 text-xs font-light tracking-wide text-success ${statusClass}`}>
+            Run complete — dashboard refreshed. {doneHint}
           </p>
         )}
         {state.phase === 'error' && (
@@ -102,7 +182,7 @@ export function RunBriefingButton({ size }: { size?: 'md' | 'sm' }) {
     <TriggerRunButton
       url="/api/briefings/run"
       label="Run Briefing"
-      successHint="Reload in a minute for the new briefing."
+      doneHint="The new briefing is below."
       size={size}
     />
   )
@@ -113,7 +193,7 @@ export function RunUpdateButton({ size }: { size?: 'md' | 'sm' }) {
     <TriggerRunButton
       url="/api/briefings/update"
       label="Run Update"
-      successHint="Reload in a minute for the updated read."
+      doneHint="The updated read is below."
       variant="outline"
       size={size}
     />
@@ -125,7 +205,7 @@ export function CheckEntryButton({ size }: { size?: 'md' | 'sm' }) {
     <TriggerRunButton
       url="/api/eval/run"
       label="Check Entry at Current Price"
-      successHint="Reload in a minute for the eval verdict."
+      doneHint="The eval verdict is below."
       variant="outline"
       size={size}
     />

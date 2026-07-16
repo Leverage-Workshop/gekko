@@ -13,8 +13,8 @@ describe('POST /api/briefings/update', () => {
     trigger.mockReset()
   })
 
-  it('triggers update-task with triggerReason "manual" and returns the run id', async () => {
-    trigger.mockResolvedValue({ id: 'run_upd123' })
+  it('triggers update-task with triggerReason "manual" and returns the run id + realtime token', async () => {
+    trigger.mockResolvedValue({ id: 'run_upd123', publicAccessToken: 'pat_upd123' })
 
     const res = await POST()
     const body = await res.json()
@@ -22,7 +22,10 @@ describe('POST /api/briefings/update', () => {
     expect(trigger).toHaveBeenCalledTimes(1)
     expect(trigger).toHaveBeenCalledWith('update-task', { triggerReason: 'manual' })
     expect(res.status).toBe(202)
-    expect(body).toEqual({ success: true, data: { runId: 'run_upd123' } })
+    expect(body).toEqual({
+      success: true,
+      data: { runId: 'run_upd123', publicAccessToken: 'pat_upd123' },
+    })
   })
 
   it('returns a clean 500 body when triggering fails', async () => {

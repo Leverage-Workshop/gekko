@@ -6,6 +6,23 @@
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
 action** (branch `feat-038-update-action`).
 
+**Dashboard auto-refresh on run completion (2026-07-16, branch
+`claude/briefing-auto-refresh-pc3bju`).** The three on-demand action buttons (Run Briefing,
+Run Update, Check Entry) previously said "Queued — reload in a minute". They now subscribe to
+the queued trigger.dev run via Realtime and refresh the dashboard automatically when it
+completes:
+
+- The three POST routes (`/api/briefings/run`, `/api/briefings/update`, `/api/eval/run`)
+  return `data.publicAccessToken` alongside `runId` — the run-scoped read token that
+  `tasks.trigger` already mints on the handle.
+- `TriggerRunButton` uses `useRealtimeRun` (new dep `@trigger.dev/react-hooks@4.5.4`, pinned
+  to the SDK version) with `skipColumns: ['payload','output']`, shows live Queued/Running
+  status, and calls `router.refresh()` in `onComplete` when the run status is `COMPLETED`.
+  Non-`COMPLETED` terminal statuses render the m-red failure note; a broken Realtime
+  subscription degrades to the old "reload in a minute" message and re-enables the button.
+- Route tests updated to assert the token in the 202 body. Verified via `./init.sh`
+  (typecheck, lint, 587 tests, build — all green).
+
 **Gem-comparison fixes F1–F6 (2026-07-16, branch
 `claude/windows-uploader-briefing-analysis-b7s6z4`).** The first real Windows-uploader briefing
 was compared against the operator's Google Gem run on the same 2026-07-14 bundle
