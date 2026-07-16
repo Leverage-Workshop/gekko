@@ -1,4 +1,5 @@
-import { Briefing, TacticalRead } from '@/knowledge/schema/briefing.schema'
+import { Briefing, EvalCheck, TacticalRead } from '@/knowledge/schema/briefing.schema'
+import { z } from 'zod'
 import { parseExecBars, type ExecBar } from '@/lib/engine/parseExecBars'
 import { assessStaleness, type StalenessAssessment } from '@/lib/engine/staleness'
 
@@ -37,7 +38,21 @@ export interface DashboardEvalRow {
   stop: number | null
   targets: number[] | null
   reason: string | null
+  /** EvalCheck[] jsonb; null on pre-migration rows. Parse via {@link parseEvalChecks}. */
+  checks: unknown
+  next_signal: string | null
+  caution: string | null
   current_price: number | null
+}
+
+/**
+ * Validate the `eval_results.checks` jsonb into EvalCheck[]. Returns null when
+ * absent or malformed — the strip falls back to the `reason` prose, never breaks.
+ */
+export function parseEvalChecks(checks: unknown): EvalCheck[] | null {
+  if (checks == null) return null
+  const parsed = z.array(EvalCheck).min(1).safeParse(checks)
+  return parsed.success ? parsed.data : null
 }
 
 export interface DashboardDeps {

@@ -1,5 +1,6 @@
 export {
   loadDashboardData,
+  parseEvalChecks,
   type DashboardBriefing,
   type DashboardBriefingRow,
   type DashboardData,

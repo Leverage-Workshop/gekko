@@ -1,4 +1,4 @@
-import type { EvalResult } from '@/knowledge/schema/briefing.schema'
+import type { EvalCheck, EvalResult } from '@/knowledge/schema/briefing.schema'
 
 /**
  * Persistence step of the eval-task: one `eval_results` row per check.
@@ -19,6 +19,9 @@ export interface EvalResultInsert {
   stop: number | null
   targets: number[] | null
   reason: string
+  checks: EvalCheck[] | null
+  next_signal: string | null
+  caution: string | null
   /** The model's full, unmodified output (the enforced copy lives in columns). */
   raw_model_json: EvalResult
   current_price: number
@@ -51,6 +54,9 @@ export function buildEvalResultRow(input: PersistEvalInput): EvalResultInsert {
     stop: result.stop ?? null,
     targets: result.targets ?? null,
     reason: result.reason,
+    checks: result.checks ?? null,
+    next_signal: result.nextSignal ?? null,
+    caution: result.caution ?? null,
     raw_model_json: input.rawModelResult,
     current_price: result.meta.currentPrice,
   }

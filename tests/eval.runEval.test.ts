@@ -62,6 +62,11 @@ function modelEval(): EvalResult {
     trigger: 'absorption at the LVN border with blue continuation',
     stop: 30235,
     targets: [30280, 30310],
+    checks: [
+      { name: 'Structure', verdict: 'pass', note: 'Border is a proven acceptance edge' },
+      { name: 'Delta', verdict: 'pass', note: 'Positive mean confirming the long' },
+    ],
+    caution: 'No adds above T1',
     reason: 'Absorption at the border, positive delta confirming the long.',
   }
 }
@@ -194,6 +199,9 @@ describe('runEval', () => {
     expect(row.direction).toBe('long')
     expect(row.stop).toBe(30235)
     expect(row.targets).toEqual([30280, 30310])
+    expect(row.checks).toEqual(modelEval().checks)
+    expect(row.next_signal).toBeNull()
+    expect(row.caution).toBe('No adds above T1')
     expect(row.current_price).toBe(CURRENT_PRICE)
     expect(row.raw_model_json).toEqual(modelEval())
   })
@@ -229,6 +237,9 @@ describe('runEval', () => {
     expect(row.evaluated_level_id).toBeNull()
     expect(row.direction).toBeNull()
     expect(row.stop).toBeNull()
+    // Level-verdict detail (checks/caution) is dropped with the rest.
+    expect(row.checks).toBeNull()
+    expect(row.caution).toBeNull()
     // The model's uncoerced answer stays auditable.
     expect(row.raw_model_json.status).toBe('ENTER')
     expect(result.warnings.some((w) => w.includes('coerced to NO_ENTRY_NEAR'))).toBe(true)

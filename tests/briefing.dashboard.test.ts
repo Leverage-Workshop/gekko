@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Briefing } from '@/knowledge/schema/briefing.schema'
 import {
   loadDashboardData,
+  parseEvalChecks,
   type DashboardBriefingRow,
   type DashboardDeps,
   type DashboardEvalRow,
@@ -73,6 +74,12 @@ const evalRow: DashboardEvalRow = {
   stop: 30240,
   targets: [30280, 30295],
   reason: 'Price near Entry A but no confirming delta yet.',
+  checks: [
+    { name: 'Structure', verdict: 'pass', note: 'Entry A border is a proven acceptance edge.' },
+    { name: 'Delta', verdict: 'pending', note: 'Neutral mean; no confirming sign yet.' },
+  ],
+  next_signal: 'Blue delta emergence on the Entry A retest.',
+  caution: 'Do not chase above the border.',
   current_price: 30252,
 }
 
@@ -244,5 +251,23 @@ describe('loadDashboardData', () => {
     )
 
     expect(data.execBars).toBeNull()
+  })
+})
+
+describe('parseEvalChecks', () => {
+  it('parses a valid checks jsonb into EvalCheck[]', () => {
+    expect(parseEvalChecks(evalRow.checks)).toEqual(evalRow.checks)
+  })
+
+  it('returns null for pre-migration rows (checks absent)', () => {
+    expect(parseEvalChecks(null)).toBeNull()
+    expect(parseEvalChecks(undefined)).toBeNull()
+  })
+
+  it('returns null on malformed jsonb — the strip degrades to the reason prose', () => {
+    expect(parseEvalChecks('not an array')).toBeNull()
+    expect(parseEvalChecks([{ name: 'Delta', verdict: 'maybe', note: 'bad verdict' }])).toBeNull()
+    expect(parseEvalChecks([{ name: 'Delta' }])).toBeNull()
+    expect(parseEvalChecks([])).toBeNull()
   })
 })

@@ -85,13 +85,19 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
         nearest
           ? `: nearest is ${nearest.distancePoints} points away, threshold ${proximity.thresholdPoints}`
           : ': there are no usable active levels'
-      }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level. Run an Update for a full tactical read." Leave evaluatedLevel/direction/trigger/stop/targets absent.`
+      }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level. Run an Update for a full tactical read." Leave evaluatedLevel/direction/trigger/stop/targets/checks/nextSignal/caution absent.`
 
   return [
     '# Mission',
     'Produce one `EvalResult` object — an on-demand entry check at the current price against the active entry levels from the prior briefing, per the doctrine in the system prompt.',
     '',
     EVAL_DECISION_LOGIC,
+    '',
+    '# Verdict structure (level verdicts only — ENTER / WAIT / NOT_VALID)',
+    'Decompose your judgment into `checks`: 3–6 named conditions, each with a verdict and a one-line note. Use short stable names the operator can scan (e.g. "Structure", "Delta", "Momentum", "Absorption", "DOM"). Verdicts: "pass" = supports the entry, "fail" = argues against it right now, "pending" = not yet confirmed either way.',
+    '`nextSignal`: for WAIT or NOT_VALID, the single concrete observable that would flip this to ENTER (e.g. "blue delta emergence on the 29256 retest"). Omit for ENTER.',
+    '`caution`: one line of what NOT to do right now (e.g. "do not chase price higher into the void"). Omit if nothing needs flagging.',
+    '`reason`: a 1–2 sentence summary of the verdict — the checks carry the detail, so do not repeat them.',
     '',
     '# Data ownership (non-negotiable)',
     'The near/not-near gate, the current price and the level set below are code-owned. Do not re-derive proximity or invent levels not listed.',

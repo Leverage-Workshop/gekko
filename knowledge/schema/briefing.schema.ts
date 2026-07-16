@@ -179,6 +179,17 @@ export const EvaluatedLevel = z.object({
 })
 export type EvaluatedLevel = z.infer<typeof EvaluatedLevel>
 
+/** One named entry condition: pass (supports), fail (against), pending (not yet). */
+export const EvalCheckVerdict = z.enum(['pass', 'fail', 'pending'])
+export type EvalCheckVerdict = z.infer<typeof EvalCheckVerdict>
+
+export const EvalCheck = z.object({
+  name: z.string(),
+  verdict: EvalCheckVerdict,
+  note: z.string(),
+})
+export type EvalCheck = z.infer<typeof EvalCheck>
+
 export const EvalResult = z.object({
   meta: EvalMeta,
   status: EvalStatus,
@@ -187,6 +198,16 @@ export const EvalResult = z.object({
   trigger: z.string().optional(),
   stop: z.number().optional(),
   targets: z.array(z.number()).optional(),
+  /**
+   * The reason decomposed into named conditions (Structure, Delta, Momentum,
+   * Absorption, …). Optional: absent on level-less NO_ENTRY_NEAR verdicts and
+   * on pre-migration rows.
+   */
+  checks: z.array(EvalCheck).optional(),
+  /** The single concrete signal that would flip a WAIT/NOT_VALID to ENTER. */
+  nextSignal: z.string().optional(),
+  /** One line of what NOT to do right now (e.g. "do not chase into the void"). */
+  caution: z.string().optional(),
   reason: z.string(),
 })
 export type EvalResult = z.infer<typeof EvalResult>

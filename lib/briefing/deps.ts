@@ -30,7 +30,7 @@ export function realDashboardDeps(): DashboardDeps {
       const { data, error } = await supabase
         .from('eval_results')
         .select(
-          'id, created_at, model_id, near_entry, status, direction, trigger, stop, targets, reason, current_price',
+          'id, created_at, model_id, near_entry, status, direction, trigger, stop, targets, reason, checks, next_signal, caution, current_price',
         )
         .order('created_at', { ascending: false })
         .limit(1)
