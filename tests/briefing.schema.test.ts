@@ -131,6 +131,21 @@ describe('Briefing', () => {
     expect('extra' in parsed).toBe(false)
   })
 
+  // Live failure 2026-07-17: terra emitted `entries: []` on the secondary
+  // objective; the empty array passed Zod and only blew up in the R/R
+  // geometry check ("objective has no entry price"). `.min(1)` makes the
+  // schema itself the gate — and constrains generation via minItems.
+  it('rejects an objective with empty entries/stops/targets arrays', () => {
+    for (const field of ['entries', 'stops', 'targets'] as const) {
+      expect(Objective.safeParse({ ...validObjective, [field]: [] }).success).toBe(false)
+      const bad = {
+        ...validBriefing,
+        secondary: { ...validBriefing.secondary, [field]: [] },
+      }
+      expect(Briefing.safeParse(bad).success).toBe(false)
+    }
+  })
+
   it('requires at least two bullets in each overview prose section (F6)', () => {
     for (const section of ['currentPosition', 'structuralArchitecture', 'orderFlowContext'] as const) {
       const bad = {

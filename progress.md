@@ -6,6 +6,25 @@
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
 action** (branch `feat-038-update-action`).
 
+**Objective arrays now `.min(1)` — empty secondary entries crashed analyze (2026-07-17,
+branch `fix-objective-min-arrays`).** Two live analyze runs on terra failed with
+`secondary objective has invalid R/R geometry: … no entry price`: the model expressed
+"stand down on counter-trend longs" as `entries: [] / stops: [] / targets: []`, which
+`z.array(...)` accepted and `objectiveRiskReward` then threw on. Fixes:
+
+- `Objective.entries/stops/targets` are `.min(1)` in `knowledge/schema/briefing.schema.ts`
+  (covers Briefing AND BriefingUpdate). `minItems` binds at generation time under OpenAI
+  strict structured outputs — the pre-existing `keyInflections.min(1).max(2)` proved the
+  keyword is accepted, and the live verification run confirmed no pre-call rejection.
+- `buildAnalysisPrompt` gains an explicit rule: BOTH objectives carry ≥1 entry, ≥1
+  protective-side stop and ≥ T1; a not-yet-actionable secondary is expressed through its
+  entry `trigger` conditions, never by omitting geometry.
+- Schema tests: `Objective`/`Briefing` reject empty entries/stops/targets arrays.
+- Verified: `./init.sh` all green (601 tests) + live dev analyze run on
+  `openai/gpt-5.6-terra` (run `run_cmrogcdytd0ba0vom23k2c89s`, ~$0.177) — briefing
+  persisted; the secondary came back as a proper conditional Flush & Reload long from
+  29256 with the stand-down expressed in the trigger text.
+
 **Entry-eval strip + structured checks (2026-07-16, branch `feat-eval-strip`).** The Latest
 Entry Eval no longer sits below the fold as a prose paragraph; it is now a compact strip
 directly beneath the meta strip, and the eval's reasoning is structured:

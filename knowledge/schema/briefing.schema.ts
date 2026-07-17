@@ -92,13 +92,19 @@ export const Target = z.object({
 })
 export type Target = z.infer<typeof Target>
 
+// NOTE (2026-07-17): entries/stops/targets are `.min(1)` — an Objective with
+// an empty array is geometrically meaningless (riskReward.ts throws "no entry
+// price"), and gpt-5.6-terra emitted `entries: []` on a live secondary
+// objective. `minItems` is accepted by OpenAI strict structured outputs (the
+// existing keyInflections `.min(1).max(2)` proves it), so the constraint
+// binds at generation time, not just at parse.
 export const Objective = z.object({
   macroGoal: z.string(),
   rationale: z.string(),
   direction: Direction,
-  entries: z.array(Entry),
-  stops: z.array(Stop),
-  targets: z.array(Target),
+  entries: z.array(Entry).min(1),
+  stops: z.array(Stop).min(1),
+  targets: z.array(Target).min(1),
   /** Risk/reward ratio; supplied by riskReward.ts (the rr_min gate). */
   rr: z.number(),
 })
