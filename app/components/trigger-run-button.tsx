@@ -2,7 +2,7 @@
 
 import { useRealtimeRun } from '@trigger.dev/react-hooks'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from './button'
 
 /**
@@ -25,7 +25,6 @@ type RunState =
   | { phase: 'watching'; runId: string; publicAccessToken: string }
   /** Queued but the route returned no token — the pre-Realtime fallback. */
   | { phase: 'queued-untracked'; runId: string }
-  | { phase: 'done'; runId: string }
   | { phase: 'error'; message: string }
 
 interface RunResponse {
@@ -44,12 +43,30 @@ interface TriggerRunButtonProps {
   size?: 'md' | 'sm'
 }
 
-/** Human label for the in-flight Realtime statuses. */
+/**
+ * v4 run statuses that mean the run is over, success or otherwise. Kept as a
+ * plain set (not the SDK's RunStatus type) so an unknown future status simply
+ * reads as still-in-flight rather than breaking the build.
+ */
+const TERMINAL_STATUSES = new Set([
+  'COMPLETED',
+  'CANCELED',
+  'FAILED',
+  'CRASHED',
+  'SYSTEM_FAILURE',
+  'EXPIRED',
+  'TIMED_OUT',
+])
+
+/** Human label for the v4 Realtime statuses (REATTEMPTING no longer exists). */
 function statusLabel(status: string | undefined): string {
   switch (status) {
     case 'EXECUTING':
-    case 'REATTEMPTING':
       return 'Running'
+    case 'DEQUEUED':
+      return 'Starting'
+    case 'WAITING':
+      return 'Waiting'
     case 'DELAYED':
       return 'Delayed'
     default:
@@ -74,24 +91,29 @@ export function TriggerRunButton({
     // Status-only subscription: the dashboard re-fetches its own data on
     // refresh, so never ship the run payload/output over the wire.
     skipColumns: ['payload', 'output'],
-    onComplete: (completedRun, err) => {
-      if (err) {
-        setState({ phase: 'error', message: `Live status lost: ${err.message}` })
-        return
-      }
-      if (completedRun.status === 'COMPLETED') {
-        setState({ phase: 'done', runId: completedRun.id })
-        // Re-render the server component tree so the fresh briefing/eval
-        // rows appear without a manual reload.
-        router.refresh()
-        return
-      }
-      setState({
-        phase: 'error',
-        message: `Run ${completedRun.id} finished as ${completedRun.status} — check the trigger.dev dashboard.`,
-      })
-    },
   })
+
+  // Completion is derived from the run STATUS, not the hook's `onComplete`:
+  // onComplete additionally gates on `finishedAt`, and the Realtime stream
+  // can deliver the terminal status in a frame without it (observed live on
+  // eval runs: Running → "Queued" → stuck until a manual reload). A terminal
+  // status alone finishes the watch — the done/failed presentation is derived
+  // at render, and only the dashboard refresh is an actual side effect.
+  const runStatus = run?.status
+  const terminalStatus =
+    watching !== null && runStatus && TERMINAL_STATUSES.has(runStatus)
+      ? runStatus
+      : null
+  const completed = terminalStatus === 'COMPLETED'
+  const failedStatus = terminalStatus && !completed ? terminalStatus : null
+
+  useEffect(() => {
+    if (completed) {
+      // Re-render the server component tree so the fresh briefing/eval
+      // rows appear without a manual reload.
+      router.refresh()
+    }
+  }, [completed, router])
 
   async function runAction() {
     setState({ phase: 'queuing' })
@@ -123,13 +145,14 @@ export function TriggerRunButton({
   // the auto-refresh promise but don't block a re-run behind a dead socket.
   const watchBroken = watching !== null && realtimeError !== undefined
   const inFlight =
-    state.phase === 'queuing' || (state.phase === 'watching' && !watchBroken)
+    state.phase === 'queuing' ||
+    (state.phase === 'watching' && !watchBroken && terminalStatus === null)
 
   const buttonLabel =
     state.phase === 'queuing'
       ? 'Queuing…'
-      : state.phase === 'watching' && !watchBroken
-        ? `${statusLabel(run?.status)}…`
+      : inFlight && state.phase === 'watching'
+        ? `${statusLabel(runStatus)}…`
         : label
 
   // Compact (nav) buttons float their status note below the header so the
@@ -145,9 +168,9 @@ export function TriggerRunButton({
         {buttonLabel}
       </Button>
       <div role="status">
-        {state.phase === 'watching' && !watchBroken && (
+        {inFlight && state.phase === 'watching' && (
           <p className={`mt-2 text-xs font-light tracking-wide text-muted ${statusClass}`}>
-            {statusLabel(run?.status)} — run {state.runId}. The dashboard refreshes
+            {statusLabel(runStatus)} — run {state.runId}. The dashboard refreshes
             automatically when it finishes.
           </p>
         )}
@@ -162,9 +185,15 @@ export function TriggerRunButton({
             Queued — run {state.runId}. Reload in a minute for the result.
           </p>
         )}
-        {state.phase === 'done' && (
+        {completed && state.phase === 'watching' && (
           <p className={`mt-2 text-xs font-light tracking-wide text-success ${statusClass}`}>
             Run complete — dashboard refreshed. {doneHint}
+          </p>
+        )}
+        {failedStatus && state.phase === 'watching' && (
+          <p className={`mt-2 text-xs font-light tracking-wide text-m-red ${statusClass}`}>
+            Run {state.runId} finished as {failedStatus} — check the trigger.dev
+            dashboard.
           </p>
         )}
         {state.phase === 'error' && (

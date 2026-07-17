@@ -6,6 +6,24 @@
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
 action** (branch `feat-038-update-action`).
 
+**Run-button completion derived from run status — stuck "Queued" fixed (2026-07-17,
+branch `fix-run-button-terminal-status`).** Operator report: eval runs sometimes showed
+Running → "Queued" → stuck until a manual reload. Root cause in
+`app/components/trigger-run-button.tsx`: `useRealtimeRun`'s `onComplete` only fires when
+the streamed run has `finishedAt`, but a Realtime frame can carry the terminal status
+without it — and `statusLabel` mapped every unrecognized status (including `COMPLETED`)
+to "Queued" via its default branch. Fixes:
+
+- Completion no longer relies on `onComplete`: a terminal `run.status`
+  (COMPLETED/CANCELED/FAILED/CRASHED/SYSTEM_FAILURE/EXPIRED/TIMED_OUT) is detected
+  directly; done/failed presentation is derived at render and `router.refresh()` is the
+  only effect (the new react-hooks lint rule rejects setState-in-effect anyway).
+- `statusLabel` speaks v4: EXECUTING→Running, DEQUEUED→Starting, WAITING→Waiting,
+  DELAYED→Delayed (dead REATTEMPTING branch removed).
+- Verified: `./init.sh` all green + live Playwright click-through on the running
+  dashboard — Check Entry → eval run → "Run complete — dashboard refreshed" note in ~10s,
+  no console errors.
+
 **Objective arrays now `.min(1)` — empty secondary entries crashed analyze (2026-07-17,
 branch `fix-objective-min-arrays`).** Two live analyze runs on terra failed with
 `secondary objective has invalid R/R geometry: … no entry price`: the model expressed
