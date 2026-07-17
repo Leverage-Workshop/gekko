@@ -81,6 +81,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- Every `overview` prose section needs at least 2 substantive bullets naming concrete engine levels (the schema rejects fewer).',
     `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly from your chosen entry/stop/T1. The R/R gate is ${input.rrMin}:1 — do not propose objectives that cannot clear it.`,
     '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Target rungs: T1 = the first obstacle / immediate S/R (any engine level qualifies), T2 = the next acceptance border, T3 (Campaign Max) = the full traverse of the HTF distribution. T3 must land on a Trench or Wall at the NEAR edge of the void being traversed — never a Magnet, and never a level that can only be reached by crossing a second void.',
+    '- BOTH objectives (primary AND secondary) must each carry at least one entry, at least one stop on the protective side of that entry, and at least T1. The secondary is the best available counter-scenario; if it is not yet actionable, express that in its entry `trigger` conditions — never by omitting entries, stops or targets.',
     '',
     '# Meta fields',
     `- meta.createdAt = "${input.now}"`,
