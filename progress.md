@@ -3,8 +3,37 @@
 ## Current State
 
 **Last Updated:** 2026-07-18
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
-action** (branch `feat-038-update-action`).
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-039 Scheduled
+bundle cleanup** (branch `feat-039-cleanup-bundles`).
+
+**Scheduled bundle cleanup — feat-039 (2026-07-18, branch `feat-039-cleanup-bundles`).**
+Sierra now exports every ~15s (uploader `.env` debounce lowered 7000→1000ms; docs/defaults
+aligned in PR #55), landing ~240 raw_bundles/hour of which only briefing/eval-referenced ones
+matter long-term. New daily janitor:
+
+- Migration `20260718100000_unused_bundles_fn.sql`: STABLE SQL function
+  `unused_bundles_before(cutoff, limit)` — NOT EXISTS on BOTH referencing FKs
+  (`briefings.bundle_id`, `eval_results.bundle_id`; both are ON DELETE CASCADE, so a naive
+  age-only bulk delete would destroy briefings/evals), cutoff on `received_at`, newest row
+  excluded unconditionally, oldest-first. Applied to the live project via MCP and validated
+  live: 476 bundles, 462 candidates >24h, referenced + recent rows correctly protected.
+- `lib/cleanup/`: `cleanupBundles` orchestration (injected deps) — Storage objects removed
+  BEFORE rows (partial failure ⇒ rows survive and retry next run; reverse order would strand
+  orphaned objects), column→bucket mapping reused from `lib/ingest/manifest` FILE_FIELDS,
+  remove calls chunked ≤100 paths, 200-row batches, 50-batch/run cap with `truncated` flag.
+  `realCleanupDeps`: rpc + `storage.remove` + delete-in on the service client.
+- `trigger/cleanupTask.ts`: `cleanup-bundles` `schedules.task`, cron `0 18 * * *`
+  America/Los_Angeles (after session close), counts in run metadata. NOTE: the declarative
+  schedule registers on the next `trigger.dev deploy` (or dev session) — until then the task
+  exists but never fires.
+- Retention doctrine: an unused bundle is deletable when >24h old. Safe because every reader
+  (`current_price`, eval proximity exec-bar window, analyze/update loads) consumes only the
+  LATEST bundle; the proximity window is seconds-scale *within* that bundle's exec CSV.
+- Also applied the previously-pending `20260718090000_proximity_window_seconds.sql` to the
+  live project via MCP (was flagged below as not-yet-applied; eval had been degrading to the
+  60s code default).
+- Verified: `./init.sh` all green (47 files, 624 tests) — new `tests/cleanup.bundles.test.ts`
+  (9 cases) + a feat-039 describe in `tests/migrations.test.ts`.
 
 **Eval proximity gate now consults recent exec-bar high/low, not just the snapshot
 (2026-07-18, branch `claude/eval-proximity-check-nuance-smh8m7`).** Operator report: whether

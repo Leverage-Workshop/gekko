@@ -217,6 +217,43 @@ describe('realtime notifications migration (feat-026)', () => {
   })
 })
 
+// feat-039: selection function for the scheduled bundle-cleanup task.
+describe('unused bundles function migration (feat-039)', () => {
+  const file = sql.files.find((f) => f.includes('unused_bundles_fn'))
+  const content = file ? readFileSync(join(MIGRATIONS_DIR, file), 'utf8') : ''
+
+  it('exists', () => {
+    expect(file).toBeDefined()
+  })
+
+  it('is a read-only STABLE sql function (the caller deletes, never the function)', () => {
+    expect(content).toContain(
+      'create or replace function public.unused_bundles_before(',
+    )
+    expect(content).toMatch(/language sql\s+stable/)
+    expect(content).not.toMatch(/delete\s+from/i)
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+  })
+
+  it('excludes bundles referenced by briefings AND eval_results (both FKs cascade)', () => {
+    expect(content).toMatch(
+      /not exists\s*\(\s*select 1 from public\.briefings br where br\.bundle_id = b\.id\s*\)/,
+    )
+    expect(content).toMatch(
+      /not exists\s*\(\s*select 1 from public\.eval_results ev where ev\.bundle_id = b\.id\s*\)/,
+    )
+  })
+
+  it('respects the cutoff, never returns the newest row, and drains oldest-first', () => {
+    expect(content).toContain('b.received_at < p_cutoff')
+    expect(content).toMatch(
+      /b\.id <> \(\s*select id from public\.raw_bundles order by received_at desc limit 1\s*\)/,
+    )
+    expect(content).toContain('order by b.received_at asc')
+    expect(content).toContain('limit p_limit')
+  })
+})
+
 // feat-027: push_subscriptions storage for Web Push (VAPID).
 describe('push_subscriptions migration (feat-027)', () => {
   const file = sql.files.find((f) => f.includes('push_subscriptions'))
