@@ -91,7 +91,11 @@ process.
 **Current price (no live feed):** Sierra Chart exports the bundle every ~30s, so the latest
 `raw_bundles` row is fresh; the eval uses its `current_price`. There is no ACSIL price
 heartbeat, no `/api/price`, and no `latest_price` table — avoiding both the C++ HTTP path and
-any third-party feed cost / data-redistribution licensing.
+any third-party feed cost / data-redistribution licensing. Because the snapshot alone is
+timing-sensitive (a wick through a level between exports is invisible to it), the eval's
+near-entry gate also considers the high/low range of execution bars within a recent window
+(`config.proximity_window_seconds`, default 60s): a level is near if EITHER the snapshot or
+that bar range comes within the threshold.
 
 ---
 
@@ -262,7 +266,9 @@ price is read from the latest `raw_bundles` row (no separate hot-price store).
   freshness and flags staleness; never serves stale as fresh. Uses retries; logs model/cost
   to run metadata.
 - `eval-task` — entry-eval triage, triggered on demand from `/api/eval/run` ("Check Entry"
-  button): load latest bundle (current price = `raw_bundles.current_price`) + active
+  button): load latest bundle (current price = `raw_bundles.current_price`; near-entry gate
+  = min of snapshot distance and distance to the recent exec-bar high/low range,
+  `config.proximity_window_seconds` window) + active
   `entry_levels` → AI SDK `generateObject` via OpenRouter with the **triage model**
   (`config.triage_model_id`, default `claude-haiku-4-5`; images + delta telemetry, Zod
   `EvalResult` schema) implementing the `instructions.md` eval logic → Zod validate →

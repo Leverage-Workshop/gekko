@@ -11,7 +11,11 @@ import type { PersistEvalDeps } from './persistEval'
 import { persistEvalResult } from './persistEval'
 import { buildEvalPrompt } from './prompt'
 import type { EntryLevelRow } from './proximity'
-import { assessProximity } from './proximity'
+import {
+  DEFAULT_PROXIMITY_WINDOW_SECONDS,
+  assessProximity,
+  computeRecentBarRange,
+} from './proximity'
 import { enforceEvalFacts } from './validateEval'
 
 /**
@@ -39,6 +43,8 @@ export class EvalInputError extends Error {}
 /** The `config` singleton fields the eval-task consumes. */
 export interface EvalConfig {
   triage_model_id: string
+  /** Recency window (seconds) for the proximity bar-range gate; null → code default. */
+  proximity_window_seconds?: number | null
 }
 
 export interface EvalDeps extends LoadBundleDeps, PersistEvalDeps {
@@ -106,10 +112,30 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
   if (staleness.isStale) {
     warnings.push(staleness.warning ?? 'bundle is stale')
   }
-  const deltaTelemetry = computeDeltaTelemetry(parseExecBars(bundle.execCsvContent))
+  const execBars = parseExecBars(bundle.execCsvContent)
+  const deltaTelemetry = computeDeltaTelemetry(execBars)
+
+  const configWindow = config?.proximity_window_seconds
+  const windowSeconds =
+    typeof configWindow === 'number' && Number.isFinite(configWindow) && configWindow > 0
+      ? configWindow
+      : DEFAULT_PROXIMITY_WINDOW_SECONDS
 
   const levels = await deps.fetchActiveEntryLevels()
-  const proximity = assessProximity(levels, currentPrice)
+  const proximity = assessProximity(levels, currentPrice, {
+    barRange: computeRecentBarRange(execBars, windowSeconds * 1000),
+  })
+  if (
+    proximity.nearEntry &&
+    proximity.nearest &&
+    proximity.nearest.distancePoints > proximity.thresholdPoints
+  ) {
+    warnings.push(
+      `proximity gate passed via the recent bar window (${windowSeconds}s): price traded within ` +
+        `${proximity.nearest.effectiveDistancePoints} points of the nearest level, but the snapshot ` +
+        `price is ${proximity.nearest.distancePoints} points away`,
+    )
+  }
 
   // No active levels at all (no briefing yet, or all deactivated): there is
   // nothing to evaluate — persist a code-owned NO_ENTRY_NEAR verdict without

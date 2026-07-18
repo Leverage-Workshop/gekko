@@ -2,9 +2,35 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-16
+**Last Updated:** 2026-07-18
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-038 Update
 action** (branch `feat-038-update-action`).
+
+**Eval proximity gate now consults recent exec-bar high/low, not just the snapshot
+(2026-07-18, branch `claude/eval-proximity-check-nuance-smh8m7`).** Operator report: whether
+"Check Entry" passed the near-entry gate depended on the timing of the last bundle — a wick
+through a level that pulled back between ~30s exports was invisible to the snapshot-only
+`|level − current_price| <= 20` check. Changes:
+
+- `assessProximity` now takes an options object with an optional `barRange` (from the new
+  `computeRecentBarRange(bars, windowMs)` in `lib/eval/proximity.ts`): a level's effective
+  distance is the MIN of its snapshot distance and its distance to the [low, high] span of
+  exec bars within the window. Deliberately min-of-distances, NOT a convex hull — a level
+  sitting between a far-off snapshot and the bar range is near neither.
+- Window is anchored to the LAST bar's timestamp (chart-local times only compared to each
+  other; a stale bundle doesn't empty the window — staleness is still surfaced separately).
+- Window length is configurable: new `config.proximity_window_seconds` column (migration
+  `20260718090000_proximity_window_seconds.sql`, default 60s ≈ two export cycles), read by
+  `fetchConfig` with code fallback `DEFAULT_PROXIMITY_WINDOW_SECONDS`.
+- The prompt now shows BOTH distances when the wick, not the snapshot, opened the gate
+  ("N points away at its closest within the recent execution-bar window … snapshot price is
+  M points away") so the model can judge "moved past without confirming"; `runEval` also
+  records a warning when the gate passed only via the window.
+- Threshold (20 points) unchanged and still code-owned; `validateEval` untouched.
+- Verified: `./init.sh` all green (610 tests, incl. new unit tests for range/window
+  semantics and two new `runEval` integration tests: wick-pass path + config window
+  override). Migration not yet applied to the remote Supabase project (`supabase db push`
+  locally, or apply via MCP when authenticated).
 
 **Run-button completion derived from run status — stuck "Queued" fixed (2026-07-17,
 branch `fix-run-button-terminal-status`).** Operator report: eval runs sometimes showed
