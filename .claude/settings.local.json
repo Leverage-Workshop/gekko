@@ -15,7 +15,14 @@
       "mcp__openrouter__model-get",
       "mcp__supabase__list_migrations",
       "mcp__supabase__apply_migration",
-      "mcp__supabase__execute_sql"
+      "mcp__supabase__execute_sql",
+      "Skill(run)",
+      "mcp__openrouter__get-model",
+      "mcp__trigger__dev_server_status",
+      "mcp__trigger__trigger_task",
+      "mcp__trigger__wait_for_run_to_complete",
+      "mcp__trigger__list_runs",
+      "mcp__trigger__get_run_details"
     ]
   },
   "enabledMcpjsonServers": [
