@@ -12,10 +12,13 @@ import type { EntryLevelRow } from './proximity'
 export function realEvalDeps(): EvalDeps {
   const supabase = getServiceClient()
   return {
+    // select('*'), not an explicit column list: naming a column that the
+    // remote schema doesn't have yet (migration not applied) is a PostgREST
+    // error, and the eval must degrade to code defaults instead of failing.
     fetchConfig: async () => {
       const { data, error } = await supabase
         .from('config')
-        .select('triage_model_id, proximity_window_seconds')
+        .select('*')
         .eq('id', 1)
         .maybeSingle()
       if (error) {
