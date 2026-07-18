@@ -80,13 +80,22 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
   const { proximity } = input
   const nearest = proximity.nearest
 
+  // The gate consults BOTH the snapshot price and the recent exec-bar range;
+  // when they disagree (a wick reached the level but the snapshot has pulled
+  // away) the model must see both so it can judge "moved past without
+  // confirming" honestly.
+  const distanceNote = (n: NonNullable<ProximityAssessment['nearest']>): string =>
+    n.effectiveDistancePoints < n.distancePoints && proximity.barRange
+      ? `${n.effectiveDistancePoints} points away at its closest within the recent execution-bar window (bars spanned ${proximity.barRange.low}–${proximity.barRange.high}); the current snapshot price is ${n.distancePoints} points away`
+      : `${n.distancePoints} points away`
+
   const proximityVerdict = proximity.nearEntry
     ? `Price IS near an active entry (code-computed): the nearest level is ${JSON.stringify(
         nearest ? levelPayload(nearest.level) : null,
-      )} at ${nearest?.distancePoints} points away (threshold ${proximity.thresholdPoints}). Evaluate THIS level: your status MUST be ENTER, WAIT or NOT_VALID, your evaluatedLevel MUST echo its label/price/direction verbatim, and direction/trigger/stop/targets MUST be populated from it (stop/targets from the level row unless structure has invalidated them).`
+      )} at ${nearest ? distanceNote(nearest) : 'an unknown distance'} (threshold ${proximity.thresholdPoints}). Evaluate THIS level: your status MUST be ENTER, WAIT or NOT_VALID, your evaluatedLevel MUST echo its label/price/direction verbatim, and direction/trigger/stop/targets MUST be populated from it (stop/targets from the level row unless structure has invalidated them).`
     : `Price is NOT near any active entry (code-computed${
         nearest
-          ? `: nearest is ${nearest.distancePoints} points away, threshold ${proximity.thresholdPoints}`
+          ? `: nearest is ${distanceNote(nearest)}, threshold ${proximity.thresholdPoints}`
           : ': there are no usable active levels'
       }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level. Run an Update for a full tactical read." Set evaluatedLevel/direction/trigger/stop/targets/checks/nextSignal/caution to null.`
 

@@ -15,7 +15,7 @@ export function realEvalDeps(): EvalDeps {
     fetchConfig: async () => {
       const { data, error } = await supabase
         .from('config')
-        .select('triage_model_id')
+        .select('triage_model_id, proximity_window_seconds')
         .eq('id', 1)
         .maybeSingle()
       if (error) {

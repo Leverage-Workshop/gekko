@@ -13,7 +13,17 @@ export type {
 } from './persistEval'
 export { buildEvalPrompt } from './prompt'
 export type { EvalPromptInput } from './prompt'
-export { DEFAULT_NEAR_ENTRY_POINTS, assessProximity } from './proximity'
-export type { EntryLevelRow, ProximityAssessment } from './proximity'
+export {
+  DEFAULT_NEAR_ENTRY_POINTS,
+  DEFAULT_PROXIMITY_WINDOW_SECONDS,
+  assessProximity,
+  computeRecentBarRange,
+} from './proximity'
+export type {
+  EntryLevelRow,
+  ProximityAssessment,
+  ProximityOptions,
+  RecentBarRange,
+} from './proximity'
 export { enforceEvalFacts } from './validateEval'
 export type { EnforceEvalOptions, ValidatedEval } from './validateEval'

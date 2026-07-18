@@ -459,6 +459,81 @@ describe('runEval', () => {
     ).toBe(true)
   })
 
+  it('passes the gate via the recent bar window when a wick reached the level', async () => {
+    // The fixture CSV's last-60s bar range tops at 29949.00; a level 6 points
+    // above it is near by recent price action even though the snapshot price
+    // (30250) is 295 points away — the pre-window gate would have said
+    // NO_ENTRY_NEAR here.
+    const wickLevel: EntryLevelRow = {
+      ...activeLevels()[0],
+      id: 'lvl-wick',
+      label: 'Entry W',
+      price: 29955,
+      stop: 29945,
+      targets: [29990],
+    }
+    let prompt = ''
+    const harness = makeDeps({
+      fetchActiveEntryLevels: async () => [wickLevel],
+      generate: async (params) => {
+        prompt = params.prompt
+        return {
+          object: {
+            ...modelEval(),
+            evaluatedLevel: { label: 'Entry W', price: 29955, direction: 'long' },
+            stop: 29945,
+            targets: [29990],
+          },
+          model: params.model,
+          usage: {} as GenerateStructuredResult<EvalResult>['usage'],
+          cost: null,
+          cachedInputTokens: null,
+          latencyMs: 0,
+        }
+      },
+    })
+    const result = await runEval(harness.deps)
+
+    expect(result.nearEntry).toBe(true)
+    expect(result.status).toBe('ENTER')
+    expect(prompt).toContain('Price IS near an active entry')
+    expect(prompt).toContain('recent execution-bar window')
+    expect(prompt).toContain('snapshot price is 295 points away')
+    expect(harness.getInsertedRow()!.evaluated_level_id).toBe('lvl-wick')
+    expect(
+      result.warnings.some((w) => w.includes('passed via the recent bar window (60s)')),
+    ).toBe(true)
+  })
+
+  it('honors config.proximity_window_seconds for the bar-range window', async () => {
+    // Level at 29890: 30.04 points below the last-60s bar low (29920.04) but
+    // only 15.21 below the last-300s low (29905.21) — near only when the
+    // config widens the window.
+    const deepLevel: EntryLevelRow = {
+      ...activeLevels()[0],
+      id: 'lvl-deep',
+      label: 'Entry D',
+      price: 29890,
+      stop: 29880,
+      targets: [29925],
+    }
+    const narrow = makeDeps({ fetchActiveEntryLevels: async () => [deepLevel] })
+    expect((await runEval(narrow.deps)).nearEntry).toBe(false)
+
+    const widened = makeDeps({
+      fetchActiveEntryLevels: async () => [deepLevel],
+      fetchConfig: async () => ({
+        triage_model_id: 'test/triage-y',
+        proximity_window_seconds: 300,
+      }),
+    })
+    const result = await runEval(widened.deps)
+    expect(result.nearEntry).toBe(true)
+    expect(
+      result.warnings.some((w) => w.includes('passed via the recent bar window (300s)')),
+    ).toBe(true)
+  })
+
   it('rejects a bundle without a current price', async () => {
     const harness = makeDeps({
       fetchLatestBundle: async () => ({
