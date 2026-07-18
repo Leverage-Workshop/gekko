@@ -2,7 +2,7 @@
  * Local uploader entrypoint (feat-009).
  *
  * Watches the Sierra Chart export folder, debounces the burst of writes Sierra
- * emits each ~30s cycle, bundles the present files, and POSTs them to
+ * emits each ~15s cycle, bundles the present files, and POSTs them to
  * /api/ingest with bearer auth and retry/backoff. This file is the only place
  * that touches fragile local concerns (filesystem, chokidar, the network); all
  * bundling/posting/scheduling logic lives in `@/lib/uploader` and is unit-tested.

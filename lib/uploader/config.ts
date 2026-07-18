@@ -17,7 +17,7 @@ const schema = z.object({
   INGEST_URL: z.string().url(),
   INGEST_BEARER_TOKEN: z.string().min(1),
   GEKKO_EXPORT_DIR: z.string().min(1),
-  UPLOADER_DEBOUNCE_MS: intFromEnv(2000),
+  UPLOADER_DEBOUNCE_MS: intFromEnv(1000),
   UPLOADER_MAX_ATTEMPTS: intFromEnv(5),
   UPLOADER_BASE_DELAY_MS: intFromEnv(500),
   UPLOADER_MAX_DELAY_MS: intFromEnv(30000),

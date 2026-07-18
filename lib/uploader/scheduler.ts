@@ -1,7 +1,7 @@
 /**
  * Debounces a stream of filesystem events into single bundle runs.
  *
- * Sierra Chart rewrites the whole export folder every ~30s, firing many `add`/
+ * Sierra Chart rewrites the whole export folder every ~15s, firing many `add`/
  * `change` events in a burst. We wait for the burst to settle (`debounceMs` of
  * quiet) before running, coalesce overlapping triggers, and never run two
  * uploads concurrently — a trigger arriving mid-run schedules exactly one more.
