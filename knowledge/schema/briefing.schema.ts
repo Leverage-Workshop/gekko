@@ -98,6 +98,11 @@ export type Target = z.infer<typeof Target>
 // objective. `minItems` is accepted by OpenAI strict structured outputs (the
 // existing keyInflections `.min(1).max(2)` proves it), so the constraint
 // binds at generation time, not just at parse.
+// NOTE (2026-07-18): single-entry doctrine — each objective carries exactly
+// ONE entry and ONE stop (Entry B rungs are never traded). The ceiling is
+// enforced by the prompt plus validateBriefing's enforceSingleEntry trim, not
+// a schema `.max(1)`, so a drifting model degrades to a warning instead of a
+// generation-time schema failure.
 export const Objective = z.object({
   macroGoal: z.string(),
   rationale: z.string(),

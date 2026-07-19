@@ -7,7 +7,21 @@
 bugfix** (branch `fix-proximity-recency`) on top of **feat-040/041/042 terrain +
 tactical-ladder + entry/stop doctrine** (PRs #57/#58/#59, all squash-merged).
 
-**Proximity recency bugfix (2026-07-18 night).** Operator-reported: when price traversed BOTH
+**feat-043: single-entry tactical ladder + eval DOM fix (2026-07-18 night).** Operator
+directives after live eval use: (1) an eval ENTERed short at 29565.25 (primary Entry B
+Add-on) where the operator reads the long fade (secondary Entry A at the same price) — the
+proximity gate cannot disambiguate opposite-direction rungs at an identical price, and the
+operator never trades Entry B anyway, so Entry B is removed: `TACTICAL_LADDER_RULE` /
+`ENTRY_STOP_DOCTRINE_RULES` now mandate exactly ONE entry + ONE stop per objective,
+`output-schema.md` updated, and `enforceSingleEntry` in `validateBriefing.ts` trims any
+extra rungs/stops (keeps the Entry A-labeled rung + worst-case protective stop, warns)
+before R/R recompute — schema stays `.min(1)`, the ceiling is prompt + trim. The two live
+active Entry B `entry_levels` rows were deactivated in Supabase; the dashboard still shows
+the old briefing's ladder until the next briefing/update regenerates. (2) The eval prompt
+demanded "DOM confirming" but no DOM data ships in a bundle — decision logic now keys on
+delta telemetry + execution chart with an explicit never-cite-DOM instruction.
+
+**Proximity recency bugfix (2026-07-18 night, PR #60).** Operator-reported: when price traversed BOTH
 active entry levels inside the proximity window, the eval compared against the primary
 objective even though price had more recently been at the secondary. Cause: `assessProximity`
 collapsed the recency window into one [low, high] hull, so both levels scored effective

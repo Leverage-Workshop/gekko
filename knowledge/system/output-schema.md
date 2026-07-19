@@ -42,8 +42,8 @@ Objective = {
   macroGoal,              // 1-line action statement: Action + Level -> Objective
   rationale,              // 1-line structural justification
   direction: 'long' | 'short',
-  entries: { label, price, trigger }[],   // e.g. Entry A (Ideal), Entry B (Add-on)
-  stops:   { label, price, invalidation }[],
+  entries: { label, price, trigger }[],   // exactly ONE: Entry A (Ideal) / Entry A (Fade)
+  stops:   { label, price, invalidation }[], // exactly ONE protective stop
   targets: { label, price, description }[], // label: 'T1' | 'T2' | 'T3'; T3 must be Trench/Wall
   rr: number              // computed by riskReward.ts — not invented by the model
 }
@@ -53,8 +53,9 @@ Objective = {
   N+1. The engine assembles and validates these borders.
 - Target rung semantics (from the Gem's Strategic Alignment table). The **full T1 → T2 → T3
   ladder is mandatory** whenever distinct engine borders exist in the trade direction, and each
-  objective carries **Entry A + Entry B** with separate stops (primary: Ideal + Add-on;
-  secondary: Fade + Break) — fewer only when the map genuinely offers no further rung:
+  objective carries **exactly one entry (Entry A) with one protective stop** (primary: Ideal;
+  secondary: Fade — never an Entry B / add-on / breakout rung) — fewer targets only when the
+  map genuinely offers no further rung:
   - **T1 (Tactical)** — the first obstacle / immediate S/R in the trade direction.
   - **T2 (Objective)** — the next acceptance border (the standard target).
   - **T3 (Campaign Max)** — the full traverse of the HTF distribution / a major HTF MGI at an LVN.
