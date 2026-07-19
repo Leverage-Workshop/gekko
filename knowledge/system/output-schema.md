@@ -51,7 +51,10 @@ Objective = {
 
 - `terrain.zones[]` must be **contiguous** (no gaps): the bottom of zone N equals the top of zone
   N+1. The engine assembles and validates these borders.
-- Target rung semantics (from the Gem's Strategic Alignment table):
+- Target rung semantics (from the Gem's Strategic Alignment table). The **full T1 → T2 → T3
+  ladder is mandatory** whenever distinct engine borders exist in the trade direction, and each
+  objective carries **Entry A + Entry B** with separate stops (primary: Ideal + Add-on;
+  secondary: Fade + Break) — fewer only when the map genuinely offers no further rung:
   - **T1 (Tactical)** — the first obstacle / immediate S/R in the trade direction.
   - **T2 (Objective)** — the next acceptance border (the standard target).
   - **T3 (Campaign Max)** — the full traverse of the HTF distribution / a major HTF MGI at an LVN.
