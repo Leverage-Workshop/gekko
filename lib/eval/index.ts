@@ -18,6 +18,7 @@ export {
   DEFAULT_PROXIMITY_WINDOW_SECONDS,
   assessProximity,
   computeRecentBarRange,
+  filterRecentBars,
 } from './proximity'
 export type {
   EntryLevelRow,

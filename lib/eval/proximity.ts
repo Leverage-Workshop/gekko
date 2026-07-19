@@ -49,28 +49,30 @@ export interface RecentBarRange {
 }
 
 /**
- * Combined [low, high] of the exec bars whose timestamp falls within
- * `windowMs` of the LAST bar's timestamp. The window is anchored to the last
- * bar — not wall-clock now — so Sierra's chart-local timestamps are only ever
- * compared to each other (no timezone/clock-skew exposure) and a stale bundle
- * does not empty the window (staleness is assessed and surfaced separately).
+ * The exec bars whose timestamp falls within `windowMs` of the LAST bar's
+ * timestamp. The window is anchored to the last bar — not wall-clock now — so
+ * Sierra's chart-local timestamps are only ever compared to each other (no
+ * timezone/clock-skew exposure) and a stale bundle does not empty the window
+ * (staleness is assessed and surfaced separately).
  */
-export function computeRecentBarRange(
+export function filterRecentBars(
   bars: readonly ExecBar[],
   windowMs: number,
-): RecentBarRange | null {
+): ExecBar[] {
   if (bars.length === 0 || !Number.isFinite(windowMs) || windowMs < 0) {
-    return null
+    return []
   }
   let anchorMs = -Infinity
   for (const bar of bars) {
     anchorMs = Math.max(anchorMs, bar.dateTime.getTime())
   }
+  return bars.filter((bar) => anchorMs - bar.dateTime.getTime() <= windowMs)
+}
+
+/** Combined [low, high] hull of a bar set; null when empty. */
+function rangeOfBars(bars: readonly ExecBar[]): RecentBarRange | null {
   let range: RecentBarRange | null = null
   for (const bar of bars) {
-    if (anchorMs - bar.dateTime.getTime() > windowMs) {
-      continue
-    }
     range =
       range === null
         ? { low: bar.low, high: bar.high, barCount: 1 }
@@ -83,52 +85,102 @@ export function computeRecentBarRange(
   return range
 }
 
+/**
+ * Combined [low, high] of the exec bars inside the recency window (see
+ * {@link filterRecentBars}). Reporting-only: the gate itself measures
+ * per-bar, never against this collapsed hull.
+ */
+export function computeRecentBarRange(
+  bars: readonly ExecBar[],
+  windowMs: number,
+): RecentBarRange | null {
+  return rangeOfBars(filterRecentBars(bars, windowMs))
+}
+
 export interface ProximityOptions {
   thresholdPoints?: number
   /**
-   * Recent execution-bar range (from {@link computeRecentBarRange}). When
-   * present, a level counts as near if EITHER the snapshot price or this
-   * range comes within the threshold. Omit/null for snapshot-only.
+   * Recent execution bars (from {@link filterRecentBars}). When present, a
+   * level counts as near if EITHER the snapshot price or any of these bars
+   * comes within the threshold, and nearest-selection prefers the level price
+   * touched most RECENTLY. Omit/empty for snapshot-only.
    */
-  barRange?: RecentBarRange | null
+  recentBars?: readonly ExecBar[] | null
 }
 
 export interface ProximityAssessment {
   /** true when the nearest active level is within `thresholdPoints`. */
   nearEntry: boolean
-  /** Closest active level by {@link effectiveDistancePoints}, or null when none usable. */
+  /**
+   * The level to evaluate: the one price was within threshold of most
+   * RECENTLY (snapshot beats any bar; newer bars beat older). When no level
+   * was ever within threshold, the closest by effective distance. Null when
+   * none usable.
+   */
   nearest: {
     level: EntryLevelRow
     /** |level.price − currentPrice| — the snapshot distance. */
     distancePoints: number
     /**
-     * min(snapshot distance, distance to the recent bar range) — what the
-     * gate compares against the threshold. Equals `distancePoints` when no
-     * bar range was supplied; 0 when the level sits inside the range.
+     * min(snapshot distance, per-bar distances in the recent window) — what
+     * the gate compares against the threshold. Equals `distancePoints` when
+     * no recent bars were supplied; 0 when a bar traded through the level.
      */
     effectiveDistancePoints: number
   } | null
   thresholdPoints: number
-  /** The bar range the gate consulted, or null when snapshot-only. */
+  /** [low, high] hull of the recent bars (reporting), or null when snapshot-only. */
   barRange: RecentBarRange | null
 }
 
-/** Distance from a price to the [low, high] span; 0 when inside it. */
-function distanceToRange(price: number, range: RecentBarRange): number {
-  if (price < range.low) return range.low - price
-  if (price > range.high) return price - range.high
+/** Distance from a price to a bar's [low, high] span; 0 when inside it. */
+function distanceToBar(price: number, bar: ExecBar): number {
+  if (price < bar.low) return bar.low - price
+  if (price > bar.high) return price - bar.high
   return 0
 }
 
+/** Internal nearest-candidate with the recency facts the selection orders on. */
+interface Candidate {
+  level: EntryLevelRow
+  distancePoints: number
+  effectiveDistancePoints: number
+  /**
+   * Timestamp (ms) of the most recent contact within threshold: Infinity for
+   * the snapshot, a bar's time otherwise, -Infinity when never within.
+   */
+  lastNearMs: number
+  /** Distance at that most recent contact; Infinity when never within. */
+  lastNearDistancePoints: number
+}
+
+/** Selection order: most recent in-threshold contact first, then distance. */
+function beats(a: Candidate, b: Candidate): boolean {
+  if (a.lastNearMs !== b.lastNearMs) return a.lastNearMs > b.lastNearMs
+  if (a.lastNearDistancePoints !== b.lastNearDistancePoints) {
+    return a.lastNearDistancePoints < b.lastNearDistancePoints
+  }
+  if (a.effectiveDistancePoints !== b.effectiveDistancePoints) {
+    return a.effectiveDistancePoints < b.effectiveDistancePoints
+  }
+  return a.distancePoints < b.distancePoints
+}
+
 /**
- * Pick the active entry level nearest to recent price action and decide the
- * near/not-near gate. A level's effective distance is the SMALLER of its
- * distance to the snapshot `currentPrice` and its distance to the recent
- * exec-bar [low, high] range (when supplied) — a wick through a level between
- * bundle exports passes the gate even though the snapshot has pulled away.
- * The two distances are deliberately NOT merged into one hull: a level lying
- * between a far-off snapshot and the bar range is near neither. Levels
- * without a finite price are ignored.
+ * Pick the active entry level to evaluate and decide the near/not-near gate.
+ * A level's effective distance is the SMALLEST of its distance to the
+ * snapshot `currentPrice` and its distance to each recent exec bar's
+ * [low, high] (when supplied) — a wick through a level between bundle exports
+ * passes the gate even though the snapshot has pulled away. Distances are
+ * per-bar, never against a collapsed multi-bar hull: a level lying in the
+ * corridor between the snapshot and the bars — or in a gap between bars — is
+ * near neither.
+ *
+ * When SEVERAL levels came within threshold inside the window, the one price
+ * touched most RECENTLY wins (the snapshot is the most recent observation of
+ * all) — price sweeping through the primary entry on its way to the secondary
+ * must be evaluated against the secondary, not whichever is closer to the
+ * snapshot. Levels without a finite price are ignored.
  */
 export function assessProximity(
   levels: readonly EntryLevelRow[],
@@ -136,34 +188,61 @@ export function assessProximity(
   options: ProximityOptions = {},
 ): ProximityAssessment {
   const thresholdPoints = options.thresholdPoints ?? DEFAULT_NEAR_ENTRY_POINTS
-  const barRange = options.barRange ?? null
+  const recentBars = options.recentBars ?? []
   if (!Number.isFinite(thresholdPoints) || thresholdPoints <= 0) {
     throw new Error('assessProximity: thresholdPoints must be a positive finite number')
   }
 
-  let nearest: ProximityAssessment['nearest'] = null
+  let nearest: Candidate | null = null
   for (const level of levels) {
     if (typeof level.price !== 'number' || !Number.isFinite(level.price)) {
       continue
     }
     const distancePoints = Math.abs(level.price - currentPrice)
-    const effectiveDistancePoints = barRange
-      ? Math.min(distancePoints, distanceToRange(level.price, barRange))
-      : distancePoints
-    if (
-      nearest === null ||
-      effectiveDistancePoints < nearest.effectiveDistancePoints ||
-      (effectiveDistancePoints === nearest.effectiveDistancePoints &&
-        distancePoints < nearest.distancePoints)
-    ) {
-      nearest = { level, distancePoints, effectiveDistancePoints }
+    let minBarDistancePoints = Infinity
+    let lastNearMs = -Infinity
+    let lastNearDistancePoints = Infinity
+    for (const bar of recentBars) {
+      const barDistance = distanceToBar(level.price, bar)
+      minBarDistancePoints = Math.min(minBarDistancePoints, barDistance)
+      if (barDistance <= thresholdPoints) {
+        const barMs = bar.dateTime.getTime()
+        if (
+          barMs > lastNearMs ||
+          (barMs === lastNearMs && barDistance < lastNearDistancePoints)
+        ) {
+          lastNearMs = barMs
+          lastNearDistancePoints = barDistance
+        }
+      }
+    }
+    if (distancePoints <= thresholdPoints) {
+      lastNearMs = Infinity
+      lastNearDistancePoints = distancePoints
+    }
+    const candidate: Candidate = {
+      level,
+      distancePoints,
+      effectiveDistancePoints: Math.min(distancePoints, minBarDistancePoints),
+      lastNearMs,
+      lastNearDistancePoints,
+    }
+    if (nearest === null || beats(candidate, nearest)) {
+      nearest = candidate
     }
   }
 
   return {
     nearEntry: nearest !== null && nearest.effectiveDistancePoints <= thresholdPoints,
-    nearest,
+    nearest:
+      nearest === null
+        ? null
+        : {
+            level: nearest.level,
+            distancePoints: nearest.distancePoints,
+            effectiveDistancePoints: nearest.effectiveDistancePoints,
+          },
     thresholdPoints,
-    barRange,
+    barRange: rangeOfBars(recentBars),
   }
 }
