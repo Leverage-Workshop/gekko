@@ -387,6 +387,44 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
   })
 
+  it('keeps a long ENTER on a negative mean when no net red initiative confirms it', async () => {
+    // The loosening (operator doctrine): initiative is a COUNT, not a mean. A
+    // window of mild -1/-2 drift carries a negative mean but zero red-extreme
+    // prints — the mean sign alone must not demote. No absorbed flush here
+    // either (price drifts straight down), so only the count guard holds ENTER.
+    const driftCsv = [
+      'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
+      '2026-06-16 15:55:00,30261.00,30262.00,30258.00,30259.00,0.00,-1.00',
+      '2026-06-16 15:55:30,30259.00,30260.00,30256.00,30257.00,0.00,-1.00',
+      '2026-06-16 15:56:00,30257.00,30258.00,30254.00,30255.00,0.00,-2.00',
+      '2026-06-16 15:56:30,30255.00,30256.00,30252.00,30253.00,0.00,-1.00',
+      '2026-06-16 15:57:00,30253.00,30254.00,30250.00,30251.00,0.00,-2.00',
+      '2026-06-16 15:57:30,30251.00,30252.00,30248.00,30249.00,0.00,-1.00',
+      '2026-06-16 15:58:00,30249.00,30250.00,30246.00,30247.00,0.00,-2.00',
+      '2026-06-16 15:58:30,30247.00,30248.00,30244.00,30245.00,0.00,-1.00',
+      '2026-06-16 15:59:00,30245.00,30246.00,30242.00,30243.00,0.00,-2.00',
+      '2026-06-16 15:59:30,30243.00,30244.00,30240.00,30241.00,0.00,-1.00',
+    ].join('\n')
+    const encoder = new TextEncoder()
+    const objects: Record<string, Uint8Array> = {
+      'b1/execution_bars.csv': encoder.encode(driftCsv),
+      'b1/half-rotation-delta.vbp.md': encoder.encode(halfRotationDeltaContent),
+      'b1/full-rotation-delta.vbp.md': encoder.encode(fullRotationDeltaContent),
+      'b1/htf.png': encoder.encode('png-bytes'),
+    }
+    const harness = makeDeps({
+      downloadObject: async (_bucket, path) => {
+        const bytes = objects[path]
+        if (!bytes) throw new Error(`missing ${path}`)
+        return bytes
+      },
+    })
+    const result = await runEval(harness.deps)
+
+    expect(result.status).toBe('ENTER')
+    expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
+  })
+
   it('keeps ENTER when the engine delta sign matches the direction', async () => {
     // Positive fixture sign + the default long ENTER: the gate passes.
     const harness = makeDeps()
