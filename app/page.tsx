@@ -5,7 +5,6 @@ import type {
   TacticalRead,
 } from '@/knowledge/schema/briefing.schema'
 import {
-  buildExecutionChart,
   buildHighlightTerms,
   formatPrice,
   loadDashboardData,
@@ -15,7 +14,6 @@ import {
 import type { Briefing } from '@/knowledge/schema/briefing.schema'
 import { BriefingTabs } from './components/briefing-tabs'
 import { EvalStrip } from './components/eval-strip'
-import { ExecutionChartSection } from './components/execution-chart-section'
 import { Footer } from './components/footer'
 import { HighlightedText } from './components/highlighted-text'
 import { MStripe } from './components/m-stripe'
@@ -29,14 +27,14 @@ import { TopNav } from './components/top-nav'
 /**
  * Gekko dashboard (feat-019) — a server component that fetches the latest
  * briefing, eval result, and bundle freshness via the service-role client,
- * then renders the briefing as a dense tool view: a two-column top strip
- * (left = MetaColumn: price/rip/HTF-trend cells with the Tactical Read in an
- * expander; right = EvalStrip: verdict + targets with the condition checks in
- * an expander), and a tabbed body (Objectives = execution chart + objective
- * cards + danger zones; Tactical Overview = the stacked prose read). The
- * trigger buttons ("Run Briefing" feat-020, "Run Update" feat-038,
- * "Check Entry" feat-025) live in the top-right of the nav. Update briefings
- * additionally carry an UPDATE chip and an Immediate Tactical Read strip.
+ * then renders the briefing as a dense tool view: a full-width meta strip
+ * (price/rip/HTF-trend/run-meta cells in one row, with the Tactical Read in
+ * an expander) above two equal body columns (left = EvalStrip: verdict +
+ * targets with the condition checks always visible; right = the tabbed
+ * briefing: objective cards, tactical overview, danger zones). The trigger
+ * buttons ("Run Briefing" feat-020, "Run Update" feat-038, "Check Entry"
+ * feat-025) live in the top-right of the nav. Update briefings additionally
+ * carry an UPDATE chip and an Immediate Tactical Read strip.
  */
 
 // Always render at request time: the page reads the live DB and must never be
@@ -113,10 +111,10 @@ function OverviewPane({ overview, terms }: { overview: Overview; terms: string[]
 }
 
 /**
- * Meta column (left of the eval): price, rip status, HTF trend and run meta
- * as one cell grid, with the Immediate Tactical Read (feat-038; update
- * briefings only) stacked inside an attached <details> expander — mirroring
- * the eval column's Conditions expander.
+ * Meta strip (full-width row above the body columns): price, rip status,
+ * HTF trend and run meta as a single cell row, with the Immediate Tactical
+ * Read (feat-038; update briefings only) stacked inside an attached
+ * <details> expander.
  */
 function MetaColumn({
   briefing,
@@ -148,7 +146,7 @@ function MetaColumn({
 
   return (
     <div>
-      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_1fr]">
+      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_1fr_auto]">
         <div className="bg-surface-soft px-5 py-3">
           <p className="text-2xl font-bold tracking-tight text-bmw-blue">
             {formatPrice(payload.meta.currentPrice)}
@@ -167,6 +165,12 @@ function MetaColumn({
           </p>
           <p className="mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">
             Rip Status
+          </p>
+        </div>
+        <div className="bg-surface-soft px-5 py-3">
+          <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">HTF Trend</p>
+          <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
+            <HighlightedText text={payload.meta.htfTrend} terms={terms} />
           </p>
         </div>
         <div className="bg-surface-soft px-5 py-3 md:text-right">
@@ -192,12 +196,6 @@ function MetaColumn({
           <p className="mt-2 text-xs font-light tracking-wide text-muted">
             {briefing.triggerReason}
             {briefing.modelId && ` · ${briefing.modelId}`}
-          </p>
-        </div>
-        <div className="bg-surface-soft px-5 py-3 md:col-span-3">
-          <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">HTF Trend</p>
-          <p className="mt-1 text-sm font-light leading-relaxed text-body-strong">
-            <HighlightedText text={payload.meta.htfTrend} terms={terms} />
           </p>
         </div>
       </div>
@@ -378,10 +376,6 @@ export default async function Home() {
   const briefing = data?.briefing ?? null
   const payload = briefing?.payload ?? null
   const terms = payload ? buildHighlightTerms(payload) : []
-  const chartModel =
-    payload && data?.execBars
-      ? buildExecutionChart(data.execBars, [payload.primary, payload.secondary])
-      : null
 
   return (
     <>
@@ -419,29 +413,26 @@ export default async function Home() {
           <>
             <section className="border-b border-hairline bg-surface-soft">
               <div className="mx-auto max-w-[1800px] px-6 py-4">
-                <div className="grid items-start gap-6 lg:grid-cols-2">
-                  <MetaColumn
-                    briefing={briefing}
-                    payload={payload}
-                    isStale={data?.staleness.isStale ?? false}
-                    staleWarning={data?.staleness.warning ?? null}
-                    terms={terms}
-                    tacticalRead={briefing.tacticalRead}
-                  />
-                  <EvalStrip
-                    evalResult={data?.evalResult ?? null}
-                    unavailable={false}
-                    terms={terms}
-                  />
-                </div>
+                <MetaColumn
+                  briefing={briefing}
+                  payload={payload}
+                  isStale={data?.staleness.isStale ?? false}
+                  staleWarning={data?.staleness.warning ?? null}
+                  terms={terms}
+                  tacticalRead={briefing.tacticalRead}
+                />
               </div>
             </section>
 
             <section className="border-b border-hairline">
               <div className="mx-auto max-w-[1800px] px-6 py-8">
-                <div className="grid gap-6 xl:grid-cols-[3fr_2fr]">
-                  {/* Chart column: always visible */}
-                  <ExecutionChartSection model={chartModel} terrain={payload.terrain} />
+                <div className="grid items-start gap-6 xl:grid-cols-2">
+                  {/* Eval column: verdict, targets and always-visible conditions */}
+                  <EvalStrip
+                    evalResult={data?.evalResult ?? null}
+                    unavailable={false}
+                    terms={terms}
+                  />
 
                   {/* Tabbed column */}
                   <BriefingTabs
