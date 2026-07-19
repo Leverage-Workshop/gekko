@@ -24,7 +24,10 @@ table matching the objectives' levels table; PR #66 drops the "Latest Entry Eval
 the "Conditions" header row; PR #67 replaces the unclear "Targets" cell with the evaluated
 entry level (embedded from `entry_levels` via `evaluated_level_id` in the dashboard query;
 label + price colored bmw-blue/m-red by direction, em dash when no level matched); PR #68
-makes the tricolor stripe under the nav full-width like the footer's.
+makes the tricolor stripe under the nav full-width like the footer's; PR #69 adds the
+`UpdateGlow` client wrapper — a ~2s bmw-blue box-shadow pulse on the meta strip / tab column
+(new briefing id) and eval card (new eval id) when `router.refresh()` swaps in fresh data
+after a trigger run (no glow on initial load; respects prefers-reduced-motion).
 
 **feat-044: eval absorption facts + sequence-aware sign gate (2026-07-18 late night).**
 Operator report: the eval said "No confirmed red absorption followed by blue continuation at
