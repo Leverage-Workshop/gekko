@@ -52,3 +52,27 @@ body {
   color: var(--color-ink);
   font-family: var(--font-display);
 }
+
+/*
+ * Fresh-data pulse (UpdateGlow): a bmw-blue border glow that swells twice
+ * over ~2s when a card's content just changed after a trigger run.
+ */
+@keyframes update-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(28 105 212 / 0);
+  }
+  50% {
+    box-shadow: 0 0 14px 3px rgb(28 105 212 / 0.75);
+  }
+}
+
+.animate-update-glow {
+  animation: update-glow 1.1s ease-in-out 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-update-glow {
+    animation: none;
+  }
+}
