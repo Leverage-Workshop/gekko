@@ -22,13 +22,24 @@ function mkRows(deltas: number[], top = 30000): DeltaProfileRow[] {
 const T = ABSORPTION_DELTA_THRESHOLD
 
 describe('detectAbsorptionStacks', () => {
-  it('finds no candidates in the real half/full-rotation exports at doctrine thresholds', () => {
-    for (const name of ['half-rotation-delta.vbp.md', 'full-rotation-delta.vbp.md'] as const) {
-      const { rows } = parseDeltaProfile(
-        readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8'),
-      )
-      expect(detectAbsorptionStacks(rows, 'half-rotation')).toEqual([])
-    }
+  it('characterizes the real exports at doctrine thresholds: one full-rotation buy stack', () => {
+    const load = (name: string) =>
+      parseDeltaProfile(readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')).rows
+    expect(detectAbsorptionStacks(load('half-rotation-delta.vbp.md'), 'half-rotation')).toEqual([])
+    // 3 strong buy bins over a 4-bin span (0.75 ≥ 0.7) — visible only since the
+    // qualifying fraction was loosened to let one weak interior bin through.
+    expect(detectAbsorptionStacks(load('full-rotation-delta.vbp.md'), 'full-rotation')).toEqual([
+      {
+        source: 'full-rotation',
+        side: 'buy',
+        top: 29830.5,
+        bottom: 29823.75,
+        binCount: 4,
+        qualifyingCount: 3,
+        peakAbsDelta: 125,
+        netDelta: 231,
+      },
+    ])
   })
 
   it('emits a buy stack of exactly MIN_STACK_BINS bins at exactly the threshold', () => {
@@ -80,11 +91,28 @@ describe('detectAbsorptionStacks', () => {
     ])
   })
 
-  it('rejects a window whose qualifying ratio falls below MIN_QUALIFYING_FRAC', () => {
-    // 3 qualifying over a 4-bin span = 0.75 < 0.8; the leading pair alone is
-    // under MIN_STACK_BINS, so nothing is emitted.
-    expect(3 / 4).toBeLessThan(MIN_QUALIFYING_FRAC)
+  it('tolerates an interior gap bin at 3 of 4 (operator doctrine, 2026-07-18)', () => {
+    expect(3 / 4).toBeGreaterThanOrEqual(MIN_QUALIFYING_FRAC)
     const rows = mkRows([T, T, 10, T])
+    expect(detectAbsorptionStacks(rows, 'half-rotation')).toEqual([
+      {
+        source: 'half-rotation',
+        side: 'buy',
+        top: 30000,
+        bottom: 30000 - 3 * STEP,
+        binCount: 4,
+        qualifyingCount: 3,
+        peakAbsDelta: T,
+        netDelta: 3 * T + 10,
+      },
+    ])
+  })
+
+  it('rejects a window whose qualifying ratio falls below MIN_QUALIFYING_FRAC', () => {
+    // 3 qualifying over a 5-bin span = 0.6 < 0.7; the leading pair alone is
+    // under MIN_STACK_BINS, so nothing is emitted.
+    expect(3 / 5).toBeLessThan(MIN_QUALIFYING_FRAC)
+    const rows = mkRows([T, T, 10, 10, T])
     expect(detectAbsorptionStacks(rows, 'half-rotation')).toEqual([])
   })
 
@@ -143,13 +171,15 @@ describe('scanAbsorption', () => {
     ])
   })
 
-  it('returns an empty result for the real exports at doctrine thresholds', () => {
+  it('surfaces the full-rotation buy stack from the real exports at doctrine thresholds', () => {
     const load = (name: string) =>
       parseDeltaProfile(readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')).rows
     const result = scanAbsorption({
       halfRotation: load('half-rotation-delta.vbp.md'),
       fullRotation: load('full-rotation-delta.vbp.md'),
     })
-    expect(result.candidates).toEqual([])
+    expect(result.candidates.map(c => [c.source, c.top, c.side])).toEqual([
+      ['full-rotation', 29830.5, 'buy'],
+    ])
   })
 })

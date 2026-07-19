@@ -2,7 +2,10 @@ import { EvalResult } from '@/knowledge/schema/briefing.schema'
 import { loadDoctrine } from '@/lib/analyze/doctrine'
 import type { LoadBundleDeps } from '@/lib/analyze/loadBundle'
 import { loadLatestBundle } from '@/lib/analyze/loadBundle'
+import type { AbsorptionScanResult, DeltaProfileRow } from '@/lib/engine/absorption'
+import { scanAbsorption } from '@/lib/engine/absorption'
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
+import { parseDeltaProfile } from '@/lib/engine/parseProfile'
 import { parseExecBars } from '@/lib/engine/parseExecBars'
 import { assessStaleness } from '@/lib/engine/staleness'
 import { generateStructured } from '@/lib/llm'
@@ -39,6 +42,41 @@ export const DEFAULT_TRIAGE_MODEL_ID = 'openai/gpt-5.6-luna'
 
 /** Thrown when the latest bundle cannot support an eval — retrying cannot help. */
 export class EvalInputError extends Error {}
+
+/** Parse one delta export defensively: malformed content degrades to no rows + warning. */
+function parseDeltaRows(
+  content: string | null,
+  what: string,
+  warnings: string[],
+): DeltaProfileRow[] {
+  if (content === null) return []
+  try {
+    return parseDeltaProfile(content).rows
+  } catch (error) {
+    warnings.push(
+      `failed to parse the ${what} delta export: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return []
+  }
+}
+
+/**
+ * Code-owned absorption scan over whichever delta exports the bundle carries.
+ * Null (rather than an empty scan) when neither export is usable, so the
+ * prompt can tell "scanned, nothing found" apart from "nothing to scan".
+ */
+function scanEvalAbsorption(
+  halfRotationContent: string | null,
+  fullRotationContent: string | null,
+  warnings: string[],
+): AbsorptionScanResult | null {
+  const halfRotation = parseDeltaRows(halfRotationContent, 'half-rotation', warnings)
+  const fullRotation = parseDeltaRows(fullRotationContent, 'full-rotation', warnings)
+  if (halfRotation.length === 0 && fullRotation.length === 0) {
+    return null
+  }
+  return scanAbsorption({ halfRotation, fullRotation })
+}
 
 /** The `config` singleton fields the eval-task consumes. */
 export interface EvalConfig {
@@ -98,9 +136,10 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
   }
   const modelId = config?.triage_model_id ?? DEFAULT_TRIAGE_MODEL_ID
 
-  // exec-only: the eval consumes just the exec CSV + chart images, so a
-  // bundle missing the VbP/delta exports must not block an entry check.
-  const bundle = await loadLatestBundle(deps, { requireTexts: 'exec-only' })
+  // exec-plus-delta: the exec CSV is required; the two execution delta
+  // exports feed the code-owned absorption scan but are best-effort — a
+  // bundle missing them must not block an entry check.
+  const bundle = await loadLatestBundle(deps, { requireTexts: 'exec-plus-delta' })
   warnings.push(...bundle.warnings)
 
   const currentPrice = bundle.row.current_price
@@ -114,6 +153,12 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
   }
   const execBars = parseExecBars(bundle.execCsvContent)
   const deltaTelemetry = computeDeltaTelemetry(execBars)
+  const recentBars = execBars.slice(-deltaTelemetry.recentWindow)
+  const absorption = scanEvalAbsorption(
+    bundle.halfRotationDeltaContent,
+    bundle.fullRotationDeltaContent,
+    warnings,
+  )
 
   const configWindow = config?.proximity_window_seconds
   const windowSeconds =
@@ -191,6 +236,8 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
       levels,
       proximity,
       charts: bundle.charts,
+      absorption,
+      recentBars,
     }),
     images: bundle.images,
     schema: EvalResult,
@@ -202,7 +249,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
     currentPrice,
     proximity,
     levels,
-    deltaSign: deltaTelemetry.sign,
+    deltaTelemetry,
   })
   warnings.push(...validated.warnings)
 

@@ -26,5 +26,13 @@ export type {
   ProximityOptions,
   RecentBarRange,
 } from './proximity'
-export { enforceEvalFacts } from './validateEval'
-export type { EnforceEvalOptions, ValidatedEval } from './validateEval'
+export {
+  ABSORPTION_RECOVERY_POSITION,
+  absorbedFlushException,
+  enforceEvalFacts,
+} from './validateEval'
+export type {
+  EnforceEvalOptions,
+  SignGateTelemetry,
+  ValidatedEval,
+} from './validateEval'

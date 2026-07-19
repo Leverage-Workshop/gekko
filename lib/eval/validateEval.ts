@@ -1,5 +1,5 @@
 import type { EvalResult } from '@/knowledge/schema/briefing.schema'
-import type { DeltaSign } from '@/lib/engine/deltaTelemetry'
+import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
 
 /**
@@ -22,11 +22,51 @@ export interface EnforceEvalOptions {
   /** The active levels shown to the model, for evaluatedLevel → id mapping. */
   levels: readonly EntryLevelRow[]
   /**
-   * Engine-computed `deltaTelemetry.sign`. Gem doctrine requires Delta > 0
-   * for a long ENTER and Delta < 0 for a short ENTER; a contradicting sign
-   * demotes ENTER to WAIT (code-owned gate).
+   * Engine-computed delta telemetry backing the sign gate: a window-mean sign
+   * contradicting the ENTER direction demotes it to WAIT — UNLESS the
+   * contradiction is explained by an absorbed flush (see
+   * {@link absorbedFlushException}).
    */
-  deltaSign: DeltaSign
+  deltaTelemetry: SignGateTelemetry
+}
+
+/** The telemetry facts the sign gate consumes. */
+export type SignGateTelemetry = Pick<
+  DeltaTelemetry,
+  'sign' | 'recentRedExtremeCount' | 'recentBlueExtremeCount' | 'recentRange'
+>
+
+/**
+ * How far off the flush extreme (as a fraction of the recent bar range) the
+ * last close must have recovered for an absorbed flush to lift the sign gate:
+ * ≥ 0.5 means price is back in the half of the recent range the entry points
+ * toward — the flush failed.
+ */
+export const ABSORPTION_RECOVERY_POSITION = 0.5
+
+/**
+ * Sequence-aware exception to the sign gate (operator doctrine, 2026-07-18):
+ * the window MEAN is guaranteed to contradict an absorption entry right when
+ * it confirms — a red flush into a long border leaves the mean negative even
+ * after the selling failed and price recovered. When the window contains
+ * flush prints in the aggressor's color AND the last close has recovered to
+ * the entry-side half of the recent range, the contradicting mean is
+ * absorption evidence, not counter-initiative — do not demote.
+ */
+export function absorbedFlushException(
+  direction: 'long' | 'short',
+  telemetry: SignGateTelemetry,
+): boolean {
+  const { position } = telemetry.recentRange
+  if (position === null) return false
+  if (direction === 'long') {
+    return (
+      telemetry.recentRedExtremeCount > 0 && position >= ABSORPTION_RECOVERY_POSITION
+    )
+  }
+  return (
+    telemetry.recentBlueExtremeCount > 0 && position <= 1 - ABSORPTION_RECOVERY_POSITION
+  )
 }
 
 export interface ValidatedEval {
@@ -128,20 +168,33 @@ export function enforceEvalFacts(
     )
   }
 
-  // Gem doctrine: "explicitly verify that CSV Delta > 0 for longs, or
-  // Delta < 0 for shorts before suggesting ENTER". A contradicting engine
-  // sign demotes ENTER to WAIT (conservative); a neutral sign passes — the
-  // model weighs it qualitatively.
+  // Sign gate: a window-mean delta sign contradicting the ENTER direction
+  // demotes it to WAIT (conservative); a neutral sign passes — the model
+  // weighs it qualitatively. An absorbed flush lifts the gate: the mean is
+  // expected to contradict an absorption entry exactly when it confirms.
   if (result.status === 'ENTER') {
     const direction = result.direction ?? result.evaluatedLevel?.direction ?? null
+    const telemetry = options.deltaTelemetry
     const contradicts =
-      (direction === 'long' && options.deltaSign === 'negative') ||
-      (direction === 'short' && options.deltaSign === 'positive')
-    if (contradicts) {
-      warnings.push(
-        `model returned ENTER ${direction} but the engine delta sign is ${options.deltaSign} — coerced to WAIT (doctrine: Delta > 0 for longs, Delta < 0 for shorts)`,
-      )
-      result = { ...result, status: 'WAIT' }
+      (direction === 'long' && telemetry.sign === 'negative') ||
+      (direction === 'short' && telemetry.sign === 'positive')
+    if (contradicts && direction !== null) {
+      if (absorbedFlushException(direction, telemetry)) {
+        const flushCount =
+          direction === 'long'
+            ? telemetry.recentRedExtremeCount
+            : telemetry.recentBlueExtremeCount
+        warnings.push(
+          `engine delta sign is ${telemetry.sign} against the ${direction} ENTER, but the flush was absorbed ` +
+            `(${flushCount} aggressor-extreme bars in the window, last close at ${telemetry.recentRange.position} of the recent range) — ENTER kept`,
+        )
+      } else {
+        warnings.push(
+          `model returned ENTER ${direction} but the engine delta sign is ${telemetry.sign} with no absorbed flush ` +
+            `(last close at ${telemetry.recentRange.position} of the recent range) — coerced to WAIT`,
+        )
+        result = { ...result, status: 'WAIT' }
+      }
     }
   }
 

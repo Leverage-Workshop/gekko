@@ -14,6 +14,14 @@ const execCsvContent = readFileSync(
   join(process.cwd(), 'chart-data/execution_bar_data.rolling.csv'),
   'utf-8',
 )
+const halfRotationDeltaContent = readFileSync(
+  join(process.cwd(), 'chart-data/half-rotation-delta.vbp.md'),
+  'utf-8',
+)
+const fullRotationDeltaContent = readFileSync(
+  join(process.cwd(), 'chart-data/full-rotation-delta.vbp.md'),
+  'utf-8',
+)
 const mgi = JSON.parse(
   readFileSync(join(process.cwd(), 'chart-data/mgi_static_levels.json'), 'utf-8'),
 )
@@ -80,10 +88,13 @@ function makeDeps(overrides: Partial<EvalDeps> = {}) {
   let insertedRow: EvalResultInsert | undefined
 
   const encoder = new TextEncoder()
-  // No profile-export objects: the eval-task's exec-only load never downloads
-  // them, even when the refs exist on the row.
+  // Exec CSV + the two delta exports: the eval-task's exec-plus-delta load
+  // fetches the deltas best-effort for the code-owned absorption scan. The
+  // VbP profile exports are still never downloaded.
   const objects: Record<string, Uint8Array> = {
     'b1/execution_bars.csv': encoder.encode(execCsvContent),
+    'b1/half-rotation-delta.vbp.md': encoder.encode(halfRotationDeltaContent),
+    'b1/full-rotation-delta.vbp.md': encoder.encode(fullRotationDeltaContent),
     'b1/htf.png': encoder.encode('png-bytes'),
   }
 
@@ -201,6 +212,36 @@ describe('runEval', () => {
     expect(prompt).not.toContain('waiting for retest → WAIT')
   })
 
+  it('feeds the code-owned absorption scan and the recent bar sequence to the model', async () => {
+    // The full-rotation fixture carries a 3-of-4 buy stack at doctrine
+    // thresholds; the model must receive it as a code-detected candidate
+    // instead of having to read the delta profile off a screenshot.
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('# Absorption candidates')
+    expect(prompt).toContain('"source": "full-rotation"')
+    expect(prompt).toContain('"top": 29830.5')
+    expect(prompt).toContain('These are CANDIDATES')
+    expect(prompt).toContain('# Recent execution bars')
+    // Last fixture bar, rendered without its Leg VWAP column.
+    expect(prompt).toContain('21:52:00,29920.04,29949,29920.04,29945.75,3')
+  })
+
+  it('teaches sequence-first initiative and absorption-alone checks', async () => {
+    // Operator doctrine (2026-07-18): the window mean is guaranteed to carry
+    // the flush color right when an absorption entry confirms, and demanding
+    // continuation makes the Absorption check unpassable in real time.
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('verify initiative from the recent bar SEQUENCE')
+    expect(prompt).toContain('Absorption at the border ALONE satisfies an Absorption check')
+    expect(prompt).not.toContain('If the sign contradicts the direction, do not ENTER')
+  })
+
   it('never shows the eval model the Leg VWAP and forbids it as a check', async () => {
     // Leg VWAP is Tier-3 micro-timing the operator does not trade off; fed to
     // the eval it produced always-fail "momentum" conditions on reversal entries.
@@ -305,6 +346,47 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(true)
   })
 
+  it('keeps a long ENTER against a negative sign when the flush was absorbed', async () => {
+    // The absorption catch-22 (operator report, 2026-07-18): a red flush into
+    // the long border leaves the 20-bar mean negative exactly when the entry
+    // confirms. Red extremes in the window + last close recovered to the upper
+    // half of the recent range lift the sign gate.
+    const flushCsv = [
+      'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
+      '2026-06-16 15:55:00,30261.00,30264.00,30256.00,30260.00,0.00,-1.00',
+      '2026-06-16 15:55:30,30260.00,30262.00,30255.00,30258.00,0.00,-1.00',
+      '2026-06-16 15:56:00,30258.00,30260.00,30253.00,30256.00,0.00,-1.00',
+      '2026-06-16 15:56:30,30256.00,30258.00,30252.00,30255.00,0.00,-1.00',
+      '2026-06-16 15:57:00,30255.00,30257.00,30250.00,30254.00,0.00,-1.00',
+      '2026-06-16 15:57:30,30254.00,30255.00,30248.00,30252.00,0.00,-1.00',
+      '2026-06-16 15:58:00,30252.00,30252.00,30244.00,30246.00,0.00,-4.00',
+      '2026-06-16 15:58:20,30246.00,30246.00,30238.00,30240.00,0.00,-3.00',
+      '2026-06-16 15:58:40,30240.00,30242.00,30236.00,30239.00,0.00,-3.00',
+      '2026-06-16 15:59:00,30239.00,30250.00,30238.00,30248.00,0.00,2.00',
+      '2026-06-16 15:59:30,30248.00,30256.00,30247.00,30254.00,0.00,2.00',
+      '2026-06-16 16:00:00,30254.00,30260.00,30252.00,30258.00,0.00,2.00',
+    ].join('\n')
+    const encoder = new TextEncoder()
+    const objects: Record<string, Uint8Array> = {
+      'b1/execution_bars.csv': encoder.encode(flushCsv),
+      'b1/half-rotation-delta.vbp.md': encoder.encode(halfRotationDeltaContent),
+      'b1/full-rotation-delta.vbp.md': encoder.encode(fullRotationDeltaContent),
+      'b1/htf.png': encoder.encode('png-bytes'),
+    }
+    const harness = makeDeps({
+      downloadObject: async (_bucket, path) => {
+        const bytes = objects[path]
+        if (!bytes) throw new Error(`missing ${path}`)
+        return bytes
+      },
+    })
+    const result = await runEval(harness.deps)
+
+    expect(result.status).toBe('ENTER')
+    expect(result.warnings.some((w) => w.includes('ENTER kept'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
+  })
+
   it('keeps ENTER when the engine delta sign matches the direction', async () => {
     // Positive fixture sign + the default long ENTER: the gate passes.
     const harness = makeDeps()
@@ -400,6 +482,14 @@ describe('runEval', () => {
     expect(result.evalResultId).toBe('eval-1')
     expect(result.status).toBe('ENTER')
     expect(result.nearEntry).toBe(true)
+    // No delta exports → no absorption scan; the prompt says so honestly
+    // instead of implying "scanned, nothing found".
+    expect(harness.getCaptured()!.prompt).toContain(
+      'No delta-profile exports are attached to this bundle',
+    )
+    expect(result.warnings.some((w) => w.includes('no half-rotation delta profile'))).toBe(
+      true,
+    )
   })
 
   it('prefers an exact label match when two active levels share a border price', async () => {

@@ -46,6 +46,18 @@ describe('computeDeltaTelemetry — fixture', () => {
     // close); the counting behavior itself is covered synthetically below.
     const t = computeDeltaTelemetry(bars)
     expect(t.recentRedExtremeCount).toBe(0)
+    expect(t.recentBlueExtremeCount).toBe(10)
+  })
+
+  it('positions the last close within the recent bar range', () => {
+    // Blue tape into the close: the last close sits at the top of the window.
+    const t = computeDeltaTelemetry(bars)
+    expect(t.recentRange).toEqual({
+      high: 29949,
+      low: 29817.5,
+      lastClose: 29945.75,
+      position: 0.98,
+    })
   })
 
   it('locates the latest Leg VWAP and prices the last close above it', () => {
@@ -115,5 +127,38 @@ describe('computeDeltaTelemetry — synthetic', () => {
     expect(t.legVwap.value).toBe(95)
     expect(t.legVwap.position).toBe('above')
     expect(t.legVwap.distance).toBe(15)
+  })
+
+  it('counts blue extremes at exactly the boundary, scoped to the recent window', () => {
+    const inWindow = computeDeltaTelemetry([bar(3), bar(2.99), bar(4), bar(0)])
+    expect(inWindow.recentBlueExtremeCount).toBe(2)
+
+    const t = computeDeltaTelemetry([bar(4), bar(4), bar(0), bar(0)], { recentWindow: 2 })
+    expect(t.recentBlueExtremeCount).toBe(0)
+  })
+
+  it('reads an absorbed red flush as a high range position despite the red mean', () => {
+    // Flush: red extremes drive lows to 90; recovery: closes claw back to 98.
+    // The window MEAN stays negative — but position shows the flush failed.
+    const flush = [
+      { ...bar(-1, 0, 100), high: 101, low: 99 },
+      { ...bar(-4, 0, 93), high: 100, low: 92 },
+      { ...bar(-3, 0, 91), high: 94, low: 90 },
+      { ...bar(-1, 0, 92), high: 93, low: 90.5 },
+      { ...bar(2, 0, 95), high: 96, low: 91.5 },
+      { ...bar(2, 0, 98), high: 99, low: 94.5 },
+    ]
+    const t = computeDeltaTelemetry(flush)
+    expect(t.sign).toBe('negative')
+    expect(t.recentRedExtremeCount).toBe(2)
+    expect(t.recentRange.high).toBe(101)
+    expect(t.recentRange.low).toBe(90)
+    // (98 - 90) / (101 - 90) ≈ 0.73 — upper half: the selling was absorbed.
+    expect(t.recentRange.position).toBe(0.73)
+  })
+
+  it('returns a null range position when the window never moved a tick', () => {
+    const t = computeDeltaTelemetry([bar(1, 0, 100), bar(-1, 0, 100)])
+    expect(t.recentRange.position).toBeNull()
   })
 })

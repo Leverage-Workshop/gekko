@@ -142,3 +142,56 @@ describe('loadLatestBundle with requireTexts: exec-only (eval)', () => {
     ).rejects.toThrow(/execution-bar CSV/)
   })
 })
+
+describe('loadLatestBundle with requireTexts: exec-plus-delta (eval)', () => {
+  it('fetches the two delta exports alongside the exec CSV, skipping the VbPs', async () => {
+    const d = deps(row(), objects)
+    const bundle = await loadLatestBundle(d, { requireTexts: 'exec-plus-delta' })
+
+    expect(bundle.execCsvContent).toBe('CSV')
+    expect(bundle.halfRotationDeltaContent).toBe('HALFDELTA')
+    expect(bundle.fullRotationDeltaContent).toBe('FULLDELTA')
+    expect(bundle.warnings).toEqual([])
+    expect(d.downloads.filter((entry) => entry.startsWith('bundle-csvs:'))).toEqual([
+      'bundle-csvs:bundle-1/execution_bars.csv',
+      'bundle-csvs:bundle-1/half-rotation-delta.vbp.md',
+      'bundle-csvs:bundle-1/full-rotation-delta.vbp.md',
+    ])
+  })
+
+  it('degrades a missing delta ref to null + warning instead of throwing', async () => {
+    const bundle = await loadLatestBundle(
+      deps(row({ half_rotation_delta_ref: null }), objects),
+      { requireTexts: 'exec-plus-delta' },
+    )
+
+    expect(bundle.halfRotationDeltaContent).toBeNull()
+    expect(bundle.fullRotationDeltaContent).toBe('FULLDELTA')
+    expect(
+      bundle.warnings.some((w) => w.includes('no half-rotation delta profile')),
+    ).toBe(true)
+  })
+
+  it('degrades a failed delta download to null + warning instead of throwing', async () => {
+    const partial = { ...objects } as Record<string, string>
+    delete partial['bundle-1/full-rotation-delta.vbp.md']
+    const bundle = await loadLatestBundle(deps(row(), partial), {
+      requireTexts: 'exec-plus-delta',
+    })
+
+    expect(bundle.fullRotationDeltaContent).toBeNull()
+    expect(
+      bundle.warnings.some((w) =>
+        w.includes('failed to download the full-rotation delta profile'),
+      ),
+    ).toBe(true)
+  })
+
+  it('still requires the exec CSV', async () => {
+    await expect(
+      loadLatestBundle(deps(row({ exec_csv_ref: null }), objects), {
+        requireTexts: 'exec-plus-delta',
+      }),
+    ).rejects.toThrow(/execution-bar CSV/)
+  })
+})

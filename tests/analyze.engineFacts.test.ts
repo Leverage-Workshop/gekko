@@ -69,9 +69,13 @@ describe('computeEngineFacts', () => {
     expect(result.terrain.magnets).toEqual(result.magnetCheck.magnets)
   })
 
-  it('scans both delta exports for absorption candidates (none in the real fixtures)', () => {
+  it('scans both delta exports for absorption candidates (one in the real fixtures)', () => {
+    // The full-rotation fixture carries a 3-of-4 buy stack, visible since the
+    // qualifying fraction was loosened to 0.7 (operator doctrine, 2026-07-18).
     const result = facts()
-    expect(result.absorption.candidates).toEqual([])
+    expect(result.absorption.candidates.map(c => [c.source, c.top, c.side])).toEqual([
+      ['full-rotation', 29830.5, 'buy'],
+    ])
   })
 
   it('surfaces absorption candidates when a delta export carries a qualifying stack', () => {
@@ -82,7 +86,9 @@ describe('computeEngineFacts', () => {
       .replace('29947.50,34', '29947.50,90')
       .replace('29945.25,30', '29945.25,75')
     const result = facts({ halfRotationDeltaContent: stacked })
-    expect(result.absorption.candidates).toHaveLength(1)
+    // Price-descending: the injected half-rotation stack tops the fixture's
+    // resident full-rotation candidate.
+    expect(result.absorption.candidates).toHaveLength(2)
     expect(result.absorption.candidates[0]).toMatchObject({
       source: 'half-rotation',
       side: 'buy',
