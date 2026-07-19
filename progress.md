@@ -18,7 +18,13 @@ width (`xl:grid-cols-2`); (5) the meta strip spans the full row above the column
 cell row (price / rip status / HTF trend / run meta). `./init.sh` green — 667 tests, 0 lint
 errors, build passes. Follow-up (PR #64, commit `e7c7539`): the eval verdict chip is now a
 solid fill (black label on the status color) and the whole eval card carries a status-colored
-`border-t-2` accent, mirroring the objective cards' direction accent.
+`border-t-2` accent, mirroring the objective cards' direction accent. Further operator
+iterations same session: PR #65 renders the eval condition checks as a Condition/Status/Note
+table matching the objectives' levels table; PR #66 drops the "Latest Entry Eval" label and
+the "Conditions" header row; PR #67 replaces the unclear "Targets" cell with the evaluated
+entry level (embedded from `entry_levels` via `evaluated_level_id` in the dashboard query;
+label + price colored bmw-blue/m-red by direction, em dash when no level matched); PR #68
+makes the tricolor stripe under the nav full-width like the footer's.
 
 **feat-044: eval absorption facts + sequence-aware sign gate (2026-07-18 late night).**
 Operator report: the eval said "No confirmed red absorption followed by blue continuation at
