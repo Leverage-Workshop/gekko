@@ -71,17 +71,12 @@ function ConditionsDetail({
 }) {
   return (
     <div className="border border-t-0 border-hairline bg-surface-soft">
-      <div className="border-b border-hairline px-5 py-3">
-        <span className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
-          Conditions
-        </span>
-        {!checks && (
-          <span className="ml-6 text-xs font-light tracking-wide text-body">
-            No structured checks on this eval.
-          </span>
-        )}
-      </div>
       <div className="px-5 py-4">
+        {!checks && (
+          <p className="text-xs font-light tracking-wide text-body">
+            No structured checks on this eval.
+          </p>
+        )}
         {checks && (
           <table className="w-full border-collapse text-left">
             <thead>
@@ -118,7 +113,7 @@ function ConditionsDetail({
           </table>
         )}
         {caution && (
-          <p className={`${checks ? 'mt-4' : ''} text-sm leading-relaxed`}>
+          <p className="mt-4 text-sm leading-relaxed">
             <span className="font-bold uppercase tracking-wide text-m-red">Caution </span>
             <span className="font-light text-body">
               <HighlightedText text={caution} terms={terms} />
@@ -126,9 +121,7 @@ function ConditionsDetail({
           </p>
         )}
         {reason && (
-          <p
-            className={`${checks || caution ? 'mt-4' : ''} text-sm font-light leading-relaxed text-body`}
-          >
+          <p className="mt-4 text-sm font-light leading-relaxed text-body">
             <HighlightedText text={reason} terms={terms} />
           </p>
         )}
@@ -150,8 +143,7 @@ export function EvalStrip({
   if (evalResult === null) {
     return (
       <div id="eval" className="border border-hairline bg-surface-soft px-5 py-3">
-        <CellLabel>Latest Entry Eval</CellLabel>
-        <p className="mt-1 text-sm font-light leading-relaxed text-muted">
+        <p className="text-sm font-light leading-relaxed text-muted">
           {unavailable
             ? 'Entry evals unavailable — the database could not be reached.'
             : 'No entry evals yet — press Check Entry at Current Price above to run the first check against the active entry levels.'}
@@ -169,8 +161,7 @@ export function EvalStrip({
         className={`grid gap-px border border-hairline border-t-2 ${statusStyle.accent} bg-hairline md:grid-cols-[1fr_auto]`}
       >
         <div className="bg-surface-soft px-5 py-3">
-          <CellLabel>Latest Entry Eval</CellLabel>
-          <p className="mt-1 flex flex-wrap items-center gap-3">
+          <p className="flex flex-wrap items-center gap-3">
             <span
               className={`px-3 py-1 text-sm font-bold uppercase tracking-[1.5px] ${statusStyle.chip}`}
             >
