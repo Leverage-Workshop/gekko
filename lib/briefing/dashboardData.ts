@@ -43,6 +43,16 @@ export interface DashboardEvalRow {
   next_signal: string | null
   caution: string | null
   current_price: number | null
+  /**
+   * The `entry_levels` row the verdict is about, embedded via
+   * `evaluated_level_id`; null when the eval matched no level (NO_ENTRY_NEAR)
+   * or the level was deleted.
+   */
+  evaluated_level: {
+    label: string | null
+    price: number | null
+    direction: string | null
+  } | null
 }
 
 /**

@@ -81,6 +81,7 @@ const evalRow: DashboardEvalRow = {
   next_signal: 'Blue delta emergence on the Entry A retest.',
   caution: 'Do not chase above the border.',
   current_price: 30252,
+  evaluated_level: { label: 'Entry A', price: 30250, direction: 'long' },
 }
 
 function fakeDeps(overrides: Partial<DashboardDeps> = {}): DashboardDeps {

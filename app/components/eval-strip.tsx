@@ -6,11 +6,12 @@ import { HighlightedText } from './highlighted-text'
  * Latest Entry Eval column — the most actionable read on the page. Renders
  * column content only (no section chrome); the page composes it into the
  * left body column beside the tabbed briefing. A cell row carries the verdict
- * chip and targets; the structured condition checks (schema `checks`, when
- * present) render always visible below it with per-condition notes, caution
+ * chip and the evaluated entry level (direction-colored like the objective
+ * cards); the structured condition checks (schema `checks`, when present)
+ * render always visible below it as a table with per-condition notes, caution
  * and the reason summary. Pre-migration rows without checks degrade to the
- * reason prose. Stop / trigger / next-signal are persisted but deliberately
- * not displayed (operator call, 2026-07-16).
+ * reason prose. Stop / trigger / next-signal / targets are persisted but
+ * deliberately not displayed (operator calls, 2026-07-16 and 2026-07-19).
  */
 
 /**
@@ -49,12 +50,6 @@ function fmtDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
   return `${CT_FORMAT.format(date).replace(', ', ' ')} CT`
-}
-
-function CellLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">{children}</p>
-  )
 }
 
 /** Always-visible condition checks with per-condition notes. */
@@ -155,12 +150,23 @@ export function EvalStrip({
   const checks = parseEvalChecks(evalResult.checks)
   const statusStyle = EVAL_STATUS_STYLE[evalResult.status] ?? DEFAULT_STATUS_STYLE
 
+  // The evaluated entry level, colored by direction like the objective cards:
+  // long reads bmw-blue, short reads m-red.
+  const evaluatedLevel = evalResult.evaluated_level
+  const levelDirection = evaluatedLevel?.direction ?? evalResult.direction
+  const levelTone =
+    levelDirection === 'long'
+      ? 'text-bmw-blue'
+      : levelDirection === 'short'
+        ? 'text-m-red'
+        : 'text-ink'
+
   return (
     <div id="eval">
       <div
         className={`grid gap-px border border-hairline border-t-2 ${statusStyle.accent} bg-hairline md:grid-cols-[1fr_auto]`}
       >
-        <div className="bg-surface-soft px-5 py-3">
+        <div className="flex items-center bg-surface-soft px-5 py-3">
           <p className="flex flex-wrap items-center gap-3">
             <span
               className={`px-3 py-1 text-sm font-bold uppercase tracking-[1.5px] ${statusStyle.chip}`}
@@ -179,13 +185,23 @@ export function EvalStrip({
             </span>
           </p>
         </div>
-        <div className="bg-surface-soft px-5 py-3">
-          <CellLabel>Targets</CellLabel>
-          <p className="mt-1 text-lg font-bold tracking-tight text-ink">
-            {evalResult.targets && evalResult.targets.length > 0
-              ? evalResult.targets.map(formatPrice).join(' → ')
-              : '—'}
-          </p>
+        <div className="flex items-center bg-surface-soft px-5 py-3">
+          {evaluatedLevel ? (
+            <p className="flex items-center gap-3">
+              {evaluatedLevel.label && (
+                <span className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
+                  {evaluatedLevel.label}
+                </span>
+              )}
+              {evaluatedLevel.price !== null && (
+                <span className={`text-lg font-bold tracking-tight ${levelTone}`}>
+                  {formatPrice(evaluatedLevel.price)}
+                </span>
+              )}
+            </p>
+          ) : (
+            <p className="text-sm font-light text-muted">—</p>
+          )}
         </div>
       </div>
 
