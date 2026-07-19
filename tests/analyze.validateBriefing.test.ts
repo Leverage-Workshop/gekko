@@ -138,6 +138,27 @@ describe('enforceCodeOwnedFacts', () => {
     expect(result.warnings.filter((w) => w.includes('border'))).toEqual([])
   })
 
+  it('warns when the protective stop sits inside the entry border band (degenerate risk)', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: longObjective({
+          stops: [{ label: 'Stop', price: 30247.75, invalidation: 'other band member' }],
+        }),
+      }),
+      { rrMin: 3 },
+    )
+    expect(
+      result.warnings.some((w) => w.includes('primary') && w.includes('inside the entry\'s own border band')),
+    ).toBe(true)
+  })
+
+  it('does not warn on a structurally-distanced stop', () => {
+    const result = enforceCodeOwnedFacts(briefing(), { rrMin: 3 }) // 10-pt stop
+    expect(
+      result.warnings.some((w) => w.includes('inside the entry\'s own border band')),
+    ).toBe(false)
+  })
+
   it('warns when an objective has a single entry (Gem template: Entry A + Entry B)', () => {
     const result = enforceCodeOwnedFacts(briefing(), { rrMin: 3 })
     expect(result.warnings.some((w) => w.includes('primary objective has a single entry'))).toBe(true)

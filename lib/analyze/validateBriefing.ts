@@ -16,6 +16,13 @@ export class BriefingValidationError extends Error {}
 
 const PRICE_EPSILON = 1e-6
 
+/**
+ * A protective stop closer than this to entry sits inside the entry's own composite border
+ * band (feat-042 — the 2026-07-18 loop-2 briefing stopped 2.25 pts away, on the other member
+ * of the same PDL/VRange−2 band): noise risk that turns the engine R/R into fiction.
+ */
+const MIN_STRUCTURAL_STOP_PTS = 5
+
 export interface ValidatedBriefing {
   /** The briefing with engine-recomputed `rr` on both objectives. */
   briefing: Briefing
@@ -176,6 +183,11 @@ function recomputeObjective(
   }
   if (!verdict.valid) {
     warnings.push(`${name} objective fails the R/R gate: ${verdict.reasons.join('; ')}`)
+  }
+  if (verdict.risk < MIN_STRUCTURAL_STOP_PTS) {
+    warnings.push(
+      `${name} objective's protective stop is ${verdict.risk} pts from entry — inside the entry's own border band, not behind structure`,
+    )
   }
   return { objective: { ...objective, rr: verdict.rr }, riskReward: verdict }
 }
