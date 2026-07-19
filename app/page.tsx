@@ -388,7 +388,9 @@ export default async function Home() {
           </>
         }
       />
-      <MStripe className="mx-auto max-w-[1800px]" />
+      {/* Full-width tricolor divider between the header and the meta row,
+          mirroring the footer's stripe. */}
+      <MStripe />
 
       <main className="flex flex-1 flex-col">
         {loadError && (
