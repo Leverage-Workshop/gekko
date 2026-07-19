@@ -23,6 +23,7 @@ import {
   RunUpdateButton,
 } from './components/trigger-run-button'
 import { TopNav } from './components/top-nav'
+import { UpdateGlow } from './components/update-glow'
 
 /**
  * Gekko dashboard (feat-019) — a server component that fetches the latest
@@ -158,14 +159,12 @@ function MetaColumn({
         <div className="bg-surface-soft px-5 py-3">
           <p
             className={`text-2xl font-bold uppercase tracking-tight ${ripStatusTone(
-              payload.meta.ripStatus,
+              payload.meta.ripStatus
             )}`}
           >
             {payload.meta.ripStatus}
           </p>
-          <p className="mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">
-            Rip Status
-          </p>
+          <p className="mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">Rip Status</p>
         </div>
         <div className="bg-surface-soft px-5 py-3">
           <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">HTF Trend</p>
@@ -268,18 +267,12 @@ function ObjectiveCard({
   const accentText = isLong ? 'text-bmw-blue' : 'text-m-red'
   const counterAccentText = isLong ? 'text-m-red' : 'text-bmw-blue'
   const accentTop = isLong ? 'border-t-bmw-blue' : 'border-t-m-red'
-  const accentBadge = isLong
-    ? 'border-bmw-blue text-bmw-blue'
-    : 'border-m-red text-m-red'
+  const accentBadge = isLong ? 'border-bmw-blue text-bmw-blue' : 'border-m-red text-m-red'
 
   return (
-    <article
-      className={`border border-hairline border-t-2 ${accentTop} bg-surface-card p-6`}
-    >
+    <article className={`border border-hairline border-t-2 ${accentTop} bg-surface-card p-6`}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
-        <span className="text-xs font-bold uppercase tracking-[1.5px] text-ink">
-          {heading}
-        </span>
+        <span className="text-xs font-bold uppercase tracking-[1.5px] text-ink">{heading}</span>
         <span className="flex items-center gap-4">
           <span
             className={`border px-2.5 py-1 text-xs font-bold uppercase tracking-[1.5px] ${accentBadge}`}
@@ -352,9 +345,7 @@ function DangerZones({ zones, terms }: { zones: DangerZone[]; terms: string[] })
           key={`${zone.area}-${zone.why}`}
           className="border border-hairline border-t-2 border-t-m-red bg-surface-card p-6"
         >
-          <p className="text-sm font-bold uppercase tracking-wide text-m-red">
-            Avoid: {zone.area}
-          </p>
+          <p className="text-sm font-bold uppercase tracking-wide text-m-red">Avoid: {zone.area}</p>
           <p className="mt-2 text-sm font-light leading-relaxed text-body">
             <HighlightedText text={zone.why} terms={terms} />
           </p>
@@ -415,14 +406,16 @@ export default async function Home() {
           <>
             <section className="border-b border-hairline bg-surface-soft">
               <div className="mx-auto max-w-[1800px] px-6 py-4">
-                <MetaColumn
-                  briefing={briefing}
-                  payload={payload}
-                  isStale={data?.staleness.isStale ?? false}
-                  staleWarning={data?.staleness.warning ?? null}
-                  terms={terms}
-                  tacticalRead={briefing.tacticalRead}
-                />
+                <UpdateGlow updateKey={briefing.id}>
+                  <MetaColumn
+                    briefing={briefing}
+                    payload={payload}
+                    isStale={data?.staleness.isStale ?? false}
+                    staleWarning={data?.staleness.warning ?? null}
+                    terms={terms}
+                    tacticalRead={briefing.tacticalRead}
+                  />
+                </UpdateGlow>
               </div>
             </section>
 
@@ -430,31 +423,35 @@ export default async function Home() {
               <div className="mx-auto max-w-[1800px] px-6 py-8">
                 <div className="grid items-start gap-6 xl:grid-cols-2">
                   {/* Eval column: verdict, targets and always-visible conditions */}
-                  <EvalStrip
-                    evalResult={data?.evalResult ?? null}
-                    unavailable={false}
-                    terms={terms}
-                  />
+                  <UpdateGlow updateKey={data?.evalResult?.id ?? 'no-eval'}>
+                    <EvalStrip
+                      evalResult={data?.evalResult ?? null}
+                      unavailable={false}
+                      terms={terms}
+                    />
+                  </UpdateGlow>
 
                   {/* Tabbed column */}
-                  <BriefingTabs
-                    objectives={
-                      <div className="flex flex-col gap-6">
-                        <ObjectiveCard
-                          heading="I · Primary Objective"
-                          objective={payload.primary}
-                          terms={terms}
-                        />
-                        <ObjectiveCard
-                          heading="II · Secondary Objective"
-                          objective={payload.secondary}
-                          terms={terms}
-                        />
-                      </div>
-                    }
-                    overview={<OverviewPane overview={payload.overview} terms={terms} />}
-                    danger={<DangerZones zones={payload.dangerZones} terms={terms} />}
-                  />
+                  <UpdateGlow updateKey={briefing.id}>
+                    <BriefingTabs
+                      objectives={
+                        <div className="flex flex-col gap-6">
+                          <ObjectiveCard
+                            heading="I · Primary Objective"
+                            objective={payload.primary}
+                            terms={terms}
+                          />
+                          <ObjectiveCard
+                            heading="II · Secondary Objective"
+                            objective={payload.secondary}
+                            terms={terms}
+                          />
+                        </div>
+                      }
+                      overview={<OverviewPane overview={payload.overview} terms={terms} />}
+                      danger={<DangerZones zones={payload.dangerZones} terms={terms} />}
+                    />
+                  </UpdateGlow>
                 </div>
               </div>
             </section>
@@ -469,9 +466,9 @@ export default async function Home() {
                       No Briefing Yet
                     </h2>
                     <p className="mt-4 text-sm font-light leading-relaxed text-body">
-                      Once Sierra Chart bundles are flowing, press Run Briefing (top right)
-                      to produce the first tactical read. The objectives, execution chart,
-                      and tactical overview render here.
+                      Once Sierra Chart bundles are flowing, press Run Briefing (top right) to
+                      produce the first tactical read. The objectives, execution chart, and tactical
+                      overview render here.
                     </p>
                   </div>
                 </div>
