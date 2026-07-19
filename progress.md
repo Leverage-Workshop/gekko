@@ -2,9 +2,48 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-18
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-039 Scheduled
-bundle cleanup** (branch `feat-039-cleanup-bundles`).
+**Last Updated:** 2026-07-18 (evening)
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-040/041/042
+terrain + tactical-ladder + entry/stop doctrine** (PRs #57/#58/#59, all squash-merged).
+
+**Terrain sees the whole theater + Gem loop (2026-07-18 evening, PRs #57–#59).** The day's
+morning briefing shorted **29587** — the rotation profile's bottom data bin (session low), not
+structure — while the real floor (PDL 29567.50 / VRange −2 29565.25) was invisible ("anchor
+outside the volume profile range"). The operator replayed the session through the original Gem
+(Gemini 3.1 Pro, extended thinking) which produced the correct read; output preserved in
+`chart-data/comparison-examples/example2/` (with the 09:39:45 input bundle in `data/`), analysis
+in `docs/gem-comparison-2026-07-18.md` (findings G1–G4).
+
+- **feat-040 (PR #57)**: `terrainZones.ts` — anchors beyond the rotation profile's range
+  classify against the balance-area profile (`BorderVerdict.source`); still-unpromoted
+  out-of-range Tier-1/daily anchors split extension voids as kind-`mgi` composite borders
+  (clipped to the campaign envelope); profile data edges only become borders when nothing else
+  partitions the extension and are reported via `terrain.dataEdges` — the prompts forbid
+  trading them and add a Campaign Boundary Override check when price is within 50 pts of a
+  Tier-1 border. New regression harness `tests/terrain.gemComparison.test.ts` over both
+  preserved Gem bundles: example2 now yields the Gem's floor read (PDL/VRange−2 trench,
+  VRange−3 splitting the lower void, no 29587); the 07-14 map keeps its 8 zones and gains the
+  Gem's ONL 29303.5 border.
+- **feat-041 (PR #58)**: `TACTICAL_LADDER_RULE` in both prompts (Entry A + Entry B with
+  separate stops; full T1→T2→T3 whenever rungs exist) + non-fatal `ladderWarnings` in
+  `validateBriefing` (schema floor stays `.min(1)` for OpenAI strict mode).
+- **feat-042 (PR #59, Gem loop-2)**: first regenerated briefing still chased the floor breach
+  as primary Entry A with a 2.25-pt stop inside the entry's own composite band →
+  `ENTRY_STOP_DOCTRINE_RULES` (Entry A = reoffer at the nearest FAILED structure; Tier-1
+  breach is at most Entry B; stops clear the whole composite band + buffer) + a <5-pt
+  degenerate-stop warning.
+- **Loop-2 briefing `5374e794` on the exact Gem snapshot bundle (price 29592.5)**: primary
+  short Entry A = IBL 29639.25 reoffer (stop 29652, R/R 5.8) + Entry B failed retest under
+  29565.25; secondary long Entry A = PDL/VRange−2 flush-and-reload (stop 29552) + Entry B IBL
+  reclaim, full ladder 29699.11 → 29745.5 → 29785.75. Matches the operator-endorsed Gem read;
+  only divergence is judgment, not structure: gpt-5.6-terra kept the short primary (override
+  evaluated and rejected — "no exhaustion/reload visible"), where the Gem saw the flush-reload
+  and flipped the long primary.
+- Ran via local trigger.dev dev server against live Supabase; synthetic replay bundle removed
+  afterwards. `./init.sh` green on main: 647 tests (48 files), typecheck/lint/build clean.
+- **Not deployed**: production trigger.dev deployment still predates all of this (v20260621.1);
+  the briefings above ran on a dev session. Deploy when ready to activate (also activates the
+  feat-039 cleanup schedule).
 
 **Scheduled bundle cleanup — feat-039 (2026-07-18, branch `feat-039-cleanup-bundles`).**
 Sierra now exports every ~15s (uploader `.env` debounce lowered 7000→1000ms; docs/defaults
