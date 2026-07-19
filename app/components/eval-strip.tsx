@@ -13,11 +13,22 @@ import { HighlightedText } from './highlighted-text'
  * not displayed (operator call, 2026-07-16).
  */
 
-const EVAL_STATUS_CLASS: Record<string, string> = {
-  ENTER: 'text-success border-success',
-  WAIT: 'text-warning border-warning',
-  NOT_VALID: 'text-m-red border-m-red',
-  NO_ENTRY_NEAR: 'text-muted border-muted',
+/**
+ * Verdict presentation: a solid-fill chip (black label on the status color,
+ * mirroring the solid primary button) plus a status-colored top accent border
+ * across the whole card — the same border-t-2 accent language the objective
+ * cards use for direction, so the verdict reads at a glance.
+ */
+const EVAL_STATUS_STYLE: Record<string, { chip: string; accent: string }> = {
+  ENTER: { chip: 'bg-success text-canvas', accent: 'border-t-success' },
+  WAIT: { chip: 'bg-warning text-canvas', accent: 'border-t-warning' },
+  NOT_VALID: { chip: 'bg-m-red text-canvas', accent: 'border-t-m-red' },
+  NO_ENTRY_NEAR: { chip: 'bg-muted text-canvas', accent: 'border-t-muted' },
+}
+
+const DEFAULT_STATUS_STYLE = {
+  chip: 'bg-surface-elevated text-body',
+  accent: 'border-t-hairline',
 }
 
 const VERDICT_MARK: Record<EvalCheck['verdict'], { glyph: string; tone: string }> = {
@@ -139,17 +150,18 @@ export function EvalStrip({
   }
 
   const checks = parseEvalChecks(evalResult.checks)
+  const statusStyle = EVAL_STATUS_STYLE[evalResult.status] ?? DEFAULT_STATUS_STYLE
 
   return (
     <div id="eval">
-      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[1fr_auto]">
+      <div
+        className={`grid gap-px border border-hairline border-t-2 ${statusStyle.accent} bg-hairline md:grid-cols-[1fr_auto]`}
+      >
         <div className="bg-surface-soft px-5 py-3">
           <CellLabel>Latest Entry Eval</CellLabel>
           <p className="mt-1 flex flex-wrap items-center gap-3">
             <span
-              className={`border px-2.5 py-0.5 text-sm font-bold uppercase tracking-[1.5px] ${
-                EVAL_STATUS_CLASS[evalResult.status] ?? 'text-body border-hairline'
-              }`}
+              className={`px-3 py-1 text-sm font-bold uppercase tracking-[1.5px] ${statusStyle.chip}`}
             >
               {evalResult.status.replaceAll('_', ' ')}
             </span>
