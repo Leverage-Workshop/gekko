@@ -57,15 +57,6 @@ function CellLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-function VerdictMark({ verdict }: { verdict: EvalCheck['verdict'] }) {
-  const mark = VERDICT_MARK[verdict]
-  return (
-    <span className={`font-bold ${mark.tone}`} aria-label={verdict}>
-      {mark.glyph}
-    </span>
-  )
-}
-
 /** Always-visible condition checks with per-condition notes. */
 function ConditionsDetail({
   checks,
@@ -92,19 +83,39 @@ function ConditionsDetail({
       </div>
       <div className="px-5 py-4">
         {checks && (
-          <ul className="space-y-2">
-            {checks.map((check) => (
-              <li key={check.name} className="flex gap-3 text-sm leading-relaxed">
-                <VerdictMark verdict={check.verdict} />
-                <span className="w-28 shrink-0 font-bold uppercase tracking-wide text-ink">
-                  {check.name}
-                </span>
-                <span className="font-light text-body">
-                  <HighlightedText text={check.note} terms={terms} />
-                </span>
-              </li>
-            ))}
-          </ul>
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="border-b border-hairline">
+                <th className="py-2 pr-3 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+                  Condition
+                </th>
+                <th className="py-2 pr-3 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+                  Status
+                </th>
+                <th className="py-2 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+                  Note
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {checks.map((check) => {
+                const mark = VERDICT_MARK[check.verdict]
+                return (
+                  <tr key={check.name} className="border-b border-hairline-strong">
+                    <td className="py-2 pr-3 text-sm font-bold text-ink">{check.name}</td>
+                    <td
+                      className={`whitespace-nowrap py-2 pr-3 text-sm font-bold uppercase tracking-wide ${mark.tone}`}
+                    >
+                      {mark.glyph} {check.verdict}
+                    </td>
+                    <td className="py-2 text-sm font-light leading-relaxed text-body">
+                      <HighlightedText text={check.note} terms={terms} />
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         )}
         {caution && (
           <p className={`${checks ? 'mt-4' : ''} text-sm leading-relaxed`}>
