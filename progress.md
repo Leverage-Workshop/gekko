@@ -16,7 +16,9 @@ lib model and its tests remain); (3) `EvalStrip` moved into the former chart col
 condition checks always visible (no more `<details>` expander); (4) body columns are now equal
 width (`xl:grid-cols-2`); (5) the meta strip spans the full row above the columns as a single
 cell row (price / rip status / HTF trend / run meta). `./init.sh` green — 667 tests, 0 lint
-errors, build passes.
+errors, build passes. Follow-up (PR #64, commit `e7c7539`): the eval verdict chip is now a
+solid fill (black label on the status color) and the whole eval card carries a status-colored
+`border-t-2` accent, mirroring the objective cards' direction accent.
 
 **feat-044: eval absorption facts + sequence-aware sign gate (2026-07-18 late night).**
 Operator report: the eval said "No confirmed red absorption followed by blue continuation at
