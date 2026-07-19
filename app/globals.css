@@ -71,8 +71,11 @@ body {
   animation: update-glow 1.1s ease-in-out 2;
 }
 
+/* Reduced motion: hold a steady glow for the same window instead of pulsing —
+   the fresh-data cue must survive OS-level animation opt-outs. */
 @media (prefers-reduced-motion: reduce) {
   .animate-update-glow {
     animation: none;
+    box-shadow: 0 0 14px 3px rgb(28 105 212 / 0.6);
   }
 }
