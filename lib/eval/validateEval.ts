@@ -23,9 +23,10 @@ export interface EnforceEvalOptions {
   levels: readonly EntryLevelRow[]
   /**
    * Engine-computed delta telemetry backing the sign gate: a window-mean sign
-   * contradicting the ENTER direction demotes it to WAIT — UNLESS the
+   * contradicting the ENTER direction demotes it to WAIT ONLY when the
+   * extreme-bar counts also confirm counter-initiative — and never when the
    * contradiction is explained by an absorbed flush (see
-   * {@link absorbedFlushException}).
+   * {@link absorbedFlushException}). The mean sign alone never demotes.
    */
   deltaTelemetry: SignGateTelemetry
 }
@@ -169,29 +170,48 @@ export function enforceEvalFacts(
   }
 
   // Sign gate: a window-mean delta sign contradicting the ENTER direction
-  // demotes it to WAIT (conservative); a neutral sign passes — the model
-  // weighs it qualitatively. An absorbed flush lifts the gate: the mean is
-  // expected to contradict an absorption entry exactly when it confirms.
+  // demotes it to WAIT (conservative) — but ONLY when the extreme-bar counts
+  // also confirm counter-initiative. Initiative is a COUNT, not a mean (the
+  // ripStatus doctrine): a window of mild -1/-2 bars carries a negative mean
+  // without any real red aggression, so the mean sign alone must never demote.
+  // A neutral sign passes; the model weighs it qualitatively. An absorbed flush
+  // still lifts the gate: the mean AND the counts are expected to contradict an
+  // absorption entry exactly when it confirms.
   if (result.status === 'ENTER') {
     const direction = result.direction ?? result.evaluatedLevel?.direction ?? null
     const telemetry = options.deltaTelemetry
-    const contradicts =
+    const signContradicts =
       (direction === 'long' && telemetry.sign === 'negative') ||
       (direction === 'short' && telemetry.sign === 'positive')
-    if (contradicts && direction !== null) {
+    // Do the extreme prints agree with the mean's contradiction? Only net
+    // counter-side aggression (more red extremes than blue for a long, and the
+    // mirror for a short) counts as real initiative against the entry.
+    const countsConfirmCounter =
+      direction === 'long'
+        ? telemetry.recentRedExtremeCount > telemetry.recentBlueExtremeCount
+        : direction === 'short'
+          ? telemetry.recentBlueExtremeCount > telemetry.recentRedExtremeCount
+          : false
+    if (signContradicts && countsConfirmCounter && direction !== null) {
+      const counterCount =
+        direction === 'long'
+          ? telemetry.recentRedExtremeCount
+          : telemetry.recentBlueExtremeCount
+      const entryCount =
+        direction === 'long'
+          ? telemetry.recentBlueExtremeCount
+          : telemetry.recentRedExtremeCount
       if (absorbedFlushException(direction, telemetry)) {
-        const flushCount =
-          direction === 'long'
-            ? telemetry.recentRedExtremeCount
-            : telemetry.recentBlueExtremeCount
         warnings.push(
-          `engine delta sign is ${telemetry.sign} against the ${direction} ENTER, but the flush was absorbed ` +
-            `(${flushCount} aggressor-extreme bars in the window, last close at ${telemetry.recentRange.position} of the recent range) — ENTER kept`,
+          `engine delta sign is ${telemetry.sign} against the ${direction} ENTER with ${counterCount} counter-extreme ` +
+            `vs ${entryCount} entry-extreme bars, but the flush was absorbed ` +
+            `(last close at ${telemetry.recentRange.position} of the recent range) — ENTER kept`,
         )
       } else {
         warnings.push(
-          `model returned ENTER ${direction} but the engine delta sign is ${telemetry.sign} with no absorbed flush ` +
-            `(last close at ${telemetry.recentRange.position} of the recent range) — coerced to WAIT`,
+          `model returned ENTER ${direction} but the engine delta sign is ${telemetry.sign} and the counts confirm ` +
+            `counter-initiative (${counterCount} counter-extreme vs ${entryCount} entry-extreme bars, ` +
+            `last close at ${telemetry.recentRange.position} of the recent range) — coerced to WAIT`,
         )
         result = { ...result, status: 'WAIT' }
       }
