@@ -2,9 +2,22 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-18 (evening)
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-040/041/042
-terrain + tactical-ladder + entry/stop doctrine** (PRs #57/#58/#59, all squash-merged).
+**Last Updated:** 2026-07-18 (night)
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **proximity recency
+bugfix** (branch `fix-proximity-recency`) on top of **feat-040/041/042 terrain +
+tactical-ladder + entry/stop doctrine** (PRs #57/#58/#59, all squash-merged).
+
+**Proximity recency bugfix (2026-07-18 night).** Operator-reported: when price traversed BOTH
+active entry levels inside the proximity window, the eval compared against the primary
+objective even though price had more recently been at the secondary. Cause: `assessProximity`
+collapsed the recency window into one [low, high] hull, so both levels scored effective
+distance 0 and the tie-break fell to snapshot distance — recency was never considered. Fix:
+the gate now takes the recent bars themselves (`filterRecentBars`) and measures per-bar; each
+level tracks its most recent in-threshold contact (snapshot = most recent of all) and
+nearest-selection orders by that recency first, falling back to the old distance ordering when
+nothing is within threshold. Side effect (more correct): a level in an un-traded gap between
+bars — inside the old hull — no longer counts as near. `computeRecentBarRange` remains for the
+prompt's reported bar span. Regression tests in `tests/eval.proximity.test.ts`.
 
 **Terrain sees the whole theater + Gem loop (2026-07-18 evening, PRs #57–#59).** The day's
 morning briefing shorted **29587** — the rotation profile's bottom data bin (session low), not

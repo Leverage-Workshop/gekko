@@ -14,7 +14,7 @@ import type { EntryLevelRow } from './proximity'
 import {
   DEFAULT_PROXIMITY_WINDOW_SECONDS,
   assessProximity,
-  computeRecentBarRange,
+  filterRecentBars,
 } from './proximity'
 import { enforceEvalFacts } from './validateEval'
 
@@ -123,7 +123,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
 
   const levels = await deps.fetchActiveEntryLevels()
   const proximity = assessProximity(levels, currentPrice, {
-    barRange: computeRecentBarRange(execBars, windowSeconds * 1000),
+    recentBars: filterRecentBars(execBars, windowSeconds * 1000),
   })
   if (
     proximity.nearEntry &&
