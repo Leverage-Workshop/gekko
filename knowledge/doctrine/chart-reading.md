@@ -53,7 +53,11 @@ initiative flips at the exact point of contact.
      exceptions for a peak above/below the balance. A node on the balance-area profile is
      structurally **more significant** than the same node on the rotation profile. The terrain
      zone stack is anchored to the rotation profile; the magnet set is anchored to the
-     balance-area profile.
+     balance-area profile. Anchors beyond the rotation profile's data range (e.g. the structural
+     floor when price sits at the session low) are classified against the balance-area profile;
+     MGI levels that stay unpromoted still partition extension voids as **MGI composite edges**.
+     A border at a bare profile **data edge** is a data artifact, never structure — no entries,
+     stops or targets there.
 3. **Execution CSV — raw telemetry.** Read infantry aggression (Delta Intensity) and micro-momentum
    (Leg VWAP). Leg VWAP is strictly micro-timing; HTF MGI wins unequivocally on any conflict.
 4. **Execution chart — frontline visual.** Confirm the strike at the border: look for **Absorption

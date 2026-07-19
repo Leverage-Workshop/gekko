@@ -445,6 +445,133 @@ describe('assembleTerrain — volume-only zone facts', () => {
   })
 })
 
+// --- balance-area fallback + void splitting + data edges (feat-040) ----------
+
+describe('assembleTerrain — balance-area fallback (feat-040 G1)', () => {
+  // Rotation covers 30000–30500; the theater's floor structure lives below, covered only by
+  // the balance-area profile: blocks flanking a valley at 29750.
+  const FALLBACK = buildProfile(
+    [
+      [29660, 29740, 1000],
+      [29760, 29840, 1000],
+    ],
+    29500,
+    30500,
+  )
+
+  function runWithFallback() {
+    return assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      fallbackProfile: FALLBACK,
+      fallbackLvn: {
+        hvn: [],
+        lvn: [{ price: 29750, volume: 40, type: 'valley', strength: 0.9 }],
+        peakVolume: 1000,
+      },
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      campaignExtent: { top: 30500, bottom: 29500 },
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 29750, label: 'PDL', tier: 2, code: 'pdl', group: 'daily' },
+        { price: 29400, label: 'PW Low', tier: 1 },
+      ]),
+    })
+  }
+
+  it('classifies an anchor below the rotation range against the balance-area profile', () => {
+    const r = runWithFallback()
+    const verdict = r.levels.find(l => l.level.price === 29750)!
+    expect(verdict.kind).toBe('trench')
+    expect(verdict.hard).toBe(true)
+    expect(verdict.source).toBe('balance-area')
+    expect(verdict.reason).toContain('balance-area')
+    expect(verdict.detectorNode?.kind).toBe('valley')
+  })
+
+  it('lets the fallback-promoted border split the extension and absorb the data-edge role', () => {
+    const r = runWithFallback()
+    const borders = r.zones.flatMap(z => [z.top, z.bottom])
+    expect(borders).toContain(29750)
+    // No border at the rotation profile's bottom bin — real structure took over.
+    expect(borders).not.toContain(30000)
+    expect(r.dataEdges).toEqual([])
+    expect(r.contiguityValid).toBe(true)
+  })
+
+  it('keeps in-range anchors on the rotation profile (fallback never overrides)', () => {
+    const r = runWithFallback()
+    const trench = r.levels.find(l => l.level.price === 30175)!
+    expect(trench.kind).toBe('trench')
+    expect(trench.source).toBe('rotation')
+  })
+})
+
+describe('assembleTerrain — MGI void-splitting (feat-040 G1)', () => {
+  it('splits an extension void at unpromoted Tier-1/daily coordinates, merging close ones', () => {
+    // No fallback profile: PDL / VRange −2 stay plain-mgi ("outside the volume profile
+    // range") but must still partition the void below the rotation data — as ONE band.
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      campaignExtent: { top: 30500, bottom: 29500 },
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 29752, label: 'PDL', tier: 2, code: 'pdl', group: 'daily' },
+        { price: 29744, label: 'VRange -2', tier: 1 },
+        { price: 29400, label: 'PW Low', tier: 1 },
+      ]),
+    })
+    const splitter = r.borders.find(b => b.kind === 'mgi')
+    expect(splitter).toBeDefined()
+    expect(splitter!.price).toBe(29752)
+    expect(splitter!.label).toBe('PDL / VRange -2')
+    expect(splitter!.members).toHaveLength(2)
+
+    const borders = r.zones.flatMap(z => [z.top, z.bottom])
+    expect(borders).toContain(29752)
+    // The cluster splits ONCE, and the data edge is absorbed by the real structure below it.
+    expect(borders.filter(p => p >= 29744 && p <= 29752)).toHaveLength(2) // one shared border
+    expect(borders).not.toContain(30000)
+    expect(r.dataEdges).toEqual([])
+    expect(r.contiguityValid).toBe(true)
+  })
+
+  it('does not split at unpromoted levels INSIDE the profile data range', () => {
+    // Week Open sits mid-block with no aligned magnet → plain mgi, in-range → no border.
+    const profile = buildProfile([[30450, 30550, 1000]], 30400, 30600)
+    const r = assembleTerrain({
+      profile,
+      lvn: { hvn: [], lvn: [], peakVolume: 1000 },
+      magnets: collectMagnets({
+        summary: { pocPrice: 30100, valueAreaHigh: 30110, valueAreaLow: 30090 },
+        hvn: [],
+      }),
+      mgi: makeMgi(30500, [{ price: 30500, label: 'Week Open', tier: 1 }]),
+    })
+    expect(r.levels[0].kind).toBe('mgi')
+    expect(r.zones.flatMap(z => [z.top, z.bottom])).not.toContain(30500)
+  })
+})
+
+describe('assembleTerrain — data-edge tagging (feat-040 G2)', () => {
+  it('tags a profile-edge border as a data edge when nothing splits the extension', () => {
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [...MAIN_ANCHORS, { price: 30650, label: 'PW High', tier: 1 }]),
+    })
+    expect(r.dataEdges).toEqual([30500])
+    expect(r.zones[0]).toMatchObject({ top: 30650, bottom: 30500, volumeClass: 'void' })
+  })
+
+  it('reports no data edges when the campaign stays inside the profile', () => {
+    expect(runMain(30250).dataEdges).toEqual([])
+  })
+})
+
 // --- degenerate inputs ------------------------------------------------------
 
 describe('assembleTerrain — degenerate inputs', () => {

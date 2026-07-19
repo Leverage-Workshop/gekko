@@ -174,6 +174,11 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const terrain = assembleTerrain({
     profile: rotationVbp.rows,
     lvn: lvn.rotation,
+    // feat-040: anchors beyond the rotation profile's data range (e.g. the structural floor
+    // when price sits at the session low) classify against the balance-area profile instead
+    // of vanishing into "outside the volume profile range".
+    fallbackProfile: balanceAreaVbp.rows,
+    fallbackLvn: lvn.balanceArea,
     magnets,
     mgi,
     campaignExtent,
