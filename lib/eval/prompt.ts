@@ -1,4 +1,6 @@
+import type { AbsorptionScanResult } from '@/lib/engine/absorption'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
+import type { ExecBar } from '@/lib/engine/parseExecBars'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
 import type { ChartAttachment } from '@/lib/analyze'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
@@ -23,6 +25,16 @@ export interface EvalPromptInput {
   proximity: ProximityAssessment
   /** Labels for the attached chart images, in attachment order. */
   charts: readonly ChartAttachment[]
+  /**
+   * Code-detected absorption candidates from the bundle's execution delta
+   * exports; null when the bundle carries no usable delta exports.
+   */
+  absorption: AbsorptionScanResult | null
+  /**
+   * The most recent execution bars (ascending time) — the sequence the model
+   * judges initiative from, instead of only window aggregates.
+   */
+  recentBars: readonly ExecBar[]
 }
 
 function chartManifest(charts: readonly ChartAttachment[]): string {
@@ -30,6 +42,36 @@ function chartManifest(charts: readonly ChartAttachment[]): string {
     return 'No chart screenshots are attached to this run — judge from the telemetry and levels alone and say so in the reason.'
   }
   return charts.map((chart, i) => `Image ${i + 1}: ${chart.label}`).join('\n')
+}
+
+/**
+ * Render the recent bars as a compact CSV block (Leg VWAP deliberately
+ * excluded — Tier-3 micro-timing the eval must never see).
+ */
+function renderRecentBars(bars: readonly ExecBar[]): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const lines = bars.map((bar) => {
+    const t = bar.dateTime
+    const time = `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`
+    return `${time},${bar.open},${bar.high},${bar.low},${bar.close},${bar.deltaIntensity}`
+  })
+  return ['```csv', 'time,open,high,low,close,deltaIntensity', ...lines, '```'].join('\n')
+}
+
+/** The absorption-candidate section: code-owned facts or an honest absence note. */
+function absorptionSection(absorption: AbsorptionScanResult | null): string {
+  if (absorption === null) {
+    return 'No delta-profile exports are attached to this bundle — judge absorption from the execution chart and the recent bar sequence.'
+  }
+  if (absorption.candidates.length === 0) {
+    return 'The code scan found no qualifying stacks on the delta-profile exports. The scan is bin-based and can miss absorption a rolling export has already aged out — absorption that is visible in the recent bar sequence (aggressor-colored flush that failed to move price at the level) still counts.'
+  }
+  return [
+    '```json',
+    JSON.stringify(absorption.candidates, null, 1),
+    '```',
+    'These are CANDIDATES: a stack means absorption only where price STALLED at it. A sell-side (red) stack at/below a long border where the flush failed to keep price down is red absorption FOR the long; a buy-side (blue) stack at/above a short border is blue absorption FOR the short.',
+  ].join('\n')
 }
 
 /** Compact, model-facing projection of one active entry level. */
@@ -63,6 +105,8 @@ const EVAL_DECISION_LOGIC = [
   '',
   "Absorption prints in the AGGRESSOR's color: price falling into support absorbs RED; price rising into resistance absorbs BLUE. Never demand blue absorption for a long or red absorption for a short — the entry-side color appears after absorption, as the continuation.",
   '',
+  'Absorption at the border ALONE satisfies an Absorption check: once the aggressor-colored flush has stalled at the level, mark the check pass. Continuation in the entry direction strengthens conviction but is NEVER required for the check — by the time continuation is unmistakable, price has usually left the entry window, so demanding it guarantees the check can never pass.',
+  '',
   'No DOM / order-book data is attached to this run: never include a DOM check, cite the DOM as evidence, or hold a verdict pending DOM confirmation. Judge initiative from the delta telemetry and the execution chart only.',
   '',
   'WAIT conditions:',
@@ -75,7 +119,7 @@ const EVAL_DECISION_LOGIC = [
   '- Initiative flipped against the setup → NOT_VALID',
   '- Price moved past the entry without confirming → NOT_VALID',
   '',
-  'Before any ENTER, explicitly verify the delta telemetry sign: Delta > 0 (positive) for longs, Delta < 0 (negative) for shorts. If the sign contradicts the direction, do not ENTER.',
+  'Before any ENTER, verify initiative from the recent bar SEQUENCE, not the telemetry mean. The mean averages the whole window, so an absorbed flush leaves the sign contradicting the entry exactly when the entry confirms: a red flush into a long border that failed to keep price down reads sign=negative while the tape is bullish (mirror for shorts). A contradicting sign blocks ENTER only when the recent bars AGREE with it — one-sided initiative against the entry with price still on the wrong side of the level. Never mark a Delta check fail solely because the window mean carries the color of the flush.',
 ].join('\n')
 
 export function buildEvalPrompt(input: EvalPromptInput): string {
@@ -143,6 +187,12 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '```json',
     JSON.stringify(evalTelemetry(input.deltaTelemetry), null, 1),
     '```',
+    '',
+    '# Recent execution bars (oldest first — judge the SEQUENCE: flush, stall, response)',
+    renderRecentBars(input.recentBars),
+    '',
+    '# Absorption candidates (code-detected on the execution delta-profile exports)',
+    absorptionSection(input.absorption),
   ].join('\n')
 }
 

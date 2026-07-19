@@ -5,8 +5,8 @@
  * Operator doctrine: absorption shows up on the delta profile as a stack of
  * same-colored bins beyond +/-50 — passive buyers absorbing sell initiative
  * (positive stack) or passive sellers absorbing buy initiative (negative
- * stack). A stack tolerates the odd weak bin in its interior (4 strong bins
- * out of 5 still reads as one stack), but a strong opposite-sign bin breaks it.
+ * stack). A stack tolerates the odd weak bin in its interior (3 strong bins
+ * out of 4 still reads as one stack), but a strong opposite-sign bin breaks it.
  *
  * IMPORTANT — candidates only. A stack of bins on its own means nothing: real
  * absorption requires price to be STALLED at the stack. The engine cannot see
@@ -61,9 +61,10 @@ export const MIN_STACK_BINS = 3
 export const MAX_STACK_BINS = 10
 
 // Gap tolerance: qualifying bins must make up at least this fraction of the
-// stack's span (operator doctrine: 4 strong bins out of 5 still counts).
-// Exported for the drift guard.
-export const MIN_QUALIFYING_FRAC = 0.8
+// stack's span (operator doctrine: the odd weak interior bin is fine — 3
+// strong bins out of 4, or 4 of 5, still read as one stack). Exported for the
+// drift guard.
+export const MIN_QUALIFYING_FRAC = 0.7
 
 export type AbsorptionParams = {
   deltaThreshold?: number

@@ -112,6 +112,9 @@ EvalResult = {
 - `NO_ENTRY_NEAR` when price is not near any active entry from the prior briefing.
 - `ENTER` / `WAIT` / `NOT_VALID` apply only when price IS near an active entry; the long/short
   ENTER/WAIT/NOT_VALID decision logic lives with the eval-task (see `doctrine/patterns.md` for the
-  qualitative confirmation cues, and `system/constraints.md` for the colors=side rule: Delta > 0 for
-  longs, Delta < 0 for shorts before any ENTER — code-enforced in `lib/eval/validateEval.ts`, which
-  demotes an ENTER that contradicts the engine delta sign to WAIT).
+  qualitative confirmation cues). The delta sign gate is code-enforced in
+  `lib/eval/validateEval.ts`: an ENTER whose direction contradicts the engine window-mean sign is
+  demoted to WAIT — unless the contradiction is an absorbed flush (aggressor-extreme prints in the
+  window with the last close recovered to the entry-side half of the recent bar range), in which
+  case the ENTER stands: the mean is expected to carry the flush color right when an absorption
+  entry confirms.

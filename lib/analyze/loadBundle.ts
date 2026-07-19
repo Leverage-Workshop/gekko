@@ -52,9 +52,9 @@ export interface LoadedBundle {
 }
 
 /**
- * The relaxed (`requireTexts: 'exec-only'`) load for the eval-task: only the
- * exec CSV is required — the profile exports are neither required nor
- * fetched, so the fields are absent rather than nullable.
+ * The relaxed (`requireTexts: 'exec-only'`) load: only the exec CSV is
+ * required — the profile exports are neither required nor fetched, so the
+ * fields are absent rather than nullable.
  */
 export type LoadedExecBundle = Omit<
   LoadedBundle,
@@ -64,13 +64,25 @@ export type LoadedExecBundle = Omit<
   | 'fullRotationDeltaContent'
 >
 
+/**
+ * The eval-task (`requireTexts: 'exec-plus-delta'`) load: exec CSV required,
+ * the two execution delta exports fetched best-effort (null + warning when a
+ * ref is missing or the download fails — absorption facts are additive, so a
+ * partial bundle must never block an entry check).
+ */
+export type LoadedEvalBundle = LoadedExecBundle & {
+  halfRotationDeltaContent: string | null
+  fullRotationDeltaContent: string | null
+}
+
 export interface LoadBundleOptions {
   /**
    * Which text exports are hard requirements. `'all'` (default — analyze)
-   * requires the four profile exports + exec CSV; `'exec-only'` (eval)
-   * requires only the exec CSV and skips the profiles entirely.
+   * requires the four profile exports + exec CSV; `'exec-plus-delta'` (eval)
+   * requires the exec CSV and fetches the two delta exports best-effort;
+   * `'exec-only'` requires only the exec CSV and skips the profiles entirely.
    */
-  requireTexts?: 'all' | 'exec-only'
+  requireTexts?: 'all' | 'exec-only' | 'exec-plus-delta'
 }
 
 const CHART_REFS = [
@@ -91,6 +103,28 @@ async function requireText(
   return new TextDecoder().decode(bytes)
 }
 
+/** Best-effort text fetch: a missing ref or failed download degrades to null + warning. */
+async function optionalText(
+  deps: LoadBundleDeps,
+  ref: string | null,
+  what: string,
+  warnings: string[],
+): Promise<string | null> {
+  if (!ref) {
+    warnings.push(`bundle has no ${what} export`)
+    return null
+  }
+  try {
+    const bytes = await deps.downloadObject('bundle-csvs', ref)
+    return new TextDecoder().decode(bytes)
+  } catch (error) {
+    warnings.push(
+      `failed to download the ${what} export: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return null
+  }
+}
+
 /**
  * Fetch the latest bundle and everything the engine + model call need from it.
  *
@@ -108,8 +142,12 @@ export async function loadLatestBundle(
 ): Promise<LoadedExecBundle>
 export async function loadLatestBundle(
   deps: LoadBundleDeps,
+  options: { requireTexts: 'exec-plus-delta' },
+): Promise<LoadedEvalBundle>
+export async function loadLatestBundle(
+  deps: LoadBundleDeps,
   options: LoadBundleOptions = {},
-): Promise<LoadedBundle | LoadedExecBundle> {
+): Promise<LoadedBundle | LoadedExecBundle | LoadedEvalBundle> {
   const requireTexts = options.requireTexts ?? 'all'
 
   const row = await deps.fetchLatestBundle()
@@ -120,6 +158,7 @@ export async function loadLatestBundle(
     throw new AnalyzeInputError(`bundle ${row.id} has no mgi_json`)
   }
 
+  const warnings: string[] = []
   const execCsvContent = await requireText(deps, row.exec_csv_ref, 'execution-bar CSV')
   const profileTexts =
     requireTexts === 'all'
@@ -130,8 +169,13 @@ export async function loadLatestBundle(
           requireText(deps, row.full_rotation_delta_ref, 'full-rotation delta profile'),
         ])
       : null
-
-  const warnings: string[] = []
+  const deltaTexts =
+    requireTexts === 'exec-plus-delta'
+      ? await Promise.all([
+          optionalText(deps, row.half_rotation_delta_ref, 'half-rotation delta profile', warnings),
+          optionalText(deps, row.full_rotation_delta_ref, 'full-rotation delta profile', warnings),
+        ])
+      : null
   const images: ChartImage[] = []
   const charts: ChartAttachment[] = []
   for (const { column, label } of CHART_REFS) {
@@ -152,6 +196,13 @@ export async function loadLatestBundle(
     images,
     charts,
     warnings,
+  }
+  if (deltaTexts !== null) {
+    return {
+      ...base,
+      halfRotationDeltaContent: deltaTexts[0],
+      fullRotationDeltaContent: deltaTexts[1],
+    }
   }
   if (profileTexts === null) {
     return base

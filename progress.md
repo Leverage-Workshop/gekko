@@ -2,10 +2,45 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-18 (night)
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **proximity recency
-bugfix** (branch `fix-proximity-recency`) on top of **feat-040/041/042 terrain +
-tactical-ladder + entry/stop doctrine** (PRs #57/#58/#59, all squash-merged).
+**Last Updated:** 2026-07-18 (late night)
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-044 eval
+absorption facts + sequence-aware sign gate** on top of feat-043 (PR #61) and the proximity
+recency bugfix (PR #60).
+
+**feat-044: eval absorption facts + sequence-aware sign gate (2026-07-18 late night).**
+Operator report: the eval said "No confirmed red absorption followed by blue continuation at
+29565.25" on a tape (bundle `1c524056`) where four -3/-4 bars flushed through the long border
+to 29536.75, stalled, and blue bars recovered 40+ points — textbook red absorption. Three
+root causes, all fixed:
+
+1. **The eval had no absorption evidence.** `scanAbsorption` ran only in analyze; the eval
+   judged absorption from the exec PNG + a 20-bar telemetry summary. The eval now loads the
+   two execution delta exports best-effort (`loadLatestBundle` mode `'exec-plus-delta'` —
+   missing/failed exports degrade to warnings, never block an entry check), scans them, and
+   renders candidates into the prompt as code-owned facts. The recent execution bars (OHLC +
+   delta intensity, Leg VWAP excluded) also render as a CSV block so the model judges the
+   flush→stall→response sequence directly.
+2. **The window-mean sign gate structurally vetoed absorption entries** (catch-22: the mean
+   is guaranteed red right when an absorption long confirms; when it flips, price has left
+   the entry window and "moved past without confirming" fires instead). New `DeltaTelemetry`
+   fields — `recentBlueExtremeCount` and `recentRange.position` (where the last close sits in
+   the recent bar range, 0 = low, 1 = high) — power `absorbedFlushException` in
+   `validateEval.ts`: aggressor-extreme prints in the window + last close recovered to the
+   entry-side half of the range lift the ENTER→WAIT demotion (kept for genuine
+   counter-initiative). Eval prompt doctrine + `knowledge/doctrine/patterns.md` +
+   `output-schema.md` rewritten: judge initiative from the bar SEQUENCE, never fail a Delta
+   check solely on the flush-colored mean, and absorption at the border ALONE satisfies an
+   Absorption check — continuation strengthens but never gates (operator: by the time
+   continuation is confirmed, price is out of the window).
+3. **`MIN_QUALIFYING_FRAC` 0.8 → 0.7**: the real sell stack under the entry (29542.5–29549.25,
+   bins -61/-92/-26/-72) is 3-of-4 qualifying = 0.75 and was rejected; one weak interior bin
+   now tolerated per operator doctrine.
+
+Replay of the misjudged live bundle through the new code: sign=negative (mean -0.6), 4 red
+extremes, position 0.82 → long gate lifted; the sell stack at 29542.5–29549.25 surfaces as a
+candidate. Note the fixture characterization changed: the July-9 full-rotation fixture now
+yields one buy stack at 29830.5 (tests updated to assert it). Evidence: ./init.sh green,
+667 tests (12 new).
 
 **feat-043: single-entry tactical ladder + eval DOM fix (2026-07-18 night).** Operator
 directives after live eval use: (1) an eval ENTERed short at 29565.25 (primary Entry B

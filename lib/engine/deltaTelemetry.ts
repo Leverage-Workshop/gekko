@@ -10,8 +10,20 @@ export type DeltaTelemetry = {
   recentWindow: number // # of most-recent bars used for "recent" stats
   recentMeanDelta: number // mean deltaIntensity over the recent window (rounded)
   recentRedExtremeCount: number // bars with deltaIntensity <= RED_EXTREME (-3) in the recent window
+  recentBlueExtremeCount: number // bars with deltaIntensity >= +3 in the recent window
   recentTrend: DeltaTrend // slope sign across the recent window
   sign: DeltaSign // sign of recentMeanDelta (neutral within epsilon of 0)
+  recentRange: {
+    high: number // highest high across the recent window
+    low: number // lowest low across the recent window
+    lastClose: number // latest bar close
+    // Where the last close sits in the window's range: 0 = at the low, 1 = at
+    // the high. Null when the window's range is under one tick. This is the
+    // sequence-aware recovery signal: after a red flush, a high position means
+    // the selling failed to keep price down (absorption), even though the
+    // window MEAN is still red — and mirrored for blue flushes.
+    position: number | null
+  }
   extremes: {
     posStrong: number // count of deltaIntensity === +3 (whole series)
     posExtreme: number // count of === +4
@@ -28,6 +40,8 @@ export type DeltaTelemetry = {
 }
 
 const DEFAULT_RECENT_WINDOW = 20
+// Blue mirror of ripStatus's RED_EXTREME: a +3/+4 initiative print.
+const BLUE_EXTREME = -RED_EXTREME
 // Smallest meaningful move: one NQ tick (0.25). Differences within this are treated as flat/neutral/at.
 const EPSILON = 0.25
 
@@ -81,6 +95,7 @@ export function computeDeltaTelemetry(
   // -3/-4 print is possible; ripStatus confirms Condition Red only when several cluster
   // (RED_BUILDING_MIN_BARS), which is why the count — not the mean — is the flip signal.
   const recentRedExtremeCount = recentDeltas.filter(d => d <= RED_EXTREME).length
+  const recentBlueExtremeCount = recentDeltas.filter(d => d >= BLUE_EXTREME).length
 
   // Trend: compare the mean delta of the window's first half vs its second half.
   const mid = Math.floor(recentDeltas.length / 2)
@@ -99,6 +114,17 @@ export function computeDeltaTelemetry(
   }
 
   const last = bars[bars.length - 1]
+
+  const recentHigh = Math.max(...recent.map(b => b.high))
+  const recentLow = Math.min(...recent.map(b => b.low))
+  const recentSpan = recentHigh - recentLow
+  const recentRange = {
+    high: recentHigh,
+    low: recentLow,
+    lastClose: last.close,
+    position: recentSpan < EPSILON ? null : round2((last.close - recentLow) / recentSpan),
+  }
+
   // Pre-leg rows carry legVWAP === 0; the latest non-zero value is the active Leg VWAP.
   const legValue = [...bars].reverse().find(b => b.legVWAP !== 0)?.legVWAP ?? null
   const legVwap = {
@@ -113,8 +139,10 @@ export function computeDeltaTelemetry(
     recentWindow,
     recentMeanDelta,
     recentRedExtremeCount,
+    recentBlueExtremeCount,
     recentTrend,
     sign: classifySign(recentMeanDelta),
+    recentRange,
     extremes,
     legVwap,
   }

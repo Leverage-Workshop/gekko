@@ -64,5 +64,8 @@ The directional generalization behind both eval ENTER conditions:
 - **Failed breakdown → reoffer back to border** = short ENTER cue (price reclaims the border from
   below after a failed push lower).
 
-Always pair the visual pattern with confirming initiative (Delta > 0 for longs, Delta < 0 for
-shorts) before authorizing an entry.
+Always pair the visual pattern with confirming initiative before authorizing an entry — judged
+from the recent bar SEQUENCE, not the window-mean delta. An absorbed flush leaves the mean carrying
+the aggressor's color exactly when the entry confirms (a red flush into a long border reads
+mean-negative while the tape is bullish); the mean only argues against the entry when the recent
+bars agree with it and price is still on the wrong side of the level.
