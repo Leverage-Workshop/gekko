@@ -110,8 +110,11 @@ export function TriggerRunButton({
   useEffect(() => {
     if (completed) {
       // Re-render the server component tree so the fresh briefing/eval
-      // rows appear without a manual reload.
+      // rows appear without a manual reload, then dismiss the success note —
+      // resetting to idle also clears the floating nav flyout.
       router.refresh()
+      const dismiss = setTimeout(() => setState({ phase: 'idle' }), 5000)
+      return () => clearTimeout(dismiss)
     }
   }, [completed, router])
 

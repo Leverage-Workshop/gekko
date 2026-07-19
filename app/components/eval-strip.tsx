@@ -3,16 +3,14 @@ import { formatPrice, parseEvalChecks, type DashboardEvalRow } from '@/lib/brief
 import { HighlightedText } from './highlighted-text'
 
 /**
- * Latest Entry Eval column — the most actionable read on the page, so it sits
- * beside the meta cells at the top instead of below the fold. Renders column
- * content only (no section chrome); the page composes it into the meta/eval
- * two-column grid. A cell row carries the verdict chip and targets; the
- * structured condition checks (schema `checks`, when present) render as an
- * always-visible chip rail that expands (native <details>) into per-condition
- * notes, caution and the reason summary. Pre-migration rows without checks
- * degrade to the reason prose inside the same expander. Stop / trigger /
- * next-signal are persisted but deliberately not displayed (operator call,
- * 2026-07-16).
+ * Latest Entry Eval column — the most actionable read on the page. Renders
+ * column content only (no section chrome); the page composes it into the
+ * left body column beside the tabbed briefing. A cell row carries the verdict
+ * chip and targets; the structured condition checks (schema `checks`, when
+ * present) render always visible below it with per-condition notes, caution
+ * and the reason summary. Pre-migration rows without checks degrade to the
+ * reason prose. Stop / trigger / next-signal are persisted but deliberately
+ * not displayed (operator call, 2026-07-16).
  */
 
 const EVAL_STATUS_CLASS: Record<string, string> = {
@@ -57,7 +55,7 @@ function VerdictMark({ verdict }: { verdict: EvalCheck['verdict'] }) {
   )
 }
 
-/** Chip rail + expandable notes for the structured condition checks. */
+/** Always-visible condition checks with per-condition notes. */
 function ConditionsDetail({
   checks,
   caution,
@@ -70,31 +68,18 @@ function ConditionsDetail({
   terms: string[]
 }) {
   return (
-    <details className="border border-t-0 border-hairline bg-surface-soft">
-      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-6 gap-y-1 px-5 py-3 [&::-webkit-details-marker]:hidden">
+    <div className="border border-t-0 border-hairline bg-surface-soft">
+      <div className="border-b border-hairline px-5 py-3">
         <span className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
           Conditions
         </span>
-        {checks ? (
-          checks.map((check) => (
-            <span
-              key={check.name}
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[1.5px] text-body-strong"
-            >
-              <VerdictMark verdict={check.verdict} />
-              {check.name}
-            </span>
-          ))
-        ) : (
-          <span className="text-xs font-light tracking-wide text-body">
-            No structured checks on this eval — expand for the reasoning.
+        {!checks && (
+          <span className="ml-6 text-xs font-light tracking-wide text-body">
+            No structured checks on this eval.
           </span>
         )}
-        <span className="ml-auto text-xs font-light uppercase tracking-wide text-muted">
-          Detail ▾
-        </span>
-      </summary>
-      <div className="border-t border-hairline px-5 py-4">
+      </div>
+      <div className="px-5 py-4">
         {checks && (
           <ul className="space-y-2">
             {checks.map((check) => (
@@ -126,7 +111,7 @@ function ConditionsDetail({
           </p>
         )}
       </div>
-    </details>
+    </div>
   )
 }
 
