@@ -30,7 +30,7 @@ export function realDashboardDeps(): DashboardDeps {
       const { data, error } = await supabase
         .from('eval_results')
         .select(
-          'id, created_at, model_id, near_entry, status, direction, trigger, stop, targets, reason, checks, next_signal, caution, current_price',
+          'id, created_at, model_id, near_entry, status, direction, trigger, stop, targets, reason, checks, next_signal, caution, current_price, evaluated_level:evaluated_level_id (label, price, direction)',
         )
         .order('created_at', { ascending: false })
         .limit(1)
@@ -38,7 +38,9 @@ export function realDashboardDeps(): DashboardDeps {
       if (error) {
         throw error
       }
-      return data ? (data as DashboardEvalRow) : null
+      // Untyped supabase client infers the to-one embed as an array; PostgREST
+      // returns an object for the evaluated_level_id FK, so cast through unknown.
+      return data ? (data as unknown as DashboardEvalRow) : null
     },
 
     fetchLatestBundleReceivedAt: async () => {
