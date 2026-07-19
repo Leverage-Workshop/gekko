@@ -138,6 +138,68 @@ describe('enforceCodeOwnedFacts', () => {
     expect(result.warnings.filter((w) => w.includes('border'))).toEqual([])
   })
 
+  it('warns when an objective has a single entry (Gem template: Entry A + Entry B)', () => {
+    const result = enforceCodeOwnedFacts(briefing(), { rrMin: 3 })
+    expect(result.warnings.some((w) => w.includes('primary objective has a single entry'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('secondary objective has a single entry'))).toBe(true)
+  })
+
+  it('stays silent on entries when both Entry A and Entry B are present', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: longObjective({
+          entries: [
+            { label: 'Entry A (Ideal)', price: 30250, trigger: 'absorption' },
+            { label: 'Entry B (Add-on)', price: 30260, trigger: 'reclaim' },
+          ],
+        }),
+      }),
+      { rrMin: 3 },
+    )
+    expect(result.warnings.some((w) => w.includes('primary objective has a single entry'))).toBe(false)
+  })
+
+  it('warns when a single-target objective ignores available ladder rungs', () => {
+    // Long from 30250 with engine borders at 30280/30320/30360 and extreme 30400:
+    // two-plus rungs available, one target shipped.
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      engineBorders: [30400, 30360, 30320, 30280, 30250, 30200],
+    })
+    expect(
+      result.warnings.some((w) => w.includes('primary') && w.includes('T1→T2→T3 ladder is expected')),
+    ).toBe(true)
+  })
+
+  it('does not demand a ladder when no rungs exist before the campaign extreme', () => {
+    // Only the entry border and the extreme in the trade direction: nothing to ladder onto.
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      engineBorders: [30280, 30250, 30200],
+    })
+    expect(
+      result.warnings.some((w) => w.includes('primary') && w.includes('ladder is expected')),
+    ).toBe(false)
+  })
+
+  it('does not warn on targets when the ladder is present', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: longObjective({
+          targets: [
+            { label: 'T1', price: 30280, description: 'first obstacle' },
+            { label: 'T2', price: 30320, description: 'next border' },
+            { label: 'T3', price: 30360, description: 'campaign max' },
+          ],
+        }),
+      }),
+      { rrMin: 3, engineBorders: [30400, 30360, 30320, 30280, 30250, 30200] },
+    )
+    expect(
+      result.warnings.some((w) => w.includes('primary') && w.includes('ladder is expected')),
+    ).toBe(false)
+  })
+
   it('does not mutate the input briefing', () => {
     const input = briefing()
     enforceCodeOwnedFacts(input, { rrMin: 3 })

@@ -449,7 +449,8 @@
    "dependencies": [
     "feat-040"
    ],
-   "status": "not-started"
+   "status": "done",
+   "evidence": "feat-041 (2026-07-18): lib/analyze/prompt.ts exports TACTICAL_LADDER_RULE (Entry A + Entry B with separate stops \u2014 Ideal+Add-on / Fade+Break \u2014 and the full T1 -> T2 -> T3 ladder whenever distinct engine borders exist in the trade direction; fewer targets only when the map offers no further rung, stated in the rationale), included in both the analyze and update prompts. lib/analyze/validateBriefing.ts ladderWarnings(): non-fatal warnings when an objective has <2 entries, and when it carries a single target while >=2 engine borders lie between entry and the campaign extreme in the trade direction (schema floor stays .min(1) \u2014 OpenAI strict-mode constraint). knowledge/system/output-schema.md documents the mandatory ladder. 5 new validateBriefing tests. ./init.sh green: typecheck 0, lint 0 errors, 645 tests pass (48 files), build OK."
   }
  ]
 }

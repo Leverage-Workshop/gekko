@@ -127,6 +127,39 @@ function enforceMeta(
   }
 }
 
+/**
+ * Tactical-ladder advisories (feat-041, gem-comparison-2026-07-18 G3): the Gem template
+ * mandates Entry A + Entry B and the full T1→T2→T3 ladder per objective. The schema floor
+ * stays `.min(1)` (OpenAI strict-mode constraint), so thin objectives surface as warnings —
+ * never throws.
+ */
+function ladderWarnings(
+  name: 'primary' | 'secondary',
+  objective: Objective,
+  engineBorders: readonly number[],
+  warnings: string[],
+): void {
+  if (objective.entries.length < 2) {
+    warnings.push(
+      `${name} objective has a single entry — the Gem template expects Entry A + Entry B (ideal + add-on / fade + break)`,
+    )
+  }
+  if (engineBorders.length === 0 || objective.targets.length >= 2) return
+  const long = objective.direction === 'long'
+  const entry = long
+    ? Math.max(...objective.entries.map((e) => e.price))
+    : Math.min(...objective.entries.map((e) => e.price))
+  const extreme = long ? Math.max(...engineBorders) : Math.min(...engineBorders)
+  const rungs = engineBorders.filter((p) =>
+    long ? p > entry && p < extreme : p < entry && p > extreme,
+  )
+  if (rungs.length >= 2) {
+    warnings.push(
+      `${name} objective carries ${objective.targets.length} target while ${rungs.length} engine borders lie between entry and the campaign extreme — the T1→T2→T3 ladder is expected`,
+    )
+  }
+}
+
 function recomputeObjective(
   name: 'primary' | 'secondary',
   objective: Objective,
@@ -172,6 +205,9 @@ export function enforceCodeOwnedFacts(
 
   const primary = recomputeObjective('primary', briefing.primary, rrMin, warnings)
   const secondary = recomputeObjective('secondary', briefing.secondary, rrMin, warnings)
+
+  ladderWarnings('primary', briefing.primary, options.engineBorders ?? [], warnings)
+  ladderWarnings('secondary', briefing.secondary, options.engineBorders ?? [], warnings)
 
   return {
     briefing: {

@@ -73,6 +73,13 @@ export function dataEdgeRule(facts: EngineFacts): string {
 }
 
 /**
+ * The Gem template's mandatory tactical ladder (feat-041 G3) — Entry A + Entry B with separate
+ * stops and the full T1→T2→T3 target ladder. Shared with the update-task prompt.
+ */
+export const TACTICAL_LADDER_RULE =
+  '- TACTICAL LADDER (Gem template, required): each objective carries TWO entries with separate stops — primary: Entry A (Ideal) at the border + Entry B (Add-on) on the confirming reclaim/retest; secondary: Entry A (Fade) at the border + Entry B (Break) through it — and the FULL T1 -> T2 -> T3 target ladder whenever distinct engine borders exist in the trade direction (distinct rungs even for close levels). Ship fewer targets ONLY when the engine map genuinely offers no further border before the campaign extreme, and say so in the rationale.'
+
+/**
  * A Tier-1 border within half a rotation (~the half-rotation delta anchor, 35–75 pts) is
  * "in contact range" for the Campaign Boundary Override — a flush into the floor cluster
  * typically snapshots 20–50 pts off the extreme (2026-07-18: price 29605 vs VRange −2 29565).
@@ -118,6 +125,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly from your chosen entry/stop/T1. The R/R gate is ${input.rrMin}:1 — do not propose objectives that cannot clear it.`,
     '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Target rungs: T1 = the first obstacle / immediate S/R (any engine level qualifies), T2 = the next acceptance border, T3 (Campaign Max) = the full traverse of the HTF distribution. T3 must land on a Trench or Wall at the NEAR edge of the void being traversed — never a Magnet, and never a level that can only be reached by crossing a second void.',
     '- BOTH objectives (primary AND secondary) must each carry at least one entry, at least one stop on the protective side of that entry, and at least T1. The secondary is the best available counter-scenario; if it is not yet actionable, express that in its entry `trigger` conditions — never by omitting entries, stops or targets.',
+    TACTICAL_LADDER_RULE,
     ...[dataEdgeRule(input.facts)].filter(Boolean),
     ...[campaignBoundaryRule(input.facts)].filter(Boolean),
     '',
