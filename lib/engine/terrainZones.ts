@@ -21,6 +21,13 @@
  *        a Magnet can be neither a structural border nor a Target 3.
  *      - otherwise the level stays a plain **mgi** coordinate (not promoted to a hard partition).
  *
+ *    FEAT-040 (gem-comparison-2026-07-18 G1/G2): anchors beyond the anchoring profile's data
+ *    range classify against the BALANCE-AREA fallback profile (the structural floor below the
+ *    session low has no rotation data by construction); anchors that stay unpromoted plain-mgi
+ *    coordinates still split extension voids as MGI COMPOSITE EDGES; and a border minted at a
+ *    bare profile data edge is tagged in `dataEdges` (a data artifact the model must not trade)
+ *    — and is only minted when no real structure partitions the extension.
+ *
  *    This is THE HOME FOR HARD-LEDGE DETECTION. The standalone LVN detector (feat-014/035)
  *    deliberately does NOT chase tall/shallow ledges — a whole-profile ledge scan is inseparable
  *    from ordinary distribution flanks by any threshold (investigated + rejected in feat-035, net
@@ -104,6 +111,12 @@ export type BorderVerdict = {
   kind: BorderKind
   /** true for Trench/Wall — a structural hard partition that divides the zone stack. */
   hard: boolean
+  /**
+   * Which profile supplied the local volume read: the anchoring rotation profile, the
+   * balance-area fallback (feat-040 — anchors beyond the rotation range, e.g. the structural
+   * floor when price sits at the session low), or null when neither covers the anchor.
+   */
+  source: 'rotation' | 'balance-area' | null
   /** Local volume shape, or null when the anchor is outside the profile range. */
   local: LocalProfile | null
   /** Nearest magnet (feat-015), for the Magnet branch and transparency. */
@@ -126,11 +139,15 @@ export type TerrainZoneFact = {
  * A merged zone divider: one or more hard partitions within `mergeTolerancePts` collapsed into
  * a single composite border (gem-comparison F1). `price` is the representative member's price
  * (the deepest local dip); `label` names every member, e.g. "Rip / Monthly VWAP".
+ *
+ * Kind `mgi` (feat-040, gem-comparison-2026-07-18 G1): a VOID-SPLITTING composite — unpromoted
+ * Tier-1/daily MGI coordinates beyond the anchoring profile's data range that still partition
+ * the extension void (the Gem's "MGI composite edge" border class, e.g. PDL / VRange −2).
  */
 export type CompositeBorder = {
   price: number
   /** Trench wins over Wall when a cluster mixes kinds (doctrine priority). */
-  kind: 'trench' | 'wall'
+  kind: 'trench' | 'wall' | 'mgi'
   label: string
   members: BorderVerdict[]
 }
@@ -147,6 +164,13 @@ export type TerrainZonesResult = {
   borders: CompositeBorder[]
   /** The magnet set (single-sourced from feat-015), for the model + transparency. */
   magnets: Magnet[]
+  /**
+   * Zone borders that are PROFILE DATA EDGES (feat-040, G2): the anchoring profile's first/last
+   * bin, inserted only to bookkeep the transition into an unsplit extension void. A data edge is
+   * a data-availability artifact, NOT market structure — the analyze prompt forbids anchoring
+   * entries/stops/targets on these prices. Empty when real structure splits the extension.
+   */
+  dataEdges: number[]
   /** No-Gap invariant held on assembly. */
   contiguityValid: boolean
   issues: string[]
@@ -301,27 +325,48 @@ function nearestDetectorNode(
   return { ...best, distance: round2(best.distance) }
 }
 
+/** One profile's rows + stats, as a classification context (feat-040 fallback support). */
+type ProfileContext = {
+  rowsAsc: TerrainProfileRow[]
+  meanVol: number
+  lvn: LvnDetectionResult
+  source: 'rotation' | 'balance-area'
+}
+
 /**
  * Classify one MGI anchor by its LOCAL volume geometry (recall-favoring), single-sourcing the
  * Magnet question from feat-015. Priority: Trench > Wall > Magnet > plain mgi. Trench/Wall
  * additionally require the flanking block(s) to clear `promoteMinVolFrac` of the profile mean
  * volume (F5) — normalised ratios in a profile's thin tail look like structure but aren't.
+ *
+ * Anchors beyond the anchoring (rotation) profile's data range fall back to the balance-area
+ * profile when one is supplied (feat-040 G1) — the structural floor below the session low has
+ * no rotation data by construction, but the balance-area profile covers the full theater.
  */
 function classifyBorder(
   level: MgiLevel,
-  rowsAsc: TerrainProfileRow[],
+  primary: ProfileContext,
+  fallback: ProfileContext | null,
   magnets: Magnet[],
-  lvn: LvnDetectionResult,
   params: TerrainParams,
-  profileMeanVol: number,
 ): BorderVerdict {
-  const local = localProfileAt(rowsAsc, level.price, params)
   const magnet = classifyMagnet(level.price, magnets, params.magnetTolerance)
-  const detectorNode = nearestDetectorNode(level.price, lvn, params.magnetTolerance)
+
+  let ctx = primary
+  let local = localProfileAt(primary.rowsAsc, level.price, params)
+  if (!local && fallback) {
+    const fallbackLocal = localProfileAt(fallback.rowsAsc, level.price, params)
+    if (fallbackLocal) {
+      ctx = fallback
+      local = fallbackLocal
+    }
+  }
+  const detectorNode = nearestDetectorNode(level.price, ctx.lvn, params.magnetTolerance)
 
   const base = {
     level,
     local,
+    source: local ? ctx.source : null,
     magnet: magnet.nearest,
     detectorNode,
   }
@@ -329,6 +374,8 @@ function classifyBorder(
   if (!local) {
     return { ...base, kind: 'mgi', hard: false, reason: 'anchor outside the volume profile range' }
   }
+  const profileMeanVol = ctx.meanVol
+  const via = ctx.source === 'balance-area' ? ' [balance-area fallback]' : ''
 
   const { leftRatio: L, rightRatio: R, centerRatio: C } = local
   const leftBlock = L >= params.blockFrac
@@ -354,7 +401,7 @@ function classifyBorder(
       ...base,
       kind: 'trench',
       hard: true,
-      reason: `valley (center ${C} of local peak) between blocks (L ${L}, R ${R})`,
+      reason: `valley (center ${C} of local peak) between blocks (L ${L}, R ${R})${via}`,
     }
   }
 
@@ -362,11 +409,11 @@ function classifyBorder(
   //    MGI). Checked before Magnet: an MGI at a block EDGE is a Wall, not a Magnet.
   if (!centerBlock && leftBlock && rightVoid) {
     if (local.leftMax < promoteFloor) return tooThin(local.leftMax)
-    return { ...base, kind: 'wall', hard: true, reason: `block below (L ${L}) drops into void above (R ${R})` }
+    return { ...base, kind: 'wall', hard: true, reason: `block below (L ${L}) drops into void above (R ${R})${via}` }
   }
   if (!centerBlock && rightBlock && leftVoid) {
     if (local.rightMax < promoteFloor) return tooThin(local.rightMax)
-    return { ...base, kind: 'wall', hard: true, reason: `block above (R ${R}) drops into void below (L ${L})` }
+    return { ...base, kind: 'wall', hard: true, reason: `block above (R ${R}) drops into void below (L ${L})${via}` }
   }
 
   // 3. Magnet — thick, roughly-equal volume with no dip AND aligned with a POC/VAH/VAL/HVN.
@@ -405,9 +452,14 @@ function mergePartitions(partitions: BorderVerdict[], tolerance: number): Compos
     const rep = members.reduce((a, b) =>
       (b.local?.centerRatio ?? Infinity) < (a.local?.centerRatio ?? Infinity) ? b : a,
     )
+    const kind = members.some(m => m.kind === 'trench')
+      ? ('trench' as const)
+      : members.some(m => m.kind === 'wall')
+        ? ('wall' as const)
+        : ('mgi' as const)
     return {
       price: rep.level.price,
-      kind: members.some(m => m.kind === 'trench') ? ('trench' as const) : ('wall' as const),
+      kind,
       label: [...new Set(members.map(m => m.level.label))].join(' / '),
       members,
     }
@@ -467,6 +519,11 @@ function positionLabel(position: ZonePosition): string {
  * is a composite edge) and the extension zone carries no volume data — it classifies as void.
  * Sliver-zone guards (F1): a border within `mergeTolerancePts` of a campaign extreme is
  * dropped, and the profile edge is NOT added when a partition already marks that shelf.
+ * Feat-040 (G2): when real structure (a hard partition or an MGI void-splitter) already
+ * partitions the extension beyond an edge, the edge itself is NOT added — the nearest real
+ * border absorbs the transition (the Gem's IBL→PDL Elevator Shaft spans the session low
+ * without a border there). An edge that IS added is reported as a data edge so the prompt can
+ * forbid trading it.
  */
 function assembleZones(
   rowsAsc: TerrainProfileRow[],
@@ -474,7 +531,7 @@ function assembleZones(
   currentPrice: number,
   params: TerrainParams,
   campaign?: { top: number; bottom: number },
-): TerrainZoneFact[] {
+): { zones: TerrainZoneFact[]; dataEdges: number[] } {
   const minP = rowsAsc[0].price
   const maxP = rowsAsc[rowsAsc.length - 1].price
   const top = Math.max(maxP, campaign?.top ?? maxP)
@@ -488,9 +545,25 @@ function assembleZones(
   // extremes so no sliver zone forms against them.
   const interior = borderPrices.filter(p => p - bottom > tol && top - p > tol)
   // The profile edges join the border set when the campaign extends beyond them — unless a
-  // partition already marks that same shelf within tolerance.
-  if (top > maxP && !interior.some(p => Math.abs(p - maxP) <= tol)) interior.push(maxP)
-  if (bottom < minP && !interior.some(p => Math.abs(p - minP) <= tol)) interior.push(minP)
+  // border already partitions the extension on that side (G2) or marks the same shelf within
+  // tolerance. An added edge is a DATA EDGE, not structure.
+  const dataEdges: number[] = []
+  if (
+    top > maxP &&
+    !interior.some(p => p > maxP) &&
+    !interior.some(p => Math.abs(p - maxP) <= tol)
+  ) {
+    interior.push(maxP)
+    dataEdges.push(maxP)
+  }
+  if (
+    bottom < minP &&
+    !interior.some(p => p < minP) &&
+    !interior.some(p => Math.abs(p - minP) <= tol)
+  ) {
+    interior.push(minP)
+    dataEdges.push(minP)
+  }
   const borders = [top, ...new Set(interior), bottom].sort((a, b) => b - a)
 
   const bare = borders.slice(0, -1).map((top, i) => {
@@ -507,11 +580,12 @@ function assembleZones(
   })
 
   const positions = positionZones(bare, currentPrice)
-  return bare.map((z, i) => ({
+  const zones = bare.map((z, i) => ({
     ...z,
     position: positions[i],
     label: `${positionLabel(positions[i])} (${z.volumeClass})`,
   }))
+  return { zones, dataEdges }
 }
 
 /** Verify the No-Gap invariant and basic ordering; returns human-readable issues (empty = ok). */
@@ -535,6 +609,12 @@ function validateContiguity(zones: TerrainZoneFact[]): string[] {
  *
  * @param input.profile  VbP rows (feat-002; the 400-pt rotation profile in production).
  * @param input.lvn      Detected LVN/HVN nodes (feat-014).
+ * @param input.fallbackProfile  Balance-area VbP rows (feat-040 G1): anchors beyond the
+ *   anchoring profile's data range are classified against this profile instead of degrading to
+ *   "outside the volume profile range" — the structural floor below the session low has no
+ *   rotation data by construction. Optional; omitting it restores the pre-feat-040 behavior.
+ * @param input.fallbackLvn  Balance-area LVN/HVN nodes, corroborating fallback-classified
+ *   anchors. Optional.
  * @param input.magnets  Prebuilt magnet set (feat-015 collectMagnets; built once in
  *   engineFacts from the balance-area profile in production — feat-037).
  * @param input.mgi      Classified MGI levels + current price (feat-012).
@@ -548,6 +628,8 @@ function validateContiguity(zones: TerrainZoneFact[]): string[] {
 export function assembleTerrain(input: {
   profile: TerrainProfileRow[]
   lvn: LvnDetectionResult
+  fallbackProfile?: TerrainProfileRow[]
+  fallbackLvn?: LvnDetectionResult
   magnets: Magnet[]
   mgi: MgiPriority
   campaignExtent?: { top: number; bottom: number }
@@ -557,16 +639,35 @@ export function assembleTerrain(input: {
   const currentPrice = input.mgi.currentPrice
   const { magnets } = input
 
-  const rowsAsc = input.profile.filter(r => isFiniteNumber(r.price) && isFiniteNumber(r.volume)).sort((a, b) => a.price - b.price)
-  const profileMeanVol =
-    rowsAsc.length > 0 ? rowsAsc.reduce((sum, r) => sum + r.volume, 0) / rowsAsc.length : 0
+  const cleanRows = (rows: TerrainProfileRow[]) =>
+    rows.filter(r => isFiniteNumber(r.price) && isFiniteNumber(r.volume)).sort((a, b) => a.price - b.price)
+  const meanVolOf = (rows: TerrainProfileRow[]) =>
+    rows.length > 0 ? rows.reduce((sum, r) => sum + r.volume, 0) / rows.length : 0
+
+  const rowsAsc = cleanRows(input.profile)
+  const primaryCtx: ProfileContext = {
+    rowsAsc,
+    meanVol: meanVolOf(rowsAsc),
+    lvn: input.lvn,
+    source: 'rotation',
+  }
+  const fallbackRows = input.fallbackProfile ? cleanRows(input.fallbackProfile) : []
+  const fallbackCtx: ProfileContext | null =
+    fallbackRows.length > 0
+      ? {
+          rowsAsc: fallbackRows,
+          meanVol: meanVolOf(fallbackRows),
+          lvn: input.fallbackLvn ?? { hvn: [], lvn: [], peakVolume: 0 },
+          source: 'balance-area',
+        }
+      : null
 
   const anchors = selectAnchorLevels(input.mgi)
   const levels = anchors
-    .map(level => classifyBorder(level, rowsAsc, magnets, input.lvn, params, profileMeanVol))
+    .map(level => classifyBorder(level, primaryCtx, fallbackCtx, magnets, params))
     .sort((a, b) => b.level.price - a.level.price)
   const partitions = levels.filter(v => v.hard)
-  const borders = mergePartitions(partitions, params.mergeTolerancePts)
+  const hardBorders = mergePartitions(partitions, params.mergeTolerancePts)
 
   // Campaign extremes (F3, superseding audit A8's outermost rule): the Stratosphere ceiling /
   // Abyss floor anchor to the INNERMOST Tier-1 level at-or-beyond each edge of the HTF
@@ -587,20 +688,38 @@ export function assembleTerrain(input: {
     }
   }
 
+  // Feat-040 (G1, void-splitting): anchors beyond the anchoring profile's data range that
+  // stayed unpromoted plain-mgi coordinates still partition the extension void — the Gem's
+  // "MGI composite edge" border class. (Magnet verdicts stay excluded: a Magnet is never a
+  // border, doctrine.) Splitters live strictly inside the campaign envelope, cluster like
+  // hard partitions (PDL / VRange −2 → one band), and defer to a hard border within tolerance.
+  const inProfileRange = (price: number) =>
+    rowsAsc.length > 0 && price >= rowsAsc[0].price && price <= rowsAsc[rowsAsc.length - 1].price
+  const inCampaign = (price: number) =>
+    campaign !== undefined && price > campaign.bottom && price < campaign.top
+  const splitterVerdicts = levels.filter(
+    v => !v.hard && v.kind === 'mgi' && !inProfileRange(v.level.price) && inCampaign(v.level.price),
+  )
+  const splitters = mergePartitions(splitterVerdicts, params.mergeTolerancePts).filter(
+    s => !hardBorders.some(b => Math.abs(b.price - s.price) <= params.mergeTolerancePts),
+  )
+  const borders = [...hardBorders, ...splitters].sort((a, b) => b.price - a.price)
+
   // Need at least a 2-point profile to form a zone; otherwise return borders only.
-  const zones =
+  const assembled =
     rowsAsc.length >= 2
       ? assembleZones(rowsAsc, borders.map(b => b.price), currentPrice, params, campaign)
-      : []
-  const issues = validateContiguity(zones)
+      : { zones: [], dataEdges: [] }
+  const issues = validateContiguity(assembled.zones)
 
   return {
     currentPrice,
-    zones,
+    zones: assembled.zones,
     levels,
     partitions,
     borders,
     magnets,
+    dataEdges: assembled.dataEdges,
     contiguityValid: issues.length === 0,
     issues,
   }
