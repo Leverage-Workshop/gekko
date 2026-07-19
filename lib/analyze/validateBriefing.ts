@@ -135,10 +135,53 @@ function enforceMeta(
 }
 
 /**
- * Tactical-ladder advisories (feat-041, gem-comparison-2026-07-18 G3): the Gem template
- * mandates Entry A + Entry B and the full T1→T2→T3 ladder per objective. The schema floor
- * stays `.min(1)` (OpenAI strict-mode constraint), so thin objectives surface as warnings —
- * never throws.
+ * Single-entry doctrine (2026-07-18): the operator trades Entry A only — Entry B rungs are
+ * never taken, and opposite-direction rungs colliding at a shared border price (primary
+ * Add-on short vs secondary Fade long at the same level) broke the eval-task's level
+ * selection. Any extra rungs and their stops are trimmed here before R/R recompute and
+ * persistence, keeping the Entry A-labeled rung (first entry otherwise) and the worst-case
+ * protective stop for it.
+ */
+function enforceSingleEntry(
+  name: 'primary' | 'secondary',
+  objective: Objective,
+  warnings: string[],
+): Objective {
+  let entries = objective.entries
+  if (entries.length > 1) {
+    const kept = entries.find((entry) => /^entry a\b/i.test(entry.label)) ?? entries[0]
+    warnings.push(
+      `${name} objective emitted ${entries.length} entries — single-entry doctrine keeps "${kept.label}" @ ${kept.price} and drops the rest`,
+    )
+    entries = [kept]
+  }
+  let stops = objective.stops
+  if (stops.length > 1) {
+    const entry = entries[0].price
+    const long = objective.direction === 'long'
+    const protective = stops.filter((stop) =>
+      long ? stop.price < entry : stop.price > entry,
+    )
+    const kept =
+      protective.length > 0
+        ? protective.reduce((worst, stop) =>
+            Math.abs(entry - stop.price) > Math.abs(entry - worst.price) ? stop : worst,
+          )
+        : stops[0]
+    warnings.push(
+      `${name} objective emitted ${stops.length} stops — single-entry doctrine keeps "${kept.label}" @ ${kept.price} and drops the rest`,
+    )
+    stops = [kept]
+  }
+  if (entries === objective.entries && stops === objective.stops) {
+    return objective
+  }
+  return { ...objective, entries, stops }
+}
+
+/**
+ * Target-ladder advisories (feat-041, gem-comparison-2026-07-18 G3): the full T1→T2→T3
+ * ladder is expected whenever engine borders offer rungs. Advisory only — never throws.
  */
 function ladderWarnings(
   name: 'primary' | 'secondary',
@@ -146,16 +189,9 @@ function ladderWarnings(
   engineBorders: readonly number[],
   warnings: string[],
 ): void {
-  if (objective.entries.length < 2) {
-    warnings.push(
-      `${name} objective has a single entry — the Gem template expects Entry A + Entry B (ideal + add-on / fade + break)`,
-    )
-  }
   if (engineBorders.length === 0 || objective.targets.length >= 2) return
   const long = objective.direction === 'long'
-  const entry = long
-    ? Math.max(...objective.entries.map((e) => e.price))
-    : Math.min(...objective.entries.map((e) => e.price))
+  const entry = objective.entries[0].price
   const extreme = long ? Math.max(...engineBorders) : Math.min(...engineBorders)
   const rungs = engineBorders.filter((p) =>
     long ? p > entry && p < extreme : p < entry && p > extreme,
@@ -215,11 +251,14 @@ export function enforceCodeOwnedFacts(
     }
   }
 
-  const primary = recomputeObjective('primary', briefing.primary, rrMin, warnings)
-  const secondary = recomputeObjective('secondary', briefing.secondary, rrMin, warnings)
+  const primarySingle = enforceSingleEntry('primary', briefing.primary, warnings)
+  const secondarySingle = enforceSingleEntry('secondary', briefing.secondary, warnings)
 
-  ladderWarnings('primary', briefing.primary, options.engineBorders ?? [], warnings)
-  ladderWarnings('secondary', briefing.secondary, options.engineBorders ?? [], warnings)
+  const primary = recomputeObjective('primary', primarySingle, rrMin, warnings)
+  const secondary = recomputeObjective('secondary', secondarySingle, rrMin, warnings)
+
+  ladderWarnings('primary', primarySingle, options.engineBorders ?? [], warnings)
+  ladderWarnings('secondary', secondarySingle, options.engineBorders ?? [], warnings)
 
   return {
     briefing: {

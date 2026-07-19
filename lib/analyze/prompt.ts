@@ -73,11 +73,13 @@ export function dataEdgeRule(facts: EngineFacts): string {
 }
 
 /**
- * The Gem template's mandatory tactical ladder (feat-041 G3) — Entry A + Entry B with separate
- * stops and the full T1→T2→T3 target ladder. Shared with the update-task prompt.
+ * The mandatory tactical ladder (feat-041 G3, single-entry doctrine 2026-07-18): exactly ONE
+ * entry (Entry A) with one stop per objective — the operator never takes Entry B rungs, and
+ * opposite-direction rungs colliding at a shared border price broke the eval's level
+ * selection — plus the full T1→T2→T3 target ladder. Shared with the update-task prompt.
  */
 export const TACTICAL_LADDER_RULE =
-  '- TACTICAL LADDER (Gem template, required): each objective carries TWO entries with separate stops — primary: Entry A (Ideal) at the border + Entry B (Add-on) on the confirming reclaim/retest; secondary: Entry A (Fade) at the border + Entry B (Break) through it — and the FULL T1 -> T2 -> T3 target ladder whenever distinct engine borders exist in the trade direction (distinct rungs even for close levels). Ship fewer targets ONLY when the engine map genuinely offers no further border before the campaign extreme, and say so in the rationale.'
+  '- TACTICAL LADDER (required): each objective carries EXACTLY ONE entry with ONE protective stop — primary: Entry A (Ideal) at the border; secondary: Entry A (Fade) at the border. NEVER emit an Entry B / add-on / breakout rung or a second stop. Each objective still carries the FULL T1 -> T2 -> T3 target ladder whenever distinct engine borders exist in the trade direction (distinct rungs even for close levels). Ship fewer targets ONLY when the engine map genuinely offers no further border before the campaign extreme, and say so in the rationale.'
 
 /**
  * Entry-priority + stop-placement doctrine (feat-042, loop-2 of the 2026-07-18 Gem comparison):
@@ -86,7 +88,7 @@ export const TACTICAL_LADDER_RULE =
  * update-task prompt.
  */
 export const ENTRY_STOP_DOCTRINE_RULES = [
-  '- ENTRY PRIORITY (trend direction): Entry A (Ideal) is the reoffer/rebid at the nearest FAILED structural border in the pullback direction (Condition Red: the failed trench/wall overhead, e.g. a broken IBL; Condition Green: the reclaimed border below). A breach-and-accept THROUGH a Tier-1 campaign border is never Entry A — at most Entry B (Add-on) after acceptance beyond it. Do not chase breakdowns below a floor cluster or breakouts above a ceiling cluster as the ideal entry.',
+  '- ENTRY PRIORITY (trend direction): Entry A (Ideal) is the reoffer/rebid at the nearest FAILED structural border in the pullback direction (Condition Red: the failed trench/wall overhead, e.g. a broken IBL; Condition Green: the reclaimed border below). A breach-and-accept THROUGH a Tier-1 campaign border is NEVER the entry. Do not chase breakdowns below a floor cluster or breakouts above a ceiling cluster.',
   '- STOP PLACEMENT: a stop must sit BEYOND THE FAR SIDE of the entry\'s ENTIRE composite border band (every member level) plus a structural buffer — behind the level that proves the trade wrong, not on another member of the same band. A stop a few points from entry inside the same band is invalid: it makes the engine-recomputed R/R a fiction and gets swept by noise.',
 ]
 

@@ -462,6 +462,17 @@
    ],
    "status": "done",
    "evidence": "feat-042 (2026-07-18): regenerated briefing 5374e794 on the Gem-snapshot bundle (price 29592.5): primary short Entry A = 29639.25 IBL reoffer (stop 29652, R/R 5.8) + Entry B failed retest under the 29565.25 composite (stop 29580); secondary long Entry A = 29565.25 PDL/VRange-2 flush-and-reload (stop 29552) + Entry B IBL reclaim (stop 29625), full T1/T2/T3 29699.11 -> 29745.5 -> 29785.75. Every price is engine structure; zero validation warnings. 2 new validateBriefing tests. ./init.sh green: typecheck 0, lint 0 errors, 647 tests pass (48 files), build OK."
+  },
+  {
+   "id": "feat-043",
+   "name": "Single-entry tactical ladder \u2014 remove Entry B rungs (+ eval DOM fix)",
+   "description": "Operator directive (2026-07-18): Entry B rungs are never traded, and opposite-direction rungs colliding at a shared border price (primary Entry B Add-on short vs secondary Entry A Fade long, both 29565.25) made the eval-task ENTER short on the level the operator reads as the long fade. Each objective now carries exactly ONE entry (Entry A) with ONE protective stop: TACTICAL_LADDER_RULE and ENTRY_STOP_DOCTRINE_RULES rewritten in lib/analyze/prompt.ts (shared with the update prompt), knowledge/system/output-schema.md updated, and lib/analyze/validateBriefing.ts enforceSingleEntry trims any extra rungs/stops (keeps the Entry A-labeled rung and the worst-case protective stop) with warnings before R/R recompute and persistence. Schema stays .min(1) (OpenAI strict-mode safety) \u2014 the ceiling is prompt + code-trim. Also: the eval prompt no longer demands DOM confirmation (no DOM data ships in the bundle) \u2014 decision logic keys on delta telemetry + execution chart, with an explicit never-cite-DOM instruction. Live data: the two active Entry B entry_levels rows were deactivated.",
+   "dependencies": [
+    "feat-041",
+    "feat-042"
+   ],
+   "status": "done",
+   "evidence": "feat-043 (2026-07-18): TACTICAL_LADDER_RULE + ENTRY_STOP_DOCTRINE_RULES rewritten (single entry + single stop, breach of Tier-1 never the entry); enforceSingleEntry trim in validateBriefing.ts with 4 new tests (keeps Entry A rung, keeps worst-case protective stop, warns, R/R from kept stop); output-schema.md + briefing.schema.ts notes updated; eval prompt DOM references removed with explicit never-cite-DOM instruction. Live entry_levels: 2 active Entry B rows (Add-on short 29565.25, Break long 29639.25) deactivated via Supabase MCP. ./init.sh green: typecheck 0, lint 0 errors, 655 tests pass, build OK."
   }
  ]
 }

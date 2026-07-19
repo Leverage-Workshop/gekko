@@ -159,25 +159,73 @@ describe('enforceCodeOwnedFacts', () => {
     ).toBe(false)
   })
 
-  it('warns when an objective has a single entry (Gem template: Entry A + Entry B)', () => {
+  it('stays silent on a single-entry objective (single-entry doctrine)', () => {
     const result = enforceCodeOwnedFacts(briefing(), { rrMin: 3 })
-    expect(result.warnings.some((w) => w.includes('primary objective has a single entry'))).toBe(true)
-    expect(result.warnings.some((w) => w.includes('secondary objective has a single entry'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('single-entry doctrine'))).toBe(false)
   })
 
-  it('stays silent on entries when both Entry A and Entry B are present', () => {
+  it('trims Entry B rungs to the Entry A entry with a warning', () => {
     const result = enforceCodeOwnedFacts(
       briefing({
         primary: longObjective({
           entries: [
-            { label: 'Entry A (Ideal)', price: 30250, trigger: 'absorption' },
             { label: 'Entry B (Add-on)', price: 30260, trigger: 'reclaim' },
+            { label: 'Entry A (Ideal)', price: 30250, trigger: 'absorption' },
           ],
         }),
       }),
       { rrMin: 3 },
     )
-    expect(result.warnings.some((w) => w.includes('primary objective has a single entry'))).toBe(false)
+    expect(result.briefing.primary.entries).toEqual([
+      { label: 'Entry A (Ideal)', price: 30250, trigger: 'absorption' },
+    ])
+    expect(
+      result.warnings.some(
+        (w) => w.includes('primary objective emitted 2 entries') && w.includes('Entry A (Ideal)'),
+      ),
+    ).toBe(true)
+  })
+
+  it('keeps the first entry when no rung is labeled Entry A', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: longObjective({
+          entries: [
+            { label: 'Ideal', price: 30250, trigger: 'absorption' },
+            { label: 'Add-on', price: 30260, trigger: 'reclaim' },
+          ],
+        }),
+      }),
+      { rrMin: 3 },
+    )
+    expect(result.briefing.primary.entries).toEqual([
+      { label: 'Ideal', price: 30250, trigger: 'absorption' },
+    ])
+  })
+
+  it('trims extra stops to the worst-case protective stop with a warning', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: longObjective({
+          stops: [
+            { label: 'Stop (Entry B)', price: 30244, invalidation: 'lost the reclaim' },
+            { label: 'Stop (Entry A)', price: 30240, invalidation: 'lost the shelf' },
+          ],
+        }),
+      }),
+      { rrMin: 3 },
+    )
+    // The long protects below entry 30250: 30240 is the worst-case (farthest) stop.
+    expect(result.briefing.primary.stops).toEqual([
+      { label: 'Stop (Entry A)', price: 30240, invalidation: 'lost the shelf' },
+    ])
+    expect(
+      result.warnings.some(
+        (w) => w.includes('primary objective emitted 2 stops') && w.includes('30240'),
+      ),
+    ).toBe(true)
+    // R/R still computes from the kept stop: risk 10, T1 reward 30 → rr 3.
+    expect(result.riskReward.primary.stop).toBe(30240)
   })
 
   it('warns when a single-target objective ignores available ladder rungs', () => {
