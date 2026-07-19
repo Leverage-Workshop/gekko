@@ -80,6 +80,17 @@ export const TACTICAL_LADDER_RULE =
   '- TACTICAL LADDER (Gem template, required): each objective carries TWO entries with separate stops — primary: Entry A (Ideal) at the border + Entry B (Add-on) on the confirming reclaim/retest; secondary: Entry A (Fade) at the border + Entry B (Break) through it — and the FULL T1 -> T2 -> T3 target ladder whenever distinct engine borders exist in the trade direction (distinct rungs even for close levels). Ship fewer targets ONLY when the engine map genuinely offers no further border before the campaign extreme, and say so in the rationale.'
 
 /**
+ * Entry-priority + stop-placement doctrine (feat-042, loop-2 of the 2026-07-18 Gem comparison):
+ * the continuation Entry A is the reoffer/rebid at the nearest FAILED structure, never a
+ * breach of a Tier-1 border; stops clear the entry's whole composite band. Shared with the
+ * update-task prompt.
+ */
+export const ENTRY_STOP_DOCTRINE_RULES = [
+  '- ENTRY PRIORITY (trend direction): Entry A (Ideal) is the reoffer/rebid at the nearest FAILED structural border in the pullback direction (Condition Red: the failed trench/wall overhead, e.g. a broken IBL; Condition Green: the reclaimed border below). A breach-and-accept THROUGH a Tier-1 campaign border is never Entry A — at most Entry B (Add-on) after acceptance beyond it. Do not chase breakdowns below a floor cluster or breakouts above a ceiling cluster as the ideal entry.',
+  '- STOP PLACEMENT: a stop must sit BEYOND THE FAR SIDE of the entry\'s ENTIRE composite border band (every member level) plus a structural buffer — behind the level that proves the trade wrong, not on another member of the same band. A stop a few points from entry inside the same band is invalid: it makes the engine-recomputed R/R a fiction and gets swept by noise.',
+]
+
+/**
  * A Tier-1 border within half a rotation (~the half-rotation delta anchor, 35–75 pts) is
  * "in contact range" for the Campaign Boundary Override — a flush into the floor cluster
  * typically snapshots 20–50 pts off the extreme (2026-07-18: price 29605 vs VRange −2 29565).
@@ -126,6 +137,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Target rungs: T1 = the first obstacle / immediate S/R (any engine level qualifies), T2 = the next acceptance border, T3 (Campaign Max) = the full traverse of the HTF distribution. T3 must land on a Trench or Wall at the NEAR edge of the void being traversed — never a Magnet, and never a level that can only be reached by crossing a second void.',
     '- BOTH objectives (primary AND secondary) must each carry at least one entry, at least one stop on the protective side of that entry, and at least T1. The secondary is the best available counter-scenario; if it is not yet actionable, express that in its entry `trigger` conditions — never by omitting entries, stops or targets.',
     TACTICAL_LADDER_RULE,
+    ...ENTRY_STOP_DOCTRINE_RULES,
     ...[dataEdgeRule(input.facts)].filter(Boolean),
     ...[campaignBoundaryRule(input.facts)].filter(Boolean),
     '',

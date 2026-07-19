@@ -451,6 +451,17 @@
    ],
    "status": "done",
    "evidence": "feat-041 (2026-07-18): lib/analyze/prompt.ts exports TACTICAL_LADDER_RULE (Entry A + Entry B with separate stops \u2014 Ideal+Add-on / Fade+Break \u2014 and the full T1 -> T2 -> T3 ladder whenever distinct engine borders exist in the trade direction; fewer targets only when the map offers no further rung, stated in the rationale), included in both the analyze and update prompts. lib/analyze/validateBriefing.ts ladderWarnings(): non-fatal warnings when an objective has <2 entries, and when it carries a single target while >=2 engine borders lie between entry and the campaign extreme in the trade direction (schema floor stays .min(1) \u2014 OpenAI strict-mode constraint). knowledge/system/output-schema.md documents the mandatory ladder. 5 new validateBriefing tests. ./init.sh green: typecheck 0, lint 0 errors, 645 tests pass (48 files), build OK."
+  },
+  {
+   "id": "feat-042",
+   "name": "Entry-priority + stop-placement doctrine (Gem loop-2 refinements)",
+   "description": "Loop-2 fixes from replaying the 2026-07-18 Gem comparison bundle through the post-feat-040/041 pipeline: the first regenerated briefing still (a) made a breach of the Tier-1 floor its primary Entry A (breakdown chase below the PDL / VRange -2 composite) instead of the reoffer at the failed IBL overhead, and (b) placed a stop 2.25 pts from entry on the other member of the entry's own composite band, producing a fictional 19.33 R/R. ENTRY_STOP_DOCTRINE_RULES in lib/analyze/prompt.ts (shared with lib/update/prompt.ts): Entry A (Ideal) in the trend direction is the reoffer/rebid at the nearest FAILED structural border (Condition Red: the failed trench/wall overhead); breach-and-accept through a Tier-1 border is at most Entry B (Add-on); stops must clear the far side of the entry's ENTIRE composite band plus a structural buffer. lib/analyze/validateBriefing.ts warns (non-fatal) when the protective stop is < 5 pts from entry (MIN_STRUCTURAL_STOP_PTS \u2014 inside the entry's own band).",
+   "dependencies": [
+    "feat-040",
+    "feat-041"
+   ],
+   "status": "done",
+   "evidence": "feat-042 (2026-07-18): regenerated briefing 5374e794 on the Gem-snapshot bundle (price 29592.5): primary short Entry A = 29639.25 IBL reoffer (stop 29652, R/R 5.8) + Entry B failed retest under the 29565.25 composite (stop 29580); secondary long Entry A = 29565.25 PDL/VRange-2 flush-and-reload (stop 29552) + Entry B IBL reclaim (stop 29625), full T1/T2/T3 29699.11 -> 29745.5 -> 29785.75. Every price is engine structure; zero validation warnings. 2 new validateBriefing tests. ./init.sh green: typecheck 0, lint 0 errors, 647 tests pass (48 files), build OK."
   }
  ]
 }
