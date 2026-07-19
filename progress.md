@@ -27,7 +27,13 @@ label + price colored bmw-blue/m-red by direction, em dash when no level matched
 makes the tricolor stripe under the nav full-width like the footer's; PR #69 adds the
 `UpdateGlow` client wrapper — a ~2s bmw-blue box-shadow pulse on the meta strip / tab column
 (new briefing id) and eval card (new eval id) when `router.refresh()` swaps in fresh data
-after a trigger run (no glow on initial load; respects prefers-reduced-motion).
+after a trigger run (no glow on initial load; respects prefers-reduced-motion). Operator
+reported no glow on a live Check Entry: headless-Chromium end-to-end test proved the glow
+fires (run complete → refresh → class applied), root cause was the long-running `next dev`
+watcher (pts/18, running since Jul 16) no longer picking up file changes — Turbopack's lazy
+compile serves new code to fresh page loads but never pushed it to the already-open tab.
+Remedy: restart the dev server + hard-reload the tab. PR #70 additionally keeps a steady
+(non-pulsing) glow under prefers-reduced-motion instead of disabling the cue.
 
 **feat-044: eval absorption facts + sequence-aware sign gate (2026-07-18 late night).**
 Operator report: the eval said "No confirmed red absorption followed by blue continuation at
