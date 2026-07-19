@@ -2,10 +2,21 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-18 (late night)
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **feat-044 eval
-absorption facts + sequence-aware sign gate** on top of feat-043 (PR #61) and the proximity
-recency bugfix (PR #60).
+**Last Updated:** 2026-07-19 (morning)
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **dashboard layout
+fixes** (PR #63) on top of feat-044 (PR #62), feat-043 (PR #61) and the proximity recency
+bugfix (PR #60).
+
+**Dashboard layout fixes (2026-07-19 morning, PR #63, commit `6594b0b`).** Operator-requested
+UI changes: (1) the floating status flyouts under the nav trigger buttons persisted forever
+after a successful run — `trigger-run-button.tsx` now resets to idle 5s after completion
+(failure notes still persist); (2) removed the execution chart + Campaign Zones strip from the
+page and deleted the unused `execution-chart{,-section}.tsx` components (the `buildExecutionChart`
+lib model and its tests remain); (3) `EvalStrip` moved into the former chart column with its
+condition checks always visible (no more `<details>` expander); (4) body columns are now equal
+width (`xl:grid-cols-2`); (5) the meta strip spans the full row above the columns as a single
+cell row (price / rip status / HTF trend / run meta). `./init.sh` green — 667 tests, 0 lint
+errors, build passes.
 
 **feat-044: eval absorption facts + sequence-aware sign gate (2026-07-18 late night).**
 Operator report: the eval said "No confirmed red absorption followed by blue continuation at
