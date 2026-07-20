@@ -347,11 +347,11 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(true)
   })
 
-  it('keeps a long ENTER against a negative sign when the flush was absorbed', async () => {
+  it('keeps a long ENTER against a red flush that price recovered from', async () => {
     // The absorption catch-22 (operator report, 2026-07-18): a red flush into
-    // the long border leaves the 20-bar mean negative exactly when the entry
-    // confirms. Red extremes in the window + last close recovered to the upper
-    // half of the recent range lift the sign gate.
+    // the long border prints counter-extremes exactly when the entry confirms.
+    // Price snapped back after the flush — the last close never exited the
+    // area downward — so the initiative gate lifts.
     const flushCsv = [
       'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
       '2026-06-16 15:55:00,30261.00,30264.00,30256.00,30260.00,0.00,-1.00',
@@ -426,6 +426,46 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
   })
 
+  it('keeps a long ENTER when the flush stalls and chops at the lows without closing out', async () => {
+    // The 2026-07-20 operator scenario: a heavy red flush into the long
+    // border, then a few bars chopping at the lows — that chop is what builds
+    // the absorption stack. Price never CLOSES below the area's accepted
+    // closes (a wick probing under the flush low is not an exit), so the
+    // ENTER stands even though the last close sits deep in the lower half of
+    // the window range (the old recovery rule would have demoted this).
+    const chopCsv = [
+      'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
+      '2026-06-16 15:55:00,30295.00,30296.00,30292.00,30293.00,0.00,-1.00',
+      '2026-06-16 15:55:30,30293.00,30294.00,30290.00,30291.00,0.00,-1.00',
+      '2026-06-16 15:56:00,30291.00,30292.00,30288.00,30289.00,0.00,-1.00',
+      '2026-06-16 15:56:30,30289.00,30289.00,30272.00,30274.00,0.00,-4.00',
+      '2026-06-16 15:57:00,30274.00,30274.00,30258.00,30260.00,0.00,-4.00',
+      '2026-06-16 15:57:30,30260.00,30260.00,30246.00,30248.00,0.00,-3.00',
+      '2026-06-16 15:58:00,30248.00,30249.00,30245.00,30247.00,0.00,-2.00',
+      '2026-06-16 15:58:30,30247.00,30249.00,30244.50,30248.00,0.00,-1.00',
+      '2026-06-16 15:59:00,30248.00,30249.00,30245.00,30247.00,0.00,-2.00',
+    ].join('\n')
+    const encoder = new TextEncoder()
+    const objects: Record<string, Uint8Array> = {
+      'b1/execution_bars.csv': encoder.encode(chopCsv),
+      'b1/half-rotation-delta.vbp.md': encoder.encode(halfRotationDeltaContent),
+      'b1/full-rotation-delta.vbp.md': encoder.encode(fullRotationDeltaContent),
+      'b1/htf.png': encoder.encode('png-bytes'),
+    }
+    const harness = makeDeps({
+      downloadObject: async (_bucket, path) => {
+        const bytes = objects[path]
+        if (!bytes) throw new Error(`missing ${path}`)
+        return bytes
+      },
+    })
+    const result = await runEval(harness.deps)
+
+    expect(result.status).toBe('ENTER')
+    expect(result.warnings.some((w) => w.includes('ENTER kept'))).toBe(true)
+    expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
+  })
+
   it('keeps a long ENTER when counter-extremes are under the min-count floor', async () => {
     // One or two rogue -3/-4 prints in a 750-volume window are noise, not
     // initiative (the ripStatus RED_BUILDING_MIN_BARS doctrine). Two red
@@ -468,8 +508,9 @@ describe('runEval', () => {
     // The hole the count-only gate closes: mild entry-side bars can drag the
     // window MEAN back to neutral while a genuine red-extreme cluster prints
     // against the entry. Three red extremes (>= RED_BUILDING_MIN_BARS) vs zero
-    // blue with price closing on the lows is confirmed counter-initiative —
-    // the neutral mean must not veto the demotion.
+    // blue, with each bar CLOSING at a new low close (price exiting the area
+    // downward — continuation, not absorption), is confirmed
+    // counter-initiative — the neutral mean must not veto the demotion.
     const maskedClusterCsv = [
       'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
       '2026-06-16 15:55:00,30261.00,30262.00,30258.00,30259.00,0.00,1.00',

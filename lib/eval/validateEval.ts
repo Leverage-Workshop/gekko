@@ -40,36 +40,37 @@ export type SignGateTelemetry = Pick<
 >
 
 /**
- * How far off the flush extreme (as a fraction of the recent bar range) the
- * last close must have recovered for an absorbed flush to lift the sign gate:
- * ≥ 0.5 means price is back in the half of the recent range the entry points
- * toward — the flush failed.
+ * How far beyond the window's prior close edge the latest bar must CLOSE to
+ * count as price exiting the area (operator doctrine, 2026-07-20: a bar
+ * poking a couple of ticks past a flush extreme is a probe, not
+ * continuation). Two NQ ticks.
  */
-export const ABSORPTION_RECOVERY_POSITION = 0.5
+export const AREA_EXIT_TOLERANCE_PTS = 0.5
 
 /**
- * Sequence-aware exception to the sign gate (operator doctrine, 2026-07-18):
- * the window MEAN is guaranteed to contradict an absorption entry right when
- * it confirms — a red flush into a long border leaves the mean negative even
- * after the selling failed and price recovered. When the window contains
- * flush prints in the aggressor's color AND the last close has recovered to
- * the entry-side half of the recent range, the contradicting mean is
- * absorption evidence, not counter-initiative — do not demote.
+ * Sequence-aware exception to the initiative gate (operator doctrine,
+ * 2026-07-18, reworked 2026-07-20): counter-extreme prints are guaranteed to
+ * contradict an absorption entry right when it confirms — a red flush into a
+ * long border IS the volume the passive buyer eats, and the chop that follows
+ * is what builds the delta stack. Absorption fails only when price EXITS the
+ * area: the latest bar closing beyond the earlier window's accepted closes in
+ * the flush direction (below the prior lowest close for a long, above the
+ * prior highest close for a short). While the last close holds inside or
+ * beyond-entry-side of that area, the contradicting counts are absorption
+ * evidence, not counter-initiative — do not demote. Closes define the area;
+ * wicks and tick-sweeps past the extreme never count as an exit.
  */
 export function absorbedFlushException(
   direction: 'long' | 'short',
   telemetry: SignGateTelemetry,
 ): boolean {
-  const { position } = telemetry.recentRange
-  if (position === null) return false
+  const { lastClose, priorMinClose, priorMaxClose } = telemetry.recentRange
   if (direction === 'long') {
-    return (
-      telemetry.recentRedExtremeCount > 0 && position >= ABSORPTION_RECOVERY_POSITION
-    )
+    if (telemetry.recentRedExtremeCount === 0 || priorMinClose === null) return false
+    return lastClose >= priorMinClose - AREA_EXIT_TOLERANCE_PTS
   }
-  return (
-    telemetry.recentBlueExtremeCount > 0 && position <= 1 - ABSORPTION_RECOVERY_POSITION
-  )
+  if (telemetry.recentBlueExtremeCount === 0 || priorMaxClose === null) return false
+  return lastClose <= priorMaxClose + AREA_EXIT_TOLERANCE_PTS
 }
 
 export interface ValidatedEval {
@@ -196,17 +197,24 @@ export function enforceEvalFacts(
       const countsConfirmCounter =
         counterCount > entryCount && counterCount >= RED_BUILDING_MIN_BARS
       if (countsConfirmCounter) {
+        const areaEdge =
+          direction === 'long'
+            ? telemetry.recentRange.priorMinClose
+            : telemetry.recentRange.priorMaxClose
+        const edgeName = direction === 'long' ? 'close floor' : 'close ceiling'
         if (absorbedFlushException(direction, telemetry)) {
           warnings.push(
             `extreme counts run against the ${direction} ENTER (${counterCount} counter-extreme ` +
-              `vs ${entryCount} entry-extreme bars), but the flush was absorbed ` +
-              `(last close at ${telemetry.recentRange.position} of the recent range) — ENTER kept`,
+              `vs ${entryCount} entry-extreme bars), but the flush is being absorbed — price has ` +
+              `not closed out of the area (last close ${telemetry.recentRange.lastClose} vs ` +
+              `prior ${edgeName} ${areaEdge}) — ENTER kept`,
           )
         } else {
           warnings.push(
             `model returned ENTER ${direction} but the extreme counts confirm counter-initiative ` +
-              `(${counterCount} counter-extreme vs ${entryCount} entry-extreme bars, ` +
-              `last close at ${telemetry.recentRange.position} of the recent range) — coerced to WAIT`,
+              `(${counterCount} counter-extreme vs ${entryCount} entry-extreme bars) and price has ` +
+              `closed out of the area (last close ${telemetry.recentRange.lastClose} vs ` +
+              `prior ${edgeName} ${areaEdge}) — coerced to WAIT`,
           )
           result = { ...result, status: 'WAIT' }
         }
