@@ -23,6 +23,14 @@ export type DeltaTelemetry = {
     // the selling failed to keep price down (absorption), even though the
     // window MEAN is still red — and mirrored for blue flushes.
     position: number | null
+    // Acceptance edges of the window EXCLUDING the latest bar: the lowest and
+    // highest closes the earlier bars printed. Closes — not wicks — define
+    // the accepted area (operator doctrine: a bar poking a couple of ticks
+    // past a flush low is a probe, not continuation; only the latest bar
+    // CLOSING beyond these edges reads as price exiting the area). Null when
+    // the window holds a single bar.
+    priorMinClose: number | null
+    priorMaxClose: number | null
   }
   extremes: {
     posStrong: number // count of deltaIntensity === +3 (whole series)
@@ -118,11 +126,14 @@ export function computeDeltaTelemetry(
   const recentHigh = Math.max(...recent.map(b => b.high))
   const recentLow = Math.min(...recent.map(b => b.low))
   const recentSpan = recentHigh - recentLow
+  const priorCloses = recent.slice(0, -1).map(b => b.close)
   const recentRange = {
     high: recentHigh,
     low: recentLow,
     lastClose: last.close,
     position: recentSpan < EPSILON ? null : round2((last.close - recentLow) / recentSpan),
+    priorMinClose: priorCloses.length === 0 ? null : Math.min(...priorCloses),
+    priorMaxClose: priorCloses.length === 0 ? null : Math.max(...priorCloses),
   }
 
   // Pre-leg rows carry legVWAP === 0; the latest non-zero value is the active Leg VWAP.

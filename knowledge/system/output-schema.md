@@ -112,9 +112,11 @@ EvalResult = {
 - `NO_ENTRY_NEAR` when price is not near any active entry from the prior briefing.
 - `ENTER` / `WAIT` / `NOT_VALID` apply only when price IS near an active entry; the long/short
   ENTER/WAIT/NOT_VALID decision logic lives with the eval-task (see `doctrine/patterns.md` for the
-  qualitative confirmation cues). The delta sign gate is code-enforced in
-  `lib/eval/validateEval.ts`: an ENTER whose direction contradicts the engine window-mean sign is
-  demoted to WAIT — unless the contradiction is an absorbed flush (aggressor-extreme prints in the
-  window with the last close recovered to the entry-side half of the recent bar range), in which
-  case the ENTER stands: the mean is expected to carry the flush color right when an absorption
-  entry confirms.
+  qualitative confirmation cues). The initiative gate is code-enforced in
+  `lib/eval/validateEval.ts` and is COUNT-only (the window mean plays no part): an ENTER is
+  demoted to WAIT when the counter side out-prints the entry side with at least 3 extreme bars in
+  the recent window — unless the contradiction is an absorbed flush: counter-extreme prints with
+  price still holding the area (the last bar has NOT closed beyond the earlier window's accepted
+  closes in the flush direction), in which case the ENTER stands. Extreme counts are expected to
+  carry the flush color right when an absorption entry confirms; only price closing out of the
+  area turns them into counter-initiative.

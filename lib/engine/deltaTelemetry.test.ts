@@ -57,6 +57,10 @@ describe('computeDeltaTelemetry — fixture', () => {
       low: 29817.5,
       lastClose: 29945.75,
       position: 0.98,
+      // Blue tape into the close: the last bar closed ABOVE every earlier
+      // close in the window — price exiting the area upward.
+      priorMinClose: 29829.94,
+      priorMaxClose: 29934.88,
     })
   })
 
@@ -160,5 +164,24 @@ describe('computeDeltaTelemetry — synthetic', () => {
   it('returns a null range position when the window never moved a tick', () => {
     const t = computeDeltaTelemetry([bar(1, 0, 100), bar(-1, 0, 100)])
     expect(t.recentRange.position).toBeNull()
+  })
+
+  it('reports the prior close edges excluding the latest bar', () => {
+    // Closes 100, 95, 97, then 94: the edges come from the first three bars
+    // only — the latest bar is the one being judged against them.
+    const t = computeDeltaTelemetry([
+      bar(-1, 0, 100),
+      bar(-3, 0, 95),
+      bar(-1, 0, 97),
+      bar(-2, 0, 94),
+    ])
+    expect(t.recentRange.priorMinClose).toBe(95)
+    expect(t.recentRange.priorMaxClose).toBe(100)
+  })
+
+  it('returns null prior close edges for a single-bar window', () => {
+    const t = computeDeltaTelemetry([bar(1, 0, 100)])
+    expect(t.recentRange.priorMinClose).toBeNull()
+    expect(t.recentRange.priorMaxClose).toBeNull()
   })
 })

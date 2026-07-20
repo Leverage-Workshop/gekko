@@ -27,7 +27,7 @@ export type {
   RecentBarRange,
 } from './proximity'
 export {
-  ABSORPTION_RECOVERY_POSITION,
+  AREA_EXIT_TOLERANCE_PTS,
   absorbedFlushException,
   enforceEvalFacts,
 } from './validateEval'
