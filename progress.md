@@ -3,9 +3,10 @@
 ## Current State
 
 **Last Updated:** 2026-07-20
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **count-only
-initiative gate** (PR #73) on top of the briefing entry anchoring fix (PR #72), the
-sign-gate count fix (PR #71) and the dashboard/UI iteration PRs (#63–#70).
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **entry
+standoff relaxed to 1 pt** (PR #76) on top of eval warnings persistence (PR #75), the
+area-exit absorption exception (PR #74), the count-only initiative gate (PR #73), the
+briefing entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
 
 **Count-only initiative gate (2026-07-20, PR #73, commit `0375c41`).** Operator report: a
 check-eval showed all five checks pass but verdict WAIT. Diagnosis: the model returned ENTER
@@ -46,6 +47,14 @@ checks explains itself. Pre-migration rows / malformed jsonb degrade by omitting
 callout (`parseEvalWarnings`). 685 tests green (4 new). Remaining nit (not done): the
 persisted `reason` still reads as the model's pre-demotion prose; the Enforcement callout
 makes the contradiction legible, so no reason rewrite was implemented.
+
+**Entry standoff relaxed 15 → 1 pt (2026-07-20, PR #76, commit `49b09ce`).** Operator
+reversed the PR #72 standoff: near-price entries are allowed again; `MIN_ENTRY_STANDOFF_PTS`
+dropped from 15 to 1, so `enforceEntryStandoff` now only rejects a fresh entry pinned
+exactly where price already trades (within 1 pt). Prompt rule and error message interpolate
+the constant, so `validateBriefing.ts` was the only source change; tests updated (at-price
+case moved inside the 1-pt floor, new 2-pts-away-passes case). Update path stays exempt.
+686 tests green.
 
 **Briefing entry anchoring (2026-07-20).** Operator report: briefings kept planting an
 objective entry basically at current price, and same-price opposite-direction entries on BOTH
