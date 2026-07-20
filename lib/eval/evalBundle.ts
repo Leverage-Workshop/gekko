@@ -207,6 +207,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
       result,
       rawModelResult: result,
       evaluatedLevelId: null,
+      warnings,
     })
     return {
       evalResultId,
@@ -259,6 +260,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
     result: validated.result,
     rawModelResult: generated.object,
     evaluatedLevelId: validated.evaluatedLevelId,
+    warnings,
   })
 
   return {

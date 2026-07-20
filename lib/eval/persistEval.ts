@@ -25,6 +25,13 @@ export interface EvalResultInsert {
   /** The model's full, unmodified output (the enforced copy lives in columns). */
   raw_model_json: EvalResult
   current_price: number
+  /**
+   * Runtime warnings captured at persist time (enforcement coercions,
+   * staleness, degraded inputs); null when the run produced none. This is
+   * what lets the dashboard explain a code-demoted WAIT whose columns still
+   * carry the model's all-pass checks.
+   */
+  warnings: string[] | null
 }
 
 export interface PersistEvalDeps {
@@ -39,6 +46,8 @@ export interface PersistEvalInput {
   /** The model's raw output, pre-enforcement. */
   rawModelResult: EvalResult
   evaluatedLevelId: string | null
+  /** All warnings accumulated by the run so far (empty → persisted as null). */
+  warnings?: readonly string[]
 }
 
 export function buildEvalResultRow(input: PersistEvalInput): EvalResultInsert {
@@ -59,6 +68,8 @@ export function buildEvalResultRow(input: PersistEvalInput): EvalResultInsert {
     caution: result.caution ?? null,
     raw_model_json: input.rawModelResult,
     current_price: result.meta.currentPrice,
+    warnings:
+      input.warnings && input.warnings.length > 0 ? [...input.warnings] : null,
   }
 }
 

@@ -3,6 +3,7 @@ import type { Briefing } from '@/knowledge/schema/briefing.schema'
 import {
   loadDashboardData,
   parseEvalChecks,
+  parseEvalWarnings,
   type DashboardBriefingRow,
   type DashboardDeps,
   type DashboardEvalRow,
@@ -81,6 +82,9 @@ const evalRow: DashboardEvalRow = {
   next_signal: 'Blue delta emergence on the Entry A retest.',
   caution: 'Do not chase above the border.',
   current_price: 30252,
+  warnings: [
+    'model returned ENTER long but the extreme counts confirm counter-initiative (5 counter-extreme vs 0 entry-extreme bars) and price has closed out of the area (last close 30246.5 vs prior close floor 30250) — coerced to WAIT',
+  ],
   evaluated_level: { label: 'Entry A', price: 30250, direction: 'long' },
 }
 
@@ -270,5 +274,22 @@ describe('parseEvalChecks', () => {
     expect(parseEvalChecks([{ name: 'Delta', verdict: 'maybe', note: 'bad verdict' }])).toBeNull()
     expect(parseEvalChecks([{ name: 'Delta' }])).toBeNull()
     expect(parseEvalChecks([])).toBeNull()
+  })
+})
+
+describe('parseEvalWarnings', () => {
+  it('parses a valid warnings jsonb into string[]', () => {
+    expect(parseEvalWarnings(evalRow.warnings)).toEqual(evalRow.warnings)
+  })
+
+  it('returns null for pre-migration rows and clean runs (warnings absent)', () => {
+    expect(parseEvalWarnings(null)).toBeNull()
+    expect(parseEvalWarnings(undefined)).toBeNull()
+  })
+
+  it('returns null on malformed jsonb — the strip omits the enforcement callout', () => {
+    expect(parseEvalWarnings('not an array')).toBeNull()
+    expect(parseEvalWarnings([42])).toBeNull()
+    expect(parseEvalWarnings([])).toBeNull()
   })
 })
