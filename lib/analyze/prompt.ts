@@ -101,13 +101,16 @@ export const ENTRY_STOP_DOCTRINE_RULES = [
 ]
 
 /**
- * Entry-standoff rule (2026-07-20 operator decision), ANALYZE-ONLY — deliberately not
- * shared with the update-task prompt: an update revises a standing plan, and price
- * approaching its planned entry is the trade working, not a defect. Mirrors the hard
- * `enforceEntryStandoff` gate in validateBriefing.ts.
+ * Entry-standoff + contested-border rule (2026-07-20 operator decisions), ANALYZE-ONLY —
+ * deliberately not shared with the update-task prompt: an update revises a standing plan,
+ * and price approaching its planned entry is the trade working, not a defect. The hard
+ * floor mirrors `enforceEntryStandoff` in validateBriefing.ts (relaxed 15 → 1 pt same
+ * day). Contested-border doctrine: a border price is currently fighting at IS the entry
+ * anchor when it is significant structure and the fight is sustained — the operator
+ * reversed the earlier always-defer-to-the-next-border guidance.
  */
 export function entryStandoffRule(facts: EngineFacts): string {
-  return `- ENTRY STANDOFF (required): current price is ${facts.currentPrice} and every entry must sit at least ${MIN_ENTRY_STANDOFF_PTS} pts away from it — validation rejects the briefing otherwise. If the doctrinally ideal border is already being contested (within ${MIN_ENTRY_STANDOFF_PTS} pts of price), anchor at the NEXT structural border in the entry's direction instead: the briefing is a forward-looking map, and the live decision at a contested level belongs to the eval-task, never to an entry pinned where price already trades.`
+  return `- ENTRY STANDOFF (required): current price is ${facts.currentPrice} and every entry must sit at least ${MIN_ENTRY_STANDOFF_PTS} pts away from it — validation rejects the briefing otherwise. CONTESTED BORDER: when price is trading at or around a structural border right now, PREFER anchoring Entry A at that contested border when BOTH hold: (1) it is significant structure — a Tier-1 campaign border, a composite border band, or balance-area-profile structure, not a lone minor level — and (2) the execution chart shows price has been FIGHTING there for a while: multiple bars of two-sided trade stalling at the level, repeated tests, or an absorption stack building — not a first touch or a clean traversal. Absent that sustained fight (or at a minor level), anchor at the NEXT structural border in the entry's direction instead. If the contested border price itself sits inside the ${MIN_ENTRY_STANDOFF_PTS}-pt floor of current price, anchor the entry on the band member on the entry side that clears the floor.`
 }
 
 /**
