@@ -1,5 +1,10 @@
 import type { EvalCheck } from '@/knowledge/schema/briefing.schema'
-import { formatPrice, parseEvalChecks, type DashboardEvalRow } from '@/lib/briefing'
+import {
+  formatPrice,
+  parseEvalChecks,
+  parseEvalWarnings,
+  type DashboardEvalRow,
+} from '@/lib/briefing'
 import { HighlightedText } from './highlighted-text'
 
 /**
@@ -12,6 +17,9 @@ import { HighlightedText } from './highlighted-text'
  * and the reason summary. Pre-migration rows without checks degrade to the
  * reason prose. Stop / trigger / next-signal / targets are persisted but
  * deliberately not displayed (operator calls, 2026-07-16 and 2026-07-19).
+ * Persisted runtime warnings render as a warning-toned Enforcement callout
+ * above the checks — that is what explains a code-demoted WAIT whose checks
+ * all pass (operator call, 2026-07-20).
  */
 
 /**
@@ -57,16 +65,33 @@ function ConditionsDetail({
   checks,
   caution,
   reason,
+  warnings,
   terms,
 }: {
   checks: EvalCheck[] | null
   caution: string | null
   reason: string | null
+  warnings: string[] | null
   terms: string[]
 }) {
   return (
     <div className="border border-t-0 border-hairline bg-surface-soft">
       <div className="px-5 py-4">
+        {warnings && (
+          <div className="mb-4 border-l-2 border-warning pl-3">
+            <p className="text-xs font-bold uppercase tracking-[1.5px] text-warning">
+              Enforcement
+            </p>
+            {warnings.map((warning) => (
+              <p
+                key={warning}
+                className="mt-1 text-sm font-light leading-relaxed text-body"
+              >
+                {warning}
+              </p>
+            ))}
+          </div>
+        )}
         {!checks && (
           <p className="text-xs font-light tracking-wide text-body">
             No structured checks on this eval.
@@ -209,6 +234,7 @@ export function EvalStrip({
         checks={checks}
         caution={evalResult.caution}
         reason={evalResult.reason}
+        warnings={parseEvalWarnings(evalResult.warnings)}
         terms={terms}
       />
     </div>

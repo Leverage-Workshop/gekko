@@ -44,6 +44,12 @@ export interface DashboardEvalRow {
   caution: string | null
   current_price: number | null
   /**
+   * string[] jsonb of eval-task runtime warnings (enforcement coercions,
+   * staleness, degraded inputs); null on pre-migration rows or clean runs.
+   * Parse via {@link parseEvalWarnings}.
+   */
+  warnings: unknown
+  /**
    * The `entry_levels` row the verdict is about, embedded via
    * `evaluated_level_id`; null when the eval matched no level (NO_ENTRY_NEAR)
    * or the level was deleted.
@@ -62,6 +68,16 @@ export interface DashboardEvalRow {
 export function parseEvalChecks(checks: unknown): EvalCheck[] | null {
   if (checks == null) return null
   const parsed = z.array(EvalCheck).min(1).safeParse(checks)
+  return parsed.success ? parsed.data : null
+}
+
+/**
+ * Validate the `eval_results.warnings` jsonb into string[]. Returns null when
+ * absent or malformed — the strip simply omits the enforcement callout.
+ */
+export function parseEvalWarnings(warnings: unknown): string[] | null {
+  if (warnings == null) return null
+  const parsed = z.array(z.string()).min(1).safeParse(warnings)
   return parsed.success ? parsed.data : null
 }
 

@@ -69,6 +69,10 @@ describe('supabase migrations', () => {
     expect(sql.combined).toContain('add column if not exists caution text')
   })
 
+  it('adds the eval runtime warnings column idempotently', () => {
+    expect(sql.combined).toContain('add column if not exists warnings jsonb')
+  })
+
   it('promotes the triage model default haiku → terra → luna, sparing overrides', () => {
     expect(sql.combined).toMatch(
       /alter column triage_model_id set default 'openai\/gpt-5\.6-terra'/,

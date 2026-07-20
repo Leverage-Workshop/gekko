@@ -345,6 +345,9 @@ describe('runEval', () => {
     // The model's uncoerced answer stays auditable.
     expect(row.raw_model_json.status).toBe('ENTER')
     expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(true)
+    // The demotion explanation is persisted so the dashboard can show why a
+    // WAIT verdict sits above all-pass checks.
+    expect(row.warnings?.some((w) => w.includes('coerced to WAIT'))).toBe(true)
   })
 
   it('keeps a long ENTER against a red flush that price recovered from', async () => {
@@ -550,6 +553,12 @@ describe('runEval', () => {
     const result = await runEval(harness.deps)
     expect(result.status).toBe('ENTER')
     expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
+    // Run warnings are persisted verbatim (the fixture bundle lacks the TPO
+    // and exec screenshots, so those degraded-input notes come through), but
+    // no enforcement coercion is among them.
+    const row = harness.getInsertedRow()!
+    expect(row.warnings).toEqual(result.warnings)
+    expect(row.warnings?.some((w) => w.includes('coerced'))).toBe(false)
   })
 
   it('skips the LLM call entirely when no active entry levels exist', async () => {
@@ -570,6 +579,8 @@ describe('runEval', () => {
     expect(row.status).toBe('NO_ENTRY_NEAR')
     expect(row.evaluated_level_id).toBeNull()
     expect(result.warnings.some((w) => w.includes('no active entry_levels'))).toBe(true)
+    // The skip note is persisted on the no-LLM path too.
+    expect(row.warnings?.some((w) => w.includes('no active entry_levels'))).toBe(true)
   })
 
   it('falls back to the default triage model when the config row is missing', async () => {
