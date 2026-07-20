@@ -3,7 +3,7 @@ import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult } from '@/lib/llm'
 import { loadDoctrine } from './doctrine'
-import { computeEngineFacts, engineZoneBorders } from './engineFacts'
+import { computeEngineFacts, engineAnchorPrices, engineZoneBorders } from './engineFacts'
 import type { LoadBundleDeps } from './loadBundle'
 import { loadLatestBundle } from './loadBundle'
 import type { PersistDeps } from './persistBriefing'
@@ -139,6 +139,10 @@ export async function runAnalysis(
   const validated = enforceCodeOwnedFacts(result.object, {
     rrMin,
     engineBorders: engineZoneBorders(facts.terrain),
+    anchorPrices: engineAnchorPrices(facts.terrain),
+    // Fresh map: entries must stand off current price (the update task, revising a
+    // standing plan price is meant to approach, does not set this).
+    enforceEntryStandoff: true,
     meta: {
       createdAt: now.toISOString(),
       currentPrice: facts.currentPrice,

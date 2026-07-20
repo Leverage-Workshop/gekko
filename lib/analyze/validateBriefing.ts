@@ -23,6 +23,27 @@ const PRICE_EPSILON = 1e-6
  */
 const MIN_STRUCTURAL_STOP_PTS = 5
 
+/**
+ * Minimum separation between the primary and secondary Entry A prices. Closer than this
+ * the two objectives straddle one border ("short the reoffer / long the hold" at the same
+ * level — 3 of 5 briefings on 2026-07-20 did exactly this), which is a coin-flip at one
+ * line, not two scenarios, and plants opposite-direction `entry_levels` rows at the same
+ * price — the geometry that broke the eval-task's level selection (see enforceSingleEntry).
+ */
+export const MIN_OBJECTIVE_ENTRY_SEPARATION_PTS = 5
+
+/**
+ * Minimum distance between a fresh briefing's Entry A and the code-owned current price
+ * (2026-07-20 operator decision). A briefing is a forward-looking map; an entry pinned
+ * where price already trades duplicates the eval-task's live Check-Entry job and gives
+ * the operator no plan. When the doctrinal border is already contested the model must
+ * anchor at the next structural border instead. Enforced only for fresh analyze
+ * generations (`enforceEntryStandoff`) — an update revising a standing plan must NOT be
+ * rejected just because price has since approached the planned entry (that is the trade
+ * working, and it is exactly when updates fire).
+ */
+export const MIN_ENTRY_STANDOFF_PTS = 15
+
 export interface ValidatedBriefing {
   /** The briefing with engine-recomputed `rr` on both objectives. */
   briefing: Briefing
@@ -54,6 +75,18 @@ export interface ValidateOptions {
   engineBorders?: readonly number[]
   /** Code-owned `meta` values; when present the model's are overwritten. */
   meta?: CodeOwnedMeta
+  /**
+   * Every engine price an entry may legitimately anchor on (zone borders, level
+   * verdicts, composite band members — data edges excluded). When present, an
+   * entry matching none of them draws an advisory warning.
+   */
+  anchorPrices?: readonly number[]
+  /**
+   * Hard-enforce {@link MIN_ENTRY_STANDOFF_PTS} against `meta.currentPrice`.
+   * Set by the analyze task (fresh map); left off by the update task, whose
+   * standing entries price is SUPPOSED to approach.
+   */
+  enforceEntryStandoff?: boolean
 }
 
 function samePrice(a: number, b: number): boolean {
@@ -180,6 +213,64 @@ function enforceSingleEntry(
 }
 
 /**
+ * Distinct-anchor invariant (2026-07-20): the two objectives must anchor at different
+ * structural borders. Runs after single-entry trimming so it compares the surviving
+ * Entry A rungs.
+ *
+ * @throws {BriefingValidationError} when the entries sit within
+ *   {@link MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} of each other.
+ */
+function assertDistinctObjectiveAnchors(primary: Objective, secondary: Objective): void {
+  const primaryEntry = primary.entries[0]
+  const secondaryEntry = secondary.entries[0]
+  const gap = Math.abs(primaryEntry.price - secondaryEntry.price)
+  if (gap < MIN_OBJECTIVE_ENTRY_SEPARATION_PTS) {
+    throw new BriefingValidationError(
+      `primary (${primary.direction} @ ${primaryEntry.price}) and secondary (${secondary.direction} @ ${secondaryEntry.price}) entries are ${gap} pts apart — objectives must anchor at distinct structural borders (min ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts), not straddle one level`,
+    )
+  }
+}
+
+/**
+ * Entry-standoff invariant (2026-07-20, analyze task only): a fresh briefing's entry must
+ * sit at least {@link MIN_ENTRY_STANDOFF_PTS} from the code-owned current price.
+ *
+ * @throws {BriefingValidationError} on an entry pinned at/near current price.
+ */
+function assertEntryStandoff(
+  name: 'primary' | 'secondary',
+  objective: Objective,
+  currentPrice: number,
+): void {
+  const entry = objective.entries[0]
+  const distance = Math.abs(entry.price - currentPrice)
+  if (distance < MIN_ENTRY_STANDOFF_PTS) {
+    throw new BriefingValidationError(
+      `${name} entry "${entry.label}" @ ${entry.price} is ${distance} pts from current price ${currentPrice} — a fresh briefing entry must stand off at least ${MIN_ENTRY_STANDOFF_PTS} pts (anchor the next structural border; the live decision at a contested level belongs to the eval)`,
+    )
+  }
+}
+
+/**
+ * Advisory: an entry that matches no engine anchor price is free-floating (e.g. the
+ * 2026-07-20 18:53 briefing's 28976.54 vs the engine member 28976.13) or sits on a
+ * forbidden data edge (excluded from the anchor set upstream).
+ */
+function offAnchorEntryWarnings(
+  name: 'primary' | 'secondary',
+  objective: Objective,
+  anchorPrices: readonly number[],
+  warnings: string[],
+): void {
+  const entry = objective.entries[0]
+  if (!anchorPrices.some((price) => samePrice(price, entry.price))) {
+    warnings.push(
+      `${name} entry "${entry.label}" @ ${entry.price} matches no engine anchor price — entries must sit on engine structure (a border band member or level verdict)`,
+    )
+  }
+}
+
+/**
  * Target-ladder advisories (feat-041, gem-comparison-2026-07-18 G3): the full T1→T2→T3
  * ladder is expected whenever engine borders offer rungs. Advisory only — never throws.
  */
@@ -253,6 +344,16 @@ export function enforceCodeOwnedFacts(
 
   const primarySingle = enforceSingleEntry('primary', briefing.primary, warnings)
   const secondarySingle = enforceSingleEntry('secondary', briefing.secondary, warnings)
+
+  assertDistinctObjectiveAnchors(primarySingle, secondarySingle)
+  if (options.enforceEntryStandoff && options.meta) {
+    assertEntryStandoff('primary', primarySingle, options.meta.currentPrice)
+    assertEntryStandoff('secondary', secondarySingle, options.meta.currentPrice)
+  }
+  if (options.anchorPrices && options.anchorPrices.length > 0) {
+    offAnchorEntryWarnings('primary', primarySingle, options.anchorPrices, warnings)
+    offAnchorEntryWarnings('secondary', secondarySingle, options.anchorPrices, warnings)
+  }
 
   const primary = recomputeObjective('primary', primarySingle, rrMin, warnings)
   const secondary = recomputeObjective('secondary', secondarySingle, rrMin, warnings)

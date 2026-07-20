@@ -2,10 +2,30 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-19 (morning)
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **dashboard layout
-fixes** (PR #63) on top of feat-044 (PR #62), feat-043 (PR #61) and the proximity recency
-bugfix (PR #60).
+**Last Updated:** 2026-07-20
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **briefing entry
+anchoring fix** (same-level objective straddle + at-price entries) on top of the sign-gate
+count fix (PR #71) and the dashboard/UI iteration PRs (#63–#70).
+
+**Briefing entry anchoring (2026-07-20).** Operator report: briefings kept planting an
+objective entry basically at current price, and same-price opposite-direction entries on BOTH
+objectives. Data confirmed it — 3 of 5 briefings that day were straddles (short + long at
+29109.5 twice with price ~2 pts away; short + long at 28908), i.e. single-border fixation:
+the whole tactical picture collapsed onto the border price was contesting. Root causes:
+(1) `TACTICAL_LADDER_RULE` literally read "Entry A (Ideal) at the border; Entry A (Fade) at
+the border" — one shared border; (2) no cross-objective validation (the single-entry trim of
+2026-07-18 only fixed the same collision *within* one objective). Fix: prompt doctrine now
+requires DISTINCT ANCHORS (shared rule, analyze + update) and an analyze-only ENTRY STANDOFF
+(operator decision: entries must sit ≥ 15 pts from current price; the contested-border
+decision belongs to the eval, and the model must anchor the next structural border instead).
+Enforcement in `validateBriefing.ts`: hard `BriefingValidationError` (regenerate) when the
+two Entry A prices are < 5 pts apart (`MIN_OBJECTIVE_ENTRY_SEPARATION_PTS`) or, on fresh
+analyze runs only (`enforceEntryStandoff` — updates are exempt because price approaching a
+standing plan's entry is the success path), when an entry is < 15 pts
+(`MIN_ENTRY_STANDOFF_PTS`) from code-owned current price. Plus an advisory warning when an
+entry price matches no engine anchor (new `engineAnchorPrices()`: zone borders + level
+verdicts + composite band members, minus data edges — catches free-floating prices like the
+28976.54-vs-28976.13 drift). 676 tests green (9 new), full `./init.sh` pass.
 
 **Dashboard layout fixes (2026-07-19 morning, PR #63, commit `6594b0b`).** Operator-requested
 UI changes: (1) the floating status flyouts under the nav trigger buttons persisted forever
