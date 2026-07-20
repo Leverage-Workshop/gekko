@@ -3,9 +3,42 @@
 ## Current State
 
 **Last Updated:** 2026-07-20
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **briefing entry
-anchoring fix** (same-level objective straddle + at-price entries) on top of the sign-gate
-count fix (PR #71) and the dashboard/UI iteration PRs (#63–#70).
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **count-only
+initiative gate** (PR #73) on top of the briefing entry anchoring fix (PR #72), the
+sign-gate count fix (PR #71) and the dashboard/UI iteration PRs (#63–#70).
+
+**Count-only initiative gate (2026-07-20, PR #73, commit `0375c41`).** Operator report: a
+check-eval showed all five checks pass but verdict WAIT. Diagnosis: the model returned ENTER
+long; the code sign gate demoted it (mean −2.95, 14 red extremes vs 0 blue, last close at
+0.04 of the 20-bar range so the absorbed-flush exception did not lift). The demotion itself
+was right, but the operator flagged that the gate still consulted the window MEAN sign at
+all — doctrine says initiative is a COUNT, not a mean (PR #71 had only added counts as a
+second AND-condition). `validateEval.ts` now demotes purely on counts: counter side must
+out-print the entry side AND cluster ≥ `RED_BUILDING_MIN_BARS` (3, imported from ripStatus)
+so rogue single prints never demote; the mean is display context only. This also closes the
+inverse hole where mild entry-side bars dragged the mean to neutral and vetoed a genuine
+counter-extreme cluster. Absorbed-flush exception unchanged. 678 tests green (2 new).
+
+**Area-exit absorption exception (2026-07-20, PR #74, commit `692de8c`).** Follow-on
+operator doctrine, same session: absorption is volume delta + price STALLING where the
+delta occurred ("a few bars chop around the stack area — that's how it gets built"), and
+counter-initiative only matters when price is "exiting the area". Iterated through three
+framings with the operator: (1) bars-since-extreme-extension — rejected, a 2-tick lower low
+doesn't matter; (2) delta-profile stacks as the area — rejected after checking the live
+bundle: `scanAbsorption` found ZERO candidates on the reported eval's exports, so a
+stack-required lift would rarely fire; (3) shipped: closes define acceptance. The exception
+now lifts the demotion unless the latest bar CLOSED beyond the earlier window's accepted
+closes (new telemetry fields `recentRange.priorMinClose`/`priorMaxClose`, excluding the
+latest bar) in the flush direction, tolerance `AREA_EXIT_TOLERANCE_PTS` = 0.5 (two ticks).
+Wicks/sweeps past the extreme never exit; grinds (every bar a new low close) still demote.
+Replayed on the live bundle: today's WAIT stands correctly — the final bar closed at a new
+window-low close (28765.75 vs prior floor 28773.56), price still accepting lower at
+snapshot. Also updated `knowledge/system/output-schema.md`, which still described the
+pre-#73 mean-sign gate. 681 tests green (3 new).
+
+**Known presentation gap:** when the gate demotes, `eval_results` keeps the model's all-pass
+checks and its "confirmed" reason with no persisted explanation (warnings only go to run
+logs) — a demoted WAIT is indistinguishable from a model WAIT in the dashboard.
 
 **Briefing entry anchoring (2026-07-20).** Operator report: briefings kept planting an
 objective entry basically at current price, and same-price opposite-direction entries on BOTH
