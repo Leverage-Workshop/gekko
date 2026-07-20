@@ -376,14 +376,26 @@ describe('entry standoff (enforceEntryStandoff)', () => {
   }
 
   it('throws when an entry is pinned at current price', () => {
-    // Primary entry 30250 vs current price 30252 — the 2026-07-20 at-price defect.
+    // Primary entry 30250 vs current price 30250.5 — inside the 1-pt floor.
+    expect(() =>
+      enforceCodeOwnedFacts(briefing(), {
+        rrMin: 3,
+        enforceEntryStandoff: true,
+        meta: { ...meta, currentPrice: 30250.5 },
+      }),
+    ).toThrow(/stand off at least 1 pts/)
+  })
+
+  it('passes when an entry sits near but not at current price (2026-07-20 relaxation)', () => {
+    // Primary entry 30250 vs current price 30252 — 2 pts away, allowed since the
+    // standoff floor dropped from 15 to 1.
     expect(() =>
       enforceCodeOwnedFacts(briefing(), {
         rrMin: 3,
         enforceEntryStandoff: true,
         meta: { ...meta, currentPrice: 30252 },
       }),
-    ).toThrow(/stand off at least 15 pts/)
+    ).not.toThrow()
   })
 
   it('passes when every entry clears the standoff', () => {
@@ -401,7 +413,7 @@ describe('entry standoff (enforceEntryStandoff)', () => {
     expect(() =>
       enforceCodeOwnedFacts(briefing(), {
         rrMin: 3,
-        meta: { ...meta, currentPrice: 30252 },
+        meta: { ...meta, currentPrice: 30250.5 },
       }),
     ).not.toThrow()
   })
