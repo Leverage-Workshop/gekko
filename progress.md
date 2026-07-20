@@ -36,9 +36,16 @@ window-low close (28765.75 vs prior floor 28773.56), price still accepting lower
 snapshot. Also updated `knowledge/system/output-schema.md`, which still described the
 pre-#73 mean-sign gate. 681 tests green (3 new).
 
-**Known presentation gap:** when the gate demotes, `eval_results` keeps the model's all-pass
-checks and its "confirmed" reason with no persisted explanation (warnings only go to run
-logs) — a demoted WAIT is indistinguishable from a model WAIT in the dashboard.
+**Eval warnings persisted + surfaced (2026-07-20, PR #75, commit `161c85b`).** Closed the
+presentation gap: `eval_results.warnings` (jsonb string[], migration
+`20260720090000_eval_result_warnings.sql`, applied to the live DB) now stores every warning
+the run accumulated — enforcement coercions, staleness, degraded inputs — at both persist
+sites; null on clean runs. The dashboard eval card renders them as a warning-toned
+"Enforcement" callout above the condition checks, so a code-demoted WAIT above all-pass
+checks explains itself. Pre-migration rows / malformed jsonb degrade by omitting the
+callout (`parseEvalWarnings`). 685 tests green (4 new). Remaining nit (not done): the
+persisted `reason` still reads as the model's pre-demotion prose; the Enforcement callout
+makes the contradiction legible, so no reason rewrite was implemented.
 
 **Briefing entry anchoring (2026-07-20).** Operator report: briefings kept planting an
 objective entry basically at current price, and same-price opposite-direction entries on BOTH
