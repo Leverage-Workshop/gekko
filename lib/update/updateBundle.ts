@@ -2,6 +2,7 @@ import { Briefing, BriefingUpdate } from '@/knowledge/schema/briefing.schema'
 import type { AnalyzeConfig } from '@/lib/analyze'
 import {
   computeEngineFacts,
+  engineAnchorPrices,
   engineZoneBorders,
   enforceCodeOwnedFacts,
   loadDoctrine,
@@ -160,9 +161,12 @@ export async function runUpdate(
   })
 
   const composed = composeUpdateBriefing(parent, result.object)
+  // No enforceEntryStandoff here: an update revises a standing plan, and price
+  // approaching its planned entry is the success path, not an at-price defect.
   const validated = enforceCodeOwnedFacts(composed, {
     rrMin,
     engineBorders: engineZoneBorders(facts.terrain),
+    anchorPrices: engineAnchorPrices(facts.terrain),
     meta: {
       createdAt: now.toISOString(),
       currentPrice: facts.currentPrice,

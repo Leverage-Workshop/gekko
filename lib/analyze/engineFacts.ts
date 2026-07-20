@@ -79,6 +79,23 @@ export function engineZoneBorders(terrain: TerrainZonesResult): number[] {
 }
 
 /**
+ * Every engine price an entry may legitimately anchor on: zone borders, level
+ * verdicts and composite border band members — minus profile data edges, which
+ * are data artifacts the doctrine forbids trading (feat-040 G2). Deduped,
+ * price-descending. Feeds `ValidateOptions.anchorPrices`.
+ */
+export function engineAnchorPrices(terrain: TerrainZonesResult): number[] {
+  const anchors = [
+    ...terrain.zones.flatMap((zone) => [zone.top, zone.bottom]),
+    ...terrain.levels.map((verdict) => verdict.level.price),
+    ...terrain.borders.flatMap((border) =>
+      border.members.map((member) => member.level.price),
+    ),
+  ].filter((price) => !terrain.dataEdges.includes(price))
+  return [...new Set(anchors)].sort((a, b) => b - a)
+}
+
+/**
  * Run the full deterministic engine over one bundle's raw exports.
  *
  * @throws when a required input fails to parse (malformed bundle) — the

@@ -327,3 +327,103 @@ describe('enforceCodeOwnedFacts', () => {
     expect(result.warnings.filter((w) => w.includes('meta.'))).toEqual([])
   })
 })
+
+describe('distinct objective anchors', () => {
+  /** A short counter-scenario re-anchored onto the given entry price. */
+  function shortAt(entry: number): Objective {
+    return longObjective({
+      direction: 'short',
+      entries: [{ label: 'Entry A (Fade)', price: entry, trigger: 'failed hold' }],
+      stops: [{ label: 'Stop', price: entry + 10, invalidation: 'reclaimed' }],
+      targets: [{ label: 'T1', price: entry - 30, description: 'next trench' }],
+    })
+  }
+
+  it('throws when both objectives straddle the same level (opposite directions)', () => {
+    const input = briefing({ secondary: shortAt(30250) }) // primary long is also @ 30250
+    expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(BriefingValidationError)
+    expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(/distinct structural borders/)
+  })
+
+  it('throws when the entries sit inside the separation band', () => {
+    const input = briefing({ secondary: shortAt(30253) }) // 3 pts from the primary entry
+    expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(/3 pts apart/)
+  })
+
+  it('accepts objectives anchored at distinct borders', () => {
+    // Default fixture: primary @ 30250, secondary @ 30290 — 40 pts apart.
+    expect(() => enforceCodeOwnedFacts(briefing(), { rrMin: 3 })).not.toThrow()
+  })
+
+  it('compares the surviving Entry A rungs after single-entry trimming', () => {
+    // Primary's Entry A collides with the secondary only via its Entry B rung —
+    // trimming keeps Entry A @ 30250, so no collision with the secondary @ 30290.
+    const primary = longObjective({
+      entries: [
+        { label: 'Entry A', price: 30250, trigger: 'absorption' },
+        { label: 'Entry B', price: 30290, trigger: 'breakout' },
+      ],
+    })
+    expect(() => enforceCodeOwnedFacts(briefing({ primary }), { rrMin: 3 })).not.toThrow()
+  })
+})
+
+describe('entry standoff (enforceEntryStandoff)', () => {
+  const meta = {
+    createdAt: '2026-07-06T12:00:00Z',
+    triggerReason: 'manual',
+    ripStatus: 'green',
+  }
+
+  it('throws when an entry is pinned at current price', () => {
+    // Primary entry 30250 vs current price 30252 — the 2026-07-20 at-price defect.
+    expect(() =>
+      enforceCodeOwnedFacts(briefing(), {
+        rrMin: 3,
+        enforceEntryStandoff: true,
+        meta: { ...meta, currentPrice: 30252 },
+      }),
+    ).toThrow(/stand off at least 15 pts/)
+  })
+
+  it('passes when every entry clears the standoff', () => {
+    // 30220: primary 30 pts away, secondary 70 pts away.
+    expect(() =>
+      enforceCodeOwnedFacts(briefing(), {
+        rrMin: 3,
+        enforceEntryStandoff: true,
+        meta: { ...meta, currentPrice: 30220 },
+      }),
+    ).not.toThrow()
+  })
+
+  it('is skipped without the flag (update path: price approaching the plan is success)', () => {
+    expect(() =>
+      enforceCodeOwnedFacts(briefing(), {
+        rrMin: 3,
+        meta: { ...meta, currentPrice: 30252 },
+      }),
+    ).not.toThrow()
+  })
+})
+
+describe('entry anchor advisory', () => {
+  it('warns when an entry price matches no engine anchor', () => {
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      anchorPrices: [30300, 30250, 30200], // secondary @ 30290 is off-anchor
+    })
+    const anchorWarnings = result.warnings.filter((w) => w.includes('engine anchor'))
+    expect(anchorWarnings).toHaveLength(1)
+    expect(anchorWarnings[0]).toContain('secondary')
+    expect(anchorWarnings[0]).toContain('30290')
+  })
+
+  it('stays silent when every entry sits on an anchor', () => {
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      anchorPrices: [30300, 30290, 30250, 30200],
+    })
+    expect(result.warnings.filter((w) => w.includes('engine anchor'))).toEqual([])
+  })
+})

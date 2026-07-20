@@ -2,7 +2,7 @@ export { runAnalysis } from './analyzeBundle'
 export type { AnalyzeConfig, AnalyzeDeps, AnalyzeResult } from './analyzeBundle'
 export { realAnalyzeDeps } from './deps'
 export { loadDoctrine } from './doctrine'
-export { computeEngineFacts, engineZoneBorders } from './engineFacts'
+export { computeEngineFacts, engineAnchorPrices, engineZoneBorders } from './engineFacts'
 export type { EngineFacts, EngineFactsInput } from './engineFacts'
 export { AnalyzeInputError, loadLatestBundle } from './loadBundle'
 export type {
@@ -27,6 +27,8 @@ export { buildAnalysisPrompt } from './prompt'
 export type { AnalysisPromptInput, ChartAttachment } from './prompt'
 export {
   BriefingValidationError,
+  MIN_ENTRY_STANDOFF_PTS,
+  MIN_OBJECTIVE_ENTRY_SEPARATION_PTS,
   assertZoneContiguity,
   enforceCodeOwnedFacts,
 } from './validateBriefing'
