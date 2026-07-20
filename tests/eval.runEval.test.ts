@@ -313,9 +313,10 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('coerced to NO_ENTRY_NEAR'))).toBe(true)
   })
 
-  it('demotes ENTER to WAIT when the engine delta sign contradicts the direction', async () => {
-    // The fixture exec CSV computes a POSITIVE recent delta sign; a short
-    // ENTER contradicts it (doctrine: Delta < 0 for shorts) — code demotes.
+  it('demotes ENTER to WAIT when the extreme counts confirm counter-initiative', async () => {
+    // The fixture exec CSV's recent window is stacked with blue extremes
+    // (10 of the last 20 bars ≥ +3) and zero red — genuine buy initiative. A
+    // short ENTER runs straight into it, so the count gate demotes.
     const shortLevel: EntryLevelRow = { ...activeLevels()[0], direction: 'short' }
     const harness = makeDeps({
       fetchActiveEntryLevels: async () => [shortLevel],
@@ -387,11 +388,11 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
   })
 
-  it('keeps a long ENTER on a negative mean when no net red initiative confirms it', async () => {
-    // The loosening (operator doctrine): initiative is a COUNT, not a mean. A
-    // window of mild -1/-2 drift carries a negative mean but zero red-extreme
-    // prints — the mean sign alone must not demote. No absorbed flush here
-    // either (price drifts straight down), so only the count guard holds ENTER.
+  it('keeps a long ENTER on mild drift when no red-extreme prints confirm initiative', async () => {
+    // Operator doctrine: initiative is a COUNT, not a mean. A window of mild
+    // -1/-2 drift carries a negative mean but zero red-extreme prints — no
+    // initiative, no demotion. No absorbed flush here either (price drifts
+    // straight down), so only the count gate holds ENTER.
     const driftCsv = [
       'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
       '2026-06-16 15:55:00,30261.00,30262.00,30258.00,30259.00,0.00,-1.00',
@@ -425,8 +426,85 @@ describe('runEval', () => {
     expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
   })
 
-  it('keeps ENTER when the engine delta sign matches the direction', async () => {
-    // Positive fixture sign + the default long ENTER: the gate passes.
+  it('keeps a long ENTER when counter-extremes are under the min-count floor', async () => {
+    // One or two rogue -3/-4 prints in a 750-volume window are noise, not
+    // initiative (the ripStatus RED_BUILDING_MIN_BARS doctrine). Two red
+    // extremes with price closing on the lows — no absorbed-flush rescue —
+    // must still NOT demote: the cluster never confirmed.
+    const rogueCsv = [
+      'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
+      '2026-06-16 15:55:00,30261.00,30262.00,30258.00,30259.00,0.00,-1.00',
+      '2026-06-16 15:55:30,30259.00,30260.00,30256.00,30257.00,0.00,-1.00',
+      '2026-06-16 15:56:00,30257.00,30258.00,30254.00,30255.00,0.00,-2.00',
+      '2026-06-16 15:56:30,30255.00,30256.00,30250.00,30251.00,0.00,-3.00',
+      '2026-06-16 15:57:00,30251.00,30252.00,30248.00,30249.00,0.00,-1.00',
+      '2026-06-16 15:57:30,30249.00,30250.00,30246.00,30247.00,0.00,-2.00',
+      '2026-06-16 15:58:00,30247.00,30248.00,30242.00,30243.00,0.00,-4.00',
+      '2026-06-16 15:58:30,30243.00,30244.00,30240.00,30241.00,0.00,-1.00',
+      '2026-06-16 15:59:00,30241.00,30242.00,30238.00,30239.00,0.00,-2.00',
+      '2026-06-16 15:59:30,30239.00,30240.00,30236.00,30237.00,0.00,-1.00',
+    ].join('\n')
+    const encoder = new TextEncoder()
+    const objects: Record<string, Uint8Array> = {
+      'b1/execution_bars.csv': encoder.encode(rogueCsv),
+      'b1/half-rotation-delta.vbp.md': encoder.encode(halfRotationDeltaContent),
+      'b1/full-rotation-delta.vbp.md': encoder.encode(fullRotationDeltaContent),
+      'b1/htf.png': encoder.encode('png-bytes'),
+    }
+    const harness = makeDeps({
+      downloadObject: async (_bucket, path) => {
+        const bytes = objects[path]
+        if (!bytes) throw new Error(`missing ${path}`)
+        return bytes
+      },
+    })
+    const result = await runEval(harness.deps)
+
+    expect(result.status).toBe('ENTER')
+    expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(false)
+  })
+
+  it('demotes a long ENTER on a counter-extreme cluster even when the window mean is neutral', async () => {
+    // The hole the count-only gate closes: mild entry-side bars can drag the
+    // window MEAN back to neutral while a genuine red-extreme cluster prints
+    // against the entry. Three red extremes (>= RED_BUILDING_MIN_BARS) vs zero
+    // blue with price closing on the lows is confirmed counter-initiative —
+    // the neutral mean must not veto the demotion.
+    const maskedClusterCsv = [
+      'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
+      '2026-06-16 15:55:00,30261.00,30262.00,30258.00,30259.00,0.00,1.00',
+      '2026-06-16 15:55:30,30259.00,30260.00,30256.00,30257.00,0.00,1.00',
+      '2026-06-16 15:56:00,30257.00,30258.00,30254.00,30255.00,0.00,1.00',
+      '2026-06-16 15:56:30,30255.00,30256.00,30252.00,30253.00,0.00,1.00',
+      '2026-06-16 15:57:00,30253.00,30254.00,30250.00,30251.00,0.00,1.00',
+      '2026-06-16 15:57:30,30251.00,30252.00,30248.00,30249.00,0.00,1.00',
+      '2026-06-16 15:58:00,30249.00,30250.00,30246.00,30247.00,0.00,1.00',
+      '2026-06-16 15:58:20,30247.00,30247.00,30240.00,30241.00,0.00,-3.00',
+      '2026-06-16 15:58:40,30241.00,30242.00,30236.00,30237.00,0.00,-3.00',
+      '2026-06-16 15:59:00,30237.00,30238.00,30232.00,30233.00,0.00,-3.00',
+    ].join('\n')
+    const encoder = new TextEncoder()
+    const objects: Record<string, Uint8Array> = {
+      'b1/execution_bars.csv': encoder.encode(maskedClusterCsv),
+      'b1/half-rotation-delta.vbp.md': encoder.encode(halfRotationDeltaContent),
+      'b1/full-rotation-delta.vbp.md': encoder.encode(fullRotationDeltaContent),
+      'b1/htf.png': encoder.encode('png-bytes'),
+    }
+    const harness = makeDeps({
+      downloadObject: async (_bucket, path) => {
+        const bytes = objects[path]
+        if (!bytes) throw new Error(`missing ${path}`)
+        return bytes
+      },
+    })
+    const result = await runEval(harness.deps)
+
+    expect(result.status).toBe('WAIT')
+    expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(true)
+  })
+
+  it('keeps ENTER when initiative runs with the direction', async () => {
+    // The fixture's blue-extreme stack + the default long ENTER: the gate passes.
     const harness = makeDeps()
     const result = await runEval(harness.deps)
     expect(result.status).toBe('ENTER')

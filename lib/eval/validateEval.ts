@@ -1,5 +1,6 @@
 import type { EvalResult } from '@/knowledge/schema/briefing.schema'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
+import { RED_BUILDING_MIN_BARS } from '@/lib/engine/ripStatus'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
 
 /**
@@ -22,19 +23,20 @@ export interface EnforceEvalOptions {
   /** The active levels shown to the model, for evaluatedLevel → id mapping. */
   levels: readonly EntryLevelRow[]
   /**
-   * Engine-computed delta telemetry backing the sign gate: a window-mean sign
-   * contradicting the ENTER direction demotes it to WAIT ONLY when the
-   * extreme-bar counts also confirm counter-initiative — and never when the
-   * contradiction is explained by an absorbed flush (see
-   * {@link absorbedFlushException}). The mean sign alone never demotes.
+   * Engine-computed delta telemetry backing the initiative gate: an ENTER is
+   * demoted to WAIT when the extreme-bar counts confirm counter-initiative
+   * (net counter-side extremes, at least {@link RED_BUILDING_MIN_BARS} of
+   * them) — and never when the contradiction is explained by an absorbed
+   * flush (see {@link absorbedFlushException}). The window MEAN plays no part
+   * (initiative is a COUNT, not a mean — the ripStatus doctrine).
    */
   deltaTelemetry: SignGateTelemetry
 }
 
-/** The telemetry facts the sign gate consumes. */
+/** The telemetry facts the initiative gate consumes. */
 export type SignGateTelemetry = Pick<
   DeltaTelemetry,
-  'sign' | 'recentRedExtremeCount' | 'recentBlueExtremeCount' | 'recentRange'
+  'recentRedExtremeCount' | 'recentBlueExtremeCount' | 'recentRange'
 >
 
 /**
@@ -169,30 +171,20 @@ export function enforceEvalFacts(
     )
   }
 
-  // Sign gate: a window-mean delta sign contradicting the ENTER direction
-  // demotes it to WAIT (conservative) — but ONLY when the extreme-bar counts
-  // also confirm counter-initiative. Initiative is a COUNT, not a mean (the
-  // ripStatus doctrine): a window of mild -1/-2 bars carries a negative mean
-  // without any real red aggression, so the mean sign alone must never demote.
-  // A neutral sign passes; the model weighs it qualitatively. An absorbed flush
-  // still lifts the gate: the mean AND the counts are expected to contradict an
-  // absorption entry exactly when it confirms.
+  // Initiative gate: extreme-bar counts confirming counter-initiative demote
+  // an ENTER to WAIT (conservative). Initiative is a COUNT, not a mean (the
+  // ripStatus doctrine), so the window mean plays no part: a negative mean
+  // over mild -1/-2 drift must never demote a long, and a mean dragged back
+  // to neutral by mild entry-side bars must never veto a genuine cluster of
+  // counter-extremes. Counter-initiative confirms only when the counter side
+  // out-prints the entry side AND clusters at least RED_BUILDING_MIN_BARS
+  // deep (one rogue 750-volume print carries no weight). An absorbed flush
+  // still lifts the gate: the counts are expected to contradict an absorption
+  // entry exactly when it confirms.
   if (result.status === 'ENTER') {
     const direction = result.direction ?? result.evaluatedLevel?.direction ?? null
     const telemetry = options.deltaTelemetry
-    const signContradicts =
-      (direction === 'long' && telemetry.sign === 'negative') ||
-      (direction === 'short' && telemetry.sign === 'positive')
-    // Do the extreme prints agree with the mean's contradiction? Only net
-    // counter-side aggression (more red extremes than blue for a long, and the
-    // mirror for a short) counts as real initiative against the entry.
-    const countsConfirmCounter =
-      direction === 'long'
-        ? telemetry.recentRedExtremeCount > telemetry.recentBlueExtremeCount
-        : direction === 'short'
-          ? telemetry.recentBlueExtremeCount > telemetry.recentRedExtremeCount
-          : false
-    if (signContradicts && countsConfirmCounter && direction !== null) {
+    if (direction !== null) {
       const counterCount =
         direction === 'long'
           ? telemetry.recentRedExtremeCount
@@ -201,19 +193,23 @@ export function enforceEvalFacts(
         direction === 'long'
           ? telemetry.recentBlueExtremeCount
           : telemetry.recentRedExtremeCount
-      if (absorbedFlushException(direction, telemetry)) {
-        warnings.push(
-          `engine delta sign is ${telemetry.sign} against the ${direction} ENTER with ${counterCount} counter-extreme ` +
-            `vs ${entryCount} entry-extreme bars, but the flush was absorbed ` +
-            `(last close at ${telemetry.recentRange.position} of the recent range) — ENTER kept`,
-        )
-      } else {
-        warnings.push(
-          `model returned ENTER ${direction} but the engine delta sign is ${telemetry.sign} and the counts confirm ` +
-            `counter-initiative (${counterCount} counter-extreme vs ${entryCount} entry-extreme bars, ` +
-            `last close at ${telemetry.recentRange.position} of the recent range) — coerced to WAIT`,
-        )
-        result = { ...result, status: 'WAIT' }
+      const countsConfirmCounter =
+        counterCount > entryCount && counterCount >= RED_BUILDING_MIN_BARS
+      if (countsConfirmCounter) {
+        if (absorbedFlushException(direction, telemetry)) {
+          warnings.push(
+            `extreme counts run against the ${direction} ENTER (${counterCount} counter-extreme ` +
+              `vs ${entryCount} entry-extreme bars), but the flush was absorbed ` +
+              `(last close at ${telemetry.recentRange.position} of the recent range) — ENTER kept`,
+          )
+        } else {
+          warnings.push(
+            `model returned ENTER ${direction} but the extreme counts confirm counter-initiative ` +
+              `(${counterCount} counter-extreme vs ${entryCount} entry-extreme bars, ` +
+              `last close at ${telemetry.recentRange.position} of the recent range) — coerced to WAIT`,
+          )
+          result = { ...result, status: 'WAIT' }
+        }
       }
     }
   }
