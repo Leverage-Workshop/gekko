@@ -33,16 +33,14 @@ const MIN_STRUCTURAL_STOP_PTS = 5
 export const MIN_OBJECTIVE_ENTRY_SEPARATION_PTS = 5
 
 /**
- * Minimum distance between a fresh briefing's Entry A and the code-owned current price
- * (2026-07-20 operator decision). A briefing is a forward-looking map; an entry pinned
- * where price already trades duplicates the eval-task's live Check-Entry job and gives
- * the operator no plan. When the doctrinal border is already contested the model must
- * anchor at the next structural border instead. Enforced only for fresh analyze
- * generations (`enforceEntryStandoff`) — an update revising a standing plan must NOT be
- * rejected just because price has since approached the planned entry (that is the trade
- * working, and it is exactly when updates fire).
+ * Minimum distance between a fresh briefing's Entry A and the code-owned current price.
+ * Relaxed from 15 to 1 (2026-07-20 operator decision): entries near price are allowed
+ * again; the gate now only rejects an entry pinned exactly where price already trades.
+ * Enforced only for fresh analyze generations (`enforceEntryStandoff`) — an update
+ * revising a standing plan must NOT be rejected just because price has since approached
+ * the planned entry (that is the trade working, and it is exactly when updates fire).
  */
-export const MIN_ENTRY_STANDOFF_PTS = 15
+export const MIN_ENTRY_STANDOFF_PTS = 1
 
 export interface ValidatedBriefing {
   /** The briefing with engine-recomputed `rr` on both objectives. */
