@@ -10,6 +10,35 @@ persistence (PR #75), the area-exit absorption exception (PR #74), the count-onl
 initiative gate (PR #73), the briefing entry anchoring fix (PR #72) and the sign-gate
 count fix (PR #71).
 
+**Terrain rework: campaign-scale zones (2026-07-22, operator doctrine).** Operator reviewed
+the 07-20 trace terrain: 16 zones (four consecutive slices all labeled "Lower Kill Box
+(void)", slivers to 22 pts) where doctrine expects ~5-6 — the map should divide the chart
+into the zones where MAJOR moves start/end, not every micro rotation. Root causes: the
+feat-040 G1 "void-splitter" rule promoted every unpromoted daily/Tier-1 MGI outside the
+rotation profile's range to a zone border (10 of the 16 zones were bare-MGI slices of one
+traversal), and recall-favoring session-level promotion crowded borders 17-56 pts apart.
+Operator doctrine corrections: (1) bare MGI in a void is NEVER a border — a border needs
+MGI + volume confluence; (2) MGI clusters merge into one composite band and clustering
+RAISES significance; (3) the balance-area profile is the SENIOR read — classify anchors
+against BOTH profiles, balance-area promotion = AAA, rotation-only = A (like PM-H vs PW-H);
+OR Mid is tier 2, Week Open tier 1 (already so in mgiPriority.ts). Implemented in
+`terrainZones.ts`: dual-profile `classifyBorder` (senior profile decides when decisive —
+hard promotion or Magnet invalidation; rotation fills in otherwise), void-splitters retired
+(waypoints stay in `levels` for rungs), `CompositeBorder` gains significance/tier, new
+class-aware consolidation (`aTierMinSpanPts` = 60: the weaker of an A-involved pair closer
+than the floor demotes to a level, recorded in `terrain.demoted`; AAA pairs exempt), zone
+volumeClass reads the balance-area profile where rotation has no coverage, data edges track
+COMBINED coverage with a sliver guard at campaign extremes. Prompts + chart-reading.md
+updated (AAA/A significance, `terrain.demoted`, MGI-composite-edge border language removed).
+Results: 07-20 live bundle 11 zones → **5** (all-AAA borders: Monthly VWAP, VRange+3/PDH,
+OR Mid, PDC); 07-18 fixture 10 → 7 keeping the Gem's PDL/VRange−2 foundation shelf (AAA)
+and demoting exactly the confetti (OR Low, PDH, PDC); 07-14 fixture → 7, IBH/IBL kept. Live
+no-persist analyze on the new map: entry separation 20 → 37.75 pts, primary R/R 0.35
+(pre-restructure) → 1.94, T3 now traverses the full 382-pt void to the campaign floor.
+Judgment call to watch: AAA-beats-A is absolute, so tier-1 Week Open (rotation wall)
+demoted to a rung under the AAA tier-2 PDC trench 38 pts above — surfaced to operator.
+732 tests green (6 new; gem-comparison zone-count guard now 5-8 with anti-confetti ceiling).
+
 **User-prompt consolidation (2026-07-22, follow-up to the restructure below).** Moved the
 static doctrine out of the user-message builders into the cached per-task prefixes, so each
 rule now has exactly one home: `EVAL_DECISION_LOGIC` + the verdict-structure block moved from

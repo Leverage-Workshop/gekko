@@ -445,12 +445,13 @@ describe('assembleTerrain — volume-only zone facts', () => {
   })
 })
 
-// --- balance-area fallback + void splitting + data edges (feat-040) ----------
+// --- dual-profile classification + bare-MGI exclusion + data edges -----------
+// (operator doctrine 2026-07-22, superseding the feat-040 G1 void-splitters)
 
-describe('assembleTerrain — balance-area fallback (feat-040 G1)', () => {
+describe('assembleTerrain — balance-area seniority (dual-profile)', () => {
   // Rotation covers 30000–30500; the theater's floor structure lives below, covered only by
   // the balance-area profile: blocks flanking a valley at 29750.
-  const FALLBACK = buildProfile(
+  const BALANCE_AREA = buildProfile(
     [
       [29660, 29740, 1000],
       [29760, 29840, 1000],
@@ -459,12 +460,12 @@ describe('assembleTerrain — balance-area fallback (feat-040 G1)', () => {
     30500,
   )
 
-  function runWithFallback() {
+  function runWithBalanceArea() {
     return assembleTerrain({
       profile: MAIN_PROFILE,
       lvn: MAIN_LVN,
-      fallbackProfile: FALLBACK,
-      fallbackLvn: {
+      balanceAreaProfile: BALANCE_AREA,
+      balanceAreaLvn: {
         hvn: [],
         lvn: [{ price: 29750, volume: 40, type: 'valley', strength: 0.9 }],
         peakVolume: 1000,
@@ -480,7 +481,7 @@ describe('assembleTerrain — balance-area fallback (feat-040 G1)', () => {
   }
 
   it('classifies an anchor below the rotation range against the balance-area profile', () => {
-    const r = runWithFallback()
+    const r = runWithBalanceArea()
     const verdict = r.levels.find(l => l.level.price === 29750)!
     expect(verdict.kind).toBe('trench')
     expect(verdict.hard).toBe(true)
@@ -489,28 +490,61 @@ describe('assembleTerrain — balance-area fallback (feat-040 G1)', () => {
     expect(verdict.detectorNode?.kind).toBe('valley')
   })
 
-  it('lets the fallback-promoted border split the extension and absorb the data-edge role', () => {
-    const r = runWithFallback()
+  it('marks a balance-area promotion AAA and bookkeeps the no-data extension below it', () => {
+    const r = runWithBalanceArea()
+    const border = r.borders.find(b => b.price === 29750)!
+    expect(border.significance).toBe('AAA')
     const borders = r.zones.flatMap(z => [z.top, z.bottom])
     expect(borders).toContain(29750)
-    // No border at the rotation profile's bottom bin — real structure took over.
+    // No border at the rotation profile's bottom bin — the balance-area data continues below.
     expect(borders).not.toContain(30000)
-    expect(r.dataEdges).toEqual([])
+    // The balance-area data ends at 29500 with the campaign floor at 29400: that no-data
+    // extension is bookkept by a data edge (untradeable), never presented as structure.
+    expect(r.dataEdges).toEqual([29500])
     expect(r.contiguityValid).toBe(true)
   })
 
-  it('keeps in-range anchors on the rotation profile (fallback never overrides)', () => {
-    const r = runWithFallback()
+  it('promotes an in-range anchor off the balance-area profile when rotation is indecisive (AAA)', () => {
+    // 30250 region: on rotation it is mid-block; on this balance-area profile a valley at
+    // 30250 flanked by blocks → the senior read decides, and the border classes AAA.
+    const balance = buildProfile(
+      [
+        [30150, 30240, 1000],
+        [30260, 30350, 1000],
+      ],
+      30000,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile: buildProfile([[30150, 30350, 1000]], 30000, 30500), // one solid block on rotation
+      lvn: { hvn: [], lvn: [], peakVolume: 1000 },
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({
+        summary: { pocPrice: 30600, valueAreaHigh: 30610, valueAreaLow: 30590 }, // far away
+        hvn: [],
+      }),
+      mgi: makeMgi(30100, [{ price: 30250, label: 'Weekly VWAP', tier: 1 }]),
+    })
+    const verdict = r.levels.find(l => l.level.price === 30250)!
+    expect(verdict.kind).toBe('trench')
+    expect(verdict.source).toBe('balance-area')
+    expect(r.borders.find(b => b.price === 30250)?.significance).toBe('AAA')
+  })
+
+  it('keeps rotation-promoted structure when the senior profile is indecisive (A class)', () => {
+    const r = runWithBalanceArea()
     const trench = r.levels.find(l => l.level.price === 30175)!
     expect(trench.kind).toBe('trench')
     expect(trench.source).toBe('rotation')
+    expect(r.borders.find(b => b.price === 30175)?.significance).toBe('A')
   })
 })
 
-describe('assembleTerrain — MGI void-splitting (feat-040 G1)', () => {
-  it('splits an extension void at unpromoted Tier-1/daily coordinates, merging close ones', () => {
-    // No fallback profile: PDL / VRange −2 stay plain-mgi ("outside the volume profile
-    // range") but must still partition the void below the rotation data — as ONE band.
+describe('assembleTerrain — bare MGI is never a zone border', () => {
+  it('leaves unpromoted out-of-range coordinates as waypoints, not void-splitters', () => {
+    // No balance-area profile: PDL / VRange −2 stay plain-mgi ("outside the volume profile
+    // range"). Under the 2026-07-22 doctrine they are waypoints inside the void — the zone
+    // stack must NOT split there; the rotation data edge bookkeeps the extension instead.
     const r = assembleTerrain({
       profile: MAIN_PROFILE,
       lvn: MAIN_LVN,
@@ -523,18 +557,15 @@ describe('assembleTerrain — MGI void-splitting (feat-040 G1)', () => {
         { price: 29400, label: 'PW Low', tier: 1 },
       ]),
     })
-    const splitter = r.borders.find(b => b.kind === 'mgi')
-    expect(splitter).toBeDefined()
-    expect(splitter!.price).toBe(29752)
-    expect(splitter!.label).toBe('PDL / VRange -2')
-    expect(splitter!.members).toHaveLength(2)
-
+    // The coordinates survive as levels…
+    expect(r.levels.find(l => l.level.price === 29752)?.kind).toBe('mgi')
+    expect(r.levels.find(l => l.level.price === 29744)?.kind).toBe('mgi')
+    // …but never as borders.
     const borders = r.zones.flatMap(z => [z.top, z.bottom])
-    expect(borders).toContain(29752)
-    // The cluster splits ONCE, and the data edge is absorbed by the real structure below it.
-    expect(borders.filter(p => p >= 29744 && p <= 29752)).toHaveLength(2) // one shared border
-    expect(borders).not.toContain(30000)
-    expect(r.dataEdges).toEqual([])
+    expect(borders.filter(p => p >= 29744 && p <= 29752)).toHaveLength(0)
+    expect(r.borders.every(b => b.kind === 'trench' || b.kind === 'wall')).toBe(true)
+    // The extension below the rotation data is bookkept by the data edge.
+    expect(r.dataEdges).toEqual([30000])
     expect(r.contiguityValid).toBe(true)
   })
 
@@ -552,6 +583,89 @@ describe('assembleTerrain — MGI void-splitting (feat-040 G1)', () => {
     })
     expect(r.levels[0].kind).toBe('mgi')
     expect(r.zones.flatMap(z => [z.top, z.bottom])).not.toContain(30500)
+  })
+})
+
+describe('assembleTerrain — class-aware spacing consolidation', () => {
+  it('demotes the weaker of two A-class borders closer than aTierMinSpanPts', () => {
+    // MAIN partitions: wall 30440, trench 30325 (gap 115), trench 30175 (gap 150). A span
+    // floor of 140 catches only the wall/trench pair — the Trench outranks the Wall, so
+    // 30440 demotes and the two trenches survive.
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, MAIN_ANCHORS),
+      params: { aTierMinSpanPts: 140 },
+    })
+    expect(r.borders.map(b => b.price)).toEqual([30325, 30175])
+    expect(r.demoted).toHaveLength(1)
+    expect(r.demoted[0].price).toBe(30440)
+    expect(r.demoted[0].reason).toMatch(/pts of the stronger/)
+    // The demoted border's verdict is untouched — still hard structure in levels.
+    const demotedVerdict = r.levels.find(l => l.level.price === 30440)!
+    expect(demotedVerdict.hard).toBe(true)
+    expect(demotedVerdict.kind).toBe('wall')
+    expect(r.contiguityValid).toBe(true)
+  })
+
+  it('an AAA border always survives a nearby A border', () => {
+    // Balance-area valley at 30340 (AAA, tier 1) sits 15 pts from the rotation trench at
+    // 30325… within merge tolerance they would merge; use 30360 → 35 pts, inside the span
+    // floor: the A trench at 30325 must demote, the AAA border must survive.
+    const balance = buildProfile(
+      [
+        [30240, 30350, 1000],
+        [30370, 30460, 1000],
+      ],
+      30000,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 30360, label: 'PW Low', tier: 1 },
+      ]),
+    })
+    const aaa = r.borders.find(b => b.price === 30360)
+    expect(aaa).toBeDefined()
+    expect(aaa!.significance).toBe('AAA')
+    expect(r.borders.map(b => b.price)).not.toContain(30325)
+    expect(r.demoted.map(d => d.price)).toContain(30325)
+  })
+
+  it('keeps AAA borders even when they sit closer than the span floor', () => {
+    // Two balance-area valleys 55 pts apart, both below the rotation range: AAA structure
+    // is exempt from the A-tier span floor (only the 16-pt merge applies).
+    const balance = buildProfile(
+      [
+        [29600, 29690, 1000],
+        [29710, 29740, 1000],
+        [29760, 29850, 1000],
+      ],
+      29500,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      campaignExtent: { top: 30500, bottom: 29500 },
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 29700, label: 'VRange -2', tier: 1 },
+        { price: 29755, label: 'PW Low', tier: 1 },
+      ]),
+    })
+    const prices = r.borders.map(b => b.price)
+    expect(prices).toContain(29700)
+    expect(prices).toContain(29755)
+    expect(r.borders.filter(b => b.significance === 'AAA')).toHaveLength(2)
   })
 })
 
