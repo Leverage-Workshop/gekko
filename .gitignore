@@ -25,3 +25,6 @@ next-env.d.ts
 # Autonomous orchestration loop (scripts/auto-implement.sh) per-session logs
 logs/auto-run/
 chart-data/lvn-fixtures/fixture-x.vbp.md
+
+# Local Claude Code settings (contains secrets)
+.claude/settings.local.json

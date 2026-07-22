@@ -10,6 +10,13 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=qvhkqilizwozikpomxob"
+    },
+    "langsmith": {
+      "type": "http",
+      "url": "https://api.smith.langchain.com/mcp",
+      "headers": {
+        "X-API-Key": "${LANGSMITH_API_KEY}"
+      }
     }
   }
 }
