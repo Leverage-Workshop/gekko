@@ -35,9 +35,12 @@ OR Mid, PDC); 07-18 fixture 10 → 7 keeping the Gem's PDL/VRange−2 foundation
 and demoting exactly the confetti (OR Low, PDH, PDC); 07-14 fixture → 7, IBH/IBL kept. Live
 no-persist analyze on the new map: entry separation 20 → 37.75 pts, primary R/R 0.35
 (pre-restructure) → 1.94, T3 now traverses the full 382-pt void to the campaign floor.
-Judgment call to watch: AAA-beats-A is absolute, so tier-1 Week Open (rotation wall)
-demoted to a rung under the AAA tier-2 PDC trench 38 pts above — surfaced to operator.
-732 tests green (6 new; gem-comparison zone-count guard now 5-8 with anti-confetti ceiling).
+Judgment call surfaced and RESOLVED by operator same session: consolidation ranking is now
+tier-FIRST (then significance class) — a Tier-1 A border survives a Tier-2 AAA neighbor, so
+the live Kill Box floor is the tier-1 Week Open / 24 VWAP band (28747.75), with PDC/PDL
+demoted to levels. Gem fixture maps unchanged by the reorder. 733 tests green (7 new;
+gem-comparison zone-count guard now 5-8 with anti-confetti ceiling). Branch merged to main
+via squash PR.
 
 **User-prompt consolidation (2026-07-22, follow-up to the restructure below).** Moved the
 static doctrine out of the user-message builders into the cached per-task prefixes, so each

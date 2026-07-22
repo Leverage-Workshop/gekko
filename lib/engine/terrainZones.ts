@@ -549,14 +549,15 @@ function mergePartitions(partitions: BorderVerdict[], tolerance: number): Compos
 }
 
 /**
- * Strength ordering for consolidation (lower rank wins): significance class (AAA before A),
- * MGI tier, composite member count (clustering = significance), kind (Trench before Wall),
- * then the deepest local dip.
+ * Strength ordering for consolidation (lower rank wins): MGI tier first (operator 2026-07-22:
+ * a Tier-1 level like Week Open survives against a Tier-2 AAA neighbor), then significance
+ * class (AAA before A), composite member count (clustering = significance), kind (Trench
+ * before Wall), then the deepest local dip.
  */
 function borderRank(border: CompositeBorder): number[] {
   return [
-    border.significance === 'AAA' ? 0 : 1,
     border.tier,
+    border.significance === 'AAA' ? 0 : 1,
     -border.members.length,
     border.kind === 'trench' ? 0 : 1,
     Math.min(...border.members.map(m => m.local?.centerRatio ?? 1)),
@@ -576,10 +577,11 @@ function weakerOf(a: CompositeBorder, b: CompositeBorder): CompositeBorder {
 /**
  * Class-aware spacing consolidation (operator doctrine 2026-07-22): the terrain maps the
  * handful of zones where MAJOR moves start and end. Any pair of zone dividers closer than
- * `aTierMinSpanPts` where at least one is A-class loses its weaker member — demoted to a
- * plain level (still structure, never deleted from `levels`). An AAA border always survives
- * against an A border; AAA pairs are exempt (balance-area structure is kept even when tight —
- * it only merges within `mergeTolerancePts`). Input must be price-descending.
+ * `aTierMinSpanPts` where at least one is A-class loses its weaker member per
+ * {@link borderRank} (tier outranks class, so a Tier-1 A border survives a Tier-2 AAA
+ * neighbor) — demoted to a plain level (still structure, never deleted from `levels`). AAA
+ * pairs are exempt (balance-area structure is kept even when tight — it only merges within
+ * `mergeTolerancePts`). Input must be price-descending.
  */
 function consolidateBorders(
   merged: CompositeBorder[],
@@ -595,8 +597,7 @@ function consolidateBorders(
       const lo = kept[i + 1]
       if (hi.price - lo.price >= params.aTierMinSpanPts) continue
       if (hi.significance === 'AAA' && lo.significance === 'AAA') continue
-      out =
-        hi.significance === 'AAA' ? lo : lo.significance === 'AAA' ? hi : weakerOf(hi, lo)
+      out = weakerOf(hi, lo)
       survivor = out === hi ? lo : hi
       break
     }

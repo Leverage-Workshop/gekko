@@ -609,10 +609,10 @@ describe('assembleTerrain — class-aware spacing consolidation', () => {
     expect(r.contiguityValid).toBe(true)
   })
 
-  it('an AAA border always survives a nearby A border', () => {
-    // Balance-area valley at 30340 (AAA, tier 1) sits 15 pts from the rotation trench at
-    // 30325… within merge tolerance they would merge; use 30360 → 35 pts, inside the span
-    // floor: the A trench at 30325 must demote, the AAA border must survive.
+  it('an AAA border survives a nearby A border of the same tier', () => {
+    // Balance-area valley at 30360 (AAA, tier 1) sits 35 pts from the tier-1 rotation trench
+    // at 30325 — inside the span floor. Tiers tie, so significance decides: the A trench
+    // demotes, the AAA border survives.
     const balance = buildProfile(
       [
         [30240, 30350, 1000],
@@ -636,6 +636,35 @@ describe('assembleTerrain — class-aware spacing consolidation', () => {
     expect(aaa!.significance).toBe('AAA')
     expect(r.borders.map(b => b.price)).not.toContain(30325)
     expect(r.demoted.map(d => d.price)).toContain(30325)
+  })
+
+  it('a Tier-1 A border survives a Tier-2 AAA neighbor (tier outranks class)', () => {
+    // Operator 2026-07-22: Week Open is a very important Tier-1 level — it must not lose its
+    // border to a nearby Tier-2 balance-area promotion. Same geometry as above, but the
+    // balance-area anchor is Tier-2 (PDH): the Tier-1 rotation trench at 30325 survives and
+    // the AAA Tier-2 border demotes.
+    const balance = buildProfile(
+      [
+        [30240, 30350, 1000],
+        [30370, 30460, 1000],
+      ],
+      30000,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 30360, label: 'PDH', tier: 2, code: 'pdh', group: 'daily' },
+      ]),
+    })
+    expect(r.borders.map(b => b.price)).toContain(30325)
+    const demotedAAA = r.demoted.find(d => d.price === 30360)
+    expect(demotedAAA).toBeDefined()
+    expect(demotedAAA!.significance).toBe('AAA')
   })
 
   it('keeps AAA borders even when they sit closer than the span floor', () => {
