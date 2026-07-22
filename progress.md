@@ -10,6 +10,30 @@ persistence (PR #75), the area-exit absorption exception (PR #74), the count-onl
 initiative gate (PR #73), the briefing entry anchoring fix (PR #72) and the sign-gate
 count fix (PR #71).
 
+**User-prompt consolidation (2026-07-22, follow-up to the restructure below).** Moved the
+static doctrine out of the user-message builders into the cached per-task prefixes, so each
+rule now has exactly one home: `EVAL_DECISION_LOGIC` + the verdict-structure block moved from
+`lib/eval/prompt.ts` into `knowledge/system/output-eval.md` (minus two sentences chart-reading/
+patterns already carry in the same prefix); `TACTICAL_LADDER_RULE` + the entry-priority and
+stop-placement rules moved from `lib/analyze/prompt.ts` into
+`knowledge/system/output-objective.md` (wording preserved verbatim); the "Target rungs" tail
+was collapsed to a pointer in both briefing builders. Only per-run rules remain in the user
+message: DISTINCT ANCHORS (live threshold), entry standoff (live price), campaign-boundary
+check, data edges, staleness. Verified two ways: (1) full suite green (726 tests; eval prompt
+tests retargeted to `loadDoctrine('eval')`); (2) live A/B dry-run against the real 2026-07-20
+bundle with all DB writes stubbed — origin/main prompts vs restructured prompts, same model
+(`x-ai/grok-4.20`), same bundle. Both runs produced doctrine-conformant briefings: one
+entry/stop per objective, full ladders, Campaign Boundary Override explicitly evaluated (both
+correctly declined it at 21 pts off the Week Open wall), same directional read (continuation
+short primary / fade long secondary). R/R gate warnings appear in BOTH runs (baseline primary
+0.35, new primary 0.86) — a property of the compressed engine map on this stale bundle, not
+the prompt change. One n=1 observation to watch: the new run's `macroGoal` texts named the
+campaign border while the entries sat on the adjacent contested border (validation passed;
+plausibly the contested-border rule at work, price was 1.25 pts off that border). Eval
+dry-run: correct `NO_ENTRY_NEAR` with the stale flag in the reason. Prefixes after the move:
+~28.4k (analyze) / ~28.1k (update) / ~28.8k (eval) chars — the eval user message shrank by
+the entire decision-logic block, now billed at cached rates instead of per run.
+
 **System-prompt restructure (2026-07-22).** Operator reviewed the trace extract
 (`docs/traces/analyze-task-2026-07-20/system-prompt.md`) and flagged the shared doctrine
 prefix as a Frankenstein: maintainer commentary, repo file paths, code comments, chat-Gem

@@ -374,6 +374,16 @@ describe('loadDoctrine', () => {
     expect(analyze).not.toContain('`BriefingUpdate`')
     expect(analyze).not.toContain('`EvalResult`')
 
+    // The entry/stop/ladder doctrine moved out of the user prompts into the
+    // Objective contract (2026-07-22) — both briefing-shaped prefixes carry it.
+    for (const task of ['analyze', 'update'] as const) {
+      const prefix = loadDoctrine(task)
+      expect(prefix).toContain('## Entry priority (trend direction)')
+      expect(prefix).toContain('## Stop placement')
+      expect(prefix).toContain('NEVER emit an Entry B')
+      expect(prefix).toContain('T1 → T2 → T3 ladder')
+    }
+
     const update = loadDoctrine('update')
     expect(update).toContain('`BriefingUpdate`')
     expect(update).toContain('# The `Objective` Contract')
