@@ -7,7 +7,7 @@ import type { evalTask } from '@/trigger/evalTask'
  *
  * Triggers exactly one `eval-task` run via the type-safe `tasks.trigger`
  * (requires TRIGGER_SECRET_KEY at runtime). No cron / schedules — evals run
- * only when the user presses the "Check Entry at Current Price" button.
+ * only when the user presses the "Eval" button in the entry-eval column.
  *
  * Auth decision: intentionally unauthenticated, same rationale as
  * /api/briefings/run — the app runs only on the user's local trading machine

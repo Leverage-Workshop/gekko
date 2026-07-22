@@ -6,13 +6,15 @@ import {
   type DashboardEvalRow,
 } from '@/lib/briefing'
 import { HighlightedText } from './highlighted-text'
+import { CheckEntryButton } from './trigger-run-button'
 
 /**
  * Latest Entry Eval column — the most actionable read on the page. Renders
  * column content only (no section chrome); the page composes it into the
  * left body column beside the tabbed briefing. A cell row carries the verdict
- * chip and the evaluated entry level (direction-colored like the objective
- * cards); the structured condition checks (schema `checks`, when present)
+ * chip, the evaluated entry level (direction-colored like the objective
+ * cards) and the accent "Eval" trigger button that runs the check; the
+ * structured condition checks (schema `checks`, when present)
  * render always visible below it as a table with per-condition notes, caution
  * and the reason summary. Pre-migration rows without checks degrade to the
  * reason prose. Stop / trigger / next-signal / targets are persisted but
@@ -162,12 +164,16 @@ export function EvalStrip({
 }) {
   if (evalResult === null) {
     return (
-      <div id="eval" className="border border-hairline bg-surface-soft px-5 py-3">
+      <div
+        id="eval"
+        className="flex flex-wrap items-center justify-between gap-4 border border-hairline bg-surface-soft px-5 py-3"
+      >
         <p className="text-sm font-light leading-relaxed text-muted">
           {unavailable
             ? 'Entry evals unavailable — the database could not be reached.'
-            : 'No entry evals yet — press Check Entry at Current Price above to run the first check against the active entry levels.'}
+            : 'No entry evals yet — press Eval to run the first check against the active entry levels.'}
         </p>
+        {!unavailable && <CheckEntryButton size="sm" />}
       </div>
     )
   }
@@ -189,7 +195,7 @@ export function EvalStrip({
   return (
     <div id="eval">
       <div
-        className={`grid gap-px border border-hairline border-t-2 ${statusStyle.accent} bg-hairline md:grid-cols-[1fr_auto]`}
+        className={`grid gap-px border border-hairline border-t-2 ${statusStyle.accent} bg-hairline md:grid-cols-[1fr_auto_auto]`}
       >
         <div className="flex items-center bg-surface-soft px-5 py-3">
           <p className="flex flex-wrap items-center gap-3">
@@ -227,6 +233,9 @@ export function EvalStrip({
           ) : (
             <p className="text-sm font-light text-muted">—</p>
           )}
+        </div>
+        <div className="flex items-center bg-surface-soft px-5 py-3">
+          <CheckEntryButton size="sm" />
         </div>
       </div>
 

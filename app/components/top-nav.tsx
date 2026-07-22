@@ -2,9 +2,9 @@ import type { ReactNode } from 'react'
 
 // DESIGN.md top-nav: 64px, canvas background, hairline base, nav-link items,
 // brand mark with the tricolor signature plus a muted Gekko-quote tagline
-// (hidden below lg to keep the bar uncrowded). The dashboard passes its
-// trigger buttons as `actions` (top-right); pages without actions fall back
-// to the Advisory Only wordmark.
+// (hidden below lg to keep the bar uncrowded). Pages may pass `actions`
+// (top-right); without them the bar falls back to the Advisory Only wordmark.
+// The dashboard's trigger buttons live in their sections, not here.
 const links = [
   { label: 'Eval', href: '/#eval' },
   { label: 'Settings', href: '/settings' },

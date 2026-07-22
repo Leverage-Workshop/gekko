@@ -3,7 +3,8 @@ import type { ComponentPropsWithoutRef } from 'react'
 // DESIGN.md buttons: rounded-none, uppercase, 14px / 700 / 1.5px tracking, 48px tall.
 // - primary  → solid bmw-blue fill, white label (the single brand-color CTA)
 // - outline  → transparent + white outline (the secondary action)
-type Variant = 'primary' | 'outline'
+// - accent   → transparent + bmw-blue outline/label (accent-toned secondary action)
+type Variant = 'primary' | 'outline' | 'accent'
 type Size = 'md' | 'sm'
 
 const base =
@@ -17,6 +18,7 @@ const sizes: Record<Size, string> = {
 const variants: Record<Variant, string> = {
   primary: 'bg-bmw-blue text-ink hover:bg-electric-blue',
   outline: 'border border-ink text-ink hover:bg-ink hover:text-canvas',
+  accent: 'border border-bmw-blue text-bmw-blue hover:bg-bmw-blue hover:text-ink',
 }
 
 type ButtonProps = ComponentPropsWithoutRef<'button'> & {
