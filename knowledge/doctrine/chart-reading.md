@@ -1,14 +1,15 @@
 # Chart Reading
 
-Doctrine the model reads for **perception and judgment only**. Computable rules referenced here are
-owned by the engine (`lib/engine/*`) and named at the point of use.
+Doctrine for **perception and judgment only**. Anything computable — node prices, tiering, the
+Rip condition, absorption candidates, the zone stack — arrives as engine facts in the user
+message: read it, never re-derive it.
 
 ## Intelligence feeds and their purpose
 
 ### 1. Static MGI data (`mgi_static_levels.json`)
 The unmoving macro coordinate system — campaign boundaries and volatility expectations.
 - Current time and current price.
-- Daily, Weekly, Monthly MGI levels (see `doctrine/glossary.md`).
+- Daily, Weekly, Monthly MGI levels (see the MGI Glossary).
 - The **Rip (Rolling Pivot)** — the primary structural anchor for the session's range.
 - ATR (Average True Range).
 - VRange boundaries (volatility-based expected move).
@@ -19,8 +20,8 @@ initiative.
 - Timestamp + OHLC.
 - **Leg VWAP** — micro-trend baseline (Tier 3; micro-timing only).
 - **Delta Intensity** — infantry aggression on a −4…+4 scale (negative = red/selling, positive =
-  blue/buying; the extremes are the strongest readings). The compact reduction the model receives is
-  produced by `lib/engine/deltaTelemetry.ts`.
+  blue/buying; the extremes are the strongest readings). You receive a compact engine-computed
+  reduction of this feed.
 
 ### 3. HTF Planning Chart (30 min, 90 day)
 Major acceptance zones (HVNs), void zones (LVNs between acceptance), composite edges.
@@ -42,7 +43,7 @@ initiative flips at the exact point of contact.
 
 1. **MGI JSON — the coordinate system.** Establish the static daily/weekly/monthly framework and the
    **Rip**. Weigh current price against OR, ONH/ONL, and prior-period VWAPs to fix macro positioning.
-   (Level tiering/priority is computed in `lib/engine/mgiPriority.ts`.)
+   (Level tiering and priority arrive computed in the engine facts.)
 2. **HTF & TPO charts — the terrain map.** Identify current position in HTF structure; define
    Acceptance Borders (LVNs), looking for **Trenches (Valley + MGI)** or **Walls (Shelf + MGI)**.
    - **Execute the Magnet Check.** If an MGI level sits in the center of thick volume, it is a
@@ -50,13 +51,18 @@ initiative flips at the exact point of contact.
    - LVN/HVN nodes and POC/value-area summaries come per volume profile: the **400-pt rotation**
      (medium-term) and the **balance-area** (long-term). A **Balance Area** begins when two days
      of overlapping value occur and expands while subsequent days keep overlapping value, with
-     exceptions for a peak above/below the balance. A node on the balance-area profile is
-     structurally **more significant** than the same node on the rotation profile. The terrain
-     zone stack is anchored to the rotation profile; the magnet set is anchored to the
-     balance-area profile. Anchors beyond the rotation profile's data range (e.g. the structural
-     floor when price sits at the session low) are classified against the balance-area profile;
-     MGI levels that stay unpromoted still partition extension voids as **MGI composite edges**.
-     A border at a bare profile **data edge** is a data artifact, never structure — no entries,
+     exceptions for a peak above/below the balance. Fewer levels resolve on the balance-area
+     profile — more volume has transacted, so it is often a blob — but the ones that do are the
+     **most important structure on the map**: a balance-area promotion is **AAA**, a
+     rotation-only promotion is **A** (like PM-H vs PW-H — both matter, the senior one more).
+     A zone border requires **confluence**: an MGI level (or cluster) coinciding with volume
+     structure on either profile. Clustered MGI merging into one composite band makes that band
+     MORE significant. A bare MGI with no volume confluence is **never a border** — MGI in the
+     middle of a void is a waypoint for target rungs, not a partition. The zone stack keeps only
+     campaign-scale dividers: crowded rotation-grade borders consolidate to the strongest of the
+     neighborhood (the rest remain levels), because the terrain maps where MAJOR moves start and
+     end, not every micro rotation. The magnet set is anchored to the balance-area profile. A
+     border at a bare profile **data edge** is a data artifact, never structure — no entries,
      stops or targets there.
 3. **Execution CSV — raw telemetry.** Read infantry aggression (Delta Intensity) and micro-momentum
    (Leg VWAP). Leg VWAP is strictly micro-timing; HTF MGI wins unequivocally on any conflict.
@@ -64,21 +70,17 @@ initiative flips at the exact point of contact.
    (clustered delta)** or **Exhaustion (tapered delta)** where the delta profiles meet the HTF
    borders from step 2.
    - The engine scans the half- and full-rotation delta exports for stacks of one-sided bins and
-     reports them as **absorption candidates** (thresholds owned by `lib/engine/absorption.ts`).
-     A stack by itself means nothing: call absorption only where the execution chart shows price
-     **stalled** at the stack; otherwise discard the candidate.
+     reports them as **absorption candidates**. A stack by itself means nothing: call absorption
+     only where the execution chart shows price **stalled** at the stack; otherwise discard the
+     candidate.
 5. **Synthesize — the Law of Asymmetric Initiative.** If the terrain offers a valid setup for both
    fronts, the Primary Objective is awarded to the front aligned with the HTF trend. Ensure the final
-   objective (T3) is a Shelf or Valley, never a Magnet. (Asymmetric Initiative + Campaign Boundary
-   Override is a hard constraint — see `system/constraints.md`.)
+   objective (T3) is a Shelf or Valley, never a Magnet. (Asymmetric Initiative + the Campaign
+   Boundary Override are hard constraints.)
 
 **Conflict protocol:** if micro-telemetry (CSV/Execution) conflicts with macro-structure (HTF/JSON),
 **macro terrain wins**. Initiative without structural advantage is a meat grinder — we only fight at
 the borders.
-
-> The old "Intelligence Processing Sequence" is no longer a prompt waypoint list — it is the
-> `analyze-task` orchestration in code (engine steps first, then one model call). The reading rules
-> above remain for perception.
 
 ## The Terrain Model (foundation of everything)
 
@@ -141,9 +143,8 @@ structural exhaustion point (Shelf) or a liquidity void (Valley).
 
 ### The Vanguard Protocol (Rip / Rolling Pivot)
 The Rip overrides standard mean-reversion impulses in trending environments — always consult it
-before engaging. The **Green / Yellow / Red condition is resolved by `lib/engine/ripStatus.ts`** from
-price-vs-Rip and Delta Intensity; read the resolved condition rather than reclassifying raw numbers.
-Tactical meaning of each:
+before engaging. The **Green / Yellow / Red condition arrives resolved in the engine facts** — read
+it rather than reclassifying raw numbers. Tactical meaning of each:
 
 - **Green (trend intact)** — price above the Rip; pullbacks into the Rip are defensive lines. Expect
   blue defense; look for rebids to enter continuation longs. DO NOT FADE.
@@ -161,7 +162,7 @@ Before authorizing any entry, confirm alignment:
 - **Telemetry** — initiative confirmed via CSV (Delta Intensity aligning with the border)?
 - **Visual** — absorption / exhaustion / failed breakout confirmed on the Execution Chart?
 - **Risk** — clear invalidation point for the stop behind structure?
-- **Reward** — the R/R gate (computed by `riskReward.ts`) is met to the next target.
+- **Reward** — the engine-computed R/R gate is met to the next target.
 
 ## Tactical fusion (telemetry + visuals)
 
@@ -184,8 +185,9 @@ absorption, as the response (rebid/reoffer, initiative flip).
 - **Tester entries** — only at a major level with immediate invalidation, or on retest of broken
   structure showing a failed reclaim. Never just to avoid missing a move, never without structural
   context.
-- **Stops** — initial placement behind structural invalidation. Movement is engine-gated (stops never
-  widen — see `riskReward.ts` / `system/constraints.md`); only tighten on VWAP flip in favor, failed
-  breakout behind position, POC/shelf now protecting, or a delta trap behind position.
-- **Detachment protocol** — once entry, structural stop, and targets are defined: "Structure defined,
-  stops set, targets clear. Step away and let the plan execute. Check back at [time/level]."
+- **Stops** — initial placement behind structural invalidation. Stops never widen (see
+  Constraints); only tighten on VWAP flip in favor, failed breakout behind position, POC/shelf now
+  protecting, or a delta trap behind position.
+- **Detachment** — once entry, structural stop, and targets are defined, the plan executes without
+  renegotiation. Frame triggers and cautions so the operator can step away: structure defined,
+  stops set, targets clear.

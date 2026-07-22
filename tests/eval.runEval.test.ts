@@ -8,6 +8,7 @@ import type {
   EvalResultInsert,
 } from '@/lib/eval'
 import { EvalInputError, runEval } from '@/lib/eval'
+import { loadDoctrine } from '@/lib/analyze'
 import type { GenerateStructuredResult } from '@/lib/llm'
 
 const execCsvContent = readFileSync(
@@ -189,7 +190,7 @@ describe('runEval', () => {
     expect(captured.telemetry).toEqual({ functionId: 'eval-task' })
     expect(captured.cacheSystem).toBe(true)
     expect(captured.images).toHaveLength(1)
-    expect(captured.prompt).toContain('# Eval decision logic (doctrine)')
+    expect(captured.prompt).toContain('# Data ownership (non-negotiable)')
     expect(captured.prompt).toContain('# Active entry levels (from the prior briefing)')
     expect(captured.prompt).toContain('# Delta telemetry')
     expect(captured.prompt).toContain(`meta.currentPrice = ${CURRENT_PRICE}`)
@@ -198,18 +199,17 @@ describe('runEval', () => {
     expect(captured.prompt).toContain('Image 1: HTF planning chart')
   })
 
-  it('teaches aggressor-color absorption and demotes retest/reclaim from gate', async () => {
+  it('teaches aggressor-color absorption and demotes retest/reclaim from gate', () => {
     // Operator doctrine (2026-07-16): a falling market absorbs RED at support
     // (blue comes after, as continuation), and a retest/reclaim strengthens
-    // conviction but never blocks an otherwise-confirmed entry.
-    const harness = makeDeps()
-    await runEval(harness.deps)
-    const prompt = harness.getCaptured()!.prompt
+    // conviction but never blocks an otherwise-confirmed entry. The decision
+    // logic lives in the cached eval prefix, not the user message.
+    const doctrine = loadDoctrine('eval')
 
-    expect(prompt).toContain("Absorption prints in the AGGRESSOR's color")
-    expect(prompt).toContain('Red aggression absorbed at the border, then blue continuation')
-    expect(prompt).toContain('NEVER a gate')
-    expect(prompt).not.toContain('waiting for retest → WAIT')
+    expect(doctrine).toContain("Absorption prints in the AGGRESSOR's color")
+    expect(doctrine).toContain('Red aggression absorbed at the border, then blue continuation')
+    expect(doctrine).toContain('NEVER a gate')
+    expect(doctrine).not.toContain('waiting for retest → WAIT')
   })
 
   it('feeds the code-owned absorption scan and the recent bar sequence to the model', async () => {
@@ -229,27 +229,28 @@ describe('runEval', () => {
     expect(prompt).toContain('21:52:00,29920.04,29949,29920.04,29945.75,3')
   })
 
-  it('teaches sequence-first initiative and absorption-alone checks', async () => {
+  it('teaches sequence-first initiative and absorption-alone checks', () => {
     // Operator doctrine (2026-07-18): the window mean is guaranteed to carry
     // the flush color right when an absorption entry confirms, and demanding
-    // continuation makes the Absorption check unpassable in real time.
-    const harness = makeDeps()
-    await runEval(harness.deps)
-    const prompt = harness.getCaptured()!.prompt
+    // continuation makes the Absorption check unpassable in real time. The
+    // decision logic lives in the cached eval prefix, not the user message.
+    const doctrine = loadDoctrine('eval')
 
-    expect(prompt).toContain('verify initiative from the recent bar SEQUENCE')
-    expect(prompt).toContain('Absorption at the border ALONE satisfies an Absorption check')
-    expect(prompt).not.toContain('If the sign contradicts the direction, do not ENTER')
+    expect(doctrine).toContain('verify initiative from the recent bar SEQUENCE')
+    expect(doctrine).toContain('Absorption at the border ALONE satisfies an Absorption check')
+    expect(doctrine).not.toContain('If the sign contradicts the direction, do not ENTER')
   })
 
   it('never shows the eval model the Leg VWAP and forbids it as a check', async () => {
     // Leg VWAP is Tier-3 micro-timing the operator does not trade off; fed to
     // the eval it produced always-fail "momentum" conditions on reversal entries.
+    // The check ban lives in the cached eval prefix; the telemetry projection
+    // in the user message must not leak the legVwap field.
     const harness = makeDeps()
     await runEval(harness.deps)
     const prompt = harness.getCaptured()!.prompt
 
-    expect(prompt).toContain('Never use Leg VWAP as a check')
+    expect(loadDoctrine('eval')).toContain('Never use Leg VWAP as a check')
     expect(prompt).not.toContain('legVwap')
     expect(prompt).toContain('recentMeanDelta')
   })

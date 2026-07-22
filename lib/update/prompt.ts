@@ -2,8 +2,7 @@ import type { Briefing } from '@/knowledge/schema/briefing.schema'
 import type { ChartAttachment, EngineFacts } from '@/lib/analyze'
 import { engineZoneBorders } from '@/lib/analyze'
 import {
-  ENTRY_STOP_DOCTRINE_RULES,
-  TACTICAL_LADDER_RULE,
+  DISTINCT_ANCHORS_RULE,
   campaignBoundaryRule,
   chartManifest,
   dataEdgeRule,
@@ -64,10 +63,9 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     '- `absorptionCandidates` are code-detected stacks of one-sided bins on the execution delta profiles. They are CANDIDATES ONLY — call absorption only where the execution chart shows price STALLED at the stack; otherwise ignore the candidate.',
     `- The CURRENT engine zone borders are: ${borders.join(', ')}. If these disagree with the previous briefing's terrain, the engine is right — flag the drift in the relevant rationale.`,
     `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly from your chosen entry/stop/T1. The R/R gate is ${input.rrMin}:1 — do not propose objectives that cannot clear it.`,
-    '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band and pick entry/stop prices from its member levels. A composite of kind `mgi` is an MGI COMPOSITE EDGE: Tier-1/session levels partitioning a void beyond the anchoring profile\'s data — a valid border band for entries, stops and targets like any other.',
-    '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Target rungs: T1 = the first obstacle / immediate S/R (any engine level qualifies), T2 = the next acceptance border, T3 (Campaign Max) = the full traverse of the HTF distribution. T3 must land on a Trench or Wall at the NEAR edge of the void being traversed — never a Magnet, and never a level that can only be reached by crossing a second void.',
-    TACTICAL_LADDER_RULE,
-    ...ENTRY_STOP_DOCTRINE_RULES,
+    '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure (the senior long-term read), A = rotation structure. `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',
+    '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Entry priority, stop placement and the T1 -> T2 -> T3 target ladder follow the Objective contract in the system prompt.',
+    DISTINCT_ANCHORS_RULE,
     ...[dataEdgeRule(facts)].filter(Boolean),
     ...[campaignBoundaryRule(facts)].filter(Boolean),
     '- Read the attached screenshots ONLY for perception the numeric data cannot give: absorption vs exhaustion shape, TPO single prints / poor highs-lows, delta clustering quality, and the doctrine patterns.',

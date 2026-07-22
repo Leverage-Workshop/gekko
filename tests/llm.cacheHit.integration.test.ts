@@ -40,7 +40,7 @@ describe.skipIf(!hasKey)('prompt cache read-back (live OpenRouter)', () => {
     'reports cachedInputTokens > 0 on the second identical call',
     { timeout: 180_000 },
     async () => {
-      const system = loadDoctrine()
+      const system = loadDoctrine('analyze')
       const params = {
         model: DEFAULT_MODEL_ID,
         schema: Out,

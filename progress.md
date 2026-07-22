@@ -2,12 +2,93 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-20
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **contested-
-border entry doctrine** (PR #77) + entry standoff relaxed to 1 pt (PR #76), on top of eval
-warnings persistence (PR #75), the area-exit absorption exception (PR #74), the count-only
+**Last Updated:** 2026-07-22
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **system-prompt
+restructure** (branch `claude/system-prompt-review-qu0u43`), on top of contested-border
+entry doctrine (PR #77) + entry standoff relaxed to 1 pt (PR #76), eval warnings
+persistence (PR #75), the area-exit absorption exception (PR #74), the count-only
 initiative gate (PR #73), the briefing entry anchoring fix (PR #72) and the sign-gate
 count fix (PR #71).
+
+**Terrain rework: campaign-scale zones (2026-07-22, operator doctrine).** Operator reviewed
+the 07-20 trace terrain: 16 zones (four consecutive slices all labeled "Lower Kill Box
+(void)", slivers to 22 pts) where doctrine expects ~5-6 — the map should divide the chart
+into the zones where MAJOR moves start/end, not every micro rotation. Root causes: the
+feat-040 G1 "void-splitter" rule promoted every unpromoted daily/Tier-1 MGI outside the
+rotation profile's range to a zone border (10 of the 16 zones were bare-MGI slices of one
+traversal), and recall-favoring session-level promotion crowded borders 17-56 pts apart.
+Operator doctrine corrections: (1) bare MGI in a void is NEVER a border — a border needs
+MGI + volume confluence; (2) MGI clusters merge into one composite band and clustering
+RAISES significance; (3) the balance-area profile is the SENIOR read — classify anchors
+against BOTH profiles, balance-area promotion = AAA, rotation-only = A (like PM-H vs PW-H);
+OR Mid is tier 2, Week Open tier 1 (already so in mgiPriority.ts). Implemented in
+`terrainZones.ts`: dual-profile `classifyBorder` (senior profile decides when decisive —
+hard promotion or Magnet invalidation; rotation fills in otherwise), void-splitters retired
+(waypoints stay in `levels` for rungs), `CompositeBorder` gains significance/tier, new
+class-aware consolidation (`aTierMinSpanPts` = 60: the weaker of an A-involved pair closer
+than the floor demotes to a level, recorded in `terrain.demoted`; AAA pairs exempt), zone
+volumeClass reads the balance-area profile where rotation has no coverage, data edges track
+COMBINED coverage with a sliver guard at campaign extremes. Prompts + chart-reading.md
+updated (AAA/A significance, `terrain.demoted`, MGI-composite-edge border language removed).
+Results: 07-20 live bundle 11 zones → **5** (all-AAA borders: Monthly VWAP, VRange+3/PDH,
+OR Mid, PDC); 07-18 fixture 10 → 7 keeping the Gem's PDL/VRange−2 foundation shelf (AAA)
+and demoting exactly the confetti (OR Low, PDH, PDC); 07-14 fixture → 7, IBH/IBL kept. Live
+no-persist analyze on the new map: entry separation 20 → 37.75 pts, primary R/R 0.35
+(pre-restructure) → 1.94, T3 now traverses the full 382-pt void to the campaign floor.
+Judgment call surfaced and RESOLVED by operator same session: consolidation ranking is now
+tier-FIRST (then significance class) — a Tier-1 A border survives a Tier-2 AAA neighbor, so
+the live Kill Box floor is the tier-1 Week Open / 24 VWAP band (28747.75), with PDC/PDL
+demoted to levels. Gem fixture maps unchanged by the reorder. 733 tests green (7 new;
+gem-comparison zone-count guard now 5-8 with anti-confetti ceiling). Branch merged to main
+via squash PR.
+
+**User-prompt consolidation (2026-07-22, follow-up to the restructure below).** Moved the
+static doctrine out of the user-message builders into the cached per-task prefixes, so each
+rule now has exactly one home: `EVAL_DECISION_LOGIC` + the verdict-structure block moved from
+`lib/eval/prompt.ts` into `knowledge/system/output-eval.md` (minus two sentences chart-reading/
+patterns already carry in the same prefix); `TACTICAL_LADDER_RULE` + the entry-priority and
+stop-placement rules moved from `lib/analyze/prompt.ts` into
+`knowledge/system/output-objective.md` (wording preserved verbatim); the "Target rungs" tail
+was collapsed to a pointer in both briefing builders. Only per-run rules remain in the user
+message: DISTINCT ANCHORS (live threshold), entry standoff (live price), campaign-boundary
+check, data edges, staleness. Verified two ways: (1) full suite green (726 tests; eval prompt
+tests retargeted to `loadDoctrine('eval')`); (2) live A/B dry-run against the real 2026-07-20
+bundle with all DB writes stubbed — origin/main prompts vs restructured prompts, same model
+(`x-ai/grok-4.20`), same bundle. Both runs produced doctrine-conformant briefings: one
+entry/stop per objective, full ladders, Campaign Boundary Override explicitly evaluated (both
+correctly declined it at 21 pts off the Week Open wall), same directional read (continuation
+short primary / fade long secondary). R/R gate warnings appear in BOTH runs (baseline primary
+0.35, new primary 0.86) — a property of the compressed engine map on this stale bundle, not
+the prompt change. One n=1 observation to watch: the new run's `macroGoal` texts named the
+campaign border while the entries sat on the adjacent contested border (validation passed;
+plausibly the contested-border rule at work, price was 1.25 pts off that border). Eval
+dry-run: correct `NO_ENTRY_NEAR` with the stale flag in the reason. Prefixes after the move:
+~28.4k (analyze) / ~28.1k (update) / ~28.8k (eval) chars — the eval user message shrank by
+the entire decision-logic block, now billed at cached rates instead of per run.
+
+**System-prompt restructure (2026-07-22).** Operator reviewed the trace extract
+(`docs/traces/analyze-task-2026-07-20/system-prompt.md`) and flagged the shared doctrine
+prefix as a Frankenstein: maintainer commentary, repo file paths, code comments, chat-Gem
+vestiges and all three output contracts shipped to every task. Restructure:
+(1) `loadDoctrine(task)` now assembles a per-task prefix — `output-schema.md` split into
+`output-briefing.md` / `output-update.md` / `output-eval.md` + shared
+`output-objective.md` (analyze/update only), so eval-only gate prose no longer leaks into
+analyze runs (each prefix still run-stable → prompt cache unaffected, asserted by a new
+determinism test). (2) Model-facing knowledge files stripped of maintainer content — file
+paths, feat-refs, changelog notes, the "unwired stop gap" aside, drift-guard commentary —
+now guarded by a new no-repo-paths test in `tests/knowledge-restructure.test.ts`; the
+maintainer half (module ownership map, Zod-wins note, assembly table) moved to
+`docs/engine-ownership.md`, which the feat-032 drift guard now targets instead of
+constraints.md. (3) Chat-era vestiges removed: discipline-enforcement reply scripts,
+markdown-formatting UX rules, phrasing templates recast as narration guidance for JSON
+prose fields. (4) Un-observable instructions dropped (VIX, news calendar, options/dark
+pool) and the two doctrine "DOM" references replaced with delta-telemetry cues — the eval
+prompt explicitly bans citing the DOM while patterns.md told the model to look for a "DOM
+shift". (5) Balance-Area definition deduped: doctrine keeps it, the analyze user prompt
+now references it. Prefixes: old shared ~32.8k chars for every task; new ~27.3k (analyze) /
+~27.1k (update) / ~25.5k (eval). Also fixed: the prose `EvalResult` had drifted from the
+Zod contract (missing `checks`/`nextSignal`/`caution`) — the trace doc under `docs/traces/`
+is left as a historical record. 726 tests green (48 files); `./init.sh` passes end-to-end.
 
 **Count-only initiative gate (2026-07-20, PR #73, commit `0375c41`).** Operator report: a
 check-eval showed all five checks pass but verdict WAIT. Diagnosis: the model returned ENTER

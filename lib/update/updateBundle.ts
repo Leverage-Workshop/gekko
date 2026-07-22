@@ -9,7 +9,7 @@ import {
   loadLatestBundle,
   persistBriefing,
 } from '@/lib/analyze'
-import type { LoadBundleDeps, PersistDeps } from '@/lib/analyze'
+import type { DoctrineTask, LoadBundleDeps, PersistDeps } from '@/lib/analyze'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult } from '@/lib/llm'
@@ -58,7 +58,7 @@ export interface UpdateDeps extends LoadBundleDeps, PersistDeps {
     telemetry?: { functionId: string }
   }) => Promise<GenerateStructuredResult<BriefingUpdate>>
   /** Doctrine loader; injectable for tests. */
-  loadDoctrine?: () => string
+  loadDoctrine?: (task: DoctrineTask) => string
   /** Clock; injectable for tests. */
   now?: () => Date
 }
@@ -139,7 +139,7 @@ export async function runUpdate(
   const generate = deps.generate ?? generateStructured
   const result = await generate({
     model: modelId,
-    system: (deps.loadDoctrine ?? loadDoctrine)(),
+    system: (deps.loadDoctrine ?? loadDoctrine)('update'),
     cacheSystem: true,
     prompt: buildUpdatePrompt({
       triggerReason: options.triggerReason,

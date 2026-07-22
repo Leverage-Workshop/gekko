@@ -57,6 +57,14 @@ describe('2026-07-18 bundle — price at the session low (G1/G2/G4)', () => {
     expect(facts.terrain.issues).toEqual([])
   })
 
+  it('never mints a bare-MGI zone border (2026-07-22 doctrine)', () => {
+    // Every zone divider is volume-verified Trench/Wall structure; unpromoted MGI
+    // coordinates stay in `levels` as waypoints and target rungs.
+    for (const border of facts.terrain.borders) {
+      expect(['trench', 'wall']).toContain(border.kind)
+    }
+  })
+
   it('prompts the Campaign Boundary Override check near the Tier-1 floor', () => {
     expect(campaignBoundaryRule(facts)).toContain('CAMPAIGN BOUNDARY CHECK')
     const prompt = buildAnalysisPrompt({
@@ -87,7 +95,20 @@ describe('2026-07-14 bundle — mid-range session (F1–F5 must not regress)', (
     }
   })
 
-  it('keeps at least the 8-zone resolution of the tuned map', () => {
-    expect(facts.terrain.zones.length).toBeGreaterThanOrEqual(8)
+  it('maps the theater in campaign-scale zones, not micro slices (2026-07-22 doctrine)', () => {
+    // The terrain divides the chart into the handful of zones where MAJOR moves start and
+    // end (operator: ~5-6). The pre-consolidation map carried 8+ zones of session-level
+    // confetti; the ceiling here is the anti-confetti guard.
+    expect(facts.terrain.zones.length).toBeGreaterThanOrEqual(5)
+    expect(facts.terrain.zones.length).toBeLessThanOrEqual(8)
+  })
+
+  it('consolidates crowded session borders instead of stacking micro zones', () => {
+    // Borders are all volume-verified structure with AAA/A significance; anything demoted
+    // by the span floor stays available as a level.
+    for (const border of facts.terrain.borders) {
+      expect(['trench', 'wall']).toContain(border.kind)
+      expect(['AAA', 'A']).toContain(border.significance)
+    }
   })
 })

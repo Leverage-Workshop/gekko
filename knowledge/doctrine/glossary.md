@@ -1,9 +1,8 @@
 # MGI Glossary
 
-Human-readable reference for the MGI level codes. This file is **definitions only** — the level
-**tiering and daily priority ordering are computed** in `lib/engine/mgiPriority.ts` (Tier 1/2/3
-hierarchy, daily priority sort, nearest Tier-1 border above/below). Do not restate the ranking as a
-prose rule; read it from the engine.
+Reference for the MGI level codes — **definitions only**. The level tiering and daily priority
+ordering (Tier 1/2/3 hierarchy, daily priority sort, nearest Tier-1 border above/below) arrive
+computed in the engine facts; read the ranking from there, never re-derive it.
 
 ## Daily MGI Glossary
 
@@ -54,14 +53,14 @@ prose rule; read it from the engine.
 | PM-Op             | Prior Month Open           | Previous month's open         |
 | mVWAP             | Monthly VWAP               | Current month's VWAP          |
 
-## Tiering & priority — see the engine
+## Tiering & priority
 
-The **Daily MGI Priority Order** and the **Structural Hierarchy Rule** (Tier 1 Campaign Borders /
-Tier 2 Intraday Direction / Tier 3 Micro-Timing) are not prose doctrine — they are computed
-deterministically in `lib/engine/mgiPriority.ts`. The qualitative takeaways the model still needs:
+The Daily MGI Priority Order and the Structural Hierarchy (Tier 1 Campaign Borders / Tier 2
+Intraday Direction / Tier 3 Micro-Timing) arrive computed in the engine facts. The qualitative
+takeaways:
 
 - **Macro terrain overrides the micro skirmish** — Tier-1 HTF MGI (Weekly/Monthly levels, VRange
   extremes, major composite edges, ONH/ONL) strictly dictate Primary/Secondary planning, targets,
   and hard invalidations. Weekly Open is a very strong magnet.
-- **Leg VWAP is Tier 3** and may never be a primary structural target, an Entry A/B border, or a hard
-  stop (see `system/constraints.md`).
+- **Leg VWAP is Tier 3** and may never be a primary structural target, an entry border, or a hard
+  stop (see Constraints).

@@ -1,5 +1,6 @@
 import { EvalResult } from '@/knowledge/schema/briefing.schema'
 import { loadDoctrine } from '@/lib/analyze/doctrine'
+import type { DoctrineTask } from '@/lib/analyze/doctrine'
 import type { LoadBundleDeps } from '@/lib/analyze/loadBundle'
 import { loadLatestBundle } from '@/lib/analyze/loadBundle'
 import type { AbsorptionScanResult, DeltaProfileRow } from '@/lib/engine/absorption'
@@ -102,7 +103,7 @@ export interface EvalDeps extends LoadBundleDeps, PersistEvalDeps {
     telemetry?: { functionId: string }
   }) => Promise<GenerateStructuredResult<EvalResult>>
   /** Doctrine loader; injectable for tests. */
-  loadDoctrine?: () => string
+  loadDoctrine?: (task: DoctrineTask) => string
   /** Clock; injectable for tests. */
   now?: () => Date
 }
@@ -227,7 +228,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
   const generate = deps.generate ?? generateStructured
   const generated = await generate({
     model: modelId,
-    system: (deps.loadDoctrine ?? loadDoctrine)(),
+    system: (deps.loadDoctrine ?? loadDoctrine)('eval'),
     cacheSystem: true,
     prompt: buildEvalPrompt({
       now: nowIso,

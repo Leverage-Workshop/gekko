@@ -360,10 +360,45 @@ describe('runAnalysis', () => {
 
 describe('loadDoctrine', () => {
   it('assembles the persona, constraints and doctrine files', () => {
-    const doctrine = loadDoctrine()
+    const doctrine = loadDoctrine('analyze')
     expect(doctrine).toContain('Gekko')
     expect(doctrine).toContain('Magnet Prohibition')
     expect(doctrine).toContain('# Chart Reading')
     expect(doctrine).toContain('# MGI Glossary')
+  })
+
+  it('gives each task only its own output contract', () => {
+    const analyze = loadDoctrine('analyze')
+    expect(analyze).toContain('`Briefing`')
+    expect(analyze).toContain('# The `Objective` Contract')
+    expect(analyze).not.toContain('`BriefingUpdate`')
+    expect(analyze).not.toContain('`EvalResult`')
+
+    // The entry/stop/ladder doctrine moved out of the user prompts into the
+    // Objective contract (2026-07-22) — both briefing-shaped prefixes carry it.
+    for (const task of ['analyze', 'update'] as const) {
+      const prefix = loadDoctrine(task)
+      expect(prefix).toContain('## Entry priority (trend direction)')
+      expect(prefix).toContain('## Stop placement')
+      expect(prefix).toContain('NEVER emit an Entry B')
+      expect(prefix).toContain('T1 → T2 → T3 ladder')
+    }
+
+    const update = loadDoctrine('update')
+    expect(update).toContain('`BriefingUpdate`')
+    expect(update).toContain('# The `Objective` Contract')
+    expect(update).not.toContain('# Output Contract — `Briefing`\n')
+    expect(update).not.toContain('`EvalResult`')
+
+    const evalDoctrine = loadDoctrine('eval')
+    expect(evalDoctrine).toContain('`EvalResult`')
+    expect(evalDoctrine).not.toContain('`BriefingUpdate`')
+    expect(evalDoctrine).not.toContain('# The `Objective` Contract')
+  })
+
+  it('keeps each per-task prefix deterministic (prompt-cache stability)', () => {
+    expect(loadDoctrine('analyze')).toBe(loadDoctrine('analyze'))
+    expect(loadDoctrine('update')).toBe(loadDoctrine('update'))
+    expect(loadDoctrine('eval')).toBe(loadDoctrine('eval'))
   })
 })
