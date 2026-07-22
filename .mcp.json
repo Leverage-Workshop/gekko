@@ -13,7 +13,10 @@
     },
     "langsmith": {
       "type": "http",
-      "url": "https://api.smith.langchain.com/mcp"
+      "url": "https://api.smith.langchain.com/mcp",
+      "headers": {
+        "X-API-Key": "${LANGSMITH_API_KEY}"
+      }
     }
   }
 }
