@@ -17,11 +17,7 @@ import { EvalStrip } from './components/eval-strip'
 import { Footer } from './components/footer'
 import { HighlightedText } from './components/highlighted-text'
 import { MStripe } from './components/m-stripe'
-import {
-  CheckEntryButton,
-  RunBriefingButton,
-  RunUpdateButton,
-} from './components/trigger-run-button'
+import { RunBriefingButton, RunUpdateButton } from './components/trigger-run-button'
 import { TopNav } from './components/top-nav'
 import { UpdateGlow } from './components/update-glow'
 
@@ -33,8 +29,9 @@ import { UpdateGlow } from './components/update-glow'
  * an expander) above two equal body columns (left = EvalStrip: verdict +
  * targets with the condition checks always visible; right = the tabbed
  * briefing: objective cards, tactical overview, danger zones). The trigger
- * buttons ("Run Briefing" feat-020, "Run Update" feat-038, "Check Entry"
- * feat-025) live in the top-right of the nav. Update briefings additionally
+ * buttons live in the sections they act on: "Briefing" (feat-020) and
+ * "Update" (feat-038) at the top of the Objectives pane, "Eval" (feat-025)
+ * inside the EvalStrip. Update briefings additionally
  * carry an UPDATE chip and an Immediate Tactical Read strip.
  */
 
@@ -370,15 +367,7 @@ export default async function Home() {
 
   return (
     <>
-      <TopNav
-        actions={
-          <>
-            <CheckEntryButton size="sm" />
-            <RunUpdateButton size="sm" />
-            <RunBriefingButton size="sm" />
-          </>
-        }
-      />
+      <TopNav />
       {/* Full-width tricolor divider between the header and the meta row,
           mirroring the footer's stripe. */}
       <MStripe />
@@ -436,6 +425,10 @@ export default async function Home() {
                     <BriefingTabs
                       objectives={
                         <div className="flex flex-col gap-6">
+                          <div className="flex items-center justify-end gap-3">
+                            <RunUpdateButton size="sm" />
+                            <RunBriefingButton size="sm" />
+                          </div>
                           <ObjectiveCard
                             heading="I · Primary Objective"
                             objective={payload.primary}
@@ -466,10 +459,13 @@ export default async function Home() {
                       No Briefing Yet
                     </h2>
                     <p className="mt-4 text-sm font-light leading-relaxed text-body">
-                      Once Sierra Chart bundles are flowing, press Run Briefing (top right) to
-                      produce the first tactical read. The objectives, execution chart, and tactical
-                      overview render here.
+                      Once Sierra Chart bundles are flowing, press Briefing to produce the first
+                      tactical read. The objectives, execution chart, and tactical overview render
+                      here.
                     </p>
+                    <div className="mt-6 flex justify-center">
+                      <RunBriefingButton size="sm" />
+                    </div>
                   </div>
                 </div>
               </section>

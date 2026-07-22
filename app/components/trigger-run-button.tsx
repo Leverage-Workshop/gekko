@@ -11,12 +11,15 @@ import { Button } from './button'
  * via Realtime (`useRealtimeRun` with the run-scoped public access token the
  * route returns) and calls `router.refresh()` the moment the run completes —
  * no manual reload needed. Styling per DESIGN.md — bmw-blue primary CTA (or
- * outline secondary), m-red reserved for the failure callout. The status line
- * is a polite live region so screen readers hear each phase change.
+ * bmw-blue accent outline), m-red reserved for the failure callout. The status
+ * line is a polite live region so screen readers hear each phase change.
  *
- * - "Run Briefing" (feat-020) → POST /api/briefings/run → analyze-task
- * - "Run Update" (feat-038) → POST /api/briefings/update → update-task
- * - "Check Entry at Current Price" (feat-025) → POST /api/eval/run → eval-task
+ * The buttons live inside the sections they act on: "Briefing" and "Update"
+ * in the Objectives pane, "Eval" in the entry-eval column (EvalStrip).
+ *
+ * - "Briefing" (feat-020) → POST /api/briefings/run → analyze-task
+ * - "Update" (feat-038) → POST /api/briefings/update → update-task
+ * - "Eval" (feat-025) → POST /api/eval/run → eval-task
  */
 
 type RunState =
@@ -38,8 +41,8 @@ interface TriggerRunButtonProps {
   label: string
   /** Trails "Run complete — dashboard refreshed." in the done note. */
   doneHint: string
-  variant?: 'primary' | 'outline'
-  /** 'sm' renders the compact nav variant with a floating status note. */
+  variant?: 'primary' | 'outline' | 'accent'
+  /** 'sm' renders the compact variant with a floating status note. */
   size?: 'md' | 'sm'
 }
 
@@ -158,8 +161,8 @@ export function TriggerRunButton({
         ? `${statusLabel(runStatus)}…`
         : label
 
-  // Compact (nav) buttons float their status note below the header so the
-  // 64px nav row never reflows.
+  // Compact buttons float their status note below the button so the host
+  // section header row never reflows.
   const statusClass =
     size === 'sm'
       ? 'absolute right-0 top-full z-30 mt-2 w-72 border border-hairline bg-surface-card px-3 py-2 text-right'
@@ -213,7 +216,7 @@ export function RunBriefingButton({ size }: { size?: 'md' | 'sm' }) {
   return (
     <TriggerRunButton
       url="/api/briefings/run"
-      label="Run Briefing"
+      label="Briefing"
       doneHint="The new briefing is below."
       size={size}
     />
@@ -224,9 +227,9 @@ export function RunUpdateButton({ size }: { size?: 'md' | 'sm' }) {
   return (
     <TriggerRunButton
       url="/api/briefings/update"
-      label="Run Update"
+      label="Update"
       doneHint="The updated read is below."
-      variant="outline"
+      variant="accent"
       size={size}
     />
   )
@@ -236,9 +239,9 @@ export function CheckEntryButton({ size }: { size?: 'md' | 'sm' }) {
   return (
     <TriggerRunButton
       url="/api/eval/run"
-      label="Check Entry at Current Price"
-      doneHint="The eval verdict is below."
-      variant="outline"
+      label="Eval"
+      doneHint="The eval verdict is beside it."
+      variant="accent"
       size={size}
     />
   )
