@@ -48,9 +48,16 @@ function listProseFiles(dir = KNOWLEDGE): string[] {
   })
 }
 
-const proseFiles = listProseFiles()
-const relName = (path: string) => path.slice(KNOWLEDGE.length + 1)
-const constraints = readFileSync(join(KNOWLEDGE, 'system/constraints.md'), 'utf8')
+// The maintainer-facing ownership map (docs/engine-ownership.md) carries the
+// module pointers; the model-facing prose under /knowledge must stay free of
+// them (guarded in tests/knowledge-restructure.test.ts) but is still scanned
+// here for restated engine numbers — as is the ownership map itself.
+const OWNERSHIP_MAP = join(__dirname, '..', 'docs', 'engine-ownership.md')
+
+const proseFiles = [...listProseFiles(), OWNERSHIP_MAP]
+const relName = (path: string) =>
+  path.startsWith(KNOWLEDGE) ? path.slice(KNOWLEDGE.length + 1) : 'docs/engine-ownership.md'
+const ownershipMap = readFileSync(OWNERSHIP_MAP, 'utf8')
 
 /** Render a numeric constant in the spellings prose might use (3 and 3.0). */
 function numericSpellings(value: number): string[] {
@@ -167,9 +174,9 @@ describe('doctrine drift guard (feat-032)', () => {
     })
   })
 
-  describe('constraints.md defers each computable non-negotiable to its owning module', () => {
+  describe('engine-ownership.md maps each computable non-negotiable to its owning module', () => {
     // The "Computable guardrails" section, split into its bullets.
-    const section = constraints.split(/^## Computable guardrails.*$/m)[1]?.split(/^## /m)[0]
+    const section = ownershipMap.split(/^## Computable guardrails.*$/m)[1]?.split(/^## /m)[0]
     const bullets = (section ?? '')
       .split(/\n- \*\*/)
       .slice(1)
@@ -195,7 +202,10 @@ describe('doctrine drift guard (feat-032)', () => {
     ]
 
     it('still has a Computable guardrails section with bullets', () => {
-      expect(section, 'constraints.md lost its "## Computable guardrails" section').toBeTruthy()
+      expect(
+        section,
+        'engine-ownership.md lost its "## Computable guardrails" section',
+      ).toBeTruthy()
       expect(bullets.length).toBeGreaterThanOrEqual(expectations.length)
     })
 
@@ -210,10 +220,8 @@ describe('doctrine drift guard (feat-032)', () => {
       },
     )
 
-    it('output-schema.md defers the output contract to briefing.schema.ts', () => {
-      expect(readFileSync(join(KNOWLEDGE, 'system/output-schema.md'), 'utf8')).toContain(
-        'briefing.schema.ts',
-      )
+    it('defers the output contract to briefing.schema.ts', () => {
+      expect(ownershipMap).toContain('briefing.schema.ts')
     })
   })
 

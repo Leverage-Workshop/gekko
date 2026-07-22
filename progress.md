@@ -2,12 +2,37 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-20
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **contested-
-border entry doctrine** (PR #77) + entry standoff relaxed to 1 pt (PR #76), on top of eval
-warnings persistence (PR #75), the area-exit absorption exception (PR #74), the count-only
+**Last Updated:** 2026-07-22
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **system-prompt
+restructure** (branch `claude/system-prompt-review-qu0u43`), on top of contested-border
+entry doctrine (PR #77) + entry standoff relaxed to 1 pt (PR #76), eval warnings
+persistence (PR #75), the area-exit absorption exception (PR #74), the count-only
 initiative gate (PR #73), the briefing entry anchoring fix (PR #72) and the sign-gate
 count fix (PR #71).
+
+**System-prompt restructure (2026-07-22).** Operator reviewed the trace extract
+(`docs/traces/analyze-task-2026-07-20/system-prompt.md`) and flagged the shared doctrine
+prefix as a Frankenstein: maintainer commentary, repo file paths, code comments, chat-Gem
+vestiges and all three output contracts shipped to every task. Restructure:
+(1) `loadDoctrine(task)` now assembles a per-task prefix — `output-schema.md` split into
+`output-briefing.md` / `output-update.md` / `output-eval.md` + shared
+`output-objective.md` (analyze/update only), so eval-only gate prose no longer leaks into
+analyze runs (each prefix still run-stable → prompt cache unaffected, asserted by a new
+determinism test). (2) Model-facing knowledge files stripped of maintainer content — file
+paths, feat-refs, changelog notes, the "unwired stop gap" aside, drift-guard commentary —
+now guarded by a new no-repo-paths test in `tests/knowledge-restructure.test.ts`; the
+maintainer half (module ownership map, Zod-wins note, assembly table) moved to
+`docs/engine-ownership.md`, which the feat-032 drift guard now targets instead of
+constraints.md. (3) Chat-era vestiges removed: discipline-enforcement reply scripts,
+markdown-formatting UX rules, phrasing templates recast as narration guidance for JSON
+prose fields. (4) Un-observable instructions dropped (VIX, news calendar, options/dark
+pool) and the two doctrine "DOM" references replaced with delta-telemetry cues — the eval
+prompt explicitly bans citing the DOM while patterns.md told the model to look for a "DOM
+shift". (5) Balance-Area definition deduped: doctrine keeps it, the analyze user prompt
+now references it. Prefixes: old shared ~32.8k chars for every task; new ~27.3k (analyze) /
+~27.1k (update) / ~25.5k (eval). Also fixed: the prose `EvalResult` had drifted from the
+Zod contract (missing `checks`/`nextSignal`/`caution`) — the trace doc under `docs/traces/`
+is left as a historical record. 726 tests green (48 files); `./init.sh` passes end-to-end.
 
 **Count-only initiative gate (2026-07-20, PR #73, commit `0375c41`).** Operator report: a
 check-eval showed all five checks pass but verdict WAIT. Diagnosis: the model returned ENTER

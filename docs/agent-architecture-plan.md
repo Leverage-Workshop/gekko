@@ -180,7 +180,10 @@ Asymmetric Initiative, Leg-VWAP rule, output formats). New layout:
     constraints.md     # Hardcoded non-negotiables as guardrails (color=side, stops never
                        #   widen, entries only at borders, Leg VWAP rule, Magnet prohibition,
                        #   Asymmetric Initiative + Campaign Boundary Override)
-    output-schema.md   # Prose description mirroring the Zod schema
+    output-briefing.md   # Briefing field semantics (analyze prefix)
+    output-update.md     # BriefingUpdate field semantics (update prefix)
+    output-eval.md       # EvalResult field semantics (eval prefix)
+    output-objective.md  # Shared Objective contract (analyze + update prefixes)
   /doctrine            # Model reads for PERCEPTION/JUDGMENT only
     patterns.md        # consolidate the 4 cheat sheets (absorption/exhaustion,
                        #   rebid/reoffer, failed-breakout, flush-&-reload)

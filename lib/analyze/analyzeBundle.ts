@@ -3,6 +3,7 @@ import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult } from '@/lib/llm'
 import { loadDoctrine } from './doctrine'
+import type { DoctrineTask } from './doctrine'
 import { computeEngineFacts, engineAnchorPrices, engineZoneBorders } from './engineFacts'
 import type { LoadBundleDeps } from './loadBundle'
 import { loadLatestBundle } from './loadBundle'
@@ -51,7 +52,7 @@ export interface AnalyzeDeps extends LoadBundleDeps, PersistDeps {
     telemetry?: { functionId: string }
   }) => Promise<GenerateStructuredResult<Briefing>>
   /** Doctrine loader; injectable for tests. */
-  loadDoctrine?: () => string
+  loadDoctrine?: (task: DoctrineTask) => string
   /** Clock; injectable for tests. */
   now?: () => Date
 }
@@ -121,7 +122,7 @@ export async function runAnalysis(
   const generate = deps.generate ?? generateStructured
   const result = await generate({
     model: modelId,
-    system: (deps.loadDoctrine ?? loadDoctrine)(),
+    system: (deps.loadDoctrine ?? loadDoctrine)('analyze'),
     cacheSystem: true,
     prompt: buildAnalysisPrompt({
       triggerReason: options.triggerReason,
