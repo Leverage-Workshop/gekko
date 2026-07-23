@@ -4,8 +4,10 @@ import { AnalyzeInputError } from "@/lib/analyze";
 import { UpdateInputError, realUpdateDeps, runUpdate } from "@/lib/update";
 import type { UpdateResult } from "@/lib/update";
 import { sendGekkoPush } from "@/lib/push";
+import { awaitFreshBundle } from "./freshBundle";
 
-// update-task — the Gem's "Update" prompt as a task (feat-038): load the
+// update-task — the Gem's "Update" prompt as a task (feat-038): wait for the
+// fresh bundle the button press requested (awaitFreshBundle) → load the
 // latest bundle AND the latest briefing → deterministic engine →
 // generateObject with the smaller BriefingUpdate schema (previous briefing
 // embedded as context) → compose a full Briefing (overview/terrain inherited
@@ -16,6 +18,9 @@ export const updateTask = schemaTask({
   id: "update-task",
   schema: z.object({
     triggerReason: z.string().default("manual"),
+    // Pending bundle_requests row the route inserted; absent on runs
+    // triggered outside the dashboard (no fresh-bundle wait then).
+    bundleRequestId: z.string().uuid().optional(),
   }),
   retry: {
     maxAttempts: 3,
@@ -25,6 +30,8 @@ export const updateTask = schemaTask({
     randomize: true,
   },
   run: async (payload) => {
+    await awaitFreshBundle(payload.bundleRequestId);
+
     let result: UpdateResult;
     try {
       result = await runUpdate(realUpdateDeps(), {

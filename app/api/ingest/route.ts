@@ -1,3 +1,8 @@
+import {
+  fulfillPendingRequests,
+  hasPendingRequest,
+  realBundleRequestDeps,
+} from '@/lib/bundleRequests'
 import { getServiceClient } from '@/lib/supabase/server'
 import {
   ingestBundle,
@@ -7,12 +12,18 @@ import {
 } from '@/lib/ingest'
 
 /**
- * POST /api/ingest — bearer-authed multipart ingest of one export bundle.
+ * /api/ingest — the bearer-authed uploader endpoint, both halves of the
+ * fresh-bundle handshake:
  *
- * Stores PNG/CSV files to Supabase Storage, the MGI JSON inline as jsonb, and a
- * `raw_bundles` row holding the object refs. Performs no auto-analyze (see
- * docs/agent-architecture-plan.md): briefings are produced later by the
- * analyze-task, triggered on demand from /api/briefings/run.
+ * GET  — the uploader's poll: `{ data: { pending } }` says whether a recent
+ *        pending `bundle_requests` row exists (a dashboard button was pressed
+ *        and a fresh bundle is required).
+ * POST — multipart ingest of one export bundle. Stores PNG/CSV files to
+ *        Supabase Storage, the MGI JSON inline as jsonb, and a `raw_bundles`
+ *        row holding the object refs, then marks the pending bundle requests
+ *        fulfilled so the waiting task can commence. Performs no auto-analyze
+ *        (see docs/agent-architecture-plan.md): briefings are produced by the
+ *        analyze-task, triggered on demand from /api/briefings/run.
  */
 
 // Node runtime: uses node:crypto (timing-safe auth) and the service-role client.
@@ -62,15 +73,38 @@ function realDeps(): IngestDeps {
   }
 }
 
-export async function POST(req: Request): Promise<Response> {
+/** Shared bearer gate for both verbs; null means the request may proceed. */
+function unauthorizedResponse(req: Request): Response | null {
   const expectedToken = process.env.INGEST_BEARER_TOKEN
   if (!expectedToken) {
     console.error('INGEST_BEARER_TOKEN not configured')
     return json({ success: false, error: 'Ingest is not configured' }, 500)
   }
-
   if (!isAuthorized(req.headers.get('authorization'), expectedToken)) {
     return json({ success: false, error: 'Unauthorized' }, 401)
+  }
+  return null
+}
+
+export async function GET(req: Request): Promise<Response> {
+  const denied = unauthorizedResponse(req)
+  if (denied) {
+    return denied
+  }
+
+  try {
+    const pending = await hasPendingRequest(realBundleRequestDeps())
+    return json({ success: true, data: { pending } }, 200)
+  } catch (error) {
+    console.error('Pending-request check failed:', error)
+    return json({ success: false, error: 'Failed to check pending requests' }, 500)
+  }
+}
+
+export async function POST(req: Request): Promise<Response> {
+  const denied = unauthorizedResponse(req)
+  if (denied) {
+    return denied
   }
 
   let form: FormData
@@ -82,6 +116,15 @@ export async function POST(req: Request): Promise<Response> {
 
   try {
     const { id } = await ingestBundle(form, realDeps())
+    // Fulfil the "fresh bundle required" flag AFTER the bundle is committed.
+    // Best-effort: the bundle IS stored, so a fulfilment error must not fail
+    // the upload — the uploader will still see the flag pending next poll,
+    // re-upload, and retry the fulfilment (self-healing).
+    try {
+      await fulfillPendingRequests(realBundleRequestDeps(), id)
+    } catch (error) {
+      console.error('Failed to fulfil pending bundle requests:', error)
+    }
     return json({ success: true, data: { bundleId: id } }, 201)
   } catch (error) {
     if (error instanceof IngestValidationError) {

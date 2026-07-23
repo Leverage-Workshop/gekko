@@ -1,13 +1,16 @@
 import { tasks } from '@trigger.dev/sdk'
 import { json } from '@/lib/api/respond'
+import { requestFreshBundle } from '@/lib/bundleRequests'
 import type { evalTask } from '@/trigger/evalTask'
 
 /**
  * POST /api/eval/run — on-demand entry check (feat-025).
  *
- * Triggers exactly one `eval-task` run via the type-safe `tasks.trigger`
- * (requires TRIGGER_SECRET_KEY at runtime). No cron / schedules — evals run
- * only when the user presses the "Eval" button in the entry-eval column.
+ * Records a pending `bundle_requests` row (the uploader's "fresh bundle
+ * required" flag), then triggers exactly one `eval-task` run carrying the
+ * request id so the eval waits for a bundle captured at button-press time.
+ * No cron / schedules — evals run only when the user presses the "Eval"
+ * button in the entry-eval column.
  *
  * Auth decision: intentionally unauthenticated, same rationale as
  * /api/briefings/run — the app runs only on the user's local trading machine
@@ -20,7 +23,10 @@ export const runtime = 'nodejs'
 
 export async function POST(): Promise<Response> {
   try {
-    const handle = await tasks.trigger<typeof evalTask>('eval-task', {})
+    const bundleRequestId = await requestFreshBundle('eval')
+    const handle = await tasks.trigger<typeof evalTask>('eval-task', {
+      bundleRequestId,
+    })
     // publicAccessToken is scoped to reading this one run; the dashboard uses
     // it to subscribe via Realtime and auto-refresh when the run finishes.
     return json(

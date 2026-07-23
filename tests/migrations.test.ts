@@ -258,6 +258,51 @@ describe('unused bundles function migration (feat-039)', () => {
   })
 })
 
+// Fresh-bundle handshake: bundle_requests is the "fresh bundle required" flag
+// behind the dashboard run buttons (button → pending row → uploader poll →
+// upload → fulfilled → task commences).
+describe('bundle_requests migration', () => {
+  const file = sql.files.find((f) => f.includes('bundle_requests'))
+  const content = file ? readFileSync(join(MIGRATIONS_DIR, file), 'utf8') : ''
+
+  it('exists', () => {
+    expect(file).toBeDefined()
+  })
+
+  it('creates the table idempotently with the pending/fulfilled lifecycle', () => {
+    expect(content).toContain('create table if not exists public.bundle_requests')
+    expect(content).toMatch(/status\s+text not null default 'pending'/)
+    expect(content).toContain("check (status in ('pending', 'fulfilled'))")
+    expect(content).toMatch(/requested_at\s+timestamptz not null default now\(\)/)
+    expect(content).toContain('fulfilled_at')
+  })
+
+  it('links the fulfilling bundle without cascading into the audit trail', () => {
+    expect(content).toMatch(
+      /bundle_id uuid references public\.raw_bundles \(id\) on delete set null/,
+    )
+    expect(content).not.toMatch(/bundle_id[^;]*cascade/i)
+  })
+
+  it('indexes the pending check (status + requested_at)', () => {
+    expect(content).toContain(
+      'create index if not exists bundle_requests_status_requested_at_idx',
+    )
+  })
+
+  it('locks the table down: RLS enabled with NO policies (service-role only)', () => {
+    expect(content).toMatch(
+      /alter table public\.bundle_requests\s+enable row level security/,
+    )
+    expect(content).not.toMatch(/create policy/i)
+  })
+
+  it('contains no destructive DDL', () => {
+    expect(content).not.toMatch(/drop\s/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+})
+
 // feat-027: push_subscriptions storage for Web Push (VAPID).
 describe('push_subscriptions migration (feat-027)', () => {
   const file = sql.files.find((f) => f.includes('push_subscriptions'))

@@ -16,4 +16,8 @@ export {
   type PostDeps,
   type RetryConfig,
 } from './post'
-export { createScheduler, type Scheduler, type SchedulerOptions } from './scheduler'
+export {
+  checkPendingRequest,
+  type PendingCheckDeps,
+  type PendingCheckResult,
+} from './pending'

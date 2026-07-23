@@ -1,5 +1,6 @@
 import { tasks } from '@trigger.dev/sdk'
 import { json } from '@/lib/api/respond'
+import { requestFreshBundle } from '@/lib/bundleRequests'
 import type { updateTask } from '@/trigger/updateTask'
 
 /**
@@ -7,8 +8,9 @@ import type { updateTask } from '@/trigger/updateTask'
  * Gem's Update prompt — an Immediate Tactical Read + a fresh Strategic
  * Alignment revised against the previous briefing.
  *
- * Triggers exactly one `update-task` run with `{ triggerReason: "manual" }`
- * via the type-safe `tasks.trigger` (requires TRIGGER_SECRET_KEY at runtime).
+ * Records a pending `bundle_requests` row (the uploader's "fresh bundle
+ * required" flag), then triggers exactly one `update-task` run carrying the
+ * request id so the task waits for the fresh bundle before running.
  * On-demand only, like /api/briefings/run.
  *
  * Auth decision: intentionally unauthenticated for the same reasons as
@@ -21,8 +23,10 @@ export const runtime = 'nodejs'
 
 export async function POST(): Promise<Response> {
   try {
+    const bundleRequestId = await requestFreshBundle('update')
     const handle = await tasks.trigger<typeof updateTask>('update-task', {
       triggerReason: 'manual',
+      bundleRequestId,
     })
     // publicAccessToken is scoped to reading this one run; the dashboard uses
     // it to subscribe via Realtime and auto-refresh when the run finishes.
