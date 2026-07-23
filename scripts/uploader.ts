@@ -1,23 +1,30 @@
 /**
- * Local uploader entrypoint (feat-009).
+ * Local uploader entrypoint (feat-009, reworked to on-demand polling).
  *
- * Watches the Sierra Chart export folder, debounces the burst of writes Sierra
- * emits each ~15s cycle, bundles the present files, and POSTs them to
- * /api/ingest with bearer auth and retry/backoff. This file is the only place
- * that touches fragile local concerns (filesystem, chokidar, the network); all
- * bundling/posting/scheduling logic lives in `@/lib/uploader` and is unit-tested.
+ * No more continuous uploads: instead of shipping a bundle on every ~15s
+ * Sierra Chart rewrite, the uploader polls GET /api/ingest every `pollMs`
+ * (default 7s) asking whether a fresh bundle is REQUIRED — i.e. a dashboard
+ * run button was pressed and a pending `bundle_requests` row exists. Only
+ * then does it bundle the export folder and POST it (bearer auth +
+ * retry/backoff); ingest marks the request fulfilled, which releases the
+ * waiting task. A settle check (skip while any export file changed within
+ * `debounceMs`) avoids reading a half-written Sierra export — the flag stays
+ * pending, so the next poll simply retries.
+ *
+ * This file is the only place that touches fragile local concerns (the
+ * filesystem, the wall clock, the network loop); all bundling/posting/
+ * pending-check logic lives in `@/lib/uploader` and is unit-tested.
  *
  * Run with: `npm run uploader`. Config comes from the environment; `.env.local`
  * and `.env` in the working directory are loaded below via Node's built-in
  * `process.loadEnvFile` (requires Node >= 20.12) — tsx does NOT auto-load them.
  */
 import { existsSync } from 'node:fs'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import chokidar from 'chokidar'
 import {
   BUNDLE_FILENAMES,
-  createScheduler,
+  checkPendingRequest,
   isEmptyBundle,
   loadConfig,
   postBundle,
@@ -49,6 +56,28 @@ const readExportFile: FileReader = async (filename) => {
   }
 }
 
+/**
+ * True when no export file was modified within the settle window — Sierra
+ * rewrites the whole folder in a burst, and uploading mid-burst would ship a
+ * torn bundle. Missing files don't count; readBundle handles absence.
+ */
+async function exportFolderSettled(): Promise<boolean> {
+  const cutoff = Date.now() - config.debounceMs
+  for (const filename of BUNDLE_FILENAMES) {
+    try {
+      const { mtimeMs } = await stat(join(config.exportDir, filename))
+      if (mtimeMs > cutoff) {
+        return false
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error
+      }
+    }
+  }
+  return true
+}
+
 async function uploadBundle(): Promise<void> {
   const bundle = await readBundle(readExportFile)
   if (isEmptyBundle(bundle)) {
@@ -75,20 +104,38 @@ async function uploadBundle(): Promise<void> {
   }
 }
 
-const scheduler = createScheduler({
-  debounceMs: config.debounceMs,
-  run: uploadBundle,
-  onError: (error) => console.error('[uploader] unexpected error:', error),
-})
+/** One poll tick: check the flag, and upload only when a bundle is required. */
+async function pollOnce(): Promise<void> {
+  const check = await checkPendingRequest(config.ingestUrl, config.bearerToken, { fetch })
+  if (!check.ok) {
+    console.error(`[uploader] pending check failed: ${check.error}`)
+    return
+  }
+  if (!check.pending) {
+    return
+  }
 
-const watchPaths = BUNDLE_FILENAMES.map((filename) => join(config.exportDir, filename))
+  if (!(await exportFolderSettled())) {
+    console.log('[uploader] bundle requested but export folder is mid-write — retrying next poll')
+    return
+  }
 
-chokidar
-  .watch(watchPaths, { ignoreInitial: false })
-  .on('add', scheduler.trigger)
-  .on('change', scheduler.trigger)
-  .on('error', (error) => console.error('[uploader] watch error:', error))
+  console.log('[uploader] fresh bundle requested — uploading')
+  await uploadBundle()
+}
 
-console.log(
-  `[uploader] watching ${config.exportDir} (debounce ${config.debounceMs}ms) → POST ${config.ingestUrl}`,
-)
+async function main(): Promise<never> {
+  console.log(
+    `[uploader] polling ${config.ingestUrl} every ${config.pollMs}ms for bundle requests (export dir ${config.exportDir}, settle ${config.debounceMs}ms)`,
+  )
+  for (;;) {
+    try {
+      await pollOnce()
+    } catch (error) {
+      console.error('[uploader] unexpected error:', error)
+    }
+    await sleep(config.pollMs)
+  }
+}
+
+void main()

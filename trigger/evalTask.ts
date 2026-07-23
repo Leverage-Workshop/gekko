@@ -4,8 +4,10 @@ import { AnalyzeInputError } from "@/lib/analyze";
 import { EvalInputError, realEvalDeps, runEval } from "@/lib/eval";
 import type { EvalRunResult } from "@/lib/eval";
 import { sendGekkoPush } from "@/lib/push";
+import { awaitFreshBundle } from "./freshBundle";
 
-// eval-task — entry-eval triage (docs/agent-architecture-plan.md): load the
+// eval-task — entry-eval triage (docs/agent-architecture-plan.md): wait for
+// the fresh bundle the button press requested (awaitFreshBundle) → load the
 // latest bundle (current price = raw_bundles.current_price) + ACTIVE
 // entry_levels only → code-owned proximity gate → generateObject via
 // OpenRouter with the triage model (config.triage_model_id; chart images +
@@ -16,8 +18,14 @@ import { sendGekkoPush } from "@/lib/push";
 // trigger (feat-026); Web Push is sent below after persistence (feat-027).
 export const evalTask = schemaTask({
   id: "eval-task",
-  // On-demand with no inputs; the empty object keeps the payload optional.
-  schema: z.object({}).default({}),
+  // On-demand; the default keeps the payload optional for dashboard test runs.
+  schema: z
+    .object({
+      // Pending bundle_requests row the route inserted; absent on runs
+      // triggered outside the dashboard (no fresh-bundle wait then).
+      bundleRequestId: z.string().uuid().optional(),
+    })
+    .default({}),
   retry: {
     maxAttempts: 3,
     minTimeoutInMs: 2000,
@@ -25,7 +33,9 @@ export const evalTask = schemaTask({
     factor: 2,
     randomize: true,
   },
-  run: async () => {
+  run: async (payload) => {
+    await awaitFreshBundle(payload.bundleRequestId);
+
     let result: EvalRunResult;
     try {
       result = await runEval(realEvalDeps());

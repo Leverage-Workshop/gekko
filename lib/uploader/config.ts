@@ -17,6 +17,10 @@ const schema = z.object({
   INGEST_URL: z.string().url(),
   INGEST_BEARER_TOKEN: z.string().min(1),
   GEKKO_EXPORT_DIR: z.string().min(1),
+  /** How often to ask GET /api/ingest whether a fresh bundle is required. */
+  UPLOADER_POLL_MS: intFromEnv(7000),
+  /** Settle window: skip an upload tick while any export file was modified
+   * this recently (Sierra is mid-rewrite; the next poll retries). */
   UPLOADER_DEBOUNCE_MS: intFromEnv(1000),
   UPLOADER_MAX_ATTEMPTS: intFromEnv(5),
   UPLOADER_BASE_DELAY_MS: intFromEnv(500),
@@ -27,6 +31,7 @@ export type UploaderConfig = {
   readonly ingestUrl: string
   readonly bearerToken: string
   readonly exportDir: string
+  readonly pollMs: number
   readonly debounceMs: number
   readonly retry: {
     readonly maxAttempts: number
@@ -53,6 +58,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): UploaderConfig
     ingestUrl: cfg.INGEST_URL,
     bearerToken: cfg.INGEST_BEARER_TOKEN,
     exportDir: cfg.GEKKO_EXPORT_DIR,
+    pollMs: cfg.UPLOADER_POLL_MS,
     debounceMs: cfg.UPLOADER_DEBOUNCE_MS,
     retry: {
       maxAttempts: cfg.UPLOADER_MAX_ATTEMPTS,

@@ -3,13 +3,33 @@
 ## Current State
 
 **Last Updated:** 2026-07-23
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **entry
-chase-side gate** (branch `claude/objective-entry-level-bug-22o93s`), on top of the
-system-prompt restructure + campaign-scale terrain zones (PR #79), contested-border
-entry doctrine (PR #77) + entry standoff relaxed to 1 pt (PR #76), eval warnings
-persistence (PR #75), the area-exit absorption exception (PR #74), the count-only
-initiative gate (PR #73), the briefing entry anchoring fix (PR #72) and the sign-gate
-count fix (PR #71).
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **on-demand
+bundle uploads** (branch `claude/bundle-uploader-task-trigger-gmqkfo`), on top of the
+entry chase-side gate (PR #81), the system-prompt restructure + campaign-scale terrain
+zones (PR #79), contested-border entry doctrine (PR #77) + entry standoff relaxed to
+1 pt (PR #76), eval warnings persistence (PR #75), the area-exit absorption exception
+(PR #74), the count-only initiative gate (PR #73), the briefing entry anchoring fix
+(PR #72) and the sign-gate count fix (PR #71).
+
+**On-demand bundle uploads (2026-07-23, operator request).** Uploading a bundle on every
+~15s Sierra rewrite made no sense when briefings are on-demand only. New fresh-bundle
+handshake: a dashboard run button (Briefing/Update/Eval) now inserts a pending row in the
+new `bundle_requests` table (migration `20260723090000`, RLS-no-policies, service-role
+only) and triggers its task with that `bundleRequestId` in the payload; the uploader —
+rewritten from a chokidar folder-watch to a poll loop — asks GET /api/ingest every
+`UPLOADER_POLL_MS` (default 7s) whether a recent pending request exists and only then
+bundles + POSTs (a settle check skips a tick while any export file changed within
+`UPLOADER_DEBOUNCE_MS`, so a mid-rewrite folder is retried next poll); POST /api/ingest
+marks all pending requests fulfilled with the stored bundle id (best-effort, after
+commit); the task meanwhile polls the request row (`trigger/freshBundle.ts` →
+`lib/bundleRequests`, 3s interval, 2 min cap) and commences once fulfilled — timeout or a
+missing row degrades to a logged warning + the latest stored bundle, so a dead uploader
+never bricks the buttons ("bundleWait" outcome in run metadata). New `lib/bundleRequests`
+module (pure logic + injected deps + service-role wiring); `lib/uploader/scheduler.ts`
+and the chokidar dependency removed; uploader pending check in `lib/uploader/pending.ts`.
+Tests: `bundleRequests`, `uploader.pending`, `ingest.pending.route`, migration guards,
+and the three run-button route tests now assert request-then-trigger ordering (761 tests).
+`./init.sh` fully green (typecheck / lint / test / build).
 
 **Entry chase-side gate (2026-07-23, operator bug report).** A fresh briefing generated a
 LONG objective 30 pts ABOVE current price — a breakout chase the doctrine forbids

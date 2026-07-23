@@ -3,17 +3,22 @@ import { z } from "zod";
 import { AnalyzeInputError, realAnalyzeDeps, runAnalysis } from "@/lib/analyze";
 import type { AnalyzeResult } from "@/lib/analyze";
 import { sendGekkoPush } from "@/lib/push";
+import { awaitFreshBundle } from "./freshBundle";
 
 // analyze-task — the full-briefing LLM task (docs/agent-architecture-plan.md):
+// wait for the fresh bundle the button press requested (awaitFreshBundle) →
 // load latest bundle → deterministic engine → generateObject via OpenRouter
 // (chart images + engine facts + raw MGI, Briefing schema, cached doctrine
 // prefix) → enforce code-owned facts → persist briefing + refresh
 // entry_levels. Triggered on demand from /api/briefings/run
-// (`tasks.trigger("analyze-task", { triggerReason: "manual" })`).
+// (`tasks.trigger("analyze-task", { triggerReason: "manual", bundleRequestId })`).
 export const analyzeTask = schemaTask({
   id: "analyze-task",
   schema: z.object({
     triggerReason: z.string().default("manual"),
+    // Pending bundle_requests row the route inserted; absent on runs
+    // triggered outside the dashboard (no fresh-bundle wait then).
+    bundleRequestId: z.string().uuid().optional(),
   }),
   retry: {
     maxAttempts: 3,
@@ -23,6 +28,8 @@ export const analyzeTask = schemaTask({
     randomize: true,
   },
   run: async (payload) => {
+    await awaitFreshBundle(payload.bundleRequestId);
+
     let result: AnalyzeResult;
     try {
       result = await runAnalysis(realAnalyzeDeps(), {
