@@ -30,7 +30,10 @@ never in the middle of value.
 
 Entry A (Ideal) is the reoffer/rebid at the nearest FAILED structural border in the pullback
 direction (Condition Red: the failed trench/wall overhead, e.g. a broken IBL; Condition Green: the
-reclaimed border below). A breach-and-accept THROUGH a Tier-1 campaign border is NEVER the entry.
+reclaimed border below). Entries are pullback anchors relative to current price: a long anchors AT
+or BELOW current price, a short AT or ABOVE it — never beyond price in the trade direction (a long
+overhead / a short underfoot), except marginally at a contested border price is fighting at right
+now. A breach-and-accept THROUGH a Tier-1 campaign border is NEVER the entry.
 Do not chase breakdowns below a floor cluster or breakouts above a ceiling cluster.
 
 ## Stop placement

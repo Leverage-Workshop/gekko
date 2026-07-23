@@ -42,6 +42,19 @@ export const MIN_OBJECTIVE_ENTRY_SEPARATION_PTS = 5
  */
 export const MIN_ENTRY_STANDOFF_PTS = 1
 
+/**
+ * Maximum distance an entry may sit on the CHASE side of the code-owned current price —
+ * above price for a long, below price for a short. Doctrine entries are pullback anchors
+ * (the rebid/reclaimed border below for a long, the failed border overhead for a short),
+ * so an entry beyond price in the trade direction is the forbidden breakout/breakdown
+ * chase (2026-07-23: a fresh briefing shipped a long 30 pts above current price). The
+ * allowance covers the contested-border case, where the anchor may sit marginally beyond
+ * price while the fight straddles the level. Hard-enforced for fresh analyze generations
+ * (`enforceEntryStandoff`); advisory for updates, whose standing entries price may have
+ * legitimately traded through since the plan was made.
+ */
+export const MAX_ENTRY_CHASE_PTS = 5
+
 export interface ValidatedBriefing {
   /** The briefing with engine-recomputed `rr` on both objectives. */
   briefing: Briefing
@@ -80,9 +93,12 @@ export interface ValidateOptions {
    */
   anchorPrices?: readonly number[]
   /**
-   * Hard-enforce {@link MIN_ENTRY_STANDOFF_PTS} against `meta.currentPrice`.
+   * Hard-enforce the fresh-map entry placement gates against `meta.currentPrice`:
+   * {@link MIN_ENTRY_STANDOFF_PTS} (not pinned at price) and
+   * {@link MAX_ENTRY_CHASE_PTS} (not beyond price in the trade direction).
    * Set by the analyze task (fresh map); left off by the update task, whose
-   * standing entries price is SUPPOSED to approach.
+   * standing entries price is SUPPOSED to approach — there the chase gate
+   * demotes to an advisory warning and the standoff gate is skipped entirely.
    */
   enforceEntryStandoff?: boolean
 }
@@ -250,6 +266,38 @@ function assertEntryStandoff(
 }
 
 /**
+ * Chase-side invariant (2026-07-23): an entry may not sit more than
+ * {@link MAX_ENTRY_CHASE_PTS} beyond the code-owned current price in the trade direction
+ * (long above price / short below price) — that is a breakout/breakdown chase, not a
+ * pullback anchor. Hard (throws) when `enforceEntryStandoff` is set (fresh analyze map);
+ * advisory otherwise (update path: price trading through a standing entry is stale-plan
+ * information, not grounds to reject the revision).
+ *
+ * @throws {BriefingValidationError} in hard mode, on an entry beyond the chase allowance.
+ */
+function enforceEntryChaseSide(
+  name: 'primary' | 'secondary',
+  objective: Objective,
+  currentPrice: number,
+  hard: boolean,
+  warnings: string[],
+): void {
+  const entry = objective.entries[0]
+  const long = objective.direction === 'long'
+  const chase = long ? entry.price - currentPrice : currentPrice - entry.price
+  if (chase <= MAX_ENTRY_CHASE_PTS) return
+  const finding =
+    `${name} ${objective.direction} entry "${entry.label}" @ ${entry.price} sits ${chase} pts ` +
+    `${long ? 'above' : 'below'} current price ${currentPrice} — a ` +
+    `${long ? 'breakout' : 'breakdown'} chase, not a pullback anchor: a long anchors at/below ` +
+    `price, a short at/above (max ${MAX_ENTRY_CHASE_PTS} pts beyond price, for a contested border)`
+  if (hard) {
+    throw new BriefingValidationError(finding)
+  }
+  warnings.push(finding)
+}
+
+/**
  * Advisory: an entry that matches no engine anchor price is free-floating (e.g. the
  * 2026-07-20 18:53 briefing's 28976.54 vs the engine member 28976.13) or sits on a
  * forbidden data edge (excluded from the anchor set upstream).
@@ -347,6 +395,11 @@ export function enforceCodeOwnedFacts(
   if (options.enforceEntryStandoff && options.meta) {
     assertEntryStandoff('primary', primarySingle, options.meta.currentPrice)
     assertEntryStandoff('secondary', secondarySingle, options.meta.currentPrice)
+  }
+  if (options.meta) {
+    const hard = options.enforceEntryStandoff === true
+    enforceEntryChaseSide('primary', primarySingle, options.meta.currentPrice, hard, warnings)
+    enforceEntryChaseSide('secondary', secondarySingle, options.meta.currentPrice, hard, warnings)
   }
   if (options.anchorPrices && options.anchorPrices.length > 0) {
     offAnchorEntryWarnings('primary', primarySingle, options.anchorPrices, warnings)

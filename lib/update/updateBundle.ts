@@ -163,6 +163,8 @@ export async function runUpdate(
   const composed = composeUpdateBriefing(parent, result.object)
   // No enforceEntryStandoff here: an update revises a standing plan, and price
   // approaching its planned entry is the success path, not an at-price defect.
+  // (The chase-side gate therefore only warns on this path — an entry price has
+  // traded through is a stale plan to flag, not a generation to reject.)
   const validated = enforceCodeOwnedFacts(composed, {
     rrMin,
     engineBorders: engineZoneBorders(facts.terrain),
