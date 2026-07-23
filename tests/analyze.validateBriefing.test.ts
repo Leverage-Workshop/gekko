@@ -399,12 +399,14 @@ describe('entry standoff (enforceEntryStandoff)', () => {
   })
 
   it('passes when every entry clears the standoff', () => {
-    // 30220: primary 30 pts away, secondary 70 pts away.
+    // 30260: primary long 10 pts below, secondary short 30 pts above — both on
+    // their pullback side. (30220 was the old fixture price, but it put the long
+    // 30 pts OVERHEAD — exactly the chase geometry the chase-side gate now rejects.)
     expect(() =>
       enforceCodeOwnedFacts(briefing(), {
         rrMin: 3,
         enforceEntryStandoff: true,
-        meta: { ...meta, currentPrice: 30220 },
+        meta: { ...meta, currentPrice: 30260 },
       }),
     ).not.toThrow()
   })
@@ -416,6 +418,64 @@ describe('entry standoff (enforceEntryStandoff)', () => {
         meta: { ...meta, currentPrice: 30250.5 },
       }),
     ).not.toThrow()
+  })
+})
+
+describe('entry chase side (2026-07-23: a fresh long generated 30 pts above price)', () => {
+  const meta = {
+    createdAt: '2026-07-06T12:00:00Z',
+    triggerReason: 'manual',
+    ripStatus: 'green',
+  }
+
+  it('throws on a fresh long anchored far above current price (breakout chase)', () => {
+    // The reported bug geometry: primary long @ 30250 with price at 30220 — the
+    // entry sits 30 pts overhead in the trade direction.
+    expect(() =>
+      enforceCodeOwnedFacts(briefing(), {
+        rrMin: 3,
+        enforceEntryStandoff: true,
+        meta: { ...meta, currentPrice: 30220 },
+      }),
+    ).toThrow(/30 pts above current price 30220/)
+  })
+
+  it('throws on a fresh short anchored far below current price (breakdown chase)', () => {
+    // 30320: secondary short @ 30290 is 30 pts underfoot (the primary long @ 30250
+    // is 70 pts below price, which is a legitimate pullback anchor).
+    expect(() =>
+      enforceCodeOwnedFacts(briefing(), {
+        rrMin: 3,
+        enforceEntryStandoff: true,
+        meta: { ...meta, currentPrice: 30320 },
+      }),
+    ).toThrow(/30 pts below current price 30320/)
+  })
+
+  it('allows a marginal beyond-price anchor (contested border allowance)', () => {
+    // 30247: primary long @ 30250 sits 3 pts overhead — inside the contested-border
+    // allowance, and clear of the 1-pt standoff floor.
+    expect(() =>
+      enforceCodeOwnedFacts(briefing(), {
+        rrMin: 3,
+        enforceEntryStandoff: true,
+        meta: { ...meta, currentPrice: 30247 },
+      }),
+    ).not.toThrow()
+  })
+
+  it('demotes to a warning without the flag (update path: entry traded through)', () => {
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      meta: { ...meta, currentPrice: 30220 },
+    })
+    const chaseWarnings = result.warnings.filter((w) => w.includes('chase'))
+    expect(chaseWarnings).toHaveLength(1)
+    expect(chaseWarnings[0]).toMatch(/primary long entry .* 30 pts above current price/)
+  })
+
+  it('is skipped entirely without code-owned meta', () => {
+    expect(() => enforceCodeOwnedFacts(briefing(), { rrMin: 3 })).not.toThrow()
   })
 })
 

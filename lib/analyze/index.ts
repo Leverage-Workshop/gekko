@@ -28,6 +28,7 @@ export { buildAnalysisPrompt } from './prompt'
 export type { AnalysisPromptInput, ChartAttachment } from './prompt'
 export {
   BriefingValidationError,
+  MAX_ENTRY_CHASE_PTS,
   MIN_ENTRY_STANDOFF_PTS,
   MIN_OBJECTIVE_ENTRY_SEPARATION_PTS,
   assertZoneContiguity,

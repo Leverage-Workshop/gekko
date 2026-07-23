@@ -2,13 +2,31 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-22
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **system-prompt
-restructure** (branch `claude/system-prompt-review-qu0u43`), on top of contested-border
+**Last Updated:** 2026-07-23
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **entry
+chase-side gate** (branch `claude/objective-entry-level-bug-22o93s`), on top of the
+system-prompt restructure + campaign-scale terrain zones (PR #79), contested-border
 entry doctrine (PR #77) + entry standoff relaxed to 1 pt (PR #76), eval warnings
 persistence (PR #75), the area-exit absorption exception (PR #74), the count-only
 initiative gate (PR #73), the briefing entry anchoring fix (PR #72) and the sign-gate
 count fix (PR #71).
+
+**Entry chase-side gate (2026-07-23, operator bug report).** A fresh briefing generated a
+LONG objective 30 pts ABOVE current price — a breakout chase the doctrine forbids
+("do not chase … breakouts above a ceiling cluster") but nothing enforced: the standoff
+gate only set a MINIMUM distance from price, with no side/maximum check (the old standoff
+test even blessed the exact geometry: long @ 30250, price 30220). Fix in
+`validateBriefing.ts`: new `MAX_ENTRY_CHASE_PTS = 5` — an entry may sit at most 5 pts
+beyond current price in the trade direction (long above / short below; the allowance
+covers contested-border anchors). Hard (throws → regenerate) on the analyze path via the
+existing `enforceEntryStandoff` flag; advisory warning on the update path, where price
+trading through a standing entry is stale-plan information, not grounds to reject the
+revision. Analyze prompt's `entryStandoffRule` now carries the ENTRY SIDE clause with the
+live threshold; `output-objective.md` states the side rule qualitatively (long anchors
+at/below price, short at/above). Tests: new chase-side describe block (both directions,
+contested-border allowance, update-path demotion, no-meta skip); `runAnalysis` mock
+briefing re-anchored relative to the fixture bundle's real current price. `./init.sh`
+fully green (738 tests / typecheck / lint / build).
 
 **Terrain rework: campaign-scale zones (2026-07-22, operator doctrine).** Operator reviewed
 the 07-20 trace terrain: 16 zones (four consecutive slices all labeled "Lower Kill Box

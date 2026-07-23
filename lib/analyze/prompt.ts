@@ -1,6 +1,7 @@
 import type { EngineFacts } from './engineFacts'
 import { engineZoneBorders } from './engineFacts'
 import {
+  MAX_ENTRY_CHASE_PTS,
   MIN_ENTRY_STANDOFF_PTS,
   MIN_OBJECTIVE_ENTRY_SEPARATION_PTS,
 } from './validateBriefing'
@@ -94,9 +95,14 @@ export const DISTINCT_ANCHORS_RULE = `- DISTINCT ANCHORS (required): the primary
  * day). Contested-border doctrine: a border price is currently fighting at IS the entry
  * anchor when it is significant structure and the fight is sustained — the operator
  * reversed the earlier always-defer-to-the-next-border guidance.
+ *
+ * The ENTRY SIDE clause mirrors the chase-side invariant (2026-07-23, also analyze-only
+ * as a hard gate): a fresh long anchoring far ABOVE current price (or a short far below)
+ * is the forbidden breakout/breakdown chase — the 30-pts-overhead long that prompted the
+ * gate could never be a pullback anchor.
  */
 export function entryStandoffRule(facts: EngineFacts): string {
-  return `- ENTRY STANDOFF (required): current price is ${facts.currentPrice} and every entry must sit at least ${MIN_ENTRY_STANDOFF_PTS} pts away from it — validation rejects the briefing otherwise. CONTESTED BORDER: when price is trading at or around a structural border right now, PREFER anchoring Entry A at that contested border when BOTH hold: (1) it is significant structure — a Tier-1 campaign border, a composite border band, or balance-area-profile structure, not a lone minor level — and (2) the execution chart shows price has been FIGHTING there for a while: multiple bars of two-sided trade stalling at the level, repeated tests, or an absorption stack building — not a first touch or a clean traversal. Absent that sustained fight (or at a minor level), anchor at the NEXT structural border in the entry's direction instead. If the contested border price itself sits inside the ${MIN_ENTRY_STANDOFF_PTS}-pt floor of current price, anchor the entry on the band member on the entry side that clears the floor.`
+  return `- ENTRY STANDOFF (required): current price is ${facts.currentPrice} and every entry must sit at least ${MIN_ENTRY_STANDOFF_PTS} pts away from it — validation rejects the briefing otherwise. ENTRY SIDE (required): entries are PULLBACK anchors relative to that current price — a LONG Entry A anchors AT or BELOW it (the rebid/reclaimed border price pulls back down into), a SHORT at or above (the failed border overhead price rallies into). An entry more than ${MAX_ENTRY_CHASE_PTS} pts beyond current price in the trade direction (long overhead / short underfoot) is a breakout/breakdown chase and validation rejects the briefing. CONTESTED BORDER: when price is trading at or around a structural border right now, PREFER anchoring Entry A at that contested border when BOTH hold: (1) it is significant structure — a Tier-1 campaign border, a composite border band, or balance-area-profile structure, not a lone minor level — and (2) the execution chart shows price has been FIGHTING there for a while: multiple bars of two-sided trade stalling at the level, repeated tests, or an absorption stack building — not a first touch or a clean traversal. Absent that sustained fight (or at a minor level), anchor at the NEXT structural border in the entry's direction instead. If the contested border price itself sits inside the ${MIN_ENTRY_STANDOFF_PTS}-pt floor of current price, anchor the entry on the band member on the entry side that clears the floor.`
 }
 
 /**

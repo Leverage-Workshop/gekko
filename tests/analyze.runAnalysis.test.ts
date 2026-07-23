@@ -62,22 +62,28 @@ function modelBriefing(): Briefing {
         kind: verdict.kind,
       })),
     },
+    // Entries anchored relative to the fixture bundle's current price so they sit on
+    // their pullback side (chase-side gate): the long below price, the short above.
     primary: {
       macroGoal: 'Long the shelf reclaim',
       rationale: 'Absorption at the wall',
       direction: 'long',
-      entries: [{ label: 'Entry A (Ideal)', price: 30250, trigger: 'absorption' }],
-      stops: [{ label: 'Stop', price: 30240, invalidation: 'lost the shelf' }],
-      targets: [{ label: 'T1', price: 30280, description: 'next trench' }],
-      rr: 1, // wrong on purpose — engine must overwrite
+      entries: [
+        { label: 'Entry A (Ideal)', price: facts.currentPrice - 10, trigger: 'absorption' },
+      ],
+      stops: [{ label: 'Stop', price: facts.currentPrice - 20, invalidation: 'lost the shelf' }],
+      targets: [{ label: 'T1', price: facts.currentPrice + 20, description: 'next trench' }],
+      rr: 1, // wrong on purpose — engine must overwrite (risk 10, reward 30 → 3)
     },
     secondary: {
       macroGoal: 'Fade the poor high',
       rationale: 'Exhaustion at the border',
       direction: 'short',
-      entries: [{ label: 'Entry A', price: 30295, trigger: 'exhaustion' }],
-      stops: [{ label: 'Stop', price: 30302, invalidation: 'acceptance above' }],
-      targets: [{ label: 'T1', price: 30260, description: 'value mid' }],
+      entries: [{ label: 'Entry A', price: facts.currentPrice + 35, trigger: 'exhaustion' }],
+      stops: [
+        { label: 'Stop', price: facts.currentPrice + 42, invalidation: 'acceptance above' },
+      ],
+      targets: [{ label: 'T1', price: facts.currentPrice, description: 'value mid' }],
       rr: 1,
     },
     dangerZones: [{ area: 'mid-value', why: 'no edge in the middle' }],
