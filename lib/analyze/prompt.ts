@@ -4,6 +4,7 @@ import {
   MAX_ENTRY_CHASE_PTS,
   MIN_ENTRY_STANDOFF_PTS,
   MIN_OBJECTIVE_ENTRY_SEPARATION_PTS,
+  MIN_OPPOSING_ENTRY_SEPARATION_PTS,
 } from './validateBriefing'
 
 /**
@@ -78,14 +79,15 @@ export function dataEdgeRule(facts: EngineFacts): string {
 }
 
 /**
- * Distinct-anchors rule (2026-07-20, the same-level straddle fix). Kept in the
- * user message because it carries the live validation threshold; the rest of
- * the entry/stop/ladder doctrine (single entry, entry priority, stop
- * placement, T1→T2→T3 — feat-041/042, single-entry 2026-07-18) lives in the
- * cached prefix (knowledge/system/output-objective.md). Shared with the
- * update-task prompt.
+ * Distinct-anchors rule (2026-07-20, the same-level straddle fix; direction-aware
+ * 2026-07-24 — the morning briefing bracketed one contested zone with a long and a short
+ * 17.15 pts apart, two nearby borders acting as one straddle). Kept in the user message
+ * because it carries the live validation thresholds; the rest of the entry/stop/ladder
+ * doctrine (single entry, entry priority, stop placement, T1→T2→T3 — feat-041/042,
+ * single-entry 2026-07-18) lives in the cached prefix
+ * (knowledge/system/output-objective.md). Shared with the update-task prompt.
  */
-export const DISTINCT_ANCHORS_RULE = `- DISTINCT ANCHORS (required): the primary and secondary objectives MUST anchor at DIFFERENT structural borders, at least ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts apart — validation rejects the briefing otherwise. A same-level opposite-direction straddle ("short the reoffer / long the hold" at one border) is ONE undecided scenario, not two objectives. The counter-scenario anchors at the structure defining ITS OWN trade — the floor cluster below for a fade long, the failed ceiling overhead for a counter short — with its entry trigger expressing the reclaim/failure that activates it.`
+export const DISTINCT_ANCHORS_RULE = `- DISTINCT ANCHORS (required): the primary and secondary objectives MUST anchor at DIFFERENT structural borders — same-direction objectives at least ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts apart, OPPOSITE-direction objectives at least ${MIN_OPPOSING_ENTRY_SEPARATION_PTS} pts apart — validation rejects the briefing otherwise. An opposite-direction straddle ("short the reoffer / long the hold") bracketing one contested zone is ONE undecided scenario, not two objectives — even when the two entries sit at nominally different nearby borders. The counter-scenario anchors at the structure defining ITS OWN trade — the floor cluster below for a fade long, the failed ceiling overhead for a counter short — with its entry trigger expressing the reclaim/failure that activates it.`
 
 /**
  * Entry-standoff + contested-border rule (2026-07-20 operator decisions), ANALYZE-ONLY —
