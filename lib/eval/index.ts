@@ -4,7 +4,12 @@ export {
   EvalInputError,
   runEval,
 } from './evalBundle'
-export type { EvalConfig, EvalDeps, EvalRunResult } from './evalBundle'
+export type {
+  EvalConfig,
+  EvalDeps,
+  EvalRunResult,
+  RunEvalOptions,
+} from './evalBundle'
 export { buildEvalResultRow, persistEvalResult } from './persistEval'
 export type {
   EvalResultInsert,

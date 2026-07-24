@@ -483,6 +483,16 @@
       ],
       "status": "done",
       "evidence": "feat-044 (2026-07-18): ./init.sh green \u2014 typecheck 0 errors, lint 0 errors, 667 tests pass (12 new: telemetry recentRange/blueExtremes, absorbedFlushException keep-ENTER, absorption-candidates + recent-bars prompt sections, exec-plus-delta loader), build OK. Replay of live bundle 1c524056 (the misjudged eval): sign=negative mean=-0.6 red=4 position=0.82 \u2192 gate lifted for the long; scan at 0.7 surfaces the sell stack 29542.5-29549.25 (peak 92, net -251) under the 29565.25 entry."
+    },
+    {
+      "id": "feat-045",
+      "name": "Long / Short position-eval buttons",
+      "description": "Operator request (2026-07-24): next to the Eval button in the entry-eval column, add Long and Short buttons that run the same eval-task but evaluate the operator's OPEN POSITION at the current price \u2014 a hold-or-exit read when already in a trade. The button POSTs {direction} to /api/eval/run (validated, 400 on unknown values; body-less POST stays the entry check), the task payload carries direction, and runEval gains a position mode: the entry-level proximity gate is bypassed (the evaluated level IS the current price in the declared direction), active levels render as prompt context only, the verdict set reads ENTER=hold / WAIT=unclear / NOT_VALID=exit, and no entry_levels FK is linked. Enforcement makes the direction and current-price level code-owned (model drift overwritten with a warning) and the count-only initiative gate still demotes an unsupported ENTER. EvalStrip renders the Long (bmw-blue accent) / Short (new red-accent Button variant) / Eval cluster and falls back to a direction-colored 'Current price' level cell for position rows (which persist evaluated_level_id=null).",
+      "dependencies": [
+        "feat-044"
+      ],
+      "status": "done",
+      "evidence": "feat-045 (2026-07-24): ./init.sh green \u2014 typecheck 0 errors, lint 0 errors, 768 tests pass (7 new: route direction forwarding long/short + 400 on unknown + malformed-body degrade, position eval skips proximity gate w/ context-only levels + FK null, declared-direction enforcement + initiative-gate demotion, no-active-levels position eval still calls the LLM), build OK."
     }
   ]
 }

@@ -15,11 +15,14 @@ import { Button } from './button'
  * line is a polite live region so screen readers hear each phase change.
  *
  * The buttons live inside the sections they act on: "Briefing" and "Update"
- * in the Objectives pane, "Eval" in the entry-eval column (EvalStrip).
+ * in the Objectives pane, "Eval" / "Long" / "Short" in the entry-eval column
+ * (EvalStrip).
  *
  * - "Briefing" (feat-020) → POST /api/briefings/run → analyze-task
  * - "Update" (feat-038) → POST /api/briefings/update → update-task
- * - "Eval" (feat-025) → POST /api/eval/run → eval-task
+ * - "Eval" (feat-025) → POST /api/eval/run → eval-task (entry check)
+ * - "Long" / "Short" → POST /api/eval/run {direction} → eval-task
+ *   (hold-or-exit read on the open position at the current price)
  */
 
 type RunState =
@@ -41,9 +44,11 @@ interface TriggerRunButtonProps {
   label: string
   /** Trails "Run complete — dashboard refreshed." in the done note. */
   doneHint: string
-  variant?: 'primary' | 'outline' | 'accent'
+  variant?: 'primary' | 'outline' | 'accent' | 'red-accent'
   /** 'sm' renders the compact variant with a floating status note. */
   size?: 'md' | 'sm'
+  /** Optional JSON body for the POST (e.g. the position direction). */
+  body?: Record<string, unknown>
 }
 
 /**
@@ -83,6 +88,7 @@ export function TriggerRunButton({
   doneHint,
   variant = 'primary',
   size = 'md',
+  body,
 }: TriggerRunButtonProps) {
   const [state, setState] = useState<RunState>({ phase: 'idle' })
   const router = useRouter()
@@ -124,23 +130,32 @@ export function TriggerRunButton({
   async function runAction() {
     setState({ phase: 'queuing' })
     try {
-      const res = await fetch(url, { method: 'POST' })
-      const body = (await res.json().catch(() => null)) as RunResponse | null
-      if (!res.ok || !body?.success || !body.data?.runId) {
+      const res = await fetch(
+        url,
+        body
+          ? {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            }
+          : { method: 'POST' },
+      )
+      const answer = (await res.json().catch(() => null)) as RunResponse | null
+      if (!res.ok || !answer?.success || !answer.data?.runId) {
         setState({
           phase: 'error',
-          message: body?.error ?? `Request failed (HTTP ${res.status})`,
+          message: answer?.error ?? `Request failed (HTTP ${res.status})`,
         })
         return
       }
-      if (!body.data.publicAccessToken) {
-        setState({ phase: 'queued-untracked', runId: body.data.runId })
+      if (!answer.data.publicAccessToken) {
+        setState({ phase: 'queued-untracked', runId: answer.data.runId })
         return
       }
       setState({
         phase: 'watching',
-        runId: body.data.runId,
-        publicAccessToken: body.data.publicAccessToken,
+        runId: answer.data.runId,
+        publicAccessToken: answer.data.publicAccessToken,
       })
     } catch {
       setState({ phase: 'error', message: 'Network error — is the app server running?' })
@@ -242,6 +257,31 @@ export function CheckEntryButton({ size }: { size?: 'md' | 'sm' }) {
       label="Eval"
       doneHint="The eval verdict is beside it."
       variant="accent"
+      size={size}
+    />
+  )
+}
+
+/**
+ * Position check ("Long" / "Short"): the same eval-task, but the body carries
+ * the open position's direction so the verdict is a hold-or-exit read at the
+ * current price instead of an entry check against the active levels. Colored
+ * by direction like the objective cards: long bmw-blue, short m-red.
+ */
+export function CheckPositionButton({
+  direction,
+  size,
+}: {
+  direction: 'long' | 'short'
+  size?: 'md' | 'sm'
+}) {
+  return (
+    <TriggerRunButton
+      url="/api/eval/run"
+      body={{ direction }}
+      label={direction === 'long' ? 'Long' : 'Short'}
+      doneHint="The position verdict is beside it."
+      variant={direction === 'long' ? 'accent' : 'red-accent'}
       size={size}
     />
   )

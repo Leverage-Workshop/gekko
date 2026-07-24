@@ -2,14 +2,36 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-23
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **on-demand
-bundle uploads** (branch `claude/bundle-uploader-task-trigger-gmqkfo`), on top of the
-entry chase-side gate (PR #81), the system-prompt restructure + campaign-scale terrain
-zones (PR #79), contested-border entry doctrine (PR #77) + entry standoff relaxed to
-1 pt (PR #76), eval warnings persistence (PR #75), the area-exit absorption exception
-(PR #74), the count-only initiative gate (PR #73), the briefing entry anchoring fix
-(PR #72) and the sign-gate count fix (PR #71).
+**Last Updated:** 2026-07-24
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **Long/Short
+position-eval buttons** (feat-045, branch `claude/long-short-eval-buttons-hrbfcu`), on
+top of on-demand bundle uploads (PR #82), the entry chase-side gate (PR #81), the
+system-prompt restructure + campaign-scale terrain zones (PR #79), contested-border
+entry doctrine (PR #77) + entry standoff relaxed to 1 pt (PR #76), eval warnings
+persistence (PR #75), the area-exit absorption exception (PR #74), the count-only
+initiative gate (PR #73), the briefing entry anchoring fix (PR #72) and the sign-gate
+count fix (PR #71).
+
+**Long/Short position-eval buttons (2026-07-24, operator request).** Next to "Eval" in
+the entry-eval column, new "Long" (bmw-blue accent) and "Short" (new `red-accent` Button
+variant — direction color, not danger) buttons: same eval-task, but a hold-or-exit read
+on the operator's OPEN POSITION at the current price, for deciding whether to exit at
+the current level. Flow: the button POSTs `{direction}` to /api/eval/run
+(`TriggerRunButton` gained an optional JSON `body` prop; the route validates with zod —
+unknown direction → 400 before any bundle request, body-less/malformed POST stays the
+plain entry check) → `eval-task` payload `direction` → `runEval(deps, {position})`. In
+position mode the entry-level proximity gate is bypassed (synthetic evaluated level =
+current price in the declared direction, `nearEntry` true), active levels render as
+context only, the no-active-levels LLM-skip shortcut is exempted, and the prompt reads
+ENTER = hold / WAIT = unclear (nextSignal) / NOT_VALID = exit at current price.
+`enforceEvalFacts` treats the direction and current-price level as code-owned
+(overwrites model drift with a warning), keeps the count-only initiative gate (an
+unsupported ENTER still demotes to WAIT), and always persists
+`evaluated_level_id = null` — position rows link no `entry_levels` row, so `EvalStrip`
+falls back to a direction-colored "Current price" level cell on level verdicts without
+an embedded level. Tests: 7 new (route forwarding/validation, position pipeline,
+enforcement drift, gate demotion, no-levels exemption) — 768 total. `./init.sh` fully
+green (typecheck / lint / test / build).
 
 **On-demand bundle uploads (2026-07-23, operator request).** Uploading a bundle on every
 ~15s Sierra rewrite made no sense when briefings are on-demand only. New fresh-bundle

@@ -1,4 +1,4 @@
-import type { EvalResult } from '@/knowledge/schema/briefing.schema'
+import type { Direction, EvalResult } from '@/knowledge/schema/briefing.schema'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { RED_BUILDING_MIN_BARS } from '@/lib/engine/ripStatus'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
@@ -31,6 +31,13 @@ export interface EnforceEvalOptions {
    * (initiative is a COUNT, not a mean — the ripStatus doctrine).
    */
   deltaTelemetry: SignGateTelemetry
+  /**
+   * Position-eval mode (the Long / Short buttons): the operator declared this
+   * direction and the evaluated level IS the current price — both are
+   * code-owned, and no `entry_levels` row is linked. Null/absent for the
+   * standard entry check.
+   */
+  position?: Direction | null
 }
 
 /** The telemetry facts the initiative gate consumes. */
@@ -75,7 +82,7 @@ export function absorbedFlushException(
 
 export interface ValidatedEval {
   result: EvalResult
-  /** The `entry_levels.id` the verdict is about, or null (NO_ENTRY_NEAR). */
+  /** The `entry_levels.id` the verdict is about, or null (NO_ENTRY_NEAR / position eval). */
   evaluatedLevelId: string | null
   warnings: string[]
 }
@@ -168,8 +175,38 @@ export function enforceEvalFacts(
 
   if (proximity.nearEntry && result.status === 'NO_ENTRY_NEAR') {
     warnings.push(
-      'code-computed gate says an active entry IS near, but the model returned NO_ENTRY_NEAR — kept (conservative), review the reason',
+      options.position
+        ? `position eval (${options.position}) — the model returned NO_ENTRY_NEAR, which does not apply to a position check — kept (conservative), review the reason`
+        : 'code-computed gate says an active entry IS near, but the model returned NO_ENTRY_NEAR — kept (conservative), review the reason',
     )
+  }
+
+  // Position evals: the direction and the current-price evaluated level are
+  // code-owned (the operator pressed Long or Short); any model drift on them
+  // is overwritten. The FK stays null below — there is no entry_levels row a
+  // position check is about.
+  if (options.position && result.status !== 'NO_ENTRY_NEAR') {
+    const position = options.position
+    const echoed = result.evaluatedLevel
+    if (
+      result.direction !== position ||
+      !echoed ||
+      echoed.direction !== position ||
+      Math.abs(echoed.price - options.currentPrice) > PRICE_EPSILON
+    ) {
+      warnings.push(
+        `position eval: model drifted from the code-owned ${position} @ ${options.currentPrice} evaluated level — overwritten`,
+      )
+    }
+    result = {
+      ...result,
+      direction: position,
+      evaluatedLevel: {
+        label: proximity.nearest?.level.label ?? `${position} position`,
+        price: options.currentPrice,
+        direction: position,
+      },
+    }
   }
 
   // Initiative gate: extreme-bar counts confirming counter-initiative demote
@@ -240,7 +277,7 @@ export function enforceEvalFacts(
   }
 
   const evaluatedLevelId =
-    result.status === 'NO_ENTRY_NEAR'
+    options.position || result.status === 'NO_ENTRY_NEAR'
       ? null
       : resolveEvaluatedLevelId(result, options, warnings)
 

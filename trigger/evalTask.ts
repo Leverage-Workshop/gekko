@@ -13,7 +13,9 @@ import { awaitFreshBundle } from "./freshBundle";
 // OpenRouter with the triage model (config.triage_model_id; chart images +
 // delta telemetry, EvalResult schema) implementing the instructions.md eval
 // logic → enforce code-owned facts → persist eval_results. Triggered on
-// demand from /api/eval/run (the "Check Entry at Current Price" button).
+// demand from /api/eval/run: the "Eval" button (entry check) or the
+// "Long" / "Short" buttons (payload.direction — a hold-or-exit read on the
+// operator's open position at the current price).
 // Notify: the eval_results INSERT itself broadcasts on Realtime via DB
 // trigger (feat-026); Web Push is sent below after persistence (feat-027).
 export const evalTask = schemaTask({
@@ -24,6 +26,10 @@ export const evalTask = schemaTask({
       // Pending bundle_requests row the route inserted; absent on runs
       // triggered outside the dashboard (no fresh-bundle wait then).
       bundleRequestId: z.string().uuid().optional(),
+      // Position-eval direction (the dashboard's Long / Short buttons):
+      // evaluate the operator's open position at the current price instead of
+      // the active entry levels. Absent → the standard entry check.
+      direction: z.enum(["long", "short"]).optional(),
     })
     .default({}),
   retry: {
@@ -38,7 +44,7 @@ export const evalTask = schemaTask({
 
     let result: EvalRunResult;
     try {
-      result = await runEval(realEvalDeps());
+      result = await runEval(realEvalDeps(), { position: payload.direction ?? null });
     } catch (error) {
       // Input errors (no usable bundle / no current price — runEval loads the
       // bundle via loadLatestBundle, so both error types can surface here)
@@ -72,10 +78,12 @@ export const evalTask = schemaTask({
     );
     metadata.set("evalResultId", result.evalResultId);
     metadata.set("stale", result.stale);
+    metadata.set("position", result.position);
 
     logger.info("eval result persisted", {
       evalResultId: result.evalResultId,
       bundleId: result.bundleId,
+      position: result.position,
       model: result.model,
       costUsd: result.cost,
       latencyMs: result.latencyMs,
