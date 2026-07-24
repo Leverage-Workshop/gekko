@@ -14,6 +14,13 @@ trace (`docs/traces/analyze-task-2026-07-20/`).
 PNG (or can't see at all) into numeric data the engine can compute deterministically —
 the same treatment `ripStatus`, `lvnHvnNodes`, and `terrainZones` already got.
 
+**Analyze AND eval:** each item carries an **Eval-task use** note. Today the eval task
+(entry check / position hold-or-exit) consumes only the execution CSV (delta telemetry,
+recent bars, the proximity bar-range window), the two execution delta exports (the
+absorption scan), and the chart images — no volume profiles, no MGI levels, and no HTF
+data reach it at all. Several items below close exactly that gap, and the enriched
+execution bars (item 2) upgrade the eval's primary data source directly.
+
 **Cross-cutting note:** each *new file* also needs gekko-side work — a new entry in
 `FILE_FIELDS` (`lib/ingest/manifest.ts`), a `raw_bundles` ref column (Supabase migration),
 uploader pickup, a parser in `lib/engine/`, and wiring into engine facts / the analyze
@@ -32,6 +39,15 @@ models get wrong. With TPO counts per price, the engine can *deterministically* 
 single prints (count == 1 inside the range), poor/unfinished highs and lows (flat 2+ TPO
 shelf at an extreme), prominent POC, IB, and day type — and hand them to the LLM as
 authoritative engine facts.
+
+**Eval-task use.** The eval weighs "structure still supports this trade" with no
+structural data beyond the entry-level row itself. TPO facts add two cheap, code-owned
+checks relative to the evaluated level: an entry sitting in a **single-print zone** is
+fragile support (fast-traverse risk — a WAIT/NOT_VALID caution), and a nearby **poor
+high/low** is a repair magnet — for a position eval, a poor high overhead argues against
+holding a short into it and against panic-exiting a long beneath it. Surface as one or
+two compact facts in the eval prompt (nearest single-print zone and nearest poor extreme
+relative to the evaluated level), never the full TPO ladder.
 
 **File type & format.** New file `tpo.data.md` — Markdown with a metadata/summary header
 and a fenced CSV block, matching the existing `.vbp.md` convention:
@@ -97,6 +113,17 @@ divergence at borders, flag volume climax/exhaustion, and preserve delta magnitu
 the −3…+3 bucketing throws away. **Bonus:** once raw per-bar delta exists, *cumulative
 delta* is computed engine-side from this file — no separate export needed.
 
+**Eval-task use.** The biggest eval win on this list — this CSV is already the eval's
+primary data source. (a) The recent-bars table the model judges the flush/stall/response
+sequence from gains true volume and delta columns, so an absorbed flush is
+distinguishable from no-demand drift by magnitude, not just the −3…+3 bucket. (b) The
+absorption candidates get **code-owned stall confirmation at the evaluated level**
+(heavy volume + no price progress) — exactly the misjudgment class the feat-044 eval
+fixes chased. (c) The count-only initiative gate in the eval validator can weigh true
+counter-delta instead of bucket counts, and `NumberOfTrades` yields average trade size
+(initiative quality: large prints vs algo chop). (d) Cumulative-delta divergence over
+the recent window becomes a computable check at the entry or held position.
+
 **File type & format.** Edit the existing CSV. New header (keep existing columns, append
 four):
 
@@ -134,6 +161,11 @@ engine detect and validate balance-area formation/expansion itself, flag when th
 anchor has drifted from what the rule says, and give the LLM a concrete value-migration
 narrative (value building higher/lower day over day) instead of a screenshot inference.
 
+**Eval-task use.** Modest but nearly free: the eval's `meta.zone` read and the
+hold/exit checks gain acceptance context — is the current price inside, above, or below
+the prior day's value area, and is value migrating toward or away from the evaluated
+direction. One code-owned context line in the eval prompt; no new model burden.
+
 **File type & format.** New file `daily-value-areas.csv` — plain CSV, one row per
 completed RTH session, most recent first, rolling ~20 sessions:
 
@@ -167,6 +199,13 @@ Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume
 highs/lows, rotation extent, and measured ATR computable and verifiable — the same
 treatment `ripStatus` got for the execution timeframe.
 
+**Eval-task use.** Position evals are where this pays off most: a hold-or-exit read on
+an open position currently sees ~250 execution bars and nothing longer — no HTF context
+beyond the screenshot. Computed HTF trend state plus a measured HTF ATR lets the engine
+say whether the adverse move against the position is normal rotation noise or a trend
+break (ATR-normalized excursion), and gives the model a structural basis for the
+stop/target advice a position verdict carries.
+
 **File type & format.** New file `htf_bar_data.rolling.csv` — plain CSV, 30-min bars,
 rolling 90 days (~2,100 rows), same shape as the enriched execution CSV:
 
@@ -195,6 +234,11 @@ rotation. Adding a delta column to the 400-pt rotation and balance-area profiles
 *who built* each HVN/LVN — an HVN built on heavy negative delta reads very differently
 as a magnet than one built on balanced two-way trade — and lets `lvnDetection` /
 `magnetCheck` carry a delta annotation per node.
+
+**Eval-task use.** Light: node-quality context for the evaluated level. An entry
+anchored at an HVN built on one-sided delta leans on weaker acceptance than a
+balanced-build node; when a structural node sits within a few points of the evaluated
+level, annotate it in the eval prompt with its build quality.
 
 **File type & format.** Edit the two existing `.vbp.md` exports
 (`four-hundred-rotation.vbp.md`, `balance-area.vbp.md`): the fenced CSV block gains one
@@ -227,6 +271,12 @@ column). The half/full rotation *delta* profiles stay as they are.
 **What & why.** `mgi_static_levels.json` exports VWAP midlines (`vwap24`, weekly,
 monthly) but not their SD bands. VWAP ±1σ/±2σ are natural structure for the entry
 standoff, stop buffers, and target rungs, and cost almost nothing to add.
+
+**Eval-task use.** The eval currently receives no MGI data at all. The band prices
+nearest the current price are natural hold/exit context: a long evaluated at −2σ has
+mean-reversion structure beneath it, while a position held at +2σ is statistically
+extended — caution-side input for the verdict's `nextSignal`/`caution` fields. Feed the
+eval two or three code-picked nearby band prices, not the whole object.
 
 **File type & format.** Edit the existing JSON — add one object (2-decimal prices):
 
@@ -262,6 +312,12 @@ exports don't say *where*. Exporting each profile's anchor datetime/price lets t
 engine validate the anchors (cross-check against the daily value-area history from
 item 3), compute how much of the 400-pt rotation has traversed, and flag a stale anchor
 in the briefing instead of silently analyzing the wrong structure.
+
+**Eval-task use.** Makes an existing eval caveat code-owned. The eval prompt already
+warns that the bin-based absorption scan "can miss absorption a rolling export has
+already aged out"; with the delta exports' anchor time, the engine can state exactly how
+much history the scan covers ("full-rotation delta re-anchored 4 minutes ago — stacks
+before that are gone") instead of leaving the model to guess how stale the scan is.
 
 **File type & format.** Edit all four `.vbp.md` exports — three lines added to the
 existing `## Metadata` section:
@@ -300,6 +356,9 @@ exist only overnight are suspect. Skip if the existing profiles are already RTH-
 confirm that first, and record the answer in item 7's metadata (add a
 `- **Session**: RTH|ETH` line) either way.
 
+**Eval-task use.** Indirect only — stronger node classification upstream sharpens the
+levels the eval inherits from the briefing; no direct eval wiring planned.
+
 **File type & format.** New file `balance-area-rth.vbp.md`, identical format to
 `balance-area.vbp.md` (metadata + summary + fenced `Price,Volume[,Delta]` CSV), computed
 over the same anchored range but RTH sessions only.
@@ -323,7 +382,7 @@ over the same anchored range but RTH sessions only.
 Every item above changes what data flows into the analysis, and PR #79's cleanup showed
 how easily the prompts and the data drift apart. Before any item lands, the verification
 suite carries a gate — `tests/prompt-data-sync.test.ts`, run by `npm test` inside
-`./init.sh` — and **feat-047…053 all depend on it**:
+`./init.sh` — and **feat-046…053 all depend on it**:
 
 1. **Registry completeness.** `docs/engine-ownership.md` § "Bundle exports" maps every
    manifest field to its consumer and model surface. A new export with no registry row,
