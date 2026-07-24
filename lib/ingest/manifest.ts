@@ -64,6 +64,13 @@ export const FILE_FIELDS: readonly FileField[] = [
     filename: 'full-rotation-delta.vbp.md',
     contentType: 'text/markdown',
   },
+  {
+    field: 'tpo_data',
+    bucket: 'bundle-csvs',
+    column: 'tpo_data_ref',
+    filename: 'tpo.data.md',
+    contentType: 'text/markdown',
+  },
 ] as const
 
 /**

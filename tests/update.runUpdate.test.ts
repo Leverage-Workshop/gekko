@@ -157,6 +157,7 @@ function makeDeps(overrides: Partial<UpdateDeps> = {}) {
       balance_area_vbp_ref: 'b1/balance-area.vbp.md',
       half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
       full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
+      tpo_data_ref: null,
       htf_png_ref: 'b1/htf.png',
       tpo_png_ref: null,
       exec_png_ref: null,

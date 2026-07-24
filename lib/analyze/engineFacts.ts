@@ -16,6 +16,9 @@ import { assessStaleness } from '@/lib/engine/staleness'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
 import { assembleTerrain } from '@/lib/engine/terrainZones'
 import type { TerrainZonesResult } from '@/lib/engine/terrainZones'
+import { parseTpoProfile } from '@/lib/engine/parseTpo'
+import { computeTpoFacts } from '@/lib/engine/tpoFacts'
+import type { TpoFacts } from '@/lib/engine/tpoFacts'
 
 /**
  * Deterministic engine pass over one export bundle: every computed fact the
@@ -36,6 +39,12 @@ export interface EngineFactsInput {
   fullRotationDeltaContent: string
   /** Execution-bar CSV export (`execution_bar_data.rolling.csv`). */
   execCsvContent: string
+  /**
+   * Numeric TPO export (`tpo.data.md`, feat-046). Best-effort: absent or
+   * malformed content degrades to `tpo: null` + a warning instead of failing
+   * the run (pre-study bundles carry no TPO file).
+   */
+  tpoDataContent?: string | null
   /** Parsed `mgi_json` from the bundle row. */
   mgi: MgiStaticLevels
   /** `raw_bundles.received_at` — feeds the staleness assessment. */
@@ -68,6 +77,12 @@ export interface EngineFacts {
   terrain: TerrainZonesResult
   /** POC/VAH/VAL per volume profile. */
   profileSummary: { rotation: ProfileSummary; balanceArea: ProfileSummary }
+  /**
+   * Code-owned TPO / Market Profile reads (feat-046): single-print zones,
+   * poor high/low, POC prominence, IB. Null when the bundle has no (or a
+   * malformed) `tpo.data.md` — flagged in `warnings`.
+   */
+  tpo: TpoFacts | null
   /** Non-fatal degradations (missing rip, terrain issues, ...). */
   warnings: string[]
 }
@@ -122,6 +137,19 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     fullRotation: fullRotationDelta.rows,
   })
   const staleness = assessStaleness({ receivedAt: input.receivedAt, now: input.now })
+
+  let tpo: TpoFacts | null = null
+  if (input.tpoDataContent) {
+    try {
+      tpo = computeTpoFacts(parseTpoProfile(input.tpoDataContent))
+    } catch (error) {
+      warnings.push(
+        `tpo.data.md failed to parse — TPO facts not computed: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  } else {
+    warnings.push('bundle has no numeric TPO export — TPO facts not computed')
+  }
 
   const summaryOf = (meta: {
     pocPrice: number
@@ -219,6 +247,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     magnetCheck,
     terrain,
     profileSummary,
+    tpo,
     warnings,
   }
 }

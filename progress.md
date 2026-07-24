@@ -3,14 +3,38 @@
 ## Current State
 
 **Last Updated:** 2026-07-24
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **direction-aware
-objective anchor separation** (PR #86), on top of the Long/Short
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **numeric TPO
+export + code-owned TPO facts** (feat-046), on top of direction-aware
+objective anchor separation (PR #86), the Long/Short
 position-eval buttons (feat-046, branch `claude/long-short-eval-buttons-hrbfcu`), the eval strip scoped to the current briefing (PR #83), on-demand bundle uploads
 (PR #82), the entry chase-side gate (PR #81), the system-prompt restructure +
 campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) + entry
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Numeric TPO / Market Profile export (2026-07-24, feat-046).** First of the
+data-todos export backlog. Sierra side: new ACSIL study
+`D:\SierraChart\ACS_Source\GekkoTpoDataExporter.cpp` (own `SCDLLName`, build as its own
+DLL) exporting `C:\gekko\export\tpo.data.md` — Metadata (Session Date/RTH-ETH/period/
+tick/bin) + Summary (TPO POC, VA, IB, session extremes via `GetStudyProfileInformation`)
++ fenced csv `Price,TPOCount,Letters`. Counts come from the TPO Profile Chart study
+(`GetVolumeAtPriceDataForStudyProfile` — `.Volume` is the TPO count, confirmed against
+the Sierra support board); ACSIL does not expose letters, so they are reconstructed from
+the chart bars inside the profile's own `m_BeginIndex..m_EndIndex` range (A–Z then a–z).
+**The study still needs building in Sierra (Analysis >> Build Custom Studies DLL, this
+file alone) and adding to the TPO chart with its study reference + bin size set to match
+the TPO study's price increment.** Gekko side: `tpo_data` manifest field →
+`raw_bundles.tpo_data_ref` (migration 20260724090000, applied), uploader watches
+`tpo.data.md`, analyze/update loads fetch it best-effort (missing ref = pre-study
+bundle, silent; engine degrades to `tpo: null` + warning). `lib/engine/parseTpo.ts`
+hard-rejects drifted exports; `lib/engine/tpoFacts.ts` computes single-print zones
+(contiguous count==1 runs, tails at the extremes excluded), poor high/low (2+ TPO shelf
+at an extreme), POC prominence (≥1.5× median bin count) and IB. Surfaced as the
+`tpo` payload key; the "TPO single prints / poor highs-lows" vision read left both
+prompts per the feat-054 vision-exclusivity gate (screenshot keeps only value-migration/
+distribution shape). Fixture `chart-data/tpo.data.md` generated per-period so letters ↔
+counts ↔ summary agree and every detection has a positive + negative case.
 
 **Direction-aware objective anchor separation (2026-07-24, PR #86, operator request).**
 The 2026-07-24 morning briefing bracketed one contested zone with a long reload at

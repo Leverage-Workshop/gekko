@@ -501,7 +501,8 @@
       "dependencies": [
         "feat-054"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "2026-07-24: Sierra study D:\\SierraChart\\ACS_Source\\GekkoTpoDataExporter.cpp (new, own DLL) exports tpo.data.md from the TPO Profile Chart study (counts/summary via GetStudyProfileInformation + GetVolumeAtPriceDataForStudyProfile; letters reconstructed from the profile's bar range since ACSIL does not expose them; atomic tmp+rename, 30 s). Gekko side: tpo_data manifest field + tpo_data_ref migration (20260724090000, applied to Supabase), uploader pickup, best-effort loadBundle fetch, lib/engine/parseTpo.ts + lib/engine/tpoFacts.ts (single-print zones excl. tails, poor high/low, POC prominence >= 1.5x median, IB), facts.tpo -> factsPayload `tpo`, TPO vision read replaced with code-owned facts in analyze+update prompts, engine-ownership registry rows, chart-data/tpo.data.md fixture. ./init.sh green: typecheck, lint (0 errors), 831/831 tests (incl. prompt-data-sync gate + 21 new parser/facts tests), build."
     },
     {
       "id": "feat-047",
