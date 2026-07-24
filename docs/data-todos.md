@@ -318,6 +318,35 @@ over the same anchored range but RTH sessions only.
 
 ---
 
+## Prerequisite: the prompt–data sync gate (`feat-053`) — DONE
+
+Every item above changes what data flows into the analysis, and PR #79's cleanup showed
+how easily the prompts and the data drift apart. Before any item lands, the verification
+suite carries a gate — `tests/prompt-data-sync.test.ts`, run by `npm test` inside
+`./init.sh` — and **feat-045…052 all depend on it**:
+
+1. **Registry completeness.** `docs/engine-ownership.md` § "Bundle exports" maps every
+   manifest field to its consumer and model surface. A new export with no registry row,
+   a stale row, a missing module, or an engine-fact key the table doesn't surface (or
+   vice versa) fails the suite. Adding an export forces the decision of who owns it and
+   where the model sees it, in the same change.
+2. **Fact-path resolution.** Every engine-fact path named in the prompt builders and
+   doctrine prose must resolve against the payload actually computed from the
+   `chart-data/` fixtures — renames can't leave stale prose pointers.
+3. **Vision exclusivity.** The screenshot-only instructions are paired with the numeric
+   capability that obsoletes them: when feat-045 lands a TPO fact key, the "TPO single
+   prints" vision read must leave the prompt; when feat-048 lands HTF facts, the
+   `meta.htfTrend` pure-vision read must change; when feat-046 lands bar volume, stall
+   confirmation moves engine-side. Each conditional also asserts the instruction stays
+   *present* while the capability is absent.
+4. **Size budgets.** Cached prefixes and the fixture user prompt have committed
+   character budgets — new data must be projected/summarized into `factsPayload`, not
+   dumped, or the budget must be consciously bumped in the diff.
+
+Practical consequence for items 1–8: expect the gate to go red mid-implementation —
+that is it working. The failure messages say what to update (registry row, prompt line,
+budget) alongside the export itself.
+
 ## Deferred / not planned
 
 - **Fill the zeroed MGI fields (`onh/onl/ibh/ibl`)** — investigated; the zeros in the

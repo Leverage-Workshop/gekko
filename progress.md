@@ -12,6 +12,25 @@ zones (PR #79), contested-border entry doctrine (PR #77) + entry standoff relaxe
 (PR #74), the count-only initiative gate (PR #73), the briefing entry anchoring fix
 (PR #72) and the sign-gate count fix (PR #71).
 
+**feat-053 — Prompt–data sync gate (2026-07-24, operator request, same branch as the
+Data Todos report).** Quality gate so the feat-045…052 exports cannot undo the PR #79
+prompt/data alignment. New `tests/prompt-data-sync.test.ts` (29 offline vitest tests,
+rides `npm test` in `./init.sh`): (1) a new machine-parsed "Bundle exports" registry
+table in `docs/engine-ownership.md` must cover every manifest field, name only existing
+modules, and surface exactly the `factsPayload` keys (both directions); (2) every
+backticked engine-fact path in the three prompt builders, three assembled doctrine
+prefixes and the built analyze prompt must resolve against the payload computed from
+the `chart-data/` fixtures; (3) vision-exclusivity conditionals pair each
+screenshot-only instruction with the numeric capability that obsoletes it (TPO reads ↔
+a tpo payload key, `meta.htfTrend` pure-vision read ↔ an htf payload key, absorption
+stall confirmation ↔ Bid/AskVolume in the exec CSV header) and assert presence while
+absent / absence once present; (4) char budgets on the cached prefixes (20k–36k) and
+the fixture analyze user prompt (35k–80k). Gate verified by four mutation runs (registry
+row deleted, payload key renamed, unregistered manifest field added, fake tpo fact
+injected) — each fails with a targeted message. feat-045…052 now all depend on
+feat-053; `docs/data-todos.md` gained a prerequisite section. 794 tests green,
+`./init.sh` fully green.
+
 **Data Todos report + export backlog (2026-07-24, operator request, branch
 `claude/chart-export-analysis-a5lx6v`).** Reviewed the bundle contract, engine modules
 and the analyze trace for gaps in the Sierra chart exports; wrote
