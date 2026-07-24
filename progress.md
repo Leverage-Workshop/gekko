@@ -12,6 +12,18 @@ zones (PR #79), contested-border entry doctrine (PR #77) + entry standoff relaxe
 (PR #74), the count-only initiative gate (PR #73), the briefing entry anchoring fix
 (PR #72) and the sign-gate count fix (PR #71).
 
+**Data Todos report + export backlog (2026-07-24, operator request, branch
+`claude/chart-export-analysis-a5lx6v`).** Reviewed the bundle contract, engine modules
+and the analyze trace for gaps in the Sierra chart exports; wrote
+`docs/data-todos.md` — eight ranked export upgrades (numeric TPO, enriched execution
+bars with volume/bid-ask/trade count, daily value-area history, HTF bars CSV, delta
+column on structural profiles, VWAP SD bands, profile anchor metadata, RTH-only
+balance-area variant), each with the target file type/format and a paste-ready Claude
+Code prompt for creating/editing the ACSIL study on the trading machine. Added them to
+`feature_list.json` as feat-045…feat-052 (`not-started`). The zeroed `onh/onl/ibh/ibl`
+MGI fields were ruled a benign export-timing artifact — no action. Docs/backlog only,
+no code changes.
+
 **Eval strip scoped to the current briefing (2026-07-24, operator request).** After
 generating a new briefing the dashboard kept showing the previous eval verdict — stale
 and confusing, since an eval only ever checks the ACTIVE entry levels and each

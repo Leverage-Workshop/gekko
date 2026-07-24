@@ -483,6 +483,67 @@
       ],
       "status": "done",
       "evidence": "feat-044 (2026-07-18): ./init.sh green \u2014 typecheck 0 errors, lint 0 errors, 667 tests pass (12 new: telemetry recentRange/blueExtremes, absorbedFlushException keep-ENTER, absorption-candidates + recent-bars prompt sections, exec-plus-delta loader), build OK. Replay of live bundle 1c524056 (the misjudged eval): sign=negative mean=-0.6 red=4 position=0.82 \u2192 gate lifted for the long; scan at 0.7 surfaces the sell stack 29542.5-29549.25 (peak 92, net -251) under the 29565.25 entry."
+    },
+    {
+      "id": "feat-045",
+      "name": "Data export: numeric TPO / Market Profile (tpo.data.md)",
+      "description": "New Sierra ACSIL export `tpo.data.md` (markdown + fenced CSV `Price,TPOCount,Letters` with Metadata/Summary sections) per docs/data-todos.md item 1, plus gekko-side ingest (FILE_FIELDS entry, raw_bundles ref column + migration, uploader pickup), a `lib/engine/` parser, and deterministic detection of single prints, poor/unfinished highs-lows, prominent POC and IB fed into engine facts \u2014 replacing the analyze prompt's vision-only TPO read.",
+      "dependencies": [],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-046",
+      "name": "Data export: enriched execution bars (Volume/BidVolume/AskVolume/NumberOfTrades)",
+      "description": "Extend the `execution_bar_data.rolling.csv` ACSIL study with `Volume,BidVolume,AskVolume,NumberOfTrades` columns per docs/data-todos.md item 2, and update `lib/engine/parseExecBars.ts` (header check) in lockstep. Engine follow-through: numeric absorption confirmation (heavy volume + no progress at candidate stacks), delta divergence at borders, volume climax/exhaustion flags, and engine-computed cumulative delta (no separate export).",
+      "dependencies": [],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-047",
+      "name": "Data export: daily value-area history (daily-value-areas.csv)",
+      "description": "New ACSIL export `daily-value-areas.csv` (`Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, rolling 20 completed RTH sessions) per docs/data-todos.md item 3, plus ingest/parser wiring. Engine follow-through: detect and validate Balance Area formation/expansion from the two-days-overlapping-value rule, flag drift of the manual balance-area anchor, and surface a value-migration narrative in engine facts.",
+      "dependencies": [],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-048",
+      "name": "Data export: HTF 30-min bars (htf_bar_data.rolling.csv)",
+      "description": "New ACSIL export `htf_bar_data.rolling.csv` (`DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume`, 30-min bars, rolling 90 days) per docs/data-todos.md item 4, plus ingest/parser wiring. Engine follow-through: computed HTF trend state, swing highs/lows and measured ATR so `meta.htfTrend` becomes verifiable engine data instead of a pure vision read of the planning-chart PNG.",
+      "dependencies": [],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-049",
+      "name": "Data export: delta column on structural profiles (rotation + balance area)",
+      "description": "Extend the `four-hundred-rotation.vbp.md` and `balance-area.vbp.md` ACSIL studies from `Price,Volume` to `Price,Volume,Delta` per docs/data-todos.md item 5, updating `lib/engine/parseProfile.ts` in lockstep. Engine follow-through: annotate HVN/LVN nodes and magnets with the delta that built them (one-sided vs balanced construction).",
+      "dependencies": [],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-050",
+      "name": "Data export: VWAP standard-deviation bands in mgi_static_levels.json",
+      "description": "Extend the MGI ACSIL study with a `vwapBands` object (\u00b11\u03c3/\u00b12\u03c3 for vwap24, weekly, monthly) per docs/data-todos.md item 6 (additive JSON change), then plumb the bands through `lib/engine/mgiPriority.ts`/level handling as additional MGI levels for entries, stops and target rungs.",
+      "dependencies": [],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-051",
+      "name": "Data export: profile anchor metadata on the four .vbp.md exports",
+      "description": "Add `Anchor DateTime`, `Anchor Price` and `Bars In Profile` to the `## Metadata` section of all four volume-profile exports per docs/data-todos.md item 7 (additive), extend `lib/engine/parseProfile.ts` to capture them. Engine follow-through: validate the manual rotation/balance-area anchors (cross-check vs feat-047 daily value areas), compute rotation traverse progress, and flag stale anchors in the briefing.",
+      "dependencies": [
+        "feat-047"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-052",
+      "name": "Data export: RTH-only balance-area profile (balance-area-rth.vbp.md)",
+      "description": "Lower priority, per docs/data-todos.md item 8. First confirm whether the existing structural profiles blend ETH; if so, add an RTH-only variant export `balance-area-rth.vbp.md` (identical .vbp.md format, same anchor, RTH sessions only) plus ingest/parser wiring, and record `Session: RTH|ETH` in profile metadata either way. Engine follow-through: compare RTH vs blended nodes \u2014 nodes present in both are structurally stronger.",
+      "dependencies": [
+        "feat-049",
+        "feat-051"
+      ],
+      "status": "not-started"
     }
   ]
 }
