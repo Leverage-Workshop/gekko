@@ -7,12 +7,12 @@ import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
 import { FILE_FIELDS, MGI_FIELD } from '@/lib/ingest/manifest'
 
 /**
- * feat-053 — Prompt–data sync gate.
+ * feat-054 — Prompt–data sync gate.
  *
  * PR #79 put every rule in exactly one home (engine constants → code, doctrine →
  * cached prefix, per-run data → user message). The drift guards (feat-032,
  * knowledge-restructure) keep *numbers and prose hygiene* in sync, but nothing
- * guarded the DATA ↔ PROMPT contract itself — which the feat-045…052 export
+ * guarded the DATA ↔ PROMPT contract itself — which the feat-047…053 export
  * backlog is about to stress. This gate closes that gap, dynamically (derived
  * from the live manifest, the live payload built from the real chart-data
  * fixtures, and the live prompt builders — never a prose snapshot):
@@ -27,8 +27,8 @@ import { FILE_FIELDS, MGI_FIELD } from '@/lib/ingest/manifest'
  *     fixture bundle, so a fact rename cannot leave stale pointers in prose.
  *  3. VISION EXCLUSIVITY — the analyze prompt may send the model to the
  *     screenshots only for what the numeric data cannot give. Each vision read
- *     is paired with the numeric capability that will replace it (feat-045
- *     numeric TPO, feat-046 bar volume, feat-048 HTF bars); when the
+ *     is paired with the numeric capability that will replace it (feat-046
+ *     numeric TPO, feat-047 bar volume, feat-049 HTF bars); when the
  *     capability lands, the matching vision instruction MUST move — in the
  *     same change — or this gate fails.
  *  4. SIZE BUDGETS — cached prefixes and the fixture user prompt stay inside
@@ -96,7 +96,7 @@ const registryRows: RegistryRow[] = registrySection
 
 const manifestFields = [...FILE_FIELDS.map((f) => f.field), MGI_FIELD]
 
-describe('prompt-data sync gate (feat-053)', () => {
+describe('prompt-data sync gate (feat-054)', () => {
   describe('bundle registry: docs/engine-ownership.md § Bundle exports', () => {
     it('has a parseable Bundle exports table', () => {
       expect(registrySection, 'docs/engine-ownership.md lost its "## Bundle exports" section').toBeTruthy()
@@ -232,16 +232,16 @@ describe('prompt-data sync gate (feat-053)', () => {
 
     // Each pair: [capability signal in the numeric data] <-> [vision instruction].
     // While the capability is absent the instruction MUST be present (the model
-    // has no other source); once the capability lands (feat-045/046/048) the
+    // has no other source); once the capability lands (feat-046/046/048) the
     // instruction MUST leave the prompt in the same change — the engine fact is
     // then authoritative and the doctrine forbids re-deriving it from a PNG.
 
-    it('TPO features are vision-only exactly while no numeric TPO fact exists (feat-045)', () => {
+    it('TPO features are vision-only exactly while no numeric TPO fact exists (feat-046)', () => {
       const hasTpoFact = payloadKeys.some((key) => /tpo/i.test(key))
       if (hasTpoFact) {
         expect(
           visionLine,
-          'a numeric TPO fact landed (feat-045) but the prompt still sends the model to the ' +
+          'a numeric TPO fact landed (feat-046) but the prompt still sends the model to the ' +
             'screenshot for TPO reads — move single prints / poor highs-lows to engine facts',
         ).not.toMatch(/TPO/i)
       } else {
@@ -249,12 +249,12 @@ describe('prompt-data sync gate (feat-053)', () => {
       }
     })
 
-    it('HTF trend is a vision read exactly while no numeric HTF fact exists (feat-048)', () => {
+    it('HTF trend is a vision read exactly while no numeric HTF fact exists (feat-049)', () => {
       const hasHtfFact = payloadKeys.some((key) => /htf/i.test(key))
       if (hasHtfFact) {
         expect(
           analysisPrompt,
-          'a numeric HTF fact landed (feat-048) but meta.htfTrend is still asked for as a pure ' +
+          'a numeric HTF fact landed (feat-049) but meta.htfTrend is still asked for as a pure ' +
             'planning-chart read — derive/verify it from the HTF bars instead',
         ).not.toMatch(/htfTrend = your HTF trend read/)
       } else {
@@ -262,13 +262,13 @@ describe('prompt-data sync gate (feat-053)', () => {
       }
     })
 
-    it('absorption stall confirmation is chart-owned exactly while bars carry no volume (feat-046)', () => {
+    it('absorption stall confirmation is chart-owned exactly while bars carry no volume (feat-047)', () => {
       const execHeader = execCsvContent.split(/\r?\n/, 1)[0]
       const hasBarVolume = /\b(?:Bid|Ask)Volume\b/.test(execHeader)
       if (hasBarVolume) {
         expect(
           analysisPrompt,
-          'the execution bars now carry bid/ask volume (feat-046) but the prompt still delegates ' +
+          'the execution bars now carry bid/ask volume (feat-047) but the prompt still delegates ' +
             'absorption stall confirmation solely to the execution chart — the engine can now ' +
             'verify heavy volume + no price progress at a candidate stack itself',
         ).not.toMatch(/execution chart shows price STALLED/)

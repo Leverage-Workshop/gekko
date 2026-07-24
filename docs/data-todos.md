@@ -19,11 +19,11 @@ the same treatment `ripStatus`, `lvnHvnNodes`, and `terrainZones` already got.
 uploader pickup, a parser in `lib/engine/`, and wiring into engine facts / the analyze
 prompt. Items that *edit an existing export* need the matching parser updated in lockstep
 (several parsers hard-reject on header mismatch). The feature-list items
-(`feat-045`–`feat-052`) cover both sides.
+(`feat-046`–`feat-053`) cover both sides.
 
 ---
 
-## 1. Numeric TPO / Market Profile export (`feat-045`)
+## 1. Numeric TPO / Market Profile export (`feat-046`)
 
 **What & why.** The TPO chart ships as an image only, yet the doctrine leans on it
 heavily — the analyze prompt tells the model to read "TPO single prints / poor
@@ -86,7 +86,7 @@ day (e.g. "single prints from B period", "poor high built in H/I"), not just cou
 
 ---
 
-## 2. Enriched execution bars: volume, bid/ask volume, trade count (`feat-046`)
+## 2. Enriched execution bars: volume, bid/ask volume, trade count (`feat-047`)
 
 **What & why.** `execution_bar_data.rolling.csv` currently carries only OHLC, a leg VWAP,
 and a pre-bucketed `DeltaIntensity` score — no per-bar volume, no raw delta, no trade
@@ -125,7 +125,7 @@ updated in the same deploy window as the study change.
 
 ---
 
-## 3. Daily value-area history (`feat-047`)
+## 3. Daily value-area history (`feat-048`)
 
 **What & why.** The Balance Area doctrine — "begins when two days of overlapping value
 occur and expands while subsequent days keep overlapping value" — is currently enforced
@@ -160,7 +160,7 @@ Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume
 
 ---
 
-## 4. HTF bars CSV (`feat-048`)
+## 4. HTF bars CSV (`feat-049`)
 
 **What & why.** The 30-min/90-day planning chart ships as a PNG only, and
 `meta.htfTrend` is a pure vision read. Numeric HTF bars make trend state, swing
@@ -188,7 +188,7 @@ DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume
 
 ---
 
-## 5. Delta split on the structural profiles (`feat-049`)
+## 5. Delta split on the structural profiles (`feat-050`)
 
 **What & why.** Delta profiles exist only for the execution-timeframe half/full
 rotation. Adding a delta column to the 400-pt rotation and balance-area profiles shows
@@ -222,7 +222,7 @@ column). The half/full rotation *delta* profiles stay as they are.
 
 ---
 
-## 6. VWAP standard-deviation bands (`feat-050`)
+## 6. VWAP standard-deviation bands (`feat-051`)
 
 **What & why.** `mgi_static_levels.json` exports VWAP midlines (`vwap24`, weekly,
 monthly) but not their SD bands. VWAP ±1σ/±2σ are natural structure for the entry
@@ -255,7 +255,7 @@ Additive JSON change — the gekko ingest stores the blob as jsonb, so nothing b
 
 ---
 
-## 7. Profile anchor metadata (`feat-051`)
+## 7. Profile anchor metadata (`feat-052`)
 
 **What & why.** The rotation and balance-area profiles are manually anchored, but the
 exports don't say *where*. Exporting each profile's anchor datetime/price lets the
@@ -290,7 +290,7 @@ Additive markdown change; `lib/engine/parseProfile.ts` extends to capture the ne
 
 ---
 
-## 8. RTH-only balance-area profile (`feat-052`) — lower priority
+## 8. RTH-only balance-area profile (`feat-053`) — lower priority
 
 **What & why.** If the structural profiles blend overnight and RTH trade, value areas
 differ meaningfully from RTH-only value, and the balance/acceptance doctrine is
@@ -318,12 +318,12 @@ over the same anchored range but RTH sessions only.
 
 ---
 
-## Prerequisite: the prompt–data sync gate (`feat-053`) — DONE
+## Prerequisite: the prompt–data sync gate (`feat-054`) — DONE
 
 Every item above changes what data flows into the analysis, and PR #79's cleanup showed
 how easily the prompts and the data drift apart. Before any item lands, the verification
 suite carries a gate — `tests/prompt-data-sync.test.ts`, run by `npm test` inside
-`./init.sh` — and **feat-045…052 all depend on it**:
+`./init.sh` — and **feat-047…053 all depend on it**:
 
 1. **Registry completeness.** `docs/engine-ownership.md` § "Bundle exports" maps every
    manifest field to its consumer and model surface. A new export with no registry row,
@@ -334,9 +334,9 @@ suite carries a gate — `tests/prompt-data-sync.test.ts`, run by `npm test` ins
    doctrine prose must resolve against the payload actually computed from the
    `chart-data/` fixtures — renames can't leave stale prose pointers.
 3. **Vision exclusivity.** The screenshot-only instructions are paired with the numeric
-   capability that obsoletes them: when feat-045 lands a TPO fact key, the "TPO single
-   prints" vision read must leave the prompt; when feat-048 lands HTF facts, the
-   `meta.htfTrend` pure-vision read must change; when feat-046 lands bar volume, stall
+   capability that obsoletes them: when feat-046 lands a TPO fact key, the "TPO single
+   prints" vision read must leave the prompt; when feat-049 lands HTF facts, the
+   `meta.htfTrend` pure-vision read must change; when feat-047 lands bar volume, stall
    confirmation moves engine-side. Each conditional also asserts the instruction stays
    *present* while the capability is absent.
 4. **Size budgets.** Cached prefixes and the fixture user prompt have committed

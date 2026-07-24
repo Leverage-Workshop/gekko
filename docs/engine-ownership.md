@@ -52,12 +52,12 @@ qualitatively and defers the numbers to the engine facts.
 ## Bundle exports (data ↔ prompt registry)
 
 Every bundle export must have a declared consumer and a declared model surface. The
-prompt–data sync gate (`tests/prompt-data-sync.test.ts`, feat-053) fails when a manifest
+prompt–data sync gate (`tests/prompt-data-sync.test.ts`, feat-054) fails when a manifest
 field (`FILE_FIELDS` / `MGI_FIELD` in `lib/ingest/manifest.ts`) has no row here, when a
 listed module path does not exist, when a row names a manifest field that no longer
 exists, or when the engine-facts payload (`factsPayload` in `lib/analyze/prompt.ts`)
 carries a top-level key this table does not surface — or vice versa. Adding a new export
-(feat-045…052) therefore requires deciding, in the same change, which module owns it and
+(feat-047…053) therefore requires deciding, in the same change, which module owns it and
 where the model sees it.
 
 | Field | Export file | Consumer | Surfaces to the model as |

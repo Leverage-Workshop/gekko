@@ -486,86 +486,96 @@
     },
     {
       "id": "feat-045",
-      "name": "Data export: numeric TPO / Market Profile (tpo.data.md)",
-      "description": "New Sierra ACSIL export `tpo.data.md` (markdown + fenced CSV `Price,TPOCount,Letters` with Metadata/Summary sections) per docs/data-todos.md item 1, plus gekko-side ingest (FILE_FIELDS entry, raw_bundles ref column + migration, uploader pickup), a `lib/engine/` parser, and deterministic detection of single prints, poor/unfinished highs-lows, prominent POC and IB fed into engine facts \u2014 replacing the analyze prompt's vision-only TPO read.",
+      "name": "Long / Short position-eval buttons",
+      "description": "Operator request (2026-07-24): next to the Eval button in the entry-eval column, add Long and Short buttons that run the same eval-task but evaluate the operator's OPEN POSITION at the current price \u2014 a hold-or-exit read when already in a trade. The button POSTs {direction} to /api/eval/run (validated, 400 on unknown values; body-less POST stays the entry check), the task payload carries direction, and runEval gains a position mode: the entry-level proximity gate is bypassed (the evaluated level IS the current price in the declared direction), active levels render as prompt context only, the verdict set reads ENTER=hold / WAIT=unclear / NOT_VALID=exit, and no entry_levels FK is linked. Enforcement makes the direction and current-price level code-owned (model drift overwritten with a warning) and the count-only initiative gate still demotes an unsupported ENTER. EvalStrip renders the Long (bmw-blue accent) / Short (new red-accent Button variant) / Eval cluster and falls back to a direction-colored 'Current price' level cell for position rows (which persist evaluated_level_id=null).",
       "dependencies": [
-        "feat-053"
+        "feat-044"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "feat-045 (2026-07-24): ./init.sh green \u2014 typecheck 0 errors, lint 0 errors, 768 tests pass (7 new: route direction forwarding long/short + 400 on unknown + malformed-body degrade, position eval skips proximity gate w/ context-only levels + FK null, declared-direction enforcement + initiative-gate demotion, no-active-levels position eval still calls the LLM), build OK."
     },
     {
       "id": "feat-046",
-      "name": "Data export: enriched execution bars (Volume/BidVolume/AskVolume/NumberOfTrades)",
-      "description": "Extend the `execution_bar_data.rolling.csv` ACSIL study with `Volume,BidVolume,AskVolume,NumberOfTrades` columns per docs/data-todos.md item 2, and update `lib/engine/parseExecBars.ts` (header check) in lockstep. Engine follow-through: numeric absorption confirmation (heavy volume + no progress at candidate stacks), delta divergence at borders, volume climax/exhaustion flags, and engine-computed cumulative delta (no separate export).",
+      "name": "Data export: numeric TPO / Market Profile (tpo.data.md)",
+      "description": "New Sierra ACSIL export `tpo.data.md` (markdown + fenced CSV `Price,TPOCount,Letters` with Metadata/Summary sections) per docs/data-todos.md item 1, plus gekko-side ingest (FILE_FIELDS entry, raw_bundles ref column + migration, uploader pickup), a `lib/engine/` parser, and deterministic detection of single prints, poor/unfinished highs-lows, prominent POC and IB fed into engine facts \u2014 replacing the analyze prompt's vision-only TPO read.",
       "dependencies": [
-        "feat-053"
+        "feat-054"
       ],
       "status": "not-started"
     },
     {
       "id": "feat-047",
-      "name": "Data export: daily value-area history (daily-value-areas.csv)",
-      "description": "New ACSIL export `daily-value-areas.csv` (`Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, rolling 20 completed RTH sessions) per docs/data-todos.md item 3, plus ingest/parser wiring. Engine follow-through: detect and validate Balance Area formation/expansion from the two-days-overlapping-value rule, flag drift of the manual balance-area anchor, and surface a value-migration narrative in engine facts.",
+      "name": "Data export: enriched execution bars (Volume/BidVolume/AskVolume/NumberOfTrades)",
+      "description": "Extend the `execution_bar_data.rolling.csv` ACSIL study with `Volume,BidVolume,AskVolume,NumberOfTrades` columns per docs/data-todos.md item 2, and update `lib/engine/parseExecBars.ts` (header check) in lockstep. Engine follow-through: numeric absorption confirmation (heavy volume + no progress at candidate stacks), delta divergence at borders, volume climax/exhaustion flags, and engine-computed cumulative delta (no separate export).",
       "dependencies": [
-        "feat-053"
+        "feat-054"
       ],
       "status": "not-started"
     },
     {
       "id": "feat-048",
-      "name": "Data export: HTF 30-min bars (htf_bar_data.rolling.csv)",
-      "description": "New ACSIL export `htf_bar_data.rolling.csv` (`DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume`, 30-min bars, rolling 90 days) per docs/data-todos.md item 4, plus ingest/parser wiring. Engine follow-through: computed HTF trend state, swing highs/lows and measured ATR so `meta.htfTrend` becomes verifiable engine data instead of a pure vision read of the planning-chart PNG.",
+      "name": "Data export: daily value-area history (daily-value-areas.csv)",
+      "description": "New ACSIL export `daily-value-areas.csv` (`Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, rolling 20 completed RTH sessions) per docs/data-todos.md item 3, plus ingest/parser wiring. Engine follow-through: detect and validate Balance Area formation/expansion from the two-days-overlapping-value rule, flag drift of the manual balance-area anchor, and surface a value-migration narrative in engine facts.",
       "dependencies": [
-        "feat-053"
+        "feat-054"
       ],
       "status": "not-started"
     },
     {
       "id": "feat-049",
-      "name": "Data export: delta column on structural profiles (rotation + balance area)",
-      "description": "Extend the `four-hundred-rotation.vbp.md` and `balance-area.vbp.md` ACSIL studies from `Price,Volume` to `Price,Volume,Delta` per docs/data-todos.md item 5, updating `lib/engine/parseProfile.ts` in lockstep. Engine follow-through: annotate HVN/LVN nodes and magnets with the delta that built them (one-sided vs balanced construction).",
+      "name": "Data export: HTF 30-min bars (htf_bar_data.rolling.csv)",
+      "description": "New ACSIL export `htf_bar_data.rolling.csv` (`DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume`, 30-min bars, rolling 90 days) per docs/data-todos.md item 4, plus ingest/parser wiring. Engine follow-through: computed HTF trend state, swing highs/lows and measured ATR so `meta.htfTrend` becomes verifiable engine data instead of a pure vision read of the planning-chart PNG.",
       "dependencies": [
-        "feat-053"
+        "feat-054"
       ],
       "status": "not-started"
     },
     {
       "id": "feat-050",
-      "name": "Data export: VWAP standard-deviation bands in mgi_static_levels.json",
-      "description": "Extend the MGI ACSIL study with a `vwapBands` object (\u00b11\u03c3/\u00b12\u03c3 for vwap24, weekly, monthly) per docs/data-todos.md item 6 (additive JSON change), then plumb the bands through `lib/engine/mgiPriority.ts`/level handling as additional MGI levels for entries, stops and target rungs.",
+      "name": "Data export: delta column on structural profiles (rotation + balance area)",
+      "description": "Extend the `four-hundred-rotation.vbp.md` and `balance-area.vbp.md` ACSIL studies from `Price,Volume` to `Price,Volume,Delta` per docs/data-todos.md item 5, updating `lib/engine/parseProfile.ts` in lockstep. Engine follow-through: annotate HVN/LVN nodes and magnets with the delta that built them (one-sided vs balanced construction).",
       "dependencies": [
-        "feat-053"
+        "feat-054"
       ],
       "status": "not-started"
     },
     {
       "id": "feat-051",
-      "name": "Data export: profile anchor metadata on the four .vbp.md exports",
-      "description": "Add `Anchor DateTime`, `Anchor Price` and `Bars In Profile` to the `## Metadata` section of all four volume-profile exports per docs/data-todos.md item 7 (additive), extend `lib/engine/parseProfile.ts` to capture them. Engine follow-through: validate the manual rotation/balance-area anchors (cross-check vs feat-047 daily value areas), compute rotation traverse progress, and flag stale anchors in the briefing.",
+      "name": "Data export: VWAP standard-deviation bands in mgi_static_levels.json",
+      "description": "Extend the MGI ACSIL study with a `vwapBands` object (\u00b11\u03c3/\u00b12\u03c3 for vwap24, weekly, monthly) per docs/data-todos.md item 6 (additive JSON change), then plumb the bands through `lib/engine/mgiPriority.ts`/level handling as additional MGI levels for entries, stops and target rungs.",
       "dependencies": [
-        "feat-053",
-        "feat-047"
+        "feat-054"
       ],
       "status": "not-started"
     },
     {
       "id": "feat-052",
-      "name": "Data export: RTH-only balance-area profile (balance-area-rth.vbp.md)",
-      "description": "Lower priority, per docs/data-todos.md item 8. First confirm whether the existing structural profiles blend ETH; if so, add an RTH-only variant export `balance-area-rth.vbp.md` (identical .vbp.md format, same anchor, RTH sessions only) plus ingest/parser wiring, and record `Session: RTH|ETH` in profile metadata either way. Engine follow-through: compare RTH vs blended nodes \u2014 nodes present in both are structurally stronger.",
+      "name": "Data export: profile anchor metadata on the four .vbp.md exports",
+      "description": "Add `Anchor DateTime`, `Anchor Price` and `Bars In Profile` to the `## Metadata` section of all four volume-profile exports per docs/data-todos.md item 7 (additive), extend `lib/engine/parseProfile.ts` to capture them. Engine follow-through: validate the manual rotation/balance-area anchors (cross-check vs feat-048 daily value areas), compute rotation traverse progress, and flag stale anchors in the briefing.",
       "dependencies": [
-        "feat-053",
-        "feat-049",
-        "feat-051"
+        "feat-054",
+        "feat-048"
       ],
       "status": "not-started"
     },
     {
       "id": "feat-053",
+      "name": "Data export: RTH-only balance-area profile (balance-area-rth.vbp.md)",
+      "description": "Lower priority, per docs/data-todos.md item 8. First confirm whether the existing structural profiles blend ETH; if so, add an RTH-only variant export `balance-area-rth.vbp.md` (identical .vbp.md format, same anchor, RTH sessions only) plus ingest/parser wiring, and record `Session: RTH|ETH` in profile metadata either way. Engine follow-through: compare RTH vs blended nodes \u2014 nodes present in both are structurally stronger.",
+      "dependencies": [
+        "feat-054",
+        "feat-050",
+        "feat-052"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-054",
       "name": "Prompt\u2013data sync gate (quality gate for new exports)",
-      "description": "Verification-suite gate keeping the PR #79 prompt/data alignment from drifting as the feat-045..052 exports land. `tests/prompt-data-sync.test.ts` (all offline vitest, runs via ./init.sh): (1) REGISTRY \u2014 new 'Bundle exports' table in docs/engine-ownership.md must cover every manifest field (FILE_FIELDS + MGI_FIELD), name only existing modules, carry no stale rows, and surface exactly the factsPayload keys, so no export lands orphaned and no fact lands unsurfaced; (2) FACT PATHS \u2014 every backticked engine-fact path in the three prompt builders, the three assembled doctrine prefixes and the built analyze prompt must resolve against the payload computed from the chart-data fixtures; (3) VISION EXCLUSIVITY \u2014 paired conditionals force the screenshot-only instructions (TPO single prints, HTF trend read, absorption stall confirmation) OUT of the prompt in the same change that lands the matching numeric capability (feat-045/048/046), and keep them present while it is absent; (4) SIZE BUDGETS \u2014 cached prefixes (floor 20k / ceiling 36k chars) and the fixture analyze user prompt (35k/80k) stay inside committed budgets so growth is a conscious diff. feat-045..052 all depend on this gate.",
+      "description": "Verification-suite gate keeping the PR #79 prompt/data alignment from drifting as the feat-047..053 exports land. `tests/prompt-data-sync.test.ts` (all offline vitest, runs via ./init.sh): (1) REGISTRY \u2014 new 'Bundle exports' table in docs/engine-ownership.md must cover every manifest field (FILE_FIELDS + MGI_FIELD), name only existing modules, carry no stale rows, and surface exactly the factsPayload keys, so no export lands orphaned and no fact lands unsurfaced; (2) FACT PATHS \u2014 every backticked engine-fact path in the three prompt builders, the three assembled doctrine prefixes and the built analyze prompt must resolve against the payload computed from the chart-data fixtures; (3) VISION EXCLUSIVITY \u2014 paired conditionals force the screenshot-only instructions (TPO single prints, HTF trend read, absorption stall confirmation) OUT of the prompt in the same change that lands the matching numeric capability (feat-046/048/046), and keep them present while it is absent; (4) SIZE BUDGETS \u2014 cached prefixes (floor 20k / ceiling 36k chars) and the fixture analyze user prompt (35k/80k) stay inside committed budgets so growth is a conscious diff. feat-047..053 all depend on this gate.",
       "dependencies": [],
       "status": "done",
-      "evidence": "feat-053 (2026-07-24): ./init.sh fully green \u2014 typecheck 0 errors, lint 0 errors (6 pre-existing warnings), 794 tests pass across 51 files (29 new in tests/prompt-data-sync.test.ts), next build OK. Gate verified by mutation: deleting the exec_csv registry row fails 'manifest field exec_csv has a registry row'; renaming payload key absorptionCandidates->absorptionStacks fails the surfaces set-equality check; appending an unregistered tpo_data manifest field fails its registry-row check; injecting a tpoFacts payload key flips the vision-exclusivity conditional and fails until the TPO screenshot instruction is removed. Prefix sizes at gate time: analyze 29141 / update 28881 / eval 29302 chars; fixture analyze user prompt 63504 chars."
+      "evidence": "feat-054 (2026-07-24): ./init.sh fully green \u2014 typecheck 0 errors, lint 0 errors (6 pre-existing warnings), 794 tests pass across 51 files (29 new in tests/prompt-data-sync.test.ts), next build OK. Gate verified by mutation: deleting the exec_csv registry row fails 'manifest field exec_csv has a registry row'; renaming payload key absorptionCandidates->absorptionStacks fails the surfaces set-equality check; appending an unregistered tpo_data manifest field fails its registry-row check; injecting a tpoFacts payload key flips the vision-exclusivity conditional and fails until the TPO screenshot instruction is removed. Prefix sizes at gate time: analyze 29141 / update 28881 / eval 29302 chars; fixture analyze user prompt 63504 chars."
     }
   ]
 }

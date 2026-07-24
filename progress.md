@@ -3,17 +3,40 @@
 ## Current State
 
 **Last Updated:** 2026-07-24
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **eval strip
-scoped to the current briefing** (branch `claude/eval-record-briefing-context-hsqrzr`),
-on top of on-demand bundle uploads (PR #82) and the
-entry chase-side gate (PR #81), the system-prompt restructure + campaign-scale terrain
-zones (PR #79), contested-border entry doctrine (PR #77) + entry standoff relaxed to
-1 pt (PR #76), eval warnings persistence (PR #75), the area-exit absorption exception
-(PR #74), the count-only initiative gate (PR #73), the briefing entry anchoring fix
-(PR #72) and the sign-gate count fix (PR #71).
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **Long/Short
+position-eval buttons** (feat-046, branch `claude/long-short-eval-buttons-hrbfcu`), on
+top of the eval strip scoped to the current briefing (PR #83), on-demand bundle uploads
+(PR #82), the entry chase-side gate (PR #81), the system-prompt restructure +
+campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) + entry
+standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
+absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
+entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
 
-**feat-053 — Prompt–data sync gate (2026-07-24, operator request, same branch as the
-Data Todos report).** Quality gate so the feat-045…052 exports cannot undo the PR #79
+**Long/Short position-eval buttons (2026-07-24, operator request).** Next to "Eval" in
+the entry-eval column, new "Long" (bmw-blue accent) and "Short" (new `red-accent` Button
+variant — direction color, not danger) buttons: same eval-task, but a hold-or-exit read
+on the operator's OPEN POSITION at the current price, for deciding whether to exit at
+the current level. Flow: the button POSTs `{direction}` to /api/eval/run
+(`TriggerRunButton` gained an optional JSON `body` prop; the route validates with zod —
+unknown direction → 400 before any bundle request, body-less/malformed POST stays the
+plain entry check) → `eval-task` payload `direction` → `runEval(deps, {position})`. In
+position mode the entry-level proximity gate is bypassed (synthetic evaluated level =
+current price in the declared direction, `nearEntry` true), active levels render as
+context only, the no-active-levels LLM-skip shortcut is exempted, and the prompt reads
+ENTER = hold / WAIT = unclear (nextSignal) / NOT_VALID = exit at current price.
+`enforceEvalFacts` treats the direction and current-price level as code-owned
+(overwrites model drift with a warning), keeps the count-only initiative gate (an
+unsupported ENTER still demotes to WAIT), and always persists
+`evaluated_level_id = null` — position rows link no `entry_levels` row, so `EvalStrip`
+falls back to a direction-colored "Current price" level cell on level verdicts without
+an embedded level. Tests: 7 new (route forwarding/validation, position pipeline,
+enforcement drift, gate demotion, no-levels exemption) — 768 total. `./init.sh` fully
+green (typecheck / lint / test / build). Merged with PR #83's superseded-eval empty
+state: the superseded message now also offers Long / Short for position checks (which
+do not depend on the briefing's levels).
+
+**feat-054 — Prompt–data sync gate (2026-07-24, operator request, same branch as the
+Data Todos report).** Quality gate so the feat-047…053 exports cannot undo the PR #79
 prompt/data alignment. New `tests/prompt-data-sync.test.ts` (29 offline vitest tests,
 rides `npm test` in `./init.sh`): (1) a new machine-parsed "Bundle exports" registry
 table in `docs/engine-ownership.md` must cover every manifest field, name only existing
@@ -27,8 +50,8 @@ stall confirmation ↔ Bid/AskVolume in the exec CSV header) and assert presence
 absent / absence once present; (4) char budgets on the cached prefixes (20k–36k) and
 the fixture analyze user prompt (35k–80k). Gate verified by four mutation runs (registry
 row deleted, payload key renamed, unregistered manifest field added, fake tpo fact
-injected) — each fails with a targeted message. feat-045…052 now all depend on
-feat-053; `docs/data-todos.md` gained a prerequisite section. 794 tests green,
+injected) — each fails with a targeted message. feat-047…053 now all depend on
+feat-054; `docs/data-todos.md` gained a prerequisite section. 794 tests green,
 `./init.sh` fully green.
 
 **Data Todos report + export backlog (2026-07-24, operator request, branch
@@ -39,7 +62,7 @@ bars with volume/bid-ask/trade count, daily value-area history, HTF bars CSV, de
 column on structural profiles, VWAP SD bands, profile anchor metadata, RTH-only
 balance-area variant), each with the target file type/format and a paste-ready Claude
 Code prompt for creating/editing the ACSIL study on the trading machine. Added them to
-`feature_list.json` as feat-045…feat-052 (`not-started`). The zeroed `onh/onl/ibh/ibl`
+`feature_list.json` as feat-046…feat-053 (`not-started`). The zeroed `onh/onl/ibh/ibl`
 MGI fields were ruled a benign export-timing artifact — no action. Docs/backlog only,
 no code changes.
 

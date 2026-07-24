@@ -1,3 +1,4 @@
+import type { Direction } from '@/knowledge/schema/briefing.schema'
 import type { AbsorptionScanResult } from '@/lib/engine/absorption'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { ExecBar } from '@/lib/engine/parseExecBars'
@@ -8,9 +9,13 @@ import type { EntryLevelRow, ProximityAssessment } from './proximity'
 /**
  * User-message assembly for the eval-task `generateObject` call: ENTER /
  * WAIT / NOT_VALID for the nearest active entry when price is near it, else
- * NO_ENTRY_NEAR. Only volatile per-run data lives here; the static decision
- * logic and verdict structure are part of the cached eval doctrine prefix
- * (knowledge/system/output-eval.md, assembled by loadDoctrine('eval')).
+ * NO_ENTRY_NEAR. In position mode (the dashboard's Long / Short buttons) the
+ * same verdict set instead reads on the operator's open position at the
+ * current price — hold (ENTER) / unclear (WAIT) / exit (NOT_VALID) — and the
+ * near/not-near gate does not apply. Only volatile per-run data lives here;
+ * the static decision logic and verdict structure are part of the cached eval
+ * doctrine prefix (knowledge/system/output-eval.md, assembled by
+ * loadDoctrine('eval')).
  */
 
 export interface EvalPromptInput {
@@ -36,6 +41,12 @@ export interface EvalPromptInput {
    * judges initiative from, instead of only window aggregates.
    */
   recentBars: readonly ExecBar[]
+  /**
+   * Position-eval mode: the direction of the operator's open position. The
+   * verdict is a hold-or-exit read at the current price instead of an entry
+   * check against the active levels. Null/absent for the standard entry check.
+   */
+  position?: Direction | null
 }
 
 function chartManifest(charts: readonly ChartAttachment[]): string {
@@ -87,8 +98,30 @@ function levelPayload(level: EntryLevelRow): Record<string, unknown> {
   }
 }
 
+/**
+ * The verdict framing for a position eval: the operator declared the
+ * direction, the level under evaluation IS the current price, and the entry
+ * doctrine's ENTER/WAIT/NOT_VALID reads as hold/unclear/exit. The level label
+ * echoes the code-built synthetic level so enforcement can match it.
+ */
+function positionVerdict(input: EvalPromptInput, position: Direction): string {
+  const label = input.proximity.nearest?.level.label ?? `${position} position`
+  return (
+    `You are evaluating the operator's OPEN ${position.toUpperCase()} POSITION at the current price ` +
+    `(code-owned; the entry-level near/not-near gate does not apply to a position check). Your status ` +
+    `MUST be ENTER, WAIT or NOT_VALID — never NO_ENTRY_NEAR. Read the statuses as: ENTER = structure and ` +
+    `initiative at the current price still support the ${position} — holding is justified (a fresh ` +
+    `${position} here would still be valid); WAIT = mixed or unclear — name the single observable that ` +
+    `decides it in nextSignal; NOT_VALID = structure or initiative has turned against the ${position} — ` +
+    `exiting at the current price is the advisory call. Your evaluatedLevel MUST be ` +
+    `${JSON.stringify({ label, price: input.currentPrice, direction: position })} and direction MUST be ` +
+    `"${position}". Populate stop/targets from current structure when the charts justify them, else null.`
+  )
+}
+
 export function buildEvalPrompt(input: EvalPromptInput): string {
   const { proximity } = input
+  const position = input.position ?? null
   const nearest = proximity.nearest
 
   // The gate consults BOTH the snapshot price and the recent exec-bar range;
@@ -112,11 +145,15 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
 
   return [
     '# Mission',
-    'Produce one `EvalResult` object — an on-demand entry check at the current price against the active entry levels from the prior briefing, per the decision logic and verdict structure in the system prompt.',
+    position
+      ? `Produce one \`EvalResult\` object — an on-demand POSITION check: the operator is in an open ${position.toUpperCase()} at the current price and needs a hold-or-exit read, per the decision logic and verdict structure in the system prompt.`
+      : 'Produce one `EvalResult` object — an on-demand entry check at the current price against the active entry levels from the prior briefing, per the decision logic and verdict structure in the system prompt.',
     '',
     '# Data ownership (non-negotiable)',
-    'The near/not-near gate, the current price and the level set below are code-owned. Do not re-derive proximity or invent levels not listed.',
-    proximityVerdict,
+    position
+      ? 'The position direction, the current price and the context levels below are code-owned. Do not invent levels not listed.'
+      : 'The near/not-near gate, the current price and the level set below are code-owned. Do not re-derive proximity or invent levels not listed.',
+    position ? positionVerdict(input, position) : proximityVerdict,
     '',
     '# Meta fields',
     `- meta.createdAt = "${input.now}"`,
@@ -134,7 +171,9 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
         )}s). Flag this in the reason and do not ENTER on stale data — never present stale as fresh.`
       : `Bundle is fresh (${input.staleness.ageSeconds}s old).`,
     '',
-    '# Active entry levels (from the prior briefing)',
+    position
+      ? '# Active entry levels (context only — the open position above is what you are evaluating, not these)'
+      : '# Active entry levels (from the prior briefing)',
     '```json',
     JSON.stringify(input.levels.map(levelPayload), null, 1),
     '```',
