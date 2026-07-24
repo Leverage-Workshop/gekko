@@ -793,6 +793,109 @@ describe('runEval', () => {
     ).toBe(true)
   })
 
+  it('runs a position eval at the current price without the proximity gate', async () => {
+    // The Long button: the operator is in an open long and wants a
+    // hold-or-exit read. The evaluated level is the current price, the
+    // active levels render as context only, and no entry_levels row is
+    // linked.
+    let prompt = ''
+    const harness = makeDeps({
+      generate: async (params) => {
+        prompt = params.prompt
+        return {
+          object: {
+            ...modelEval(),
+            evaluatedLevel: {
+              label: 'Long position',
+              price: CURRENT_PRICE,
+              direction: 'long',
+            },
+            stop: null,
+            targets: null,
+          },
+          model: params.model,
+          usage: {} as GenerateStructuredResult<EvalResult>['usage'],
+          cost: null,
+          cachedInputTokens: null,
+          latencyMs: 0,
+        }
+      },
+    })
+    const result = await runEval(harness.deps, { position: 'long' })
+    const row = harness.getInsertedRow()!
+
+    expect(result.position).toBe('long')
+    expect(result.status).toBe('ENTER')
+    expect(result.nearEntry).toBe(true)
+    expect(prompt).toContain('OPEN LONG POSITION')
+    expect(prompt).toContain('never NO_ENTRY_NEAR')
+    expect(prompt).toContain('# Active entry levels (context only')
+    expect(prompt).not.toContain('Price IS near an active entry')
+    expect(row.near_entry).toBe(true)
+    expect(row.direction).toBe('long')
+    expect(row.evaluated_level_id).toBeNull()
+    expect(row.current_price).toBe(CURRENT_PRICE)
+    // The echo matched the code-owned position level — no drift warning.
+    expect(result.warnings.some((w) => w.includes('position eval: model drifted'))).toBe(
+      false,
+    )
+  })
+
+  it('enforces the declared direction on a position eval and keeps the initiative gate', async () => {
+    // The Short button with a model that drifts back to the long entry level:
+    // the direction and current-price level are code-owned (overwritten with
+    // a warning), and the count gate still protects the verdict — the fixture
+    // window's blue-extreme stack runs against a short, so ENTER demotes to
+    // WAIT.
+    const harness = makeDeps()
+    const result = await runEval(harness.deps, { position: 'short' })
+    const row = harness.getInsertedRow()!
+
+    expect(result.position).toBe('short')
+    expect(
+      result.warnings.some((w) => w.includes('position eval: model drifted')),
+    ).toBe(true)
+    expect(row.direction).toBe('short')
+    expect(row.evaluated_level_id).toBeNull()
+    expect(result.status).toBe('WAIT')
+    expect(result.warnings.some((w) => w.includes('coerced to WAIT'))).toBe(true)
+    // The model's uncoerced answer stays auditable.
+    expect(row.raw_model_json).toEqual(modelEval())
+  })
+
+  it('still runs the LLM on a position eval when no active entry levels exist', async () => {
+    // Being in a position does not require active levels — the no-levels
+    // NO_ENTRY_NEAR shortcut applies only to the entry check.
+    let prompt = ''
+    const harness = makeDeps({
+      fetchActiveEntryLevels: async () => [],
+      generate: async (params) => {
+        prompt = params.prompt
+        return {
+          object: {
+            ...modelEval(),
+            evaluatedLevel: {
+              label: 'Long position',
+              price: CURRENT_PRICE,
+              direction: 'long',
+            },
+          },
+          model: params.model,
+          usage: {} as GenerateStructuredResult<EvalResult>['usage'],
+          cost: null,
+          cachedInputTokens: null,
+          latencyMs: 0,
+        }
+      },
+    })
+    const result = await runEval(harness.deps, { position: 'long' })
+
+    expect(prompt).toContain('OPEN LONG POSITION')
+    expect(result.status).toBe('ENTER')
+    expect(result.model).toBe('test/triage-y')
+    expect(result.warnings.some((w) => w.includes('no active entry_levels'))).toBe(false)
+  })
+
   it('rejects a bundle without a current price', async () => {
     const harness = makeDeps({
       fetchLatestBundle: async () => ({

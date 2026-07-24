@@ -1,4 +1,5 @@
 import { EvalResult } from '@/knowledge/schema/briefing.schema'
+import type { Direction } from '@/knowledge/schema/briefing.schema'
 import { loadDoctrine } from '@/lib/analyze/doctrine'
 import type { DoctrineTask } from '@/lib/analyze/doctrine'
 import type { LoadBundleDeps } from '@/lib/analyze/loadBundle'
@@ -14,10 +15,12 @@ import type { GenerateStructuredResult } from '@/lib/llm'
 import type { PersistEvalDeps } from './persistEval'
 import { persistEvalResult } from './persistEval'
 import { buildEvalPrompt } from './prompt'
-import type { EntryLevelRow } from './proximity'
+import type { EntryLevelRow, ProximityAssessment } from './proximity'
 import {
+  DEFAULT_NEAR_ENTRY_POINTS,
   DEFAULT_PROXIMITY_WINDOW_SECONDS,
   assessProximity,
+  computeRecentBarRange,
   filterRecentBars,
 } from './proximity'
 import { enforceEvalFacts } from './validateEval'
@@ -30,6 +33,12 @@ import { enforceEvalFacts } from './validateEval'
  * model (`config.triage_model_id`; chart images + delta telemetry, `EvalResult`
  * schema, cached doctrine prefix) implementing the instructions.md eval logic
  * → enforce code-owned facts → persist one `eval_results` row.
+ *
+ * Position mode (the dashboard's Long / Short buttons, `options.position`):
+ * the operator is in an open position and wants a hold-or-exit read AT the
+ * current price. Same pipeline, but the proximity gate is bypassed — the
+ * evaluated level IS the current price in the declared direction — the active
+ * levels render as context only, and no `entry_levels` row is linked.
  *
  * The trigger.dev task is a thin wrapper over {@link runEval}; everything here
  * is driven through injected deps so the pipeline is unit-testable.
@@ -108,9 +117,20 @@ export interface EvalDeps extends LoadBundleDeps, PersistEvalDeps {
   now?: () => Date
 }
 
+export interface RunEvalOptions {
+  /**
+   * Position-eval direction (the Long / Short buttons): evaluate the
+   * operator's open position at the current price instead of the active entry
+   * levels. Null/absent → the standard entry check.
+   */
+  position?: Direction | null
+}
+
 export interface EvalRunResult {
   evalResultId: string
   bundleId: string
+  /** The position direction this run evaluated, or null for an entry check. */
+  position: Direction | null
   /** Model id that served the request; null when the LLM call was skipped. */
   model: string | null
   usage: GenerateStructuredResult<EvalResult>['usage'] | null
@@ -126,7 +146,43 @@ export interface EvalRunResult {
   warnings: string[]
 }
 
-export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
+/**
+ * The synthetic level a position eval is about: the current price in the
+ * operator-declared direction. Never persisted — enforcement keeps the
+ * `evaluated_level_id` FK null — it exists so the prompt and the enforcement
+ * fallbacks have a concrete level to point at.
+ */
+function positionProximity(
+  position: Direction,
+  currentPrice: number,
+  barRange: ProximityAssessment['barRange'],
+): ProximityAssessment {
+  return {
+    nearEntry: true,
+    nearest: {
+      level: {
+        id: 'position',
+        briefing_id: 'position',
+        objective: null,
+        label: position === 'long' ? 'Long position' : 'Short position',
+        price: currentPrice,
+        direction: position,
+        stop: null,
+        targets: null,
+      },
+      distancePoints: 0,
+      effectiveDistancePoints: 0,
+    },
+    thresholdPoints: DEFAULT_NEAR_ENTRY_POINTS,
+    barRange,
+  }
+}
+
+export async function runEval(
+  deps: EvalDeps,
+  options: RunEvalOptions = {},
+): Promise<EvalRunResult> {
+  const position = options.position ?? null
   const now = deps.now?.() ?? new Date()
   const nowIso = now.toISOString()
   const warnings: string[] = []
@@ -168,9 +224,15 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
       : DEFAULT_PROXIMITY_WINDOW_SECONDS
 
   const levels = await deps.fetchActiveEntryLevels()
-  const proximity = assessProximity(levels, currentPrice, {
-    recentBars: filterRecentBars(execBars, windowSeconds * 1000),
-  })
+  const proximity = position
+    ? positionProximity(
+        position,
+        currentPrice,
+        computeRecentBarRange(execBars, windowSeconds * 1000),
+      )
+    : assessProximity(levels, currentPrice, {
+        recentBars: filterRecentBars(execBars, windowSeconds * 1000),
+      })
   if (
     proximity.nearEntry &&
     proximity.nearest &&
@@ -185,8 +247,9 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
 
   // No active levels at all (no briefing yet, or all deactivated): there is
   // nothing to evaluate — persist a code-owned NO_ENTRY_NEAR verdict without
-  // spending an LLM call.
-  if (levels.length === 0) {
+  // spending an LLM call. A position eval is exempt: its evaluated level is
+  // the current price, no active levels required.
+  if (!position && levels.length === 0) {
     warnings.push('no active entry_levels exist — skipped the LLM call')
     const result: EvalResult = {
       meta: { createdAt: nowIso, currentPrice, nearEntry: false, zone: null },
@@ -213,6 +276,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
     return {
       evalResultId,
       bundleId: bundle.row.id,
+      position: null,
       model: null,
       usage: null,
       cost: null,
@@ -240,6 +304,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
       charts: bundle.charts,
       absorption,
       recentBars,
+      position,
     }),
     images: bundle.images,
     schema: EvalResult,
@@ -252,6 +317,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
     proximity,
     levels,
     deltaTelemetry,
+    position,
   })
   warnings.push(...validated.warnings)
 
@@ -267,6 +333,7 @@ export async function runEval(deps: EvalDeps): Promise<EvalRunResult> {
   return {
     evalResultId,
     bundleId: bundle.row.id,
+    position,
     model: generated.model,
     usage: generated.usage,
     cost: generated.cost,

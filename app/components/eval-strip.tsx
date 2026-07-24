@@ -6,14 +6,16 @@ import {
   type DashboardEvalRow,
 } from '@/lib/briefing'
 import { HighlightedText } from './highlighted-text'
-import { CheckEntryButton } from './trigger-run-button'
+import { CheckEntryButton, CheckPositionButton } from './trigger-run-button'
 
 /**
  * Latest Entry Eval column — the most actionable read on the page. Renders
  * column content only (no section chrome); the page composes it into the
  * left body column beside the tabbed briefing. A cell row carries the verdict
  * chip, the evaluated entry level (direction-colored like the objective
- * cards) and the accent "Eval" trigger button that runs the check; the
+ * cards) and the trigger buttons that run checks — "Long" / "Short" for a
+ * hold-or-exit read on an open position at the current price, and the accent
+ * "Eval" for the entry check against the active levels; the
  * structured condition checks (schema `checks`, when present)
  * render always visible below it as a table with per-condition notes, caution
  * and the reason summary. Pre-migration rows without checks degrade to the
@@ -60,6 +62,21 @@ function fmtDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
   return `${CT_FORMAT.format(date).replace(', ', ' ')} CT`
+}
+
+/**
+ * The eval action cluster: "Long" / "Short" run a position check (hold or
+ * exit at the current price), "Eval" keeps its familiar rightmost slot for
+ * the entry check against the active levels.
+ */
+function EvalActions() {
+  return (
+    <div className="flex items-center gap-2">
+      <CheckPositionButton direction="long" size="sm" />
+      <CheckPositionButton direction="short" size="sm" />
+      <CheckEntryButton size="sm" />
+    </div>
+  )
 }
 
 /** Always-visible condition checks with per-condition notes. */
@@ -178,10 +195,10 @@ export function EvalStrip({
           {unavailable
             ? 'Entry evals unavailable — the database could not be reached.'
             : superseded
-              ? 'The last eval predates this briefing — press Eval to check the current entry levels.'
-              : 'No entry evals yet — press Eval to run the first check against the active entry levels.'}
+              ? 'The last eval predates this briefing — press Eval to check the current entry levels, or Long / Short to check an open position at the current price.'
+              : 'No entry evals yet — press Eval to check the active entry levels, or Long / Short to check an open position at the current price.'}
         </p>
-        {!unavailable && <CheckEntryButton size="sm" />}
+        {!unavailable && <EvalActions />}
       </div>
     )
   }
@@ -190,8 +207,20 @@ export function EvalStrip({
   const statusStyle = EVAL_STATUS_STYLE[evalResult.status] ?? DEFAULT_STATUS_STYLE
 
   // The evaluated entry level, colored by direction like the objective cards:
-  // long reads bmw-blue, short reads m-red.
-  const evaluatedLevel = evalResult.evaluated_level
+  // long reads bmw-blue, short reads m-red. Position evals (the Long / Short
+  // buttons) link no entry_levels row, so a level verdict without an embedded
+  // level falls back to the direction + snapshot price the verdict is about.
+  const evaluatedLevel =
+    evalResult.evaluated_level ??
+    (evalResult.status !== 'NO_ENTRY_NEAR' &&
+    evalResult.direction &&
+    evalResult.current_price !== null
+      ? {
+          label: 'Current price',
+          price: evalResult.current_price,
+          direction: evalResult.direction,
+        }
+      : null)
   const levelDirection = evaluatedLevel?.direction ?? evalResult.direction
   const levelTone =
     levelDirection === 'long'
@@ -243,7 +272,7 @@ export function EvalStrip({
           )}
         </div>
         <div className="flex items-center bg-surface-soft px-5 py-3">
-          <CheckEntryButton size="sm" />
+          <EvalActions />
         </div>
       </div>
 

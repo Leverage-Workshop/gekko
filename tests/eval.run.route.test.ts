@@ -13,6 +13,21 @@ vi.mock('@/lib/bundleRequests', () => ({ requestFreshBundle }))
 
 import { POST } from '@/app/api/eval/run/route'
 
+/** Build the POST request the buttons send: body-less (Eval) or JSON (Long/Short). */
+function post(body?: unknown): Promise<Response> {
+  return POST(
+    new Request('http://localhost/api/eval/run', {
+      method: 'POST',
+      ...(body === undefined
+        ? {}
+        : {
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          }),
+    }),
+  )
+}
+
 describe('POST /api/eval/run', () => {
   beforeEach(() => {
     trigger.mockReset()
@@ -23,7 +38,7 @@ describe('POST /api/eval/run', () => {
   it('records a fresh-bundle request, then triggers eval-task carrying its id', async () => {
     trigger.mockResolvedValue({ id: 'run_eval123', publicAccessToken: 'pat_eval123' })
 
-    const res = await POST()
+    const res = await post()
     const body = await res.json()
 
     expect(requestFreshBundle).toHaveBeenCalledTimes(1)
@@ -39,11 +54,54 @@ describe('POST /api/eval/run', () => {
     })
   })
 
+  it.each(['long', 'short'] as const)(
+    'forwards a %s position direction to the task payload',
+    async (direction) => {
+      trigger.mockResolvedValue({ id: 'run_eval123', publicAccessToken: 'pat_eval123' })
+
+      const res = await post({ direction })
+
+      expect(trigger).toHaveBeenCalledWith('eval-task', {
+        bundleRequestId: 'req-eval123',
+        direction,
+      })
+      expect(res.status).toBe(202)
+    },
+  )
+
+  it('rejects an unknown direction with a 400 before recording anything', async () => {
+    const res = await post({ direction: 'sideways' })
+    const body = await res.json()
+
+    expect(requestFreshBundle).not.toHaveBeenCalled()
+    expect(trigger).not.toHaveBeenCalled()
+    expect(res.status).toBe(400)
+    expect(body).toEqual({
+      success: false,
+      error: 'direction must be "long" or "short"',
+    })
+  })
+
+  it('treats a malformed body as the plain entry check', async () => {
+    // A body that is not valid JSON must not break the Eval button's plain
+    // POST semantics — the route degrades to the direction-less entry check.
+    trigger.mockResolvedValue({ id: 'run_eval123', publicAccessToken: 'pat_eval123' })
+
+    const res = await POST(
+      new Request('http://localhost/api/eval/run', { method: 'POST', body: '{oops' }),
+    )
+
+    expect(trigger).toHaveBeenCalledWith('eval-task', {
+      bundleRequestId: 'req-eval123',
+    })
+    expect(res.status).toBe(202)
+  })
+
   it('returns a clean 500 body when triggering fails', async () => {
     trigger.mockRejectedValue(new Error('Missing TRIGGER_SECRET_KEY'))
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const res = await POST()
+    const res = await post()
     const body = await res.json()
 
     expect(res.status).toBe(500)
@@ -55,7 +113,7 @@ describe('POST /api/eval/run', () => {
     requestFreshBundle.mockRejectedValue(new Error('db down'))
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const res = await POST()
+    const res = await post()
     const body = await res.json()
 
     expect(trigger).not.toHaveBeenCalled()
@@ -68,7 +126,7 @@ describe('POST /api/eval/run', () => {
     trigger.mockRejectedValue('boom')
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    const res = await POST()
+    const res = await post()
     const body = await res.json()
 
     expect(res.status).toBe(500)
