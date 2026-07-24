@@ -5,12 +5,12 @@
 **Last Updated:** 2026-07-24
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **Long/Short
 position-eval buttons** (feat-045, branch `claude/long-short-eval-buttons-hrbfcu`), on
-top of on-demand bundle uploads (PR #82), the entry chase-side gate (PR #81), the
-system-prompt restructure + campaign-scale terrain zones (PR #79), contested-border
-entry doctrine (PR #77) + entry standoff relaxed to 1 pt (PR #76), eval warnings
-persistence (PR #75), the area-exit absorption exception (PR #74), the count-only
-initiative gate (PR #73), the briefing entry anchoring fix (PR #72) and the sign-gate
-count fix (PR #71).
+top of the eval strip scoped to the current briefing (PR #83), on-demand bundle uploads
+(PR #82), the entry chase-side gate (PR #81), the system-prompt restructure +
+campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) + entry
+standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
+absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
+entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
 
 **Long/Short position-eval buttons (2026-07-24, operator request).** Next to "Eval" in
 the entry-eval column, new "Long" (bmw-blue accent) and "Short" (new `red-accent` Button
@@ -31,7 +31,23 @@ unsupported ENTER still demotes to WAIT), and always persists
 falls back to a direction-colored "Current price" level cell on level verdicts without
 an embedded level. Tests: 7 new (route forwarding/validation, position pipeline,
 enforcement drift, gate demotion, no-levels exemption) — 768 total. `./init.sh` fully
-green (typecheck / lint / test / build).
+green (typecheck / lint / test / build). Merged with PR #83's superseded-eval empty
+state: the superseded message now also offers Long / Short for position checks (which
+do not depend on the briefing's levels).
+
+**Eval strip scoped to the current briefing (2026-07-24, operator request).** After
+generating a new briefing the dashboard kept showing the previous eval verdict — stale
+and confusing, since an eval only ever checks the ACTIVE entry levels and each
+briefing/update replaces that set. `loadDashboardData` now withholds the latest
+`eval_results` row when it predates the current `briefings` row (raw-row `created_at`
+comparison, so it applies even when the payload fails schema validation; withheld only
+when both timestamps parse and the eval is strictly older — degrade to showing, never
+hide fresh data on malformed rows) and surfaces the new `evalSuperseded` flag; the
+`EvalStrip` empty state distinguishes it ("The last eval predates this briefing — press
+Eval to check the current entry levels"). No migration — derived at read time, so
+existing stale rows are cleaned up retroactively. Tests: five new `loadDashboardData`
+cases (superseded, superseded-despite-invalid-payload, no-briefing keep, unparsable
+timestamp keep, fresh keep; 765 tests). `./init.sh` fully green.
 
 **On-demand bundle uploads (2026-07-23, operator request).** Uploading a bundle on every
 ~15s Sierra rewrite made no sense when briefings are on-demand only. New fresh-bundle

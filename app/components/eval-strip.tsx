@@ -172,11 +172,17 @@ function ConditionsDetail({
 export function EvalStrip({
   evalResult,
   unavailable,
+  superseded = false,
   terms,
 }: {
   evalResult: DashboardEvalRow | null
   /** Dashboard load failed — don't render the run-your-first-eval CTA. */
   unavailable: boolean
+  /**
+   * The latest eval predates the current briefing (it checked the previous
+   * briefing's levels) and was withheld — prompt for a fresh eval instead.
+   */
+  superseded?: boolean
   terms: string[]
 }) {
   if (evalResult === null) {
@@ -188,7 +194,9 @@ export function EvalStrip({
         <p className="text-sm font-light leading-relaxed text-muted">
           {unavailable
             ? 'Entry evals unavailable — the database could not be reached.'
-            : 'No entry evals yet — press Eval to check the active entry levels, or Long / Short to check an open position at the current price.'}
+            : superseded
+              ? 'The last eval predates this briefing — press Eval to check the current entry levels, or Long / Short to check an open position at the current price.'
+              : 'No entry evals yet — press Eval to check the active entry levels, or Long / Short to check an open position at the current price.'}
         </p>
         {!unavailable && <EvalActions />}
       </div>
