@@ -49,6 +49,30 @@ qualitatively and defers the numbers to the engine facts.
   COUNT-only initiative demotion (ENTER → WAIT on counter-extreme out-printing, with the
   absorbed-flush exception) is code-enforced in `lib/eval/validateEval.ts`.
 
+## Bundle exports (data ↔ prompt registry)
+
+Every bundle export must have a declared consumer and a declared model surface. The
+prompt–data sync gate (`tests/prompt-data-sync.test.ts`, feat-054) fails when a manifest
+field (`FILE_FIELDS` / `MGI_FIELD` in `lib/ingest/manifest.ts`) has no row here, when a
+listed module path does not exist, when a row names a manifest field that no longer
+exists, or when the engine-facts payload (`factsPayload` in `lib/analyze/prompt.ts`)
+carries a top-level key this table does not surface — or vice versa. Adding a new export
+(feat-047…053) therefore requires deciding, in the same change, which module owns it and
+where the model sees it.
+
+| Field | Export file | Consumer | Surfaces to the model as |
+| --- | --- | --- | --- |
+| `htf_png` | `htf.png` | model vision (attached screenshot) | HTF trend read → meta.htfTrend (vision-only until a numeric HTF bars export lands) |
+| `tpo_png` | `tpo.png` | model vision (attached screenshot) | TPO single prints / poor highs-lows (vision-only until a numeric TPO export lands) |
+| `exec_png` | `exec.png` | model vision (attached screenshot) | pattern scan, absorption stall confirmation, delta clustering quality |
+| `exec_csv` | `execution_bars.csv` | `lib/engine/parseExecBars.ts` → `lib/engine/deltaTelemetry.ts`, `lib/engine/ripStatus.ts` | `deltaTelemetry`, `ripStatus` |
+| `rotation_vbp` | `four-hundred-rotation.vbp.md` | `lib/engine/parseProfile.ts` → `lib/engine/lvnDetection.ts`, `lib/engine/terrainZones.ts` | `lvnHvnNodes`, `profileSummary`, `terrain` |
+| `balance_area_vbp` | `balance-area.vbp.md` | `lib/engine/parseProfile.ts` → `lib/engine/lvnDetection.ts`, `lib/engine/magnetCheck.ts`, `lib/engine/terrainZones.ts` | `lvnHvnNodes`, `profileSummary`, `magnetCheck`, `terrain` |
+| `half_rotation_delta` | `half-rotation-delta.vbp.md` | `lib/engine/parseProfile.ts` → `lib/engine/absorption.ts` | `absorptionCandidates` |
+| `full_rotation_delta` | `full-rotation-delta.vbp.md` | `lib/engine/parseProfile.ts` → `lib/engine/absorption.ts` | `absorptionCandidates` |
+| `mgi` | inline `mgi_json` (jsonb) | `lib/engine/mgiPriority.ts`, `lib/engine/staleness.ts`, `lib/engine/ripStatus.ts` | `currentPrice`, `mgiPriority`, `staleness`, plus the raw MGI JSON block |
+| (engine pass) | — cross-cutting | `lib/analyze/engineFacts.ts` | `warnings` |
+
 ## Per-task prompt assembly
 
 `loadDoctrine(task)` concatenates, in order:

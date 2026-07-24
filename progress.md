@@ -4,7 +4,7 @@
 
 **Last Updated:** 2026-07-24
 **Active Feature:** none — all features `done` (feat-021 skipped). Latest: **Long/Short
-position-eval buttons** (feat-045, branch `claude/long-short-eval-buttons-hrbfcu`), on
+position-eval buttons** (feat-046, branch `claude/long-short-eval-buttons-hrbfcu`), on
 top of the eval strip scoped to the current briefing (PR #83), on-demand bundle uploads
 (PR #82), the entry chase-side gate (PR #81), the system-prompt restructure +
 campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) + entry
@@ -34,6 +34,37 @@ enforcement drift, gate demotion, no-levels exemption) — 768 total. `./init.sh
 green (typecheck / lint / test / build). Merged with PR #83's superseded-eval empty
 state: the superseded message now also offers Long / Short for position checks (which
 do not depend on the briefing's levels).
+
+**feat-054 — Prompt–data sync gate (2026-07-24, operator request, same branch as the
+Data Todos report).** Quality gate so the feat-047…053 exports cannot undo the PR #79
+prompt/data alignment. New `tests/prompt-data-sync.test.ts` (29 offline vitest tests,
+rides `npm test` in `./init.sh`): (1) a new machine-parsed "Bundle exports" registry
+table in `docs/engine-ownership.md` must cover every manifest field, name only existing
+modules, and surface exactly the `factsPayload` keys (both directions); (2) every
+backticked engine-fact path in the three prompt builders, three assembled doctrine
+prefixes and the built analyze prompt must resolve against the payload computed from
+the `chart-data/` fixtures; (3) vision-exclusivity conditionals pair each
+screenshot-only instruction with the numeric capability that obsoletes it (TPO reads ↔
+a tpo payload key, `meta.htfTrend` pure-vision read ↔ an htf payload key, absorption
+stall confirmation ↔ Bid/AskVolume in the exec CSV header) and assert presence while
+absent / absence once present; (4) char budgets on the cached prefixes (20k–36k) and
+the fixture analyze user prompt (35k–80k). Gate verified by four mutation runs (registry
+row deleted, payload key renamed, unregistered manifest field added, fake tpo fact
+injected) — each fails with a targeted message. feat-047…053 now all depend on
+feat-054; `docs/data-todos.md` gained a prerequisite section. 794 tests green,
+`./init.sh` fully green.
+
+**Data Todos report + export backlog (2026-07-24, operator request, branch
+`claude/chart-export-analysis-a5lx6v`).** Reviewed the bundle contract, engine modules
+and the analyze trace for gaps in the Sierra chart exports; wrote
+`docs/data-todos.md` — eight ranked export upgrades (numeric TPO, enriched execution
+bars with volume/bid-ask/trade count, daily value-area history, HTF bars CSV, delta
+column on structural profiles, VWAP SD bands, profile anchor metadata, RTH-only
+balance-area variant), each with the target file type/format and a paste-ready Claude
+Code prompt for creating/editing the ACSIL study on the trading machine. Added them to
+`feature_list.json` as feat-046…feat-053 (`not-started`). The zeroed `onh/onl/ibh/ibl`
+MGI fields were ruled a benign export-timing artifact — no action. Docs/backlog only,
+no code changes.
 
 **Eval strip scoped to the current briefing (2026-07-24, operator request).** After
 generating a new briefing the dashboard kept showing the previous eval verdict — stale
