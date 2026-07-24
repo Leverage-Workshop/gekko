@@ -33,6 +33,19 @@ const MIN_STRUCTURAL_STOP_PTS = 5
 export const MIN_OBJECTIVE_ENTRY_SEPARATION_PTS = 5
 
 /**
+ * Minimum separation between the primary and secondary Entry A prices when the objectives
+ * point in OPPOSITE directions. Opposite-direction entries within a couple of rotations of
+ * each other are one contested zone wearing two name tags — the 2026-07-24 morning briefing
+ * put a long reload at VRange Low 28436.75 and a short reoffer at the Rip 28453.90 (17.15
+ * pts apart): the two outcomes of a single undecided fight, not two structural trades. The
+ * counter-scenario must anchor at the structure defining its own trade, which lives at
+ * least this far from the primary's anchor. Same-direction objectives keep the looser
+ * {@link MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} floor (a ladder of rungs in one direction at
+ * nearby borders is legitimate).
+ */
+export const MIN_OPPOSING_ENTRY_SEPARATION_PTS = 25
+
+/**
  * Minimum distance between a fresh briefing's Entry A and the code-owned current price.
  * Relaxed from 15 to 1 (2026-07-20 operator decision): entries near price are allowed
  * again; the gate now only rejects an entry pinned exactly where price already trades.
@@ -227,20 +240,29 @@ function enforceSingleEntry(
 }
 
 /**
- * Distinct-anchor invariant (2026-07-20): the two objectives must anchor at different
- * structural borders. Runs after single-entry trimming so it compares the surviving
- * Entry A rungs.
+ * Distinct-anchor invariant (2026-07-20; direction-aware 2026-07-24): the two objectives
+ * must anchor at different structural borders. Same-direction objectives need
+ * {@link MIN_OBJECTIVE_ENTRY_SEPARATION_PTS}; opposite-direction objectives need
+ * {@link MIN_OPPOSING_ENTRY_SEPARATION_PTS}, because a long and a short bracketing the
+ * same zone are one undecided scenario, not two trades. Runs after single-entry trimming
+ * so it compares the surviving Entry A rungs.
  *
- * @throws {BriefingValidationError} when the entries sit within
- *   {@link MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} of each other.
+ * @throws {BriefingValidationError} when the entries sit inside the applicable floor.
  */
 function assertDistinctObjectiveAnchors(primary: Objective, secondary: Objective): void {
   const primaryEntry = primary.entries[0]
   const secondaryEntry = secondary.entries[0]
   const gap = Math.abs(primaryEntry.price - secondaryEntry.price)
-  if (gap < MIN_OBJECTIVE_ENTRY_SEPARATION_PTS) {
+  const opposing = primary.direction !== secondary.direction
+  const floor = opposing
+    ? MIN_OPPOSING_ENTRY_SEPARATION_PTS
+    : MIN_OBJECTIVE_ENTRY_SEPARATION_PTS
+  if (gap < floor) {
     throw new BriefingValidationError(
-      `primary (${primary.direction} @ ${primaryEntry.price}) and secondary (${secondary.direction} @ ${secondaryEntry.price}) entries are ${gap} pts apart — objectives must anchor at distinct structural borders (min ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts), not straddle one level`,
+      `primary (${primary.direction} @ ${primaryEntry.price}) and secondary (${secondary.direction} @ ${secondaryEntry.price}) entries are ${gap} pts apart — ` +
+        (opposing
+          ? `opposite-direction objectives bracketing one contested zone are ONE undecided scenario, not two trades: the counter-scenario must anchor at the structure defining its own trade, at least ${floor} pts away`
+          : `objectives must anchor at distinct structural borders (min ${floor} pts), not straddle one level`),
     )
   }
 }

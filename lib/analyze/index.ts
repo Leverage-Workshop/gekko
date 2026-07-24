@@ -31,6 +31,7 @@ export {
   MAX_ENTRY_CHASE_PTS,
   MIN_ENTRY_STANDOFF_PTS,
   MIN_OBJECTIVE_ENTRY_SEPARATION_PTS,
+  MIN_OPPOSING_ENTRY_SEPARATION_PTS,
   assertZoneContiguity,
   enforceCodeOwnedFacts,
 } from './validateBriefing'

@@ -342,7 +342,16 @@ describe('distinct objective anchors', () => {
   it('throws when both objectives straddle the same level (opposite directions)', () => {
     const input = briefing({ secondary: shortAt(30250) }) // primary long is also @ 30250
     expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(BriefingValidationError)
-    expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(/distinct structural borders/)
+    expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(/ONE undecided scenario/)
+  })
+
+  it('reports the distinct-border floor for same-direction entries inside 5 pts', () => {
+    const secondary = longObjective({
+      entries: [{ label: 'Entry A', price: 30253, trigger: 'reclaim' }],
+    })
+    expect(() => enforceCodeOwnedFacts(briefing({ secondary }), { rrMin: 3 })).toThrow(
+      /distinct structural borders/,
+    )
   })
 
   it('throws when the entries sit inside the separation band', () => {
@@ -350,8 +359,28 @@ describe('distinct objective anchors', () => {
     expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(/3 pts apart/)
   })
 
+  it('throws when opposite-direction entries bracket one zone at nearby borders', () => {
+    // The 2026-07-24 pattern: long reload below, short reoffer 17 pts above —
+    // nominally different borders, one contested zone.
+    const input = briefing({ secondary: shortAt(30267) }) // 17 pts from the primary long
+    expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(BriefingValidationError)
+    expect(() => enforceCodeOwnedFacts(input, { rrMin: 3 })).toThrow(/ONE undecided scenario/)
+  })
+
+  it('accepts same-direction objectives inside the opposing band but past the border floor', () => {
+    // Two longs 17 pts apart are distinct rungs, not a straddle — only the
+    // 5-pt distinct-border floor applies.
+    const secondary = longObjective({
+      entries: [{ label: 'Entry A', price: 30267, trigger: 'reclaim' }],
+      stops: [{ label: 'Stop', price: 30257, invalidation: 'lost the shelf' }],
+      targets: [{ label: 'T1', price: 30297, description: 'next trench' }],
+    })
+    expect(() => enforceCodeOwnedFacts(briefing({ secondary }), { rrMin: 3 })).not.toThrow()
+  })
+
   it('accepts objectives anchored at distinct borders', () => {
-    // Default fixture: primary @ 30250, secondary @ 30290 — 40 pts apart.
+    // Default fixture: primary long @ 30250, secondary short @ 30290 — 40 pts
+    // apart, clear of the opposing floor.
     expect(() => enforceCodeOwnedFacts(briefing(), { rrMin: 3 })).not.toThrow()
   })
 
