@@ -50,6 +50,25 @@ describe('computeEngineFacts', () => {
     expect(result.lvn.rotation).not.toEqual(result.lvn.balanceArea)
   })
 
+  it('computes TPO facts from the numeric TPO export (feat-046)', () => {
+    const result = facts({ tpoDataContent: read('tpo.data.md') })
+    expect(result.tpo).not.toBeNull()
+    expect(result.tpo!.poc).toEqual({ price: 29950, tpoCount: 7, prominence: 2.33, prominent: true })
+    expect(result.tpo!.singlePrintZones).toEqual([{ top: 29986, bottom: 29964, letters: 'E' }])
+    expect(result.tpo!.poorHigh).toEqual({ price: 30044, tpoCount: 2 })
+    expect(result.warnings.some((w) => w.includes('TPO'))).toBe(false)
+  })
+
+  it('degrades to tpo:null with a warning when the TPO export is absent or malformed', () => {
+    const absent = facts()
+    expect(absent.tpo).toBeNull()
+    expect(absent.warnings.some((w) => w.includes('no numeric TPO export'))).toBe(true)
+
+    const malformed = facts({ tpoDataContent: 'not a tpo file' })
+    expect(malformed.tpo).toBeNull()
+    expect(malformed.warnings.some((w) => w.includes('tpo.data.md failed to parse'))).toBe(true)
+  })
+
   it('reports POC/VAH/VAL per volume profile', () => {
     const result = facts()
     expect(result.profileSummary.rotation.pocPrice).toBe(29900)

@@ -117,6 +117,15 @@ describe('supabase migrations', () => {
     expect(content).not.toMatch(/delete\s+from/i)
   })
 
+  it('adds the numeric TPO ref column additively (feat-046)', () => {
+    const file = sql.files.find((f) => f.includes('tpo_data_ref'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    expect(content).toContain('add column if not exists tpo_data_ref text')
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+
   it('renames five_day_vbp_ref to balance_area_vbp_ref guarded and non-destructively (feat-037)', () => {
     const file = sql.files.find((f) => f.includes('balance_area_vbp_ref'))
     expect(file).toBeDefined()

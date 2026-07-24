@@ -25,6 +25,7 @@ const LOCAL_FILENAME_BY_FIELD: Readonly<Record<string, string>> = {
   balance_area_vbp: 'balance-area.vbp.md',
   half_rotation_delta: 'half-rotation-delta.vbp.md',
   full_rotation_delta: 'full-rotation-delta.vbp.md',
+  tpo_data: 'tpo.data.md',
 }
 
 type LocalFile = {

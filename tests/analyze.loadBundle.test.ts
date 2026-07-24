@@ -16,6 +16,7 @@ function row(overrides: Partial<BundleRow> = {}): BundleRow {
     balance_area_vbp_ref: 'bundle-1/balance-area.vbp.md',
     half_rotation_delta_ref: 'bundle-1/half-rotation-delta.vbp.md',
     full_rotation_delta_ref: 'bundle-1/full-rotation-delta.vbp.md',
+    tpo_data_ref: null,
     htf_png_ref: 'bundle-1/htf.png',
     tpo_png_ref: 'bundle-1/tpo.png',
     exec_png_ref: 'bundle-1/exec.png',
@@ -69,6 +70,31 @@ describe('loadLatestBundle', () => {
     expect(bundle.warnings).toEqual([])
     expect(d.downloads).toContain('bundle-csvs:bundle-1/four-hundred-rotation.vbp.md')
     expect(d.downloads).toContain('chart-images:bundle-1/htf.png')
+  })
+
+  it('loads the numeric TPO export when the bundle carries one (feat-046)', async () => {
+    const d = deps(row({ tpo_data_ref: 'bundle-1/tpo.data.md' }), {
+      ...objects,
+      'bundle-1/tpo.data.md': 'TPODATA',
+    })
+    const bundle = await loadLatestBundle(d)
+
+    expect(bundle.tpoDataContent).toBe('TPODATA')
+    expect(bundle.warnings).toEqual([])
+    expect(d.downloads).toContain('bundle-csvs:bundle-1/tpo.data.md')
+  })
+
+  it('a missing TPO ref is silent (pre-study bundle); a failed download warns', async () => {
+    const noRef = await loadLatestBundle(deps(row(), objects))
+    expect(noRef.tpoDataContent).toBeNull()
+    expect(noRef.warnings).toEqual([])
+
+    // ref present but the object is gone — best-effort degrades with a warning
+    const broken = await loadLatestBundle(
+      deps(row({ tpo_data_ref: 'bundle-1/tpo.data.md' }), objects),
+    )
+    expect(broken.tpoDataContent).toBeNull()
+    expect(broken.warnings.some((w) => w.includes('numeric TPO'))).toBe(true)
   })
 
   it('throws AnalyzeInputError when no bundle exists', async () => {

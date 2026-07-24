@@ -55,6 +55,7 @@ const facts = computeEngineFacts({
   halfRotationDeltaContent: chartData('half-rotation-delta.vbp.md'),
   fullRotationDeltaContent: chartData('full-rotation-delta.vbp.md'),
   execCsvContent,
+  tpoDataContent: chartData('tpo.data.md'),
   mgi,
   receivedAt: NOW,
   now: NOW,

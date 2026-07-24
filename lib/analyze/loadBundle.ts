@@ -24,6 +24,7 @@ export interface BundleRow {
   balance_area_vbp_ref: string | null
   half_rotation_delta_ref: string | null
   full_rotation_delta_ref: string | null
+  tpo_data_ref: string | null
   htf_png_ref: string | null
   tpo_png_ref: string | null
   exec_png_ref: string | null
@@ -42,6 +43,13 @@ export interface LoadedBundle {
   balanceAreaVbpContent: string
   halfRotationDeltaContent: string
   fullRotationDeltaContent: string
+  /**
+   * Numeric TPO export (`tpo.data.md`, feat-046) — best-effort even on the
+   * strict analyze load: bundles exported before the Sierra study is deployed
+   * have no TPO file, and the engine degrades to a warning rather than
+   * blocking briefings.
+   */
+  tpoDataContent: string | null
   execCsvContent: string
   mgi: MgiStaticLevels
   /** Attached chart images, aligned index-for-index with `charts`. */
@@ -62,6 +70,7 @@ export type LoadedExecBundle = Omit<
   | 'balanceAreaVbpContent'
   | 'halfRotationDeltaContent'
   | 'fullRotationDeltaContent'
+  | 'tpoDataContent'
 >
 
 /**
@@ -176,6 +185,13 @@ export async function loadLatestBundle(
           optionalText(deps, row.full_rotation_delta_ref, 'full-rotation delta profile', warnings),
         ])
       : null
+  // A missing ref is expected (bundles from before the TPO study existed) and
+  // is NOT a loader warning — computeEngineFacts owns the "TPO facts not
+  // computed" degradation; only a failed download of a present ref warns here.
+  const tpoDataContent =
+    requireTexts === 'all' && row.tpo_data_ref !== null
+      ? await optionalText(deps, row.tpo_data_ref, 'numeric TPO', warnings)
+      : null
   const images: ChartImage[] = []
   const charts: ChartAttachment[] = []
   for (const { column, label } of CHART_REFS) {
@@ -213,5 +229,6 @@ export async function loadLatestBundle(
     balanceAreaVbpContent: profileTexts[1],
     halfRotationDeltaContent: profileTexts[2],
     fullRotationDeltaContent: profileTexts[3],
+    tpoDataContent,
   }
 }

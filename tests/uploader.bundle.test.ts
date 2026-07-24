@@ -31,6 +31,7 @@ const SAMPLE = {
   balanceAreaVbp: 'balance-area.vbp.md',
   halfDelta: 'half-rotation-delta.vbp.md',
   fullDelta: 'full-rotation-delta.vbp.md',
+  tpoData: 'tpo.data.md',
   mgi: 'mgi_static_levels.json',
 }
 
@@ -42,6 +43,7 @@ const ALL_FIELDS = [
   'half_rotation_delta',
   'htf_png',
   'rotation_vbp',
+  'tpo_data',
   'tpo_png',
 ]
 
@@ -57,6 +59,7 @@ describe('readBundle', () => {
         [SAMPLE.balanceAreaVbp]: '# balance-area vbp',
         [SAMPLE.halfDelta]: '# half delta',
         [SAMPLE.fullDelta]: '# full delta',
+        [SAMPLE.tpoData]: '# tpo data',
       }),
     )
 
@@ -109,7 +112,7 @@ describe('readBundle', () => {
 })
 
 describe('BUNDLE_FILENAMES', () => {
-  it('watches Sierra’s eight export files plus the mgi JSON', () => {
+  it('watches Sierra’s nine export files plus the mgi JSON', () => {
     expect(BUNDLE_FILENAMES).toEqual([
       'htf_clean.png',
       'tpo.png',
@@ -119,6 +122,7 @@ describe('BUNDLE_FILENAMES', () => {
       'balance-area.vbp.md',
       'half-rotation-delta.vbp.md',
       'full-rotation-delta.vbp.md',
+      'tpo.data.md',
       'mgi_static_levels.json',
     ])
   })
