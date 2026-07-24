@@ -45,8 +45,26 @@ green (typecheck / lint / test / build). Merged with PR #83's superseded-eval em
 state: the superseded message now also offers Long / Short for position checks (which
 do not depend on the briefing's levels).
 
+**Data Todos: eval-task applications + range fix (2026-07-24, operator request, branch
+`claude/chart-export-analysis-a5lx6v` restarted from main after PR #85 merged).** The
+report only mapped the new exports onto the analyze task; each item now carries an
+**Eval-task use** note grounded in what the eval actually consumes (exec CSV, the two
+execution delta exports, images -- no profiles/MGI/HTF reach it today): TPO single-print
+/ poor-extreme checks at the evaluated level (item 1), the headline eval win of enriched
+exec bars -- magnitude-aware recent-bars table, code-owned stall confirmation, true-delta
+initiative gate, cumulative-delta divergence (item 2), prior-day value context (item 3),
+HTF trend/ATR for position hold-or-exit reads (item 4), node build-quality annotation
+(item 5), nearby VWAP band prices as hold/exit context (item 6), code-owned absorption
+scan-coverage from delta-export anchors (item 7), indirect only (item 8). The Bundle
+exports registry rows for exec_csv and the two delta exports now name their eval
+consumers (lib/eval/proximity.ts, lib/eval/evalBundle.ts). Also fixed a renumbering
+artifact from the PR #84 conflict resolution: bare ranges had double-shifted to
+"feat-047..053" (correct: feat-046..053) in five files, and the feat-054 description's
+capability triple read "feat-046/048/046" (correct: feat-046/049/047). Suite green: 804
+tests, gate 29/29.
+
 **feat-054 — Prompt–data sync gate (2026-07-24, operator request, same branch as the
-Data Todos report).** Quality gate so the feat-047…053 exports cannot undo the PR #79
+Data Todos report).** Quality gate so the feat-046…053 exports cannot undo the PR #79
 prompt/data alignment. New `tests/prompt-data-sync.test.ts` (29 offline vitest tests,
 rides `npm test` in `./init.sh`): (1) a new machine-parsed "Bundle exports" registry
 table in `docs/engine-ownership.md` must cover every manifest field, name only existing
@@ -60,7 +78,7 @@ stall confirmation ↔ Bid/AskVolume in the exec CSV header) and assert presence
 absent / absence once present; (4) char budgets on the cached prefixes (20k–36k) and
 the fixture analyze user prompt (35k–80k). Gate verified by four mutation runs (registry
 row deleted, payload key renamed, unregistered manifest field added, fake tpo fact
-injected) — each fails with a targeted message. feat-047…053 now all depend on
+injected) — each fails with a targeted message. feat-046…053 now all depend on
 feat-054; `docs/data-todos.md` gained a prerequisite section. 794 tests green,
 `./init.sh` fully green.
 

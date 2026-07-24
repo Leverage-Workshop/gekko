@@ -12,7 +12,7 @@ import { FILE_FIELDS, MGI_FIELD } from '@/lib/ingest/manifest'
  * PR #79 put every rule in exactly one home (engine constants → code, doctrine →
  * cached prefix, per-run data → user message). The drift guards (feat-032,
  * knowledge-restructure) keep *numbers and prose hygiene* in sync, but nothing
- * guarded the DATA ↔ PROMPT contract itself — which the feat-047…053 export
+ * guarded the DATA ↔ PROMPT contract itself — which the feat-046…053 export
  * backlog is about to stress. This gate closes that gap, dynamically (derived
  * from the live manifest, the live payload built from the real chart-data
  * fixtures, and the live prompt builders — never a prose snapshot):
