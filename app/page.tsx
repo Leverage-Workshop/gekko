@@ -416,6 +416,7 @@ export default async function Home() {
                     <EvalStrip
                       evalResult={data?.evalResult ?? null}
                       unavailable={false}
+                      superseded={data?.evalSuperseded ?? false}
                       terms={terms}
                     />
                   </UpdateGlow>
@@ -475,6 +476,7 @@ export default async function Home() {
                 <EvalStrip
                   evalResult={data?.evalResult ?? null}
                   unavailable={loadError !== null}
+                  superseded={data?.evalSuperseded ?? false}
                   terms={terms}
                 />
               </div>

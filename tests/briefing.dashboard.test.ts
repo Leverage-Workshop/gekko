@@ -136,6 +136,62 @@ describe('loadDashboardData', () => {
     expect(data.briefing!.payload).toEqual(briefingPayload)
     expect(data.briefingError).toBeNull()
     expect(data.evalResult).toEqual(evalRow)
+    expect(data.evalSuperseded).toBe(false)
+  })
+
+  it('withholds an eval that predates the current briefing — it checked the previous levels', async () => {
+    const data = await loadDashboardData(
+      fakeDeps({
+        fetchLatestBriefing: async () => briefingRow,
+        // Eval ran before this briefing row existed → previous briefing's levels.
+        fetchLatestEvalResult: async () => ({ ...evalRow, created_at: '2026-07-08T11:55:00Z' }),
+      }),
+      { now: NOW },
+    )
+
+    expect(data.evalResult).toBeNull()
+    expect(data.evalSuperseded).toBe(true)
+  })
+
+  it('withholds a pre-briefing eval even when the briefing payload fails validation', async () => {
+    const data = await loadDashboardData(
+      fakeDeps({
+        fetchLatestBriefing: async () => ({
+          ...briefingRow,
+          raw_model_json: { meta: { createdAt: 'x' } },
+        }),
+        fetchLatestEvalResult: async () => ({ ...evalRow, created_at: '2026-07-08T11:55:00Z' }),
+      }),
+      { now: NOW },
+    )
+
+    expect(data.briefing).toBeNull()
+    expect(data.evalResult).toBeNull()
+    expect(data.evalSuperseded).toBe(true)
+  })
+
+  it('keeps the eval when no briefing exists', async () => {
+    const data = await loadDashboardData(
+      fakeDeps({ fetchLatestEvalResult: async () => evalRow }),
+      { now: NOW },
+    )
+
+    expect(data.evalResult).toEqual(evalRow)
+    expect(data.evalSuperseded).toBe(false)
+  })
+
+  it('keeps the eval on an unparsable timestamp — degrade to showing, never hide fresh data', async () => {
+    const staleEval = { ...evalRow, created_at: 'not-a-date' }
+    const data = await loadDashboardData(
+      fakeDeps({
+        fetchLatestBriefing: async () => briefingRow,
+        fetchLatestEvalResult: async () => staleEval,
+      }),
+      { now: NOW },
+    )
+
+    expect(data.evalResult).toEqual(staleEval)
+    expect(data.evalSuperseded).toBe(false)
   })
 
   it('marks a recent bundle fresh (no staleness warning)', async () => {

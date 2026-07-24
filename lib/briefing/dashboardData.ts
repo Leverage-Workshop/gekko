@@ -112,6 +112,13 @@ export interface DashboardData {
    */
   briefingError: string | null
   evalResult: DashboardEvalRow | null
+  /**
+   * True when the latest eval row exists but predates the current briefing
+   * row: it was checked against the previous briefing's entry levels
+   * (each briefing/update replaces the active set), so it is withheld from
+   * `evalResult` and the strip prompts for a fresh eval instead.
+   */
+  evalSuperseded: boolean
   staleness: StalenessAssessment
   /**
    * Parsed execution bars from the latest bundle, or null when the CSV is
@@ -144,6 +151,24 @@ export async function loadDashboardData(
     }
   }
 
+  // An eval only ever checks the ACTIVE entry levels, and each new briefing
+  // (morning or update) replaces the active set — so an eval created before
+  // the current briefing row is about the previous briefing's levels and
+  // must not render beside this one. Withheld only when both timestamps
+  // parse and the eval is strictly older (degrade to showing, never hide a
+  // fresh eval on malformed data). The cutoff is the raw row's created_at so
+  // it applies even when the briefing payload fails schema validation below.
+  let evalResult = evalRow
+  let evalSuperseded = false
+  if (briefingRow && evalRow) {
+    const briefingAt = new Date(briefingRow.created_at).getTime()
+    const evalAt = new Date(evalRow.created_at).getTime()
+    if (!Number.isNaN(briefingAt) && !Number.isNaN(evalAt) && evalAt < briefingAt) {
+      evalResult = null
+      evalSuperseded = true
+    }
+  }
+
   let briefing: DashboardBriefing | null = null
   let briefingError: string | null = null
   if (briefingRow) {
@@ -168,5 +193,5 @@ export async function loadDashboardData(
     }
   }
 
-  return { briefing, briefingError, evalResult: evalRow, staleness, execBars }
+  return { briefing, briefingError, evalResult, evalSuperseded, staleness, execBars }
 }

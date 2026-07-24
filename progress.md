@@ -2,14 +2,29 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-23
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **on-demand
-bundle uploads** (branch `claude/bundle-uploader-task-trigger-gmqkfo`), on top of the
+**Last Updated:** 2026-07-24
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **eval strip
+scoped to the current briefing** (branch `claude/eval-record-briefing-context-hsqrzr`),
+on top of on-demand bundle uploads (PR #82) and the
 entry chase-side gate (PR #81), the system-prompt restructure + campaign-scale terrain
 zones (PR #79), contested-border entry doctrine (PR #77) + entry standoff relaxed to
 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit absorption exception
 (PR #74), the count-only initiative gate (PR #73), the briefing entry anchoring fix
 (PR #72) and the sign-gate count fix (PR #71).
+
+**Eval strip scoped to the current briefing (2026-07-24, operator request).** After
+generating a new briefing the dashboard kept showing the previous eval verdict — stale
+and confusing, since an eval only ever checks the ACTIVE entry levels and each
+briefing/update replaces that set. `loadDashboardData` now withholds the latest
+`eval_results` row when it predates the current `briefings` row (raw-row `created_at`
+comparison, so it applies even when the payload fails schema validation; withheld only
+when both timestamps parse and the eval is strictly older — degrade to showing, never
+hide fresh data on malformed rows) and surfaces the new `evalSuperseded` flag; the
+`EvalStrip` empty state distinguishes it ("The last eval predates this briefing — press
+Eval to check the current entry levels"). No migration — derived at read time, so
+existing stale rows are cleaned up retroactively. Tests: five new `loadDashboardData`
+cases (superseded, superseded-despite-invalid-payload, no-briefing keep, unparsable
+timestamp keep, fresh keep; 765 tests). `./init.sh` fully green.
 
 **On-demand bundle uploads (2026-07-23, operator request).** Uploading a bundle on every
 ~15s Sierra rewrite made no sense when briefings are on-demand only. New fresh-bundle
