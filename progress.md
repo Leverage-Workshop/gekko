@@ -3,14 +3,24 @@
 ## Current State
 
 **Last Updated:** 2026-07-24
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **Long/Short
-position-eval buttons** (feat-046, branch `claude/long-short-eval-buttons-hrbfcu`), on
-top of the eval strip scoped to the current briefing (PR #83), on-demand bundle uploads
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **direction-aware
+objective anchor separation** (PR #86), on top of the Long/Short
+position-eval buttons (feat-046, branch `claude/long-short-eval-buttons-hrbfcu`), the eval strip scoped to the current briefing (PR #83), on-demand bundle uploads
 (PR #82), the entry chase-side gate (PR #81), the system-prompt restructure +
 campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) + entry
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Direction-aware objective anchor separation (2026-07-24, PR #86, operator request).**
+The 2026-07-24 morning briefing bracketed one contested zone with a long reload at
+VRange Low 28436.75 and a short reoffer at the Rip 28453.90 — 17.15 pts apart, opposite
+directions — and passed the flat 5-pt distinct-anchor floor. `assertDistinctObjectiveAnchors`
+is now direction-aware: opposite-direction Entry A prices must sit ≥ 25 pts apart
+(`MIN_OPPOSING_ENTRY_SEPARATION_PTS`), same-direction objectives keep the 5-pt
+distinct-border floor. `DISTINCT_ANCHORS_RULE` (shared analyze + update prompts) states
+both floors. Clarified in-session: the 5-pt rule is objective-to-objective separation;
+distance-from-current-price is the separate 1-pt `MIN_ENTRY_STANDOFF_PTS` proximity gate.
 
 **Long/Short position-eval buttons (2026-07-24, operator request).** Next to "Eval" in
 the entry-eval column, new "Long" (bmw-blue accent) and "Short" (new `red-accent` Button
