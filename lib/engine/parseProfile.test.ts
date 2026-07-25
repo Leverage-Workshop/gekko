@@ -20,8 +20,8 @@ describe('parseVbpProfile', () => {
     expect(meta.valueAreaHigh).toBe(29995)
     expect(meta.valueAreaLow).toBe(29361)
     expect(rows).toHaveLength(1163)
-    expect(rows[0]).toEqual({ price: 30072, volume: 17 })
-    expect(rows[rows.length - 1]).toEqual({ price: 28910, volume: 5 })
+    expect(rows[0]).toEqual({ price: 30072, volume: 17, delta: 6 })
+    expect(rows[rows.length - 1]).toEqual({ price: 28910, volume: 5, delta: 1 })
   })
 
   it('parses the balance-area export (bin 8 → 2.0-pt step)', () => {
@@ -29,8 +29,29 @@ describe('parseVbpProfile', () => {
     expect(meta.step).toBe(2)
     expect(meta.pocPrice).toBe(29950)
     expect(rows).toHaveLength(823)
-    expect(rows[0]).toEqual({ price: 30554, volume: 3 })
-    expect(rows[rows.length - 1]).toEqual({ price: 28910, volume: 8 })
+    expect(rows[0]).toEqual({ price: 30554, volume: 3, delta: 1 })
+    expect(rows[rows.length - 1]).toEqual({ price: 28910, volume: 8, delta: 2 })
+  })
+
+  it('still parses a pre-delta Price,Volume export (deploy-window compatibility)', () => {
+    const twoCol = rotationVbp.replace('Price,Volume,Delta', 'Price,Volume').replace(
+      /^(\d+\.\d+,\d+),-?\d+$/gm,
+      '$1',
+    )
+    const { rows } = parseVbpProfile(twoCol)
+    expect(rows).toHaveLength(1163)
+    expect(rows[0]).toEqual({ price: 30072, volume: 17 })
+    expect(rows[0]).not.toHaveProperty('delta')
+  })
+
+  it('rejects an unknown 3rd column header', () => {
+    const bad = rotationVbp.replace('Price,Volume,Delta', 'Price,Volume,Trades')
+    expect(() => parseVbpProfile(bad)).toThrow('Unknown 3rd CSV column header "Trades"')
+  })
+
+  it('rejects a delta-header profile with a missing delta cell', () => {
+    const bad = rotationVbp.replace('30072.00,17,6', '30072.00,17')
+    expect(() => parseVbpProfile(bad)).toThrow('fewer than 3 columns')
   })
 
   it('throws when handed a Delta profile', () => {

@@ -4,7 +4,8 @@ import type { ConfirmedAbsorptionScanResult } from '@/lib/engine/stallConfirmati
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { detectLvnHvn } from '@/lib/engine/lvnDetection'
-import type { LvnDetectionResult } from '@/lib/engine/lvnDetection'
+import { annotateNodeBuilds, withBuild } from '@/lib/engine/nodeBuild'
+import type { BuiltLvnDetectionResult } from '@/lib/engine/nodeBuild'
 import { collectMagnets, evaluateMagnetCheck } from '@/lib/engine/magnetCheck'
 import type { MagnetCheck, ProfileSummary } from '@/lib/engine/magnetCheck'
 import { computeMgiPriority } from '@/lib/engine/mgiPriority'
@@ -83,9 +84,11 @@ export interface EngineFacts {
    * LVN/HVN nodes per volume profile. The balance-area nodes are structurally
    * MORE significant than rotation nodes (longer-term acceptance). The terrain
    * zone stack stays anchored to the rotation profile's geometry; the magnet
-   * set is anchored to the balance-area profile (feat-037).
+   * set is anchored to the balance-area profile (feat-037). Each node carries
+   * a `build` annotation (feat-050) — one-sided vs balanced construction from
+   * the profile's delta split; null when the export has no Delta column.
    */
-  lvn: { rotation: LvnDetectionResult; balanceArea: LvnDetectionResult }
+  lvn: { rotation: BuiltLvnDetectionResult; balanceArea: BuiltLvnDetectionResult }
   /**
    * Absorption-candidate stacks from the half/full-rotation delta exports,
    * each annotated with a code-owned stall confirmation computed from the
@@ -165,9 +168,26 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const bars = parseExecBars(input.execCsvContent)
   const deltaTelemetry = computeDeltaTelemetry(bars)
   const mgi = computeMgiPriority(input.mgi)
-  const lvn = {
+  // Node build quality (feat-050): the canonical node lists are annotated with
+  // the raw delta that built them when the profile export carries the Delta
+  // column. Terrain and the magnet verdicts consume the UNannotated objects —
+  // they embed magnet/node references throughout their output, and duplicating
+  // the build objects there balloons the prompt payload for no new information.
+  const lvnRaw = {
     rotation: detectLvnHvn(rotationVbp.rows),
     balanceArea: detectLvnHvn(balanceAreaVbp.rows),
+  }
+  const lvn = {
+    rotation: annotateNodeBuilds(lvnRaw.rotation, rotationVbp.rows),
+    balanceArea: annotateNodeBuilds(lvnRaw.balanceArea, balanceAreaVbp.rows),
+  }
+  for (const [name, profile] of [
+    ['four-hundred-rotation', rotationVbp],
+    ['balance-area', balanceAreaVbp],
+  ] as const) {
+    if (!profile.rows.some(r => r.delta !== undefined)) {
+      warnings.push(`${name} profile has no Delta column — node build quality not computed`)
+    }
   }
   const absorption = confirmStalls(
     scanAbsorption({
@@ -256,12 +276,18 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   // rotation profile's geometry (it must partition one profile's range).
   const magnets = collectMagnets({
     summary: profileSummary.balanceArea,
-    hvn: lvn.balanceArea.hvn,
+    hvn: lvnRaw.balanceArea.hvn,
   })
-  const magnetCheck = evaluateMagnetCheck({
-    magnets,
-    levels: mgi.tier1,
-  })
+  // The top-level magnet list carries the build annotation (feat-050), computed
+  // against the balance-area profile the magnets are anchored to; the verdicts'
+  // embedded magnet refs stay lean (cross-reference by price).
+  const magnetCheck = {
+    ...evaluateMagnetCheck({
+      magnets,
+      levels: mgi.tier1,
+    }),
+    magnets: withBuild(magnets, balanceAreaVbp.rows),
+  }
 
   // Campaign extent (gem-comparison F3): the outermost span of BOTH volume profiles is the
   // "visible HTF structure" the campaign envelope must cover; assembleTerrain then anchors the
@@ -287,13 +313,13 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
 
   const terrain = assembleTerrain({
     profile: rotationVbp.rows,
-    lvn: lvn.rotation,
+    lvn: lvnRaw.rotation,
     // The balance-area profile is the SENIOR classification read (operator doctrine
     // 2026-07-22): a balance-area promotion (AAA) outranks a rotation promotion (A), and it
     // covers anchors beyond the rotation range (e.g. the structural floor when price sits at
     // the session low).
     balanceAreaProfile: balanceAreaVbp.rows,
-    balanceAreaLvn: lvn.balanceArea,
+    balanceAreaLvn: lvnRaw.balanceArea,
     magnets,
     mgi,
     campaignExtent,

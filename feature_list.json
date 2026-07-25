@@ -541,7 +541,8 @@
       "dependencies": [
         "feat-054"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "feat-050 (2026-07-25): ./init.sh fully green \u2014 typecheck 0 errors, lint 0 errors (7 warnings, underscore-intentional), 918 tests pass across 60 files (16 new: parseProfile 3-col coverage, lib/engine/nodeBuild.test.ts, engineFacts build-annotation + pre-delta degradation), next build OK. Sierra: VbPDataExporter.cpp Column Type gains 'Both' \u2192 Price,Volume,Delta. Engine: optional Delta column parsed (2-col still accepted), nodeBuild.ts classifies buyer-built/seller-built/balanced at |delta/volume| >= 0.2 over \u00b17-pt windows; annotations on lvn.{rotation,balanceArea} nodes and magnetCheck.magnets only (terrain/verdict refs stay lean \u2014 measured 25 build objects, analyze fixture prompt back under the 80k budget). Prompt-data-sync gate green after fixture regeneration with Delta column."
     },
     {
       "id": "feat-051",

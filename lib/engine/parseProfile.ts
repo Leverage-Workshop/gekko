@@ -12,7 +12,7 @@ type ProfileType = 'vbp' | 'delta'
 type SingleProfile = {
   type: ProfileType
   meta: ProfileMeta
-  rows: { price: number; value: number }[]
+  rows: { price: number; value: number; delta?: number }[]
 }
 
 function parseNum(s: string, label: string): number {
@@ -60,26 +60,45 @@ function extractCsvBlock(content: string): string {
   return match[1].trim()
 }
 
-function detectType(headerLine: string): ProfileType {
-  const cols = headerLine.split(',')
+function detectType(headerLine: string): { type: ProfileType; hasDelta: boolean } {
+  const cols = headerLine.split(',').map(c => c.trim())
   if (cols.length < 2) throw new Error(`CSV header has fewer than 2 columns: "${headerLine}"`)
-  const second = cols[1].trim()
-  if (second === 'Volume') return 'vbp'
-  if (second === 'Delta') return 'delta'
+  const second = cols[1]
+  if (second === 'Volume') {
+    // feat-050: the structural vbp exports may carry a per-bin delta split.
+    if (cols.length >= 3 && cols[2] !== 'Delta') {
+      throw new Error(`Unknown 3rd CSV column header "${cols[2]}" — expected "Delta"`)
+    }
+    return { type: 'vbp', hasDelta: cols.length >= 3 }
+  }
+  if (second === 'Delta') {
+    if (cols.length > 2) {
+      throw new Error(`Delta profile header has unexpected extra columns: "${headerLine}"`)
+    }
+    return { type: 'delta', hasDelta: false }
+  }
   throw new Error(`Unknown 2nd CSV column header "${second}" — expected "Volume" or "Delta"`)
 }
 
-function parseCsvRows(csv: string): { header: string; rows: { price: number; value: number }[] } {
+function parseCsvRows(csv: string): {
+  header: string
+  rows: { price: number; value: number; delta?: number }[]
+} {
   const lines = csv.split(/\r?\n/).filter(l => l.trim().length > 0)
   if (lines.length < 2) throw new Error('CSV block has no data rows')
   const [header, ...dataLines] = lines
+  const hasDelta = detectType(header).hasDelta
   const rows = dataLines.map((line, i) => {
     const parts = line.split(',')
-    if (parts.length < 2) throw new Error(`CSV row ${i + 1} has fewer than 2 columns: "${line}"`)
-    return {
+    const expected = hasDelta ? 3 : 2
+    if (parts.length < expected) {
+      throw new Error(`CSV row ${i + 1} has fewer than ${expected} columns: "${line}"`)
+    }
+    const base = {
       price: parseNum(parts[0], `row ${i + 1} price`),
       value: parseNum(parts[1], `row ${i + 1} value`),
     }
+    return hasDelta ? { ...base, delta: parseNum(parts[2], `row ${i + 1} delta`) } : base
   })
   return { header, rows }
 }
@@ -101,7 +120,7 @@ function parseProfileFile(content: string): SingleProfile {
   const step = round4(tickSize * binSize)
   const csv = extractCsvBlock(content)
   const { header, rows } = parseCsvRows(csv)
-  const type = detectType(header)
+  const { type } = detectType(header)
   validateSpacing(rows, step)
   return {
     type,
@@ -110,14 +129,23 @@ function parseProfileFile(content: string): SingleProfile {
   }
 }
 
+export type VbpRow = {
+  price: number
+  volume: number
+  /** Per-bin delta (ask − bid volume), present when the export carries the feat-050 Delta column. */
+  delta?: number
+}
+
 export type VbpProfile = {
-  rows: { price: number; volume: number }[]
+  rows: VbpRow[]
   meta: ProfileMeta
 }
 
 /**
  * Parse a standalone Volume (VbP) profile file (e.g. the 400-pt rotation or
- * balance-area HTF export, and the LVN/HVN fixtures' `.vbp.md`).
+ * balance-area HTF export, and the LVN/HVN fixtures' `.vbp.md`). The structural
+ * exports may carry a third `Delta` column (feat-050); it is optional so
+ * pre-delta exports keep parsing during the deploy window.
  */
 export function parseVbpProfile(vbpContent: string): VbpProfile {
   const vbp = parseProfileFile(vbpContent)
@@ -125,7 +153,11 @@ export function parseVbpProfile(vbpContent: string): VbpProfile {
     throw new Error('Expected a Volume (VbP) profile, got a Delta profile')
   }
   return {
-    rows: vbp.rows.map(r => ({ price: r.price, volume: r.value })),
+    rows: vbp.rows.map(r =>
+      r.delta === undefined
+        ? { price: r.price, volume: r.value }
+        : { price: r.price, volume: r.value, delta: r.delta },
+    ),
     meta: vbp.meta,
   }
 }
