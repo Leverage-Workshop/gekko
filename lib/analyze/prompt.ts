@@ -63,6 +63,7 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
     },
     terrain: facts.terrain,
     tpo: facts.tpo,
+    valueMigration: facts.valueMigration,
     warnings: facts.warnings,
   }
 }
@@ -150,7 +151,8 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- `terrain.levels` MUST carry the engine border verdicts (price + kind verbatim); you supply the label wording.',
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band — name the composite in your labels and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure (the senior long-term read — the most important levels on the map), A = rotation structure. Weight AAA borders accordingly for campaign targets and invalidations. `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',
     '- `tpo` carries the code-owned Market Profile day structure (feat-046): single-print zones, poor high/low, POC prominence, value area and Initial Balance are computed from the numeric TPO export. Do NOT re-derive them from the Market Profile screenshot. `tpo.singlePrintZones` are fragile fast-traverse scars (weak support/resistance, repair magnets); a `tpo.poorHigh`/`tpo.poorLow` is an unfinished auction the market tends to revisit. When `tpo` is null the bundle carried no TPO export — say so instead of guessing day structure.',
-    '- Read the attached screenshots ONLY for perception the numeric data cannot give: absorption vs exhaustion shape, value-migration and distribution shape on the Market Profile chart, delta clustering quality, and the doctrine patterns.',
+    '- `valueMigration` is the code-owned value-migration read (feat-048), computed from the per-session value-area history: the prior completed session\'s POC/VAH/VAL, POC drift direction and pace (`valueMigration.pocDrift`), consecutive higher/lower-value days (`valueMigration.valueTrend`), the prior-day value overlap (`valueMigration.priorDayOverlap`) and where the current price sits relative to prior-day value (`valueMigration.currentPriceVsPriorValue`). Narrate whether the balance area is building in place or value is leading price out of it FROM these numbers — never from the screenshots. When `valueMigration` is null the bundle carried no value-area history — say so instead of guessing the migration.',
+    '- Read the attached screenshots ONLY for perception the numeric data cannot give: absorption vs exhaustion shape, intraday distribution shape on the Market Profile chart, delta clustering quality, and the doctrine patterns.',
     '- ACTIVE PATTERN SCAN (required): scan the execution chart for the doctrine playbook setups (Failed Breakout Trap, Controlled Flush & Reload, Three-Push Exhaustion, absorption or exhaustion at a border). At least one `overview.orderFlowContext` bullet MUST either name the active pattern and where it fired, or state plainly that no playbook pattern is present.',
     '- Every `overview` prose section needs at least 2 substantive bullets naming concrete engine levels (the schema rejects fewer).',
     `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly from your chosen entry/stop/T1. The R/R gate is ${input.rrMin}:1 — do not propose objectives that cannot clear it.`,

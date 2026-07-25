@@ -20,6 +20,9 @@ import type { TerrainZonesResult } from '@/lib/engine/terrainZones'
 import { parseTpoProfile } from '@/lib/engine/parseTpo'
 import { computeTpoFacts } from '@/lib/engine/tpoFacts'
 import type { TpoFacts } from '@/lib/engine/tpoFacts'
+import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
+import { computeValueMigration } from '@/lib/engine/valueMigration'
+import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 
 /**
  * Deterministic engine pass over one export bundle: every computed fact the
@@ -46,6 +49,12 @@ export interface EngineFactsInput {
    * the run (pre-study bundles carry no TPO file).
    */
   tpoDataContent?: string | null
+  /**
+   * Daily value-area history (`daily-value-areas.csv`, feat-048). Best-effort
+   * like the TPO export: absent or malformed content degrades to
+   * `valueMigration: null` + a warning.
+   */
+  dailyVaContent?: string | null
   /** Parsed `mgi_json` from the bundle row. */
   mgi: MgiStaticLevels
   /** `raw_bundles.received_at` — feeds the staleness assessment. */
@@ -87,6 +96,13 @@ export interface EngineFacts {
    * malformed) `tpo.data.md` — flagged in `warnings`.
    */
   tpo: TpoFacts | null
+  /**
+   * Code-owned value-migration read (feat-048): POC drift, value-day streaks,
+   * prior-day value overlap, current price vs prior-day value. Null when the
+   * bundle has no (or a malformed) `daily-value-areas.csv` — flagged in
+   * `warnings`.
+   */
+  valueMigration: ValueMigrationFacts | null
   /** Non-fatal degradations (missing rip, terrain issues, ...). */
   warnings: string[]
 }
@@ -156,6 +172,22 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     }
   } else {
     warnings.push('bundle has no numeric TPO export — TPO facts not computed')
+  }
+
+  let valueMigration: ValueMigrationFacts | null = null
+  if (input.dailyVaContent) {
+    try {
+      valueMigration = computeValueMigration(
+        parseDailyValueAreas(input.dailyVaContent),
+        mgi.currentPrice,
+      )
+    } catch (error) {
+      warnings.push(
+        `daily-value-areas.csv failed to parse — value migration not computed: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  } else {
+    warnings.push('bundle has no daily value-area history — value migration not computed')
   }
 
   const summaryOf = (meta: {
@@ -255,6 +287,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     terrain,
     profileSummary,
     tpo,
+    valueMigration,
     warnings,
   }
 }

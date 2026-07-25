@@ -126,6 +126,15 @@ describe('supabase migrations', () => {
     expect(content).not.toMatch(/delete\s+from/i)
   })
 
+  it('adds the daily value-area ref column additively (feat-048)', () => {
+    const file = sql.files.find((f) => f.includes('daily_va_ref'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    expect(content).toContain('add column if not exists daily_va_ref text')
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+
   it('renames five_day_vbp_ref to balance_area_vbp_ref guarded and non-destructively (feat-037)', () => {
     const file = sql.files.find((f) => f.includes('balance_area_vbp_ref'))
     expect(file).toBeDefined()

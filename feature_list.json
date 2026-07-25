@@ -521,7 +521,8 @@
       "dependencies": [
         "feat-054"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "2026-07-25: Sierra study D:\\SierraChart\\ACS_Source\\GekkoDailyValueAreasExporter.cpp (new, own DLL) exports daily-value-areas.csv (Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume; rolling 20 completed RTH sessions, most recent first, in-progress session excluded) from a session-based VbP study via GetNumStudyProfiles/GetStudyProfileInformation (m_VolumePOCPrice, m_VolumeValueAreaHigh/Low, m_Volume) \u2014 atomic tmp+rename, 30 s. Gekko side: daily_va manifest field + daily_va_ref migration (20260725190539, applied to Supabase), uploader pickup, best-effort loadBundle fetch on analyze AND eval loads, lib/engine/parseDailyValueAreas.ts (strict) + lib/engine/valueMigration.ts (prior-day POC/VAH/VAL, POC drift direction/pace, consecutive higher/lower-value days, prior-day VA overlap, current price vs prior-day value), facts.valueMigration -> `valueMigration` payload key with data-ownership bullets in analyze+update prompts (value-migration vision read removed per the feat-054 gate, new vision-exclusivity conditional added), one code-owned prior-day value context line in the eval prompt, engine-ownership registry rows, chart-data/daily-value-areas.csv fixture. ./init.sh green: typecheck, lint (0 errors), 872/872 tests (incl. prompt-data-sync gate + new parser/migration/loadBundle/engineFacts/eval tests), build."
     },
     {
       "id": "feat-049",

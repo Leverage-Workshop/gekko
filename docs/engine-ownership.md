@@ -63,7 +63,7 @@ where the model sees it.
 | Field | Export file | Consumer | Surfaces to the model as |
 | --- | --- | --- | --- |
 | `htf_png` | `htf.png` | model vision (attached screenshot) | HTF trend read → meta.htfTrend (vision-only until a numeric HTF bars export lands) |
-| `tpo_png` | `tpo.png` | model vision (attached screenshot) | value-migration / distribution shape only — day structure (single prints, poor extremes, POC, IB) is code-owned by the numeric TPO export (feat-046) |
+| `tpo_png` | `tpo.png` | model vision (attached screenshot) | intraday distribution shape only — day structure (single prints, poor extremes, POC, IB) is code-owned by the numeric TPO export (feat-046); value migration is code-owned by the daily value-area history (feat-048) |
 | `exec_png` | `exec.png` | model vision (attached screenshot) | pattern scan, absorption vs exhaustion shape, delta clustering quality (stall confirmation is code-owned by the enriched bars, feat-047) |
 | `exec_csv` | `execution_bars.csv` | `lib/engine/parseExecBars.ts` → `lib/engine/deltaTelemetry.ts` (incl. `lib/engine/barFlow.ts` raw-flow reduction), `lib/engine/ripStatus.ts`, `lib/engine/stallConfirmation.ts` (absorption stall annotation); eval: `lib/eval/proximity.ts` (bar-range gate) | `deltaTelemetry` (incl. flow: cumulative delta, divergence, climax), `ripStatus`, stall blocks on `absorptionCandidates`; eval prompt: telemetry + enriched recent-bars table |
 | `rotation_vbp` | `four-hundred-rotation.vbp.md` | `lib/engine/parseProfile.ts` → `lib/engine/lvnDetection.ts`, `lib/engine/terrainZones.ts` | `lvnHvnNodes`, `profileSummary`, `terrain` |
@@ -71,6 +71,7 @@ where the model sees it.
 | `half_rotation_delta` | `half-rotation-delta.vbp.md` | `lib/engine/parseProfile.ts` → `lib/engine/absorption.ts`; eval: `lib/eval/evalBundle.ts` (best-effort scan) | `absorptionCandidates`; eval prompt: absorption-candidates section |
 | `full_rotation_delta` | `full-rotation-delta.vbp.md` | `lib/engine/parseProfile.ts` → `lib/engine/absorption.ts`; eval: `lib/eval/evalBundle.ts` (best-effort scan) | `absorptionCandidates`; eval prompt: absorption-candidates section |
 | `tpo_data` | `tpo.data.md` | `lib/engine/parseTpo.ts` → `lib/engine/tpoFacts.ts` (best-effort: null + warning when absent) | `tpo` (single-print zones, poor high/low, POC prominence, value area, Initial Balance) |
+| `daily_va` | `daily-value-areas.csv` | `lib/engine/parseDailyValueAreas.ts` → `lib/engine/valueMigration.ts` (best-effort: null + warning when absent); eval: `lib/eval/evalBundle.ts` (best-effort context) | `valueMigration` (prior-day POC/VAH/VAL, POC drift, value-day streaks, prior-day overlap, price vs prior-day value); eval prompt: prior-day value context line |
 | `mgi` | inline `mgi_json` (jsonb) | `lib/engine/mgiPriority.ts`, `lib/engine/staleness.ts`, `lib/engine/ripStatus.ts` | `currentPrice`, `mgiPriority`, `staleness`, plus the raw MGI JSON block |
 | (engine pass) | — cross-cutting | `lib/analyze/engineFacts.ts` | `warnings` |
 

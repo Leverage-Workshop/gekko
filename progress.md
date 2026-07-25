@@ -2,9 +2,10 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-24
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **enriched
-execution bars + engine-owned order flow** (feat-047), on top of the numeric TPO
+**Last Updated:** 2026-07-25
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **daily
+value-area history + code-owned value migration** (feat-048), on top of the enriched
+execution bars + engine-owned order flow (feat-047), the numeric TPO
 export + code-owned TPO facts (feat-046) and direction-aware
 objective anchor separation (PR #86), the Long/Short
 position-eval buttons (feat-046, branch `claude/long-short-eval-buttons-hrbfcu`), the eval strip scoped to the current briefing (PR #83), on-demand bundle uploads
@@ -13,6 +14,36 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Daily value-area history + code-owned value migration (2026-07-25, feat-048).**
+Data-todos item 3. Sierra side: new study
+`D:\SierraChart\ACS_Source\GekkoDailyValueAreasExporter.cpp` (own DLL, like the TPO
+exporter) exports `C:\gekko\export\daily-value-areas.csv` — header
+`Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, one row per *completed* RTH
+session, most recent first, rolling 20 sessions, same 30 s timer + atomic tmp+rename
+pattern. It reads per-session profiles from a session-based Volume by Price study
+(`GetNumStudyProfiles` + `GetStudyProfileInformation`: `m_VolumePOCPrice`,
+`m_VolumeValueAreaHigh/Low`, `m_Volume`, extremes) — nothing recomputed, so the export
+matches the study on screen. The in-progress session (profile 0 on the current trading
+day inside the chart's session window, 60 s grace) is excluded. **User-side setup:**
+attach to an RTH-session intraday chart with a session-profile VbP study, then rebuild
+the DLL (Analysis >> Build Custom Studies DLL, this file only). Gekko side: `daily_va`
+manifest field → `raw_bundles.daily_va_ref` (additive migration `20260725190539`,
+applied to Supabase), uploader watches `daily-value-areas.csv`, loadBundle fetches it
+best-effort on BOTH the analyze (`all`) and eval (`exec-plus-delta`) loads (missing ref
+= pre-study bundle, silent; failed download warns). New `lib/engine/parseDailyValueAreas.ts`
+(strict: header, row shape, dates strictly descending, VA inside session range, POC
+inside VA) and `lib/engine/valueMigration.ts` (prior-day POC/VAH/VAL, POC drift
+direction/pace over a 5-session window with a 5 pts/day flat threshold, consecutive
+higher/lower-value days, prior-day VA overlap pct + relation + midpoint shift, current
+price vs prior-day value). `computeEngineFacts` surfaces `facts.valueMigration`
+(null + warning when absent/malformed) → `valueMigration` payload key in the
+analyze/update prompts with a data-ownership bullet; the "value-migration ... on the
+Market Profile chart" vision read left both prompts (feat-054 vision-exclusivity
+conditional added for feat-048). Eval: one code-owned "Prior-day value context" line
+(position vs prior VA + drift + streak), best-effort so it never blocks an entry
+check. Registry rows added (`daily_va`; `tpo_png` re-scoped to distribution shape
+only). ./init.sh green: typecheck, lint (0 errors), 872 tests, build.
 
 **Data Todos refinement: no anchor validation, value migration is the point
 (2026-07-24, operator follow-up).** The doctrine's balance-area "rule" is just the

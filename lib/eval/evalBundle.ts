@@ -13,6 +13,9 @@ import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { parseDeltaProfile } from '@/lib/engine/parseProfile'
 import { parseExecBars } from '@/lib/engine/parseExecBars'
 import { assessStaleness } from '@/lib/engine/staleness'
+import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
+import { computeValueMigration } from '@/lib/engine/valueMigration'
+import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult } from '@/lib/llm'
 import type { PersistEvalDeps } from './persistEval'
@@ -90,6 +93,28 @@ function scanEvalAbsorption(
     return null
   }
   return confirmStalls(scanAbsorption({ halfRotation, fullRotation }), execBars)
+}
+
+/**
+ * Code-owned prior-day value context (feat-048), best-effort like the delta
+ * exports: a bundle without the history (pre-study) stays silent; malformed
+ * content degrades to null + warning — value context must never block an
+ * entry check.
+ */
+function computeEvalValueMigration(
+  content: string | null,
+  currentPrice: number,
+  warnings: string[],
+): ValueMigrationFacts | null {
+  if (content === null) return null
+  try {
+    return computeValueMigration(parseDailyValueAreas(content), currentPrice)
+  } catch (error) {
+    warnings.push(
+      `failed to parse the daily value-area history: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return null
+  }
 }
 
 /** The `config` singleton fields the eval-task consumes. */
@@ -221,6 +246,7 @@ export async function runEval(
     execBars,
     warnings,
   )
+  const valueMigration = computeEvalValueMigration(bundle.dailyVaContent, currentPrice, warnings)
 
   const configWindow = config?.proximity_window_seconds
   const windowSeconds =
@@ -309,6 +335,7 @@ export async function runEval(
       charts: bundle.charts,
       absorption,
       recentBars,
+      valueMigration,
       position,
     }),
     images: bundle.images,
