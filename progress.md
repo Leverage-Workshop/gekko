@@ -14,6 +14,16 @@ standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
 
+**Data Todos refinement: no anchor validation, value migration is the point
+(2026-07-24, operator follow-up).** The doctrine's balance-area "rule" is just the
+third-party auto-anchoring study's own documentation, so the verify-the-anchor framing
+added in the previous correction is out too. Item 3 (feat-048) now centers on the
+computable value-migration read — POC drift direction/pace, higher/lower-value day
+sequences, day-over-day overlap, acceptance outside the prior area — and what it means
+for price; item 7 (feat-052) keeps anchor metadata as coverage/framing (which sessions
+the balance area spans, rotation traverse) with no disagreement-flagging. feat-048 and
+feat-052 descriptions rewritten to match. Docs/backlog only.
+
 **Data Todos correction: balance-area anchoring (2026-07-24, operator report).** The
 report claimed the balance-area VbP was *manually* anchored; in fact a custom
 third-party Sierra study anchors it automatically. Items 3 (daily value-area history,

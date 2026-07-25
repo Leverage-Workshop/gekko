@@ -154,16 +154,15 @@ updated in the same deploy window as the study change.
 
 ## 3. Daily value-area history (`feat-048`)
 
-**What & why.** The Balance Area doctrine — "begins when two days of overlapping value
-occur and expands while subsequent days keep overlapping value" — is enforced on the
-chart by a **custom third-party study that anchors the balance-area VbP automatically**.
-That anchoring logic lives outside gekko and exports nothing about *why* it anchored
-where it did. A small CSV of per-day value areas lets gekko's engine apply the
-overlapping-value rule independently: verify that the auto-anchor agrees with the
-doctrine definition (and flag a briefing warning when the two disagree — e.g. after a
-peak-exception day, where the third-party algorithm and the doctrine may split), and
-give the LLM a concrete value-migration narrative (value building higher/lower day over
-day) instead of a screenshot inference.
+**What & why.** The balance-area VbP is anchored automatically by a custom third-party
+study, and the doctrine's balance-area definition is that study's own documentation —
+gekko has no need to re-derive or validate the anchoring. What the engine *cannot* see
+today is **how value is migrating** and what that means for price. A rolling history of
+per-day POC/VAH/VAL makes the migration read computable: direction and pace of POC
+drift, consecutive higher/lower-value days, how much today's value overlaps yesterday's,
+and whether price is being accepted outside the prior day's area. That gives the analyze
+task a code-owned value-migration narrative — is the balance area building in place, or
+is value leading price out of it? — instead of a screenshot inference off the HTF chart.
 
 **Eval-task use.** Modest but nearly free: the eval's `meta.zone` read and the
 hold/exit checks gain acceptance context — is the current price inside, above, or below
@@ -315,10 +314,10 @@ Additive JSON change — the gekko ingest stores the blob as jsonb, so nothing b
 balance-area VbP is anchored **automatically by a custom third-party study**; the other
 profiles have their own anchor logic on the chart. Either way the anchor decision is
 made chart-side and gekko never sees it. Exporting each profile's anchor datetime/price
-lets the engine read the anchor the chart actually used, cross-check the balance-area
-anchor against the doctrine rule via the daily value-area history from item 3, compute
-how much of the 400-pt rotation has traversed, and flag an anchor the engine disagrees
-with in the briefing instead of silently analyzing the wrong structure.
+lets the engine know exactly what range each profile covers — which sessions the
+auto-anchored balance area spans, giving the item-3 value-migration read its structural
+frame (when the current balance area began) — and compute how much of the 400-pt
+rotation has traversed.
 
 **Eval-task use.** Makes an existing eval caveat code-owned. The eval prompt already
 warns that the bin-based absorption scan "can miss absorption a rolling export has

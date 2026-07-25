@@ -517,7 +517,7 @@
     {
       "id": "feat-048",
       "name": "Data export: daily value-area history (daily-value-areas.csv)",
-      "description": "New ACSIL export `daily-value-areas.csv` (`Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, rolling 20 completed RTH sessions) per docs/data-todos.md item 3, plus ingest/parser wiring. Engine follow-through: detect and validate Balance Area formation/expansion from the two-days-overlapping-value rule, flag when the auto-anchored balance area (set by a custom third-party Sierra study) disagrees with the doctrine rule, and surface a value-migration narrative in engine facts.",
+      "description": "New ACSIL export `daily-value-areas.csv` (`Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, rolling 20 completed RTH sessions) per docs/data-todos.md item 3, plus ingest/parser wiring. Engine follow-through: a code-owned value-migration read \u2014 direction/pace of POC drift, consecutive higher/lower-value days, overlap with the prior day's value, acceptance outside it \u2014 surfaced as engine facts for the analyze narrative (is the balance area building in place or is value leading price out?), plus prior-day value context for the eval. The balance-area VbP itself is auto-anchored by a custom third-party study; no anchor validation is in scope.",
       "dependencies": [
         "feat-054"
       ],
@@ -553,7 +553,7 @@
     {
       "id": "feat-052",
       "name": "Data export: profile anchor metadata on the four .vbp.md exports",
-      "description": "Add `Anchor DateTime`, `Anchor Price` and `Bars In Profile` to the `## Metadata` section of all four volume-profile exports per docs/data-todos.md item 7 (additive), extend `lib/engine/parseProfile.ts` to capture them. Engine follow-through: read the chart-side anchors (the balance-area VbP is auto-anchored by a custom third-party study) and cross-check the balance-area anchor vs feat-048 daily value areas, compute rotation traverse progress, and flag stale anchors in the briefing.",
+      "description": "Add `Anchor DateTime`, `Anchor Price` and `Bars In Profile` to the `## Metadata` section of all four volume-profile exports per docs/data-todos.md item 7 (additive), extend `lib/engine/parseProfile.ts` to capture them. Engine follow-through: know what range each profile covers (the balance-area VbP is auto-anchored by a custom third-party study \u2014 read the anchor it actually used), frame the feat-048 value-migration read with when the current balance area began, compute rotation traverse progress, and make the eval's absorption scan-coverage explicit from the delta exports' anchors.",
       "dependencies": [
         "feat-054",
         "feat-048"
