@@ -1,3 +1,5 @@
+import type { BarFlow } from './barFlow'
+import { computeBarFlow } from './barFlow'
 import type { ExecBar } from './parseExecBars'
 import { RED_EXTREME } from './ripStatus'
 
@@ -45,6 +47,9 @@ export type DeltaTelemetry = {
     distance: number | null // close - value, else null
     position: VwapPosition // above/below/at relative to value; 'unknown' if no leg yet
   }
+  // Raw order-flow facts from the enriched bar columns (feat-047): engine-computed
+  // cumulative delta, divergence at the fresh extreme, climax prints, trade size.
+  flow: BarFlow
 }
 
 const DEFAULT_RECENT_WINDOW = 20
@@ -156,5 +161,6 @@ export function computeDeltaTelemetry(
     recentRange,
     extremes,
     legVwap,
+    flow: computeBarFlow(bars, { recentWindow }),
   }
 }

@@ -3,8 +3,9 @@
 ## Current State
 
 **Last Updated:** 2026-07-24
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **numeric TPO
-export + code-owned TPO facts** (feat-046), on top of direction-aware
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **enriched
+execution bars + engine-owned order flow** (feat-047), on top of the numeric TPO
+export + code-owned TPO facts (feat-046) and direction-aware
 objective anchor separation (PR #86), the Long/Short
 position-eval buttons (feat-046, branch `claude/long-short-eval-buttons-hrbfcu`), the eval strip scoped to the current briefing (PR #83), on-demand bundle uploads
 (PR #82), the entry chase-side gate (PR #81), the system-prompt restructure +
@@ -12,6 +13,29 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Enriched execution bars (2026-07-24, feat-047).** Data-todos item 2. Sierra side:
+`D:\SierraChart\ACS_Source\ExecutionDataExporter.cpp` now appends
+`Volume,BidVolume,AskVolume,NumberOfTrades` (whole numbers, from
+SC_VOLUME/SC_BIDVOL/SC_ASKVOL/SC_NUM_TRADES; delta convention = AskVolume − BidVolume,
+noted in the source). **Needs a DLL rebuild in Sierra (Analysis >> Build Custom Studies
+DLL) before the next gekko deploy — `parseExecBars` hard-rejects the old 7-column
+header by design.** The execution chart uses 750-VOLUME bars, so the Volume column is
+~flat (kept anyway: validates the bid/ask split, marks the in-progress partial bar);
+participation reads are bar-count-at-price / trade count / delta magnitude, never
+per-bar volume. Gekko side: `ExecBar` carries the four columns + derived `delta`; new
+`lib/engine/barFlow.ts` (engine-computed cumulative delta, divergence at the fresh
+price extreme, climax prints at ≥50% one-sided volume, avg trade size) surfaced as
+`deltaTelemetry.flow` in both analyze and eval prompts; new
+`lib/engine/stallConfirmation.ts` annotates every absorption candidate with a
+code-owned stall check (longest consecutive bar run overlapping the stack ±1 pt —
+≥3 bars with net close-to-close progress within max(5 pts, stack height) confirms).
+The analyze/update prompts and chart-reading doctrine now treat `stall.confirmed` as
+absorption (the "execution chart shows price STALLED" vision read left the prompt —
+the feat-054 vision-exclusivity gate flipped and enforces this); the eval recent-bars
+table gained `delta,volume,trades` columns. Fixtures (`chart-data/` + the two
+comparison bundles) enriched deterministically. `./init.sh` green: typecheck, lint,
+848 tests, build.
 
 **Numeric TPO / Market Profile export (2026-07-24, feat-046).** First of the
 data-todos export backlog. Sierra side: new ACSIL study

@@ -99,9 +99,9 @@ function fakeDeps(overrides: Partial<DashboardDeps> = {}): DashboardDeps {
 }
 
 const EXEC_CSV = [
-  'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
-  '2026-07-08 11:58:00,30240.00,30252.50,30238.25,30250.00,0.00,1.00',
-  '2026-07-08 11:59:00,30250.00,30255.00,30244.75,30246.50,0.00,-1.00',
+  'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity,Volume,BidVolume,AskVolume,NumberOfTrades',
+  '2026-07-08 11:58:00,30240.00,30252.50,30238.25,30250.00,0.00,1.00,750,320,430,310',
+  '2026-07-08 11:59:00,30250.00,30255.00,30244.75,30246.50,0.00,-1.00,750,430,320,295',
 ].join('\n')
 
 const NOW = new Date('2026-07-08T12:10:00Z')

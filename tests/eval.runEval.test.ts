@@ -30,6 +30,25 @@ const mgi = JSON.parse(
 const NOW = new Date('2026-06-16T16:00:00Z')
 const CURRENT_PRICE = 30250
 
+/**
+ * Append the feat-047 flow columns to a legacy 7-column scenario CSV: 750-volume
+ * bars whose raw delta tracks the DeltaIntensity bucket (~110 contracts per
+ * step). The initiative-gate scenarios read deltaIntensity; the flow columns
+ * only need to be present and sign-consistent.
+ */
+function enrichScenarioCsv(lines: readonly string[]): string {
+  const [header, ...rows] = lines
+  return [
+    `${header},Volume,BidVolume,AskVolume,NumberOfTrades`,
+    ...rows.map((row) => {
+      const di = parseFloat(row.split(',')[6])
+      const volume = 750
+      const ask = Math.round((volume + Math.round(di * 110)) / 2)
+      return `${row},${volume},${volume - ask},${ask},300`
+    }),
+  ].join('\n')
+}
+
 /** Two active levels: one near the current price, one far above it. */
 function activeLevels(): EntryLevelRow[] {
   return [
@@ -224,10 +243,13 @@ describe('runEval', () => {
     expect(prompt).toContain('# Absorption candidates')
     expect(prompt).toContain('"source": "full-rotation"')
     expect(prompt).toContain('"top": 29830.5')
-    expect(prompt).toContain('These are CANDIDATES')
+    // The stall annotation (feat-047) is code-owned and travels with each candidate.
+    expect(prompt).toContain('"stall"')
+    expect(prompt).toContain('code-owned `stall` block')
     expect(prompt).toContain('# Recent execution bars')
-    // Last fixture bar, rendered without its Leg VWAP column.
-    expect(prompt).toContain('21:52:00,29920.04,29949,29920.04,29945.75,3')
+    // Last fixture bar, rendered without its Leg VWAP column but with the
+    // feat-047 flow columns (delta, volume, trades).
+    expect(prompt).toContain('21:52:00,29920.04,29949,29920.04,29945.75,3,300,320,118')
   })
 
   it('teaches sequence-first initiative and absorption-alone checks', () => {
@@ -358,7 +380,7 @@ describe('runEval', () => {
     // the long border prints counter-extremes exactly when the entry confirms.
     // Price snapped back after the flush — the last close never exited the
     // area downward — so the initiative gate lifts.
-    const flushCsv = [
+    const flushCsv = enrichScenarioCsv([
       'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
       '2026-06-16 15:55:00,30261.00,30264.00,30256.00,30260.00,0.00,-1.00',
       '2026-06-16 15:55:30,30260.00,30262.00,30255.00,30258.00,0.00,-1.00',
@@ -372,7 +394,7 @@ describe('runEval', () => {
       '2026-06-16 15:59:00,30239.00,30250.00,30238.00,30248.00,0.00,2.00',
       '2026-06-16 15:59:30,30248.00,30256.00,30247.00,30254.00,0.00,2.00',
       '2026-06-16 16:00:00,30254.00,30260.00,30252.00,30258.00,0.00,2.00',
-    ].join('\n')
+    ])
     const encoder = new TextEncoder()
     const objects: Record<string, Uint8Array> = {
       'b1/execution_bars.csv': encoder.encode(flushCsv),
@@ -399,7 +421,7 @@ describe('runEval', () => {
     // -1/-2 drift carries a negative mean but zero red-extreme prints — no
     // initiative, no demotion. No absorbed flush here either (price drifts
     // straight down), so only the count gate holds ENTER.
-    const driftCsv = [
+    const driftCsv = enrichScenarioCsv([
       'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
       '2026-06-16 15:55:00,30261.00,30262.00,30258.00,30259.00,0.00,-1.00',
       '2026-06-16 15:55:30,30259.00,30260.00,30256.00,30257.00,0.00,-1.00',
@@ -411,7 +433,7 @@ describe('runEval', () => {
       '2026-06-16 15:58:30,30247.00,30248.00,30244.00,30245.00,0.00,-1.00',
       '2026-06-16 15:59:00,30245.00,30246.00,30242.00,30243.00,0.00,-2.00',
       '2026-06-16 15:59:30,30243.00,30244.00,30240.00,30241.00,0.00,-1.00',
-    ].join('\n')
+    ])
     const encoder = new TextEncoder()
     const objects: Record<string, Uint8Array> = {
       'b1/execution_bars.csv': encoder.encode(driftCsv),
@@ -439,7 +461,7 @@ describe('runEval', () => {
     // closes (a wick probing under the flush low is not an exit), so the
     // ENTER stands even though the last close sits deep in the lower half of
     // the window range (the old recovery rule would have demoted this).
-    const chopCsv = [
+    const chopCsv = enrichScenarioCsv([
       'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
       '2026-06-16 15:55:00,30295.00,30296.00,30292.00,30293.00,0.00,-1.00',
       '2026-06-16 15:55:30,30293.00,30294.00,30290.00,30291.00,0.00,-1.00',
@@ -450,7 +472,7 @@ describe('runEval', () => {
       '2026-06-16 15:58:00,30248.00,30249.00,30245.00,30247.00,0.00,-2.00',
       '2026-06-16 15:58:30,30247.00,30249.00,30244.50,30248.00,0.00,-1.00',
       '2026-06-16 15:59:00,30248.00,30249.00,30245.00,30247.00,0.00,-2.00',
-    ].join('\n')
+    ])
     const encoder = new TextEncoder()
     const objects: Record<string, Uint8Array> = {
       'b1/execution_bars.csv': encoder.encode(chopCsv),
@@ -477,7 +499,7 @@ describe('runEval', () => {
     // initiative (the ripStatus RED_BUILDING_MIN_BARS doctrine). Two red
     // extremes with price closing on the lows — no absorbed-flush rescue —
     // must still NOT demote: the cluster never confirmed.
-    const rogueCsv = [
+    const rogueCsv = enrichScenarioCsv([
       'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
       '2026-06-16 15:55:00,30261.00,30262.00,30258.00,30259.00,0.00,-1.00',
       '2026-06-16 15:55:30,30259.00,30260.00,30256.00,30257.00,0.00,-1.00',
@@ -489,7 +511,7 @@ describe('runEval', () => {
       '2026-06-16 15:58:30,30243.00,30244.00,30240.00,30241.00,0.00,-1.00',
       '2026-06-16 15:59:00,30241.00,30242.00,30238.00,30239.00,0.00,-2.00',
       '2026-06-16 15:59:30,30239.00,30240.00,30236.00,30237.00,0.00,-1.00',
-    ].join('\n')
+    ])
     const encoder = new TextEncoder()
     const objects: Record<string, Uint8Array> = {
       'b1/execution_bars.csv': encoder.encode(rogueCsv),
@@ -517,7 +539,7 @@ describe('runEval', () => {
     // blue, with each bar CLOSING at a new low close (price exiting the area
     // downward — continuation, not absorption), is confirmed
     // counter-initiative — the neutral mean must not veto the demotion.
-    const maskedClusterCsv = [
+    const maskedClusterCsv = enrichScenarioCsv([
       'DateTime,Open,High,Low,Close,LegVWAP,DeltaIntensity',
       '2026-06-16 15:55:00,30261.00,30262.00,30258.00,30259.00,0.00,1.00',
       '2026-06-16 15:55:30,30259.00,30260.00,30256.00,30257.00,0.00,1.00',
@@ -529,7 +551,7 @@ describe('runEval', () => {
       '2026-06-16 15:58:20,30247.00,30247.00,30240.00,30241.00,0.00,-3.00',
       '2026-06-16 15:58:40,30241.00,30242.00,30236.00,30237.00,0.00,-3.00',
       '2026-06-16 15:59:00,30237.00,30238.00,30232.00,30233.00,0.00,-3.00',
-    ].join('\n')
+    ])
     const encoder = new TextEncoder()
     const objects: Record<string, Uint8Array> = {
       'b1/execution_bars.csv': encoder.encode(maskedClusterCsv),

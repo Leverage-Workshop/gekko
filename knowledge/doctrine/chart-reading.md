@@ -64,15 +64,21 @@ initiative flips at the exact point of contact.
      end, not every micro rotation. The magnet set is anchored to the balance-area profile. A
      border at a bare profile **data edge** is a data artifact, never structure — no entries,
      stops or targets there.
-3. **Execution CSV — raw telemetry.** Read infantry aggression (Delta Intensity) and micro-momentum
-   (Leg VWAP). Leg VWAP is strictly micro-timing; HTF MGI wins unequivocally on any conflict.
+3. **Execution CSV — raw telemetry.** Read infantry aggression (Delta Intensity plus the raw
+   per-bar flow columns: delta = ask − bid volume, trade count) and micro-momentum (Leg VWAP).
+   The engine reduces the raw columns to cumulative delta, divergence at the fresh extreme and
+   climax prints. These are 750-volume bars — weigh participation by bar count at a price, trade
+   count and delta magnitude, never by the flat Volume column. Leg VWAP is strictly micro-timing;
+   HTF MGI wins unequivocally on any conflict.
 4. **Execution chart — frontline visual.** Confirm the strike at the border: look for **Absorption
    (clustered delta)** or **Exhaustion (tapered delta)** where the delta profiles meet the HTF
    borders from step 2.
    - The engine scans the half- and full-rotation delta exports for stacks of one-sided bins and
-     reports them as **absorption candidates**. A stack by itself means nothing: call absorption
-     only where the execution chart shows price **stalled** at the stack; otherwise discard the
-     candidate.
+     reports them as **absorption candidates**, each carrying a code-owned **stall confirmation**
+     computed from the enriched execution bars (bars that traded at the stack, volume and trades
+     there, net price progress). A stall-confirmed candidate IS absorption; an unconfirmed one has
+     no stall visible in the rolling bar window (possibly aged out, not refuted) — the bar data,
+     not the screenshot, decides the stall.
 5. **Synthesize — the Law of Asymmetric Initiative.** If the terrain offers a valid setup for both
    fronts, the Primary Objective is awarded to the front aligned with the HTF trend. Ensure the final
    objective (T3) is a Shelf or Valley, never a Magnet. (Asymmetric Initiative + the Campaign
