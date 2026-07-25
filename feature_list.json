@@ -517,7 +517,7 @@
     {
       "id": "feat-048",
       "name": "Data export: daily value-area history (daily-value-areas.csv)",
-      "description": "New ACSIL export `daily-value-areas.csv` (`Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, rolling 20 completed RTH sessions) per docs/data-todos.md item 3, plus ingest/parser wiring. Engine follow-through: detect and validate Balance Area formation/expansion from the two-days-overlapping-value rule, flag drift of the manual balance-area anchor, and surface a value-migration narrative in engine facts.",
+      "description": "New ACSIL export `daily-value-areas.csv` (`Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, rolling 20 completed RTH sessions) per docs/data-todos.md item 3, plus ingest/parser wiring. Engine follow-through: detect and validate Balance Area formation/expansion from the two-days-overlapping-value rule, flag when the auto-anchored balance area (set by a custom third-party Sierra study) disagrees with the doctrine rule, and surface a value-migration narrative in engine facts.",
       "dependencies": [
         "feat-054"
       ],
@@ -553,7 +553,7 @@
     {
       "id": "feat-052",
       "name": "Data export: profile anchor metadata on the four .vbp.md exports",
-      "description": "Add `Anchor DateTime`, `Anchor Price` and `Bars In Profile` to the `## Metadata` section of all four volume-profile exports per docs/data-todos.md item 7 (additive), extend `lib/engine/parseProfile.ts` to capture them. Engine follow-through: validate the manual rotation/balance-area anchors (cross-check vs feat-048 daily value areas), compute rotation traverse progress, and flag stale anchors in the briefing.",
+      "description": "Add `Anchor DateTime`, `Anchor Price` and `Bars In Profile` to the `## Metadata` section of all four volume-profile exports per docs/data-todos.md item 7 (additive), extend `lib/engine/parseProfile.ts` to capture them. Engine follow-through: read the chart-side anchors (the balance-area VbP is auto-anchored by a custom third-party study) and cross-check the balance-area anchor vs feat-048 daily value areas, compute rotation traverse progress, and flag stale anchors in the briefing.",
       "dependencies": [
         "feat-054",
         "feat-048"
