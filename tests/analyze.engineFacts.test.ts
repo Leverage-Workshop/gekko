@@ -69,6 +69,35 @@ describe('computeEngineFacts', () => {
     expect(malformed.warnings.some((w) => w.includes('tpo.data.md failed to parse'))).toBe(true)
   })
 
+  it('computes value migration from the daily value-area history (feat-048)', () => {
+    const result = facts({ dailyVaContent: read('daily-value-areas.csv') })
+    expect(result.valueMigration).not.toBeNull()
+    expect(result.valueMigration!.priorDay.date).toBe('2026-06-15')
+    expect(result.valueMigration!.pocDrift).toEqual({
+      direction: 'up',
+      pointsPerDay: 20,
+      windowSessions: 5,
+    })
+    // Fixture current price 29945.75 sits inside the prior day's 29800–29962 value area.
+    expect(result.valueMigration!.currentPriceVsPriorValue).toEqual({
+      position: 'inside',
+      pointsOutside: 0,
+    })
+    expect(result.warnings.some((w) => w.includes('value migration'))).toBe(false)
+  })
+
+  it('degrades to valueMigration:null with a warning when the history is absent or malformed', () => {
+    const absent = facts()
+    expect(absent.valueMigration).toBeNull()
+    expect(absent.warnings.some((w) => w.includes('no daily value-area history'))).toBe(true)
+
+    const malformed = facts({ dailyVaContent: 'not a value-area csv' })
+    expect(malformed.valueMigration).toBeNull()
+    expect(
+      malformed.warnings.some((w) => w.includes('daily-value-areas.csv failed to parse')),
+    ).toBe(true)
+  })
+
   it('reports POC/VAH/VAL per volume profile', () => {
     const result = facts()
     expect(result.profileSummary.rotation.pocPrice).toBe(29900)

@@ -56,6 +56,7 @@ const facts = computeEngineFacts({
   fullRotationDeltaContent: chartData('full-rotation-delta.vbp.md'),
   execCsvContent,
   tpoDataContent: chartData('tpo.data.md'),
+  dailyVaContent: chartData('daily-value-areas.csv'),
   mgi,
   receivedAt: NOW,
   now: NOW,
@@ -247,6 +248,20 @@ describe('prompt-data sync gate (feat-054)', () => {
         ).not.toMatch(/TPO/i)
       } else {
         expect(visionLine).toMatch(/TPO single prints/)
+      }
+    })
+
+    it('value migration is a vision read exactly while no value-area history fact exists (feat-048)', () => {
+      const hasValueMigrationFact = payloadKeys.some((key) => /valueMigration/.test(key))
+      if (hasValueMigrationFact) {
+        expect(
+          visionLine,
+          'a numeric value-migration fact landed (feat-048) but the prompt still sends the ' +
+            'model to the screenshots for the value-migration read — narrate it from ' +
+            '`valueMigration` instead',
+        ).not.toMatch(/value-migration/i)
+      } else {
+        expect(visionLine).toMatch(/value-migration/)
       }
     })
 

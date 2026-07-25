@@ -27,6 +27,7 @@ export type RawBundleRecord = {
   half_rotation_delta_ref: string | null
   full_rotation_delta_ref: string | null
   tpo_data_ref: string | null
+  daily_va_ref: string | null
 }
 
 /** Side effects injected so the orchestration stays pure and unit-testable. */
@@ -137,6 +138,7 @@ export async function ingestBundle(
     half_rotation_delta_ref: null,
     full_rotation_delta_ref: null,
     tpo_data_ref: null,
+    daily_va_ref: null,
   }
 
   const presentFiles = FILE_FIELDS.map((f) => ({ f, value: form.get(f.field) })).filter(
@@ -168,6 +170,7 @@ export async function ingestBundle(
     half_rotation_delta_ref: refs.half_rotation_delta_ref,
     full_rotation_delta_ref: refs.full_rotation_delta_ref,
     tpo_data_ref: refs.tpo_data_ref,
+    daily_va_ref: refs.daily_va_ref,
   }
 
   return deps.insertBundle(record)

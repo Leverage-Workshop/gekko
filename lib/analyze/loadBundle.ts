@@ -25,6 +25,7 @@ export interface BundleRow {
   half_rotation_delta_ref: string | null
   full_rotation_delta_ref: string | null
   tpo_data_ref: string | null
+  daily_va_ref: string | null
   htf_png_ref: string | null
   tpo_png_ref: string | null
   exec_png_ref: string | null
@@ -50,6 +51,12 @@ export interface LoadedBundle {
    * blocking briefings.
    */
   tpoDataContent: string | null
+  /**
+   * Daily value-area history (`daily-value-areas.csv`, feat-048) — best-effort
+   * on both the analyze and eval loads for the same reason as the TPO export:
+   * pre-study bundles have no file, and value-migration facts are additive.
+   */
+  dailyVaContent: string | null
   execCsvContent: string
   mgi: MgiStaticLevels
   /** Attached chart images, aligned index-for-index with `charts`. */
@@ -71,6 +78,7 @@ export type LoadedExecBundle = Omit<
   | 'halfRotationDeltaContent'
   | 'fullRotationDeltaContent'
   | 'tpoDataContent'
+  | 'dailyVaContent'
 >
 
 /**
@@ -82,6 +90,7 @@ export type LoadedExecBundle = Omit<
 export type LoadedEvalBundle = LoadedExecBundle & {
   halfRotationDeltaContent: string | null
   fullRotationDeltaContent: string | null
+  dailyVaContent: string | null
 }
 
 export interface LoadBundleOptions {
@@ -192,6 +201,12 @@ export async function loadLatestBundle(
     requireTexts === 'all' && row.tpo_data_ref !== null
       ? await optionalText(deps, row.tpo_data_ref, 'numeric TPO', warnings)
       : null
+  // Same contract as the TPO export: a missing ref is a pre-study bundle and
+  // stays silent — the engine owns the "value migration not computed" warning.
+  const dailyVaContent =
+    requireTexts !== 'exec-only' && row.daily_va_ref !== null
+      ? await optionalText(deps, row.daily_va_ref, 'daily value-area history', warnings)
+      : null
   const images: ChartImage[] = []
   const charts: ChartAttachment[] = []
   for (const { column, label } of CHART_REFS) {
@@ -218,6 +233,7 @@ export async function loadLatestBundle(
       ...base,
       halfRotationDeltaContent: deltaTexts[0],
       fullRotationDeltaContent: deltaTexts[1],
+      dailyVaContent,
     }
   }
   if (profileTexts === null) {
@@ -230,5 +246,6 @@ export async function loadLatestBundle(
     halfRotationDeltaContent: profileTexts[2],
     fullRotationDeltaContent: profileTexts[3],
     tpoDataContent,
+    dailyVaContent,
   }
 }

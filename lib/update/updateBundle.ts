@@ -131,6 +131,7 @@ export async function runUpdate(
     fullRotationDeltaContent: bundle.fullRotationDeltaContent,
     execCsvContent: bundle.execCsvContent,
     tpoDataContent: bundle.tpoDataContent,
+    dailyVaContent: bundle.dailyVaContent,
     mgi: bundle.mgi,
     receivedAt: bundle.row.received_at,
     now,

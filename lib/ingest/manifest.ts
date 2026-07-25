@@ -71,6 +71,13 @@ export const FILE_FIELDS: readonly FileField[] = [
     filename: 'tpo.data.md',
     contentType: 'text/markdown',
   },
+  {
+    field: 'daily_va',
+    bucket: 'bundle-csvs',
+    column: 'daily_va_ref',
+    filename: 'daily-value-areas.csv',
+    contentType: 'text/csv',
+  },
 ] as const
 
 /**

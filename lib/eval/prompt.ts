@@ -3,6 +3,7 @@ import type { ConfirmedAbsorptionScanResult } from '@/lib/engine/stallConfirmati
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { ExecBar } from '@/lib/engine/parseExecBars'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
+import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import type { ChartAttachment } from '@/lib/analyze'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
 
@@ -43,6 +44,12 @@ export interface EvalPromptInput {
    */
   recentBars: readonly ExecBar[]
   /**
+   * Code-owned value-migration read from the daily value-area history
+   * (feat-048); null when the bundle carries no usable history. Rendered as
+   * one context line — prior-day value position + migration direction.
+   */
+  valueMigration?: ValueMigrationFacts | null
+  /**
    * Position-eval mode: the direction of the operator's open position. The
    * verdict is a hold-or-exit read at the current price instead of an entry
    * check against the active levels. Null/absent for the standard entry check.
@@ -72,6 +79,35 @@ function renderRecentBars(bars: readonly ExecBar[]): string {
     return `${time},${bar.open},${bar.high},${bar.low},${bar.close},${bar.deltaIntensity},${bar.delta},${bar.volume},${bar.numberOfTrades}`
   })
   return ['```csv', 'time,open,high,low,close,deltaIntensity,delta,volume,trades', ...lines, '```'].join('\n')
+}
+
+/**
+ * One code-owned prior-day-value context line (feat-048): where price sits
+ * relative to the prior completed session's value area and which way value is
+ * migrating — acceptance context for the hold/exit and zone reads, no new
+ * model burden.
+ */
+function valueContextLine(vm: ValueMigrationFacts | null | undefined): string {
+  if (!vm) {
+    return 'No daily value-area history is attached to this bundle — no prior-day value context.'
+  }
+  const pos = vm.currentPriceVsPriorValue
+  const position = pos
+    ? pos.position === 'inside'
+      ? 'INSIDE the prior session\'s value area'
+      : `${pos.position.toUpperCase()} the prior session's value area by ${pos.pointsOutside} pts`
+    : 'at an unknown position vs the prior session\'s value area'
+  const drift =
+    vm.pocDrift.direction === 'flat'
+      ? 'value building in place (POC drift flat)'
+      : `value migrating ${vm.pocDrift.direction.toUpperCase()} at ${Math.abs(vm.pocDrift.pointsPerDay)} pts/session over ${vm.pocDrift.windowSessions} sessions`
+  const streak =
+    vm.valueTrend.consecutiveHigherValueDays > 1
+      ? `, ${vm.valueTrend.consecutiveHigherValueDays} consecutive higher-value days`
+      : vm.valueTrend.consecutiveLowerValueDays > 1
+        ? `, ${vm.valueTrend.consecutiveLowerValueDays} consecutive lower-value days`
+        : ''
+  return `Code-owned: price is ${position} (${vm.priorDay.date}: VAL ${vm.priorDay.val} / POC ${vm.priorDay.poc} / VAH ${vm.priorDay.vah}); ${drift}${streak}.`
 }
 
 /** The absorption-candidate section: code-owned facts or an honest absence note. */
@@ -189,6 +225,9 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '',
     '# Recent execution bars (oldest first — judge the SEQUENCE: flush, stall, response)',
     renderRecentBars(input.recentBars),
+    '',
+    '# Prior-day value context (code-owned, from the daily value-area history)',
+    valueContextLine(input.valueMigration),
     '',
     '# Absorption candidates (code-detected on the execution delta-profile exports)',
     absorptionSection(input.absorption),

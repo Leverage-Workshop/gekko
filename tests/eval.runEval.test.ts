@@ -132,6 +132,7 @@ function makeDeps(overrides: Partial<EvalDeps> = {}) {
       half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
       full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
       tpo_data_ref: null,
+      daily_va_ref: null,
       htf_png_ref: 'b1/htf.png',
       tpo_png_ref: null,
       exec_png_ref: null,
@@ -252,6 +253,38 @@ describe('runEval', () => {
     expect(prompt).toContain('21:52:00,29920.04,29949,29920.04,29945.75,3,300,320,118')
   })
 
+  it('feeds the code-owned prior-day value context when the bundle carries the history (feat-048)', async () => {
+    const encoder = new TextEncoder()
+    const dailyVaCsv = readFileSync(
+      join(process.cwd(), 'chart-data', 'daily-value-areas.csv'),
+      'utf-8',
+    )
+    const harness = makeDeps()
+    const base = harness.deps.fetchLatestBundle
+    const download = harness.deps.downloadObject
+    harness.deps.fetchLatestBundle = async () => ({
+      ...(await base())!,
+      daily_va_ref: 'b1/daily-value-areas.csv',
+    })
+    harness.deps.downloadObject = async (bucket, path) =>
+      path === 'b1/daily-value-areas.csv' ? encoder.encode(dailyVaCsv) : download(bucket, path)
+
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('# Prior-day value context')
+    expect(prompt).toContain('2026-06-15: VAL 29800 / POC 29890 / VAH 29962')
+    expect(prompt).toContain('value migrating UP at 20 pts/session over 5 sessions')
+  })
+
+  it('renders an honest absence note when the bundle has no value-area history', async () => {
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    expect(harness.getCaptured()!.prompt).toContain(
+      'No daily value-area history is attached to this bundle',
+    )
+  })
+
   it('teaches sequence-first initiative and absorption-alone checks', () => {
     // Operator doctrine (2026-07-18): the window mean is guaranteed to carry
     // the flush color right when an absorption entry confirms, and demanding
@@ -314,6 +347,7 @@ describe('runEval', () => {
         half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
         full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
         tpo_data_ref: null,
+        daily_va_ref: null,
         htf_png_ref: 'b1/htf.png',
         tpo_png_ref: null,
         exec_png_ref: null,
@@ -666,6 +700,7 @@ describe('runEval', () => {
         half_rotation_delta_ref: null,
         full_rotation_delta_ref: null,
         tpo_data_ref: null,
+        daily_va_ref: null,
         htf_png_ref: 'b1/htf.png',
         tpo_png_ref: null,
         exec_png_ref: null,
@@ -935,6 +970,7 @@ describe('runEval', () => {
         half_rotation_delta_ref: 'b1/half-rotation-delta.vbp.md',
         full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
         tpo_data_ref: null,
+        daily_va_ref: null,
         htf_png_ref: null,
         tpo_png_ref: null,
         exec_png_ref: null,

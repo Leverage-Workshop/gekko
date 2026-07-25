@@ -32,11 +32,13 @@ const SAMPLE = {
   halfDelta: 'half-rotation-delta.vbp.md',
   fullDelta: 'full-rotation-delta.vbp.md',
   tpoData: 'tpo.data.md',
+  dailyVa: 'daily-value-areas.csv',
   mgi: 'mgi_static_levels.json',
 }
 
 const ALL_FIELDS = [
   'balance_area_vbp',
+  'daily_va',
   'exec_csv',
   'exec_png',
   'full_rotation_delta',
@@ -60,6 +62,7 @@ describe('readBundle', () => {
         [SAMPLE.halfDelta]: '# half delta',
         [SAMPLE.fullDelta]: '# full delta',
         [SAMPLE.tpoData]: '# tpo data',
+        [SAMPLE.dailyVa]: 'Date,POC\n',
       }),
     )
 
@@ -112,7 +115,7 @@ describe('readBundle', () => {
 })
 
 describe('BUNDLE_FILENAMES', () => {
-  it('watches Sierra’s nine export files plus the mgi JSON', () => {
+  it('watches Sierra’s ten export files plus the mgi JSON', () => {
     expect(BUNDLE_FILENAMES).toEqual([
       'htf_clean.png',
       'tpo.png',
@@ -123,6 +126,7 @@ describe('BUNDLE_FILENAMES', () => {
       'half-rotation-delta.vbp.md',
       'full-rotation-delta.vbp.md',
       'tpo.data.md',
+      'daily-value-areas.csv',
       'mgi_static_levels.json',
     ])
   })

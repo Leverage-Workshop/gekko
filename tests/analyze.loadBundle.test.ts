@@ -17,6 +17,7 @@ function row(overrides: Partial<BundleRow> = {}): BundleRow {
     half_rotation_delta_ref: 'bundle-1/half-rotation-delta.vbp.md',
     full_rotation_delta_ref: 'bundle-1/full-rotation-delta.vbp.md',
     tpo_data_ref: null,
+    daily_va_ref: null,
     htf_png_ref: 'bundle-1/htf.png',
     tpo_png_ref: 'bundle-1/tpo.png',
     exec_png_ref: 'bundle-1/exec.png',
@@ -95,6 +96,34 @@ describe('loadLatestBundle', () => {
     )
     expect(broken.tpoDataContent).toBeNull()
     expect(broken.warnings.some((w) => w.includes('numeric TPO'))).toBe(true)
+  })
+
+  it('loads the daily value-area history when the bundle carries one (feat-048)', async () => {
+    const withHistory = {
+      ...objects,
+      'bundle-1/daily-value-areas.csv': 'DAILYVA',
+    }
+    const d = deps(row({ daily_va_ref: 'bundle-1/daily-value-areas.csv' }), withHistory)
+    const bundle = await loadLatestBundle(d)
+    expect(bundle.dailyVaContent).toBe('DAILYVA')
+    expect(bundle.warnings).toEqual([])
+
+    // The eval load fetches it too (prior-day value context).
+    const dEval = deps(row({ daily_va_ref: 'bundle-1/daily-value-areas.csv' }), withHistory)
+    const evalBundle = await loadLatestBundle(dEval, { requireTexts: 'exec-plus-delta' })
+    expect(evalBundle.dailyVaContent).toBe('DAILYVA')
+  })
+
+  it('a missing daily value-area ref is silent (pre-study bundle); a failed download warns', async () => {
+    const noRef = await loadLatestBundle(deps(row(), objects))
+    expect(noRef.dailyVaContent).toBeNull()
+    expect(noRef.warnings).toEqual([])
+
+    const broken = await loadLatestBundle(
+      deps(row({ daily_va_ref: 'bundle-1/daily-value-areas.csv' }), objects),
+    )
+    expect(broken.dailyVaContent).toBeNull()
+    expect(broken.warnings.some((w) => w.includes('daily value-area history'))).toBe(true)
   })
 
   it('throws AnalyzeInputError when no bundle exists', async () => {
