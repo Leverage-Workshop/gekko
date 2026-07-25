@@ -115,6 +115,7 @@ export async function runAnalysis(
     execCsvContent: bundle.execCsvContent,
     tpoDataContent: bundle.tpoDataContent,
     dailyVaContent: bundle.dailyVaContent,
+    htfCsvContent: bundle.htfCsvContent,
     mgi: bundle.mgi,
     receivedAt: bundle.row.received_at,
     now,

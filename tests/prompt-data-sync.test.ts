@@ -57,6 +57,7 @@ const facts = computeEngineFacts({
   execCsvContent,
   tpoDataContent: chartData('tpo.data.md'),
   dailyVaContent: chartData('daily-value-areas.csv'),
+  htfCsvContent: chartData('htf_bar_data.rolling.csv'),
   mgi,
   receivedAt: NOW,
   now: NOW,

@@ -133,6 +133,7 @@ function makeDeps(overrides: Partial<EvalDeps> = {}) {
       full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
       tpo_data_ref: null,
       daily_va_ref: null,
+      htf_csv_ref: null,
       htf_png_ref: 'b1/htf.png',
       tpo_png_ref: null,
       exec_png_ref: null,
@@ -265,6 +266,7 @@ describe('runEval', () => {
     harness.deps.fetchLatestBundle = async () => ({
       ...(await base())!,
       daily_va_ref: 'b1/daily-value-areas.csv',
+      htf_csv_ref: null,
     })
     harness.deps.downloadObject = async (bucket, path) =>
       path === 'b1/daily-value-areas.csv' ? encoder.encode(dailyVaCsv) : download(bucket, path)
@@ -282,6 +284,39 @@ describe('runEval', () => {
     await runEval(harness.deps)
     expect(harness.getCaptured()!.prompt).toContain(
       'No daily value-area history is attached to this bundle',
+    )
+  })
+
+  it('feeds the code-owned HTF structure context when the bundle carries the bar export (feat-049)', async () => {
+    const encoder = new TextEncoder()
+    const htfCsv = readFileSync(
+      join(process.cwd(), 'chart-data', 'htf_bar_data.rolling.csv'),
+      'utf-8',
+    )
+    const harness = makeDeps()
+    const base = harness.deps.fetchLatestBundle
+    const download = harness.deps.downloadObject
+    harness.deps.fetchLatestBundle = async () => ({
+      ...(await base())!,
+      htf_csv_ref: 'b1/htf_bars.csv',
+    })
+    harness.deps.downloadObject = async (bucket, path) =>
+      path === 'b1/htf_bars.csv' ? encoder.encode(htfCsv) : download(bucket, path)
+
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('# HTF structure context')
+    expect(prompt).toContain('trend UP (higher swing highs and higher swing lows)')
+    expect(prompt).toContain('30-min ATR 29.66 pts')
+    expect(prompt).toContain('from the last swing high')
+  })
+
+  it('renders an honest absence note when the bundle has no HTF bar data', async () => {
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    expect(harness.getCaptured()!.prompt).toContain(
+      'No HTF bar data is attached to this bundle',
     )
   })
 
@@ -348,6 +383,7 @@ describe('runEval', () => {
         full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
         tpo_data_ref: null,
         daily_va_ref: null,
+        htf_csv_ref: null,
         htf_png_ref: 'b1/htf.png',
         tpo_png_ref: null,
         exec_png_ref: null,
@@ -701,6 +737,7 @@ describe('runEval', () => {
         full_rotation_delta_ref: null,
         tpo_data_ref: null,
         daily_va_ref: null,
+        htf_csv_ref: null,
         htf_png_ref: 'b1/htf.png',
         tpo_png_ref: null,
         exec_png_ref: null,
@@ -971,6 +1008,7 @@ describe('runEval', () => {
         full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
         tpo_data_ref: null,
         daily_va_ref: null,
+        htf_csv_ref: null,
         htf_png_ref: null,
         tpo_png_ref: null,
         exec_png_ref: null,

@@ -27,6 +27,7 @@ const LOCAL_FILENAME_BY_FIELD: Readonly<Record<string, string>> = {
   full_rotation_delta: 'full-rotation-delta.vbp.md',
   tpo_data: 'tpo.data.md',
   daily_va: 'daily-value-areas.csv',
+  htf_csv: 'htf_bar_data.rolling.csv',
 }
 
 type LocalFile = {

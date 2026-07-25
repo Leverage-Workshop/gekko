@@ -26,6 +26,7 @@ export interface BundleRow {
   full_rotation_delta_ref: string | null
   tpo_data_ref: string | null
   daily_va_ref: string | null
+  htf_csv_ref: string | null
   htf_png_ref: string | null
   tpo_png_ref: string | null
   exec_png_ref: string | null
@@ -57,6 +58,12 @@ export interface LoadedBundle {
    * pre-study bundles have no file, and value-migration facts are additive.
    */
   dailyVaContent: string | null
+  /**
+   * HTF 30-min bars (`htf_bar_data.rolling.csv`, feat-049) — best-effort on
+   * both the analyze and eval loads like the value-area history: pre-study
+   * bundles have no file, and HTF structure facts are additive.
+   */
+  htfCsvContent: string | null
   execCsvContent: string
   mgi: MgiStaticLevels
   /** Attached chart images, aligned index-for-index with `charts`. */
@@ -79,6 +86,7 @@ export type LoadedExecBundle = Omit<
   | 'fullRotationDeltaContent'
   | 'tpoDataContent'
   | 'dailyVaContent'
+  | 'htfCsvContent'
 >
 
 /**
@@ -91,6 +99,7 @@ export type LoadedEvalBundle = LoadedExecBundle & {
   halfRotationDeltaContent: string | null
   fullRotationDeltaContent: string | null
   dailyVaContent: string | null
+  htfCsvContent: string | null
 }
 
 export interface LoadBundleOptions {
@@ -207,6 +216,12 @@ export async function loadLatestBundle(
     requireTexts !== 'exec-only' && row.daily_va_ref !== null
       ? await optionalText(deps, row.daily_va_ref, 'daily value-area history', warnings)
       : null
+  // Same contract again: a missing ref is a pre-study bundle and stays silent —
+  // the engine owns the "HTF structure not computed" warning.
+  const htfCsvContent =
+    requireTexts !== 'exec-only' && row.htf_csv_ref !== null
+      ? await optionalText(deps, row.htf_csv_ref, 'HTF bar data', warnings)
+      : null
   const images: ChartImage[] = []
   const charts: ChartAttachment[] = []
   for (const { column, label } of CHART_REFS) {
@@ -234,6 +249,7 @@ export async function loadLatestBundle(
       halfRotationDeltaContent: deltaTexts[0],
       fullRotationDeltaContent: deltaTexts[1],
       dailyVaContent,
+      htfCsvContent,
     }
   }
   if (profileTexts === null) {
@@ -247,5 +263,6 @@ export async function loadLatestBundle(
     fullRotationDeltaContent: profileTexts[3],
     tpoDataContent,
     dailyVaContent,
+    htfCsvContent,
   }
 }

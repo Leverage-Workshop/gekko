@@ -126,6 +126,15 @@ describe('supabase migrations', () => {
     expect(content).not.toMatch(/delete\s+from/i)
   })
 
+  it('adds the HTF bars ref column additively (feat-049)', () => {
+    const file = sql.files.find((f) => f.includes('htf_csv_ref'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    expect(content).toContain('add column if not exists htf_csv_ref text')
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+
   it('adds the daily value-area ref column additively (feat-048)', () => {
     const file = sql.files.find((f) => f.includes('daily_va_ref'))
     expect(file).toBeDefined()
