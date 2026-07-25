@@ -14,6 +14,26 @@ standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
 
+**Data Todos refinement: no anchor validation, value migration is the point
+(2026-07-24, operator follow-up).** The doctrine's balance-area "rule" is just the
+third-party auto-anchoring study's own documentation, so the verify-the-anchor framing
+added in the previous correction is out too. Item 3 (feat-048) now centers on the
+computable value-migration read — POC drift direction/pace, higher/lower-value day
+sequences, day-over-day overlap, acceptance outside the prior area — and what it means
+for price; item 7 (feat-052) keeps anchor metadata as coverage/framing (which sessions
+the balance area spans, rotation traverse) with no disagreement-flagging. feat-048 and
+feat-052 descriptions rewritten to match. Docs/backlog only.
+
+**Data Todos correction: balance-area anchoring (2026-07-24, operator report).** The
+report claimed the balance-area VbP was *manually* anchored; in fact a custom
+third-party Sierra study anchors it automatically. Items 3 (daily value-area history,
+feat-048) and 7 (profile anchor metadata, feat-052) reframed: the value of the exports
+stands, but the engine's job is to independently verify the third-party auto-anchor
+against the doctrine's overlapping-value rule (and flag disagreement in the briefing),
+not to police a manual anchor. Item 7's ACSIL prompt now tells the study to read the
+anchor the profile is actually using rather than assume a fixed/manual one; feat-048
+and feat-052 descriptions updated to match. Docs/backlog only, no code changes.
+
 **Enriched execution bars (2026-07-24, feat-047).** Data-todos item 2. Sierra side:
 `D:\SierraChart\ACS_Source\ExecutionDataExporter.cpp` now appends
 `Volume,BidVolume,AskVolume,NumberOfTrades` (whole numbers, from

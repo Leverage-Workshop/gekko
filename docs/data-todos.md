@@ -154,12 +154,15 @@ updated in the same deploy window as the study change.
 
 ## 3. Daily value-area history (`feat-048`)
 
-**What & why.** The Balance Area doctrine — "begins when two days of overlapping value
-occur and expands while subsequent days keep overlapping value" — is currently enforced
-by a *manually anchored* profile in Sierra. A small CSV of per-day value areas lets the
-engine detect and validate balance-area formation/expansion itself, flag when the manual
-anchor has drifted from what the rule says, and give the LLM a concrete value-migration
-narrative (value building higher/lower day over day) instead of a screenshot inference.
+**What & why.** The balance-area VbP is anchored automatically by a custom third-party
+study, and the doctrine's balance-area definition is that study's own documentation —
+gekko has no need to re-derive or validate the anchoring. What the engine *cannot* see
+today is **how value is migrating** and what that means for price. A rolling history of
+per-day POC/VAH/VAL makes the migration read computable: direction and pace of POC
+drift, consecutive higher/lower-value days, how much today's value overlaps yesterday's,
+and whether price is being accepted outside the prior day's area. That gives the analyze
+task a code-owned value-migration narrative — is the balance area building in place, or
+is value leading price out of it? — instead of a screenshot inference off the HTF chart.
 
 **Eval-task use.** Modest but nearly free: the eval's `meta.zone` read and the
 hold/exit checks gain acceptance context — is the current price inside, above, or below
@@ -307,11 +310,14 @@ Additive JSON change — the gekko ingest stores the blob as jsonb, so nothing b
 
 ## 7. Profile anchor metadata (`feat-052`)
 
-**What & why.** The rotation and balance-area profiles are manually anchored, but the
-exports don't say *where*. Exporting each profile's anchor datetime/price lets the
-engine validate the anchors (cross-check against the daily value-area history from
-item 3), compute how much of the 400-pt rotation has traversed, and flag a stale anchor
-in the briefing instead of silently analyzing the wrong structure.
+**What & why.** The exports don't say *where* each profile is anchored. The
+balance-area VbP is anchored **automatically by a custom third-party study**; the other
+profiles have their own anchor logic on the chart. Either way the anchor decision is
+made chart-side and gekko never sees it. Exporting each profile's anchor datetime/price
+lets the engine know exactly what range each profile covers — which sessions the
+auto-anchored balance area spans, giving the item-3 value-migration read its structural
+frame (when the current balance area began) — and compute how much of the 400-pt
+rotation has traversed.
 
 **Eval-task use.** Makes an existing eval caveat code-owned. The eval prompt already
 warns that the bin-based absorption scan "can miss absorption a rolling export has
@@ -341,8 +347,11 @@ Additive markdown change; `lib/engine/parseProfile.ts` extends to capture the ne
 > `- **Anchor DateTime**: YYYY-MM-DD HH:MM:SS` (the timestamp of the first bar included
 > in the profile), `- **Anchor Price**: <price>` (that bar's open), and
 > `- **Bars In Profile**: <count>`. Derive these from the profile study's actual start
-> bar/anchor on the chart, not a hardcoded value. Change nothing else — same csv
-> columns, filenames, cadence, atomic writes.
+> bar/anchor on the chart, not a hardcoded value. Note the balance-area profile is
+> anchored automatically by a separate third-party balance-area study on the chart —
+> read the anchor the profile is actually using (however that study set it); do not
+> assume a fixed or manual anchor. Change nothing else — same csv columns, filenames,
+> cadence, atomic writes.
 
 ---
 
