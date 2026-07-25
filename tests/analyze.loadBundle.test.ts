@@ -18,6 +18,7 @@ function row(overrides: Partial<BundleRow> = {}): BundleRow {
     full_rotation_delta_ref: 'bundle-1/full-rotation-delta.vbp.md',
     tpo_data_ref: null,
     daily_va_ref: null,
+    htf_csv_ref: null,
     htf_png_ref: 'bundle-1/htf.png',
     tpo_png_ref: 'bundle-1/tpo.png',
     exec_png_ref: 'bundle-1/exec.png',
@@ -124,6 +125,34 @@ describe('loadLatestBundle', () => {
     )
     expect(broken.dailyVaContent).toBeNull()
     expect(broken.warnings.some((w) => w.includes('daily value-area history'))).toBe(true)
+  })
+
+  it('loads the HTF bar data when the bundle carries it (feat-049)', async () => {
+    const withHtf = {
+      ...objects,
+      'bundle-1/htf_bars.csv': 'HTFBARS',
+    }
+    const d = deps(row({ htf_csv_ref: 'bundle-1/htf_bars.csv' }), withHtf)
+    const bundle = await loadLatestBundle(d)
+    expect(bundle.htfCsvContent).toBe('HTFBARS')
+    expect(bundle.warnings).toEqual([])
+
+    // The eval load fetches it too (HTF structure context).
+    const dEval = deps(row({ htf_csv_ref: 'bundle-1/htf_bars.csv' }), withHtf)
+    const evalBundle = await loadLatestBundle(dEval, { requireTexts: 'exec-plus-delta' })
+    expect(evalBundle.htfCsvContent).toBe('HTFBARS')
+  })
+
+  it('a missing HTF bar ref is silent (pre-study bundle); a failed download warns', async () => {
+    const noRef = await loadLatestBundle(deps(row(), objects))
+    expect(noRef.htfCsvContent).toBeNull()
+    expect(noRef.warnings).toEqual([])
+
+    const broken = await loadLatestBundle(
+      deps(row({ htf_csv_ref: 'bundle-1/htf_bars.csv' }), objects),
+    )
+    expect(broken.htfCsvContent).toBeNull()
+    expect(broken.warnings.some((w) => w.includes('HTF bar data'))).toBe(true)
   })
 
   it('throws AnalyzeInputError when no bundle exists', async () => {

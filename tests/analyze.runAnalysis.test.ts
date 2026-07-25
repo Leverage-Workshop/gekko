@@ -123,6 +123,7 @@ function makeDeps(overrides: Partial<AnalyzeDeps> = {}) {
       full_rotation_delta_ref: 'b1/full-rotation-delta.vbp.md',
       tpo_data_ref: null,
       daily_va_ref: null,
+      htf_csv_ref: null,
       htf_png_ref: 'b1/htf.png',
       tpo_png_ref: null,
       exec_png_ref: null,

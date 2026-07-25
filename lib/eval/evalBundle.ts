@@ -16,6 +16,9 @@ import { assessStaleness } from '@/lib/engine/staleness'
 import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
 import { computeValueMigration } from '@/lib/engine/valueMigration'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
+import { parseHtfBars } from '@/lib/engine/parseHtfBars'
+import { computeHtfStructure } from '@/lib/engine/htfStructure'
+import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
 import { generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult } from '@/lib/llm'
 import type { PersistEvalDeps } from './persistEval'
@@ -112,6 +115,27 @@ function computeEvalValueMigration(
   } catch (error) {
     warnings.push(
       `failed to parse the daily value-area history: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return null
+  }
+}
+
+/**
+ * Code-owned HTF structure context (feat-049), best-effort like the value
+ * history: a bundle without the export (pre-study) stays silent; malformed
+ * content degrades to null + warning — HTF context must never block a check.
+ */
+function computeEvalHtfStructure(
+  content: string | null,
+  currentPrice: number,
+  warnings: string[],
+): HtfStructureFacts | null {
+  if (content === null) return null
+  try {
+    return computeHtfStructure(parseHtfBars(content), currentPrice)
+  } catch (error) {
+    warnings.push(
+      `failed to parse the HTF bar data: ${error instanceof Error ? error.message : String(error)}`,
     )
     return null
   }
@@ -247,6 +271,7 @@ export async function runEval(
     warnings,
   )
   const valueMigration = computeEvalValueMigration(bundle.dailyVaContent, currentPrice, warnings)
+  const htfStructure = computeEvalHtfStructure(bundle.htfCsvContent, currentPrice, warnings)
 
   const configWindow = config?.proximity_window_seconds
   const windowSeconds =
@@ -336,6 +361,7 @@ export async function runEval(
       absorption,
       recentBars,
       valueMigration,
+      htfStructure,
       position,
     }),
     images: bundle.images,

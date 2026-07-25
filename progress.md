@@ -3,8 +3,9 @@
 ## Current State
 
 **Last Updated:** 2026-07-25
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **daily
-value-area history + code-owned value migration** (feat-048), on top of the enriched
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **HTF 30-min
+bar export + code-owned HTF structure** (feat-049), on top of the daily
+value-area history + code-owned value migration (feat-048), the enriched
 execution bars + engine-owned order flow (feat-047), the numeric TPO
 export + code-owned TPO facts (feat-046) and direction-aware
 objective anchor separation (PR #86), the Long/Short
@@ -14,6 +15,37 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**HTF 30-min bar export + code-owned HTF structure (2026-07-25, feat-049).**
+Data-todos item 4. Sierra side: new study
+`D:\SierraChart\ACS_Source\GekkoHtfBarDataExporter.cpp` (own DLL, like the other Gekko
+exporters) exports `C:\gekko\export\htf_bar_data.rolling.csv` — header
+`DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume`, one row per 30-min bar,
+chronological, rolling 90 calendar days, current partial bar as the last row, same 30 s
+timer + atomic tmp+rename pattern. Volumes come from the base data arrays
+(SC_VOLUME/SC_BIDVOL/SC_ASKVOL; delta convention ask − bid); the 90-day window is
+anchored to the LAST bar's timestamp (not the wall clock) so replays export correctly.
+**User-side setup:** attach to the 30-minute HTF planning chart (90+ days loaded), then
+rebuild the DLL (Analysis >> Build Custom Studies DLL, this file only). Gekko side:
+`htf_csv` manifest field → `raw_bundles.htf_csv_ref` (additive migration, applied to
+Supabase), uploader watches `htf_bar_data.rolling.csv`, loadBundle fetches it
+best-effort on BOTH the analyze and eval loads (missing ref = pre-study bundle, silent;
+failed download warns). New `lib/engine/parseHtfBars.ts` (strict: header, column count,
+numerics, High ≥ Low, chronological order) and `lib/engine/htfStructure.ts` (Wilder
+ATR over 14 30-min bars, confirmed fractal swings at strength 5 — the in-progress bar
+can never carry a swing — trend state from the last two swing pairs (HH+HL up / LH+LL
+down / else range), recent swing highs/lows, rotation extent in points and ATR
+multiples, ATR-normalized current-price-vs-swing distances). `computeEngineFacts`
+surfaces `facts.htfStructure` (null + warning when absent/malformed) → `htfStructure`
+payload key in the analyze/update prompts with a data-ownership bullet; `meta.htfTrend`
+is no longer requested as a pure planning-chart read — it must be grounded in the
+engine facts, with the screenshot contributing distribution shape only (the feat-054
+vision-exclusivity conditional for feat-049 flipped in this change). Eval: one
+code-owned "HTF structure context" line (trend + ATR + ATR-normalized swing distances —
+the rotation-noise vs trend-break scale for position holds), best-effort so it never
+blocks a check. Registry rows updated (`htf_csv` added; `htf_png` re-scoped to
+distribution shape only). Doctrine prose aligned (output-briefing.md htfTrend semantics,
+chart-reading.md step 2). ./init.sh green: typecheck, lint (0 errors), 902 tests, build.
 
 **Daily value-area history + code-owned value migration (2026-07-25, feat-048).**
 Data-todos item 3. Sierra side: new study

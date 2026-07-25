@@ -531,7 +531,8 @@
       "dependencies": [
         "feat-054"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "2026-07-25: Sierra study D:\\SierraChart\\ACS_Source\\GekkoHtfBarDataExporter.cpp (new, own DLL) exports htf_bar_data.rolling.csv (DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume; 30-min bars, chronological, rolling 90 calendar days anchored to the LAST bar's timestamp for replay safety, current partial bar last) from the chart's base data arrays (SC_VOLUME/SC_BIDVOL/SC_ASKVOL) \u2014 atomic tmp+rename, 30 s. Gekko side: htf_csv manifest field + htf_csv_ref migration (applied to Supabase), uploader watches htf_bar_data.rolling.csv, best-effort loadBundle fetch on analyze AND eval loads, lib/engine/parseHtfBars.ts (strict: header, columns, numerics, High>=Low, chronological order) + lib/engine/htfStructure.ts (Wilder ATR-14, strength-5 confirmed fractal swings, trend state from the HH/HL vs LH/LL swing sequence, rotation extent, ATR-normalized current-vs-swing distances), facts.htfStructure -> `htfStructure` payload key with data-ownership bullets in analyze+update prompts (meta.htfTrend no longer a pure planning-chart read, per the feat-054 vision-exclusivity conditional), one code-owned HTF structure context line in the eval prompt (rotation-noise vs trend-break scale), engine-ownership registry rows (htf_csv added; htf_png re-scoped to distribution shape only), chart-data/htf_bar_data.rolling.csv fixture, doctrine prose updated (output-briefing.md, chart-reading.md). ./init.sh green: typecheck, lint (0 errors), 902/902 tests (incl. prompt-data-sync gate + new parser/htfStructure/migration/loadBundle/engineFacts/eval tests), build."
     },
     {
       "id": "feat-050",

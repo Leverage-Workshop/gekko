@@ -98,6 +98,36 @@ describe('computeEngineFacts', () => {
     ).toBe(true)
   })
 
+  it('computes HTF structure from the 30-min bar export (feat-049)', () => {
+    const result = facts({ htfCsvContent: read('htf_bar_data.rolling.csv') })
+    expect(result.htfStructure).not.toBeNull()
+    expect(result.htfStructure!.trend).toEqual({
+      state: 'up',
+      basis: 'higher swing highs and higher swing lows',
+    })
+    expect(result.htfStructure!.atrPoints).toBeGreaterThan(0)
+    expect(result.htfStructure!.recentSwingHighs.length).toBeGreaterThan(0)
+    expect(result.htfStructure!.rotation).not.toBeNull()
+    // Distances are measured from the MGI current price (29945.75), not the last close.
+    const lastSwingHigh = result.htfStructure!.recentSwingHighs[0]!
+    expect(result.htfStructure!.currentVsSwings.fromLastSwingHighPts).toBe(
+      Math.round((mgi.current!.price! - lastSwingHigh.price) * 100) / 100,
+    )
+    expect(result.warnings.some((w) => w.includes('HTF structure'))).toBe(false)
+  })
+
+  it('degrades to htfStructure:null with a warning when the HTF export is absent or malformed', () => {
+    const absent = facts()
+    expect(absent.htfStructure).toBeNull()
+    expect(absent.warnings.some((w) => w.includes('no HTF bar data'))).toBe(true)
+
+    const malformed = facts({ htfCsvContent: 'not an htf csv' })
+    expect(malformed.htfStructure).toBeNull()
+    expect(
+      malformed.warnings.some((w) => w.includes('htf_bar_data.rolling.csv failed to parse')),
+    ).toBe(true)
+  })
+
   it('reports POC/VAH/VAL per volume profile', () => {
     const result = facts()
     expect(result.profileSummary.rotation.pocPrice).toBe(29900)

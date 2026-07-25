@@ -7,8 +7,9 @@ and judgment; the engine supplies all computed fields.
 ## Field semantics
 
 - **`meta`** — run metadata; the exact values to use are listed in the user message.
-  `htfTrend` is your narrative HTF trend read; `ripStatus` is the engine condition plus a short
-  read.
+  `htfTrend` is your narrative HTF trend read — grounded in the code-owned `htfStructure` engine
+  facts (trend state from the confirmed swing sequence, swing highs/lows, rotation extent, 30-min
+  ATR) whenever the bundle carries them; `ripStatus` is the engine condition plus a short read.
 - **`overview`** — four sections:
   - `currentPosition` (≥2 bullets): price location vs multi-timeframe structure, plus Rip status.
   - `structuralArchitecture` (≥2 bullets): active acceptance zones and void zones (Elevator

@@ -4,6 +4,7 @@ import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { ExecBar } from '@/lib/engine/parseExecBars'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
+import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
 import type { ChartAttachment } from '@/lib/analyze'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
 
@@ -49,6 +50,13 @@ export interface EvalPromptInput {
    * one context line — prior-day value position + migration direction.
    */
   valueMigration?: ValueMigrationFacts | null
+  /**
+   * Code-owned HTF structure read from the 30-min bar export (feat-049);
+   * null when the bundle carries no usable export. Rendered as one context
+   * line — trend state, measured ATR and ATR-normalized swing distances, so
+   * an adverse move can be judged as rotation noise vs trend break.
+   */
+  htfStructure?: HtfStructureFacts | null
   /**
    * Position-eval mode: the direction of the operator's open position. The
    * verdict is a hold-or-exit read at the current price instead of an entry
@@ -108,6 +116,31 @@ function valueContextLine(vm: ValueMigrationFacts | null | undefined): string {
         ? `, ${vm.valueTrend.consecutiveLowerValueDays} consecutive lower-value days`
         : ''
   return `Code-owned: price is ${position} (${vm.priorDay.date}: VAL ${vm.priorDay.val} / POC ${vm.priorDay.poc} / VAH ${vm.priorDay.vah}); ${drift}${streak}.`
+}
+
+/**
+ * One code-owned HTF structure context line (feat-049): 30-min trend state,
+ * measured ATR and ATR-normalized distances from the last confirmed swings —
+ * the "rotation noise or trend break?" scale for hold/exit reads.
+ */
+function htfContextLine(htf: HtfStructureFacts | null | undefined): string {
+  if (!htf) {
+    return 'No HTF bar data is attached to this bundle — no numeric HTF trend context.'
+  }
+  const vs = htf.currentVsSwings
+  const swingBits = [
+    vs.fromLastSwingHighPts !== null
+      ? `${vs.fromLastSwingHighPts} pts (${vs.fromLastSwingHighAtr} ATR) from the last swing high`
+      : null,
+    vs.fromLastSwingLowPts !== null
+      ? `${vs.fromLastSwingLowPts} pts (${vs.fromLastSwingLowAtr} ATR) from the last swing low`
+      : null,
+  ].filter(Boolean)
+  const rotation = htf.rotation
+    ? `; current rotation ${htf.rotation.low}–${htf.rotation.high} (${htf.rotation.extentPts} pts, ${htf.rotation.extentAtr} ATR)`
+    : ''
+  const swings = swingBits.length > 0 ? `; price is ${swingBits.join(' and ')}` : ''
+  return `Code-owned (30-min chart): trend ${htf.trend.state.toUpperCase()} (${htf.trend.basis}); 30-min ATR ${htf.atrPoints} pts${rotation}${swings}. An adverse move well inside 1 rotation/a few ATR is rotation noise; beyond the last swing against the trade is a structure break.`
 }
 
 /** The absorption-candidate section: code-owned facts or an honest absence note. */
@@ -228,6 +261,9 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '',
     '# Prior-day value context (code-owned, from the daily value-area history)',
     valueContextLine(input.valueMigration),
+    '',
+    '# HTF structure context (code-owned, from the 30-min HTF bar export)',
+    htfContextLine(input.htfStructure),
     '',
     '# Absorption candidates (code-detected on the execution delta-profile exports)',
     absorptionSection(input.absorption),

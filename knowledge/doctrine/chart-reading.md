@@ -46,6 +46,10 @@ initiative flips at the exact point of contact.
    (Level tiering and priority arrive computed in the engine facts.)
 2. **HTF & TPO charts — the terrain map.** Identify current position in HTF structure; define
    Acceptance Borders (LVNs), looking for **Trenches (Valley + MGI)** or **Walls (Shelf + MGI)**.
+   - The HTF **trend read is code-owned** when the bundle carries the 30-min bar export:
+     `htfStructure` supplies the trend state from the confirmed swing sequence, the recent swing
+     highs/lows, the current rotation extent and the measured 30-min ATR (with ATR-normalized
+     swing distances) — the HTF screenshot adds distribution shape only, never the trend call.
    - **Execute the Magnet Check.** If an MGI level sits in the center of thick volume, it is a
      **Magnet** and cannot serve as a structural border or a Target 3 (Campaign Max).
    - LVN/HVN nodes and POC/value-area summaries come per volume profile: the **400-pt rotation**

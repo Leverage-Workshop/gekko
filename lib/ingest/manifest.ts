@@ -78,6 +78,13 @@ export const FILE_FIELDS: readonly FileField[] = [
     filename: 'daily-value-areas.csv',
     contentType: 'text/csv',
   },
+  {
+    field: 'htf_csv',
+    bucket: 'bundle-csvs',
+    column: 'htf_csv_ref',
+    filename: 'htf_bars.csv',
+    contentType: 'text/csv',
+  },
 ] as const
 
 /**

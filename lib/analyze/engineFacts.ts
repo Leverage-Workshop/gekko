@@ -23,6 +23,9 @@ import type { TpoFacts } from '@/lib/engine/tpoFacts'
 import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
 import { computeValueMigration } from '@/lib/engine/valueMigration'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
+import { parseHtfBars } from '@/lib/engine/parseHtfBars'
+import { computeHtfStructure } from '@/lib/engine/htfStructure'
+import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
 
 /**
  * Deterministic engine pass over one export bundle: every computed fact the
@@ -55,6 +58,12 @@ export interface EngineFactsInput {
    * `valueMigration: null` + a warning.
    */
   dailyVaContent?: string | null
+  /**
+   * HTF 30-min bars (`htf_bar_data.rolling.csv`, feat-049). Best-effort like
+   * the TPO export: absent or malformed content degrades to
+   * `htfStructure: null` + a warning.
+   */
+  htfCsvContent?: string | null
   /** Parsed `mgi_json` from the bundle row. */
   mgi: MgiStaticLevels
   /** `raw_bundles.received_at` — feeds the staleness assessment. */
@@ -103,6 +112,14 @@ export interface EngineFacts {
    * `warnings`.
    */
   valueMigration: ValueMigrationFacts | null
+  /**
+   * Code-owned HTF structure read (feat-049): trend state from the swing
+   * sequence, recent swing highs/lows, rotation extent and measured 30-min
+   * ATR — `meta.htfTrend` verifies against this instead of being a pure
+   * vision read. Null when the bundle has no (or a malformed)
+   * `htf_bar_data.rolling.csv` — flagged in `warnings`.
+   */
+  htfStructure: HtfStructureFacts | null
   /** Non-fatal degradations (missing rip, terrain issues, ...). */
   warnings: string[]
 }
@@ -188,6 +205,19 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     }
   } else {
     warnings.push('bundle has no daily value-area history — value migration not computed')
+  }
+
+  let htfStructure: HtfStructureFacts | null = null
+  if (input.htfCsvContent) {
+    try {
+      htfStructure = computeHtfStructure(parseHtfBars(input.htfCsvContent), mgi.currentPrice)
+    } catch (error) {
+      warnings.push(
+        `htf_bar_data.rolling.csv failed to parse — HTF structure not computed: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  } else {
+    warnings.push('bundle has no HTF bar data — HTF structure not computed')
   }
 
   const summaryOf = (meta: {
@@ -288,6 +318,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     profileSummary,
     tpo,
     valueMigration,
+    htfStructure,
     warnings,
   }
 }
