@@ -3,8 +3,9 @@
 ## Current State
 
 **Last Updated:** 2026-07-25
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **HTF 30-min
-bar export + code-owned HTF structure** (feat-049), on top of the daily
+**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **delta
+split on the structural profiles + code-owned node build quality** (feat-050), on top
+of the HTF 30-min bar export + code-owned HTF structure (feat-049), the daily
 value-area history + code-owned value migration (feat-048), the enriched
 execution bars + engine-owned order flow (feat-047), the numeric TPO
 export + code-owned TPO facts (feat-046) and direction-aware
@@ -15,6 +16,32 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Delta split on the structural profiles + node build quality (2026-07-25, feat-050).**
+Data-todos item 5. Sierra side: `D:\SierraChart\ACS_Source\VbPDataExporter.cpp` (the
+shared study behind all four `.vbp.md` exports) gains a third Column Type option —
+`Volume;Delta;Both` — where **Both** writes `Price,Volume,Delta` (delta = ask − bid
+volume per bin, whole numbers; the study already computed it internally). Everything
+else (metadata/summary sections, bin sizes, ordering, filenames, cadence, atomic
+writes) unchanged. **User-side setup:** rebuild the DLL, then on the chart set Column
+Type = Both on the TWO structural profile exporter instances (`four-hundred-rotation`
+and `balance-area`); the half/full-rotation delta exporters stay on Delta. Gekko side:
+`lib/engine/parseProfile.ts` accepts an optional third `Delta` column on vbp profiles
+(2-col pre-delta exports still parse — deploy-window compatible; unknown 3rd headers
+and short rows still hard-reject; delta profiles must stay 2-col). New
+`lib/engine/nodeBuild.ts`: `buildAt` sums RAW volume/delta bins within ±7 pts (half
+the detector merge tolerance) of a node price → `{volume, delta, ratio,
+classification}` with `buyer-built` / `seller-built` at |ratio| ≥ 0.2, else
+`balanced`; null when the export has no delta split. `computeEngineFacts` annotates
+the canonical `lvn.{rotation,balanceArea}` hvn/lvn node lists and the top-level
+`magnetCheck.magnets` (against the balance-area profile) — deliberately NOT the
+magnet/node refs embedded in terrain and the magnet verdicts, which would have
+duplicated ~95 build objects and blew the 80k analyze-prompt budget (measured: 25
+builds, payload 61.8k). Missing delta ⇒ per-profile warning. Analyze + update prompts
+gain a `build` data-ownership bullet (one-sided acceptance = softer magnet/wall; null
+⇒ never infer from screenshots). Fixtures regenerated with a deterministic synthetic
+delta; registry rows add `lib/engine/nodeBuild.ts`. ./init.sh green: typecheck, lint
+(0 errors), 918 tests (16 new), build.
 
 **HTF 30-min bar export + code-owned HTF structure (2026-07-25, feat-049).**
 Data-todos item 4. Sierra side: new study

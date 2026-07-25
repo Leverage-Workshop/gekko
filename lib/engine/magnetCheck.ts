@@ -26,6 +26,7 @@
  */
 
 import type { HvnNode } from './lvnDetection'
+import type { NodeBuild } from './nodeBuild'
 
 /** Where a magnet came from: the VbP Summary value area, or a detected HVN peak. */
 export type MagnetKind = 'poc' | 'vah' | 'val' | 'hvn'
@@ -37,6 +38,12 @@ export type Magnet = {
   kind: MagnetKind
   /** Smoothed volume at the node for HVN magnets; null for the Summary levels. */
   volume: number | null
+  /**
+   * Build quality of the acceptance at this price (feat-050): one-sided vs
+   * balanced construction from the balance-area profile's delta split. Absent
+   * or null when the export carries no Delta column.
+   */
+  build?: NodeBuild | null
 }
 
 /** The nearest magnet to a queried price and its absolute distance (NQ points). */

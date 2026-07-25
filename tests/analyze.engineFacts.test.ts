@@ -144,7 +144,46 @@ describe('computeEngineFacts', () => {
       .map((m) => m.price)
       .sort((a, b) => a - b)
     expect(summaryPrices).toEqual([29496, 29950, 30310])
-    expect(result.terrain.magnets).toEqual(result.magnetCheck.magnets)
+    // Same set — the canonical magnetCheck list additionally carries the
+    // feat-050 build annotation; terrain embeds the lean objects.
+    expect(result.terrain.magnets).toEqual(
+      result.magnetCheck.magnets.map(({ build: _build, ...lean }) => lean),
+    )
+  })
+
+  it('annotates nodes and magnets with build quality from the delta split (feat-050)', () => {
+    const result = facts()
+    for (const profile of [result.lvn.rotation, result.lvn.balanceArea]) {
+      for (const node of [...profile.hvn, ...profile.lvn]) {
+        expect(node.build).not.toBeNull()
+        expect(['buyer-built', 'seller-built', 'balanced']).toContain(node.build!.classification)
+        expect(Math.abs(node.build!.ratio)).toBeLessThanOrEqual(1)
+      }
+    }
+    for (const magnet of result.magnetCheck.magnets) {
+      expect(magnet.build).not.toBeNull()
+    }
+    expect(result.warnings.some(w => w.includes('no Delta column'))).toBe(false)
+  })
+
+  it('degrades to build: null + a warning on pre-delta profile exports', () => {
+    const stripDelta = (content: string) =>
+      content
+        .replace('Price,Volume,Delta', 'Price,Volume')
+        .replace(/^(\d+\.\d+,\d+),-?\d+$/gm, '$1')
+    const result = facts({
+      rotationVbpContent: stripDelta(read('four-hundred-rotation.vbp.md')),
+      balanceAreaVbpContent: stripDelta(read('balance-area.vbp.md')),
+    })
+    for (const node of [...result.lvn.rotation.hvn, ...result.lvn.balanceArea.lvn]) {
+      expect(node.build).toBeNull()
+    }
+    for (const magnet of result.magnetCheck.magnets) {
+      expect(magnet.build).toBeNull()
+    }
+    expect(
+      result.warnings.filter(w => w.includes('no Delta column — node build quality not computed')),
+    ).toHaveLength(2)
   })
 
   it('scans both delta exports for absorption candidates (one in the real fixtures)', () => {
