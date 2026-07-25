@@ -1,5 +1,5 @@
 import type { Direction } from '@/knowledge/schema/briefing.schema'
-import type { AbsorptionScanResult } from '@/lib/engine/absorption'
+import type { ConfirmedAbsorptionScanResult } from '@/lib/engine/stallConfirmation'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { ExecBar } from '@/lib/engine/parseExecBars'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
@@ -33,9 +33,10 @@ export interface EvalPromptInput {
   charts: readonly ChartAttachment[]
   /**
    * Code-detected absorption candidates from the bundle's execution delta
-   * exports; null when the bundle carries no usable delta exports.
+   * exports, stall-annotated from the enriched bars (feat-047); null when the
+   * bundle carries no usable delta exports.
    */
-  absorption: AbsorptionScanResult | null
+  absorption: ConfirmedAbsorptionScanResult | null
   /**
    * The most recent execution bars (ascending time) — the sequence the model
    * judges initiative from, instead of only window aggregates.
@@ -58,20 +59,23 @@ function chartManifest(charts: readonly ChartAttachment[]): string {
 
 /**
  * Render the recent bars as a compact CSV block (Leg VWAP deliberately
- * excluded — Tier-3 micro-timing the eval must never see).
+ * excluded — Tier-3 micro-timing the eval must never see). The raw flow
+ * columns (feat-047): delta = AskVolume − BidVolume per bar, volume (750
+ * except the in-progress partial bar), trades. Magnitude lives in delta —
+ * deltaIntensity is only the −4…+4 bucket.
  */
 function renderRecentBars(bars: readonly ExecBar[]): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   const lines = bars.map((bar) => {
     const t = bar.dateTime
     const time = `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`
-    return `${time},${bar.open},${bar.high},${bar.low},${bar.close},${bar.deltaIntensity}`
+    return `${time},${bar.open},${bar.high},${bar.low},${bar.close},${bar.deltaIntensity},${bar.delta},${bar.volume},${bar.numberOfTrades}`
   })
-  return ['```csv', 'time,open,high,low,close,deltaIntensity', ...lines, '```'].join('\n')
+  return ['```csv', 'time,open,high,low,close,deltaIntensity,delta,volume,trades', ...lines, '```'].join('\n')
 }
 
 /** The absorption-candidate section: code-owned facts or an honest absence note. */
-function absorptionSection(absorption: AbsorptionScanResult | null): string {
+function absorptionSection(absorption: ConfirmedAbsorptionScanResult | null): string {
   if (absorption === null) {
     return 'No delta-profile exports are attached to this bundle — judge absorption from the execution chart and the recent bar sequence.'
   }
@@ -82,7 +86,7 @@ function absorptionSection(absorption: AbsorptionScanResult | null): string {
     '```json',
     JSON.stringify(absorption.candidates, null, 1),
     '```',
-    'These are CANDIDATES: a stack means absorption only where price STALLED at it. A sell-side (red) stack at/below a long border where the flush failed to keep price down is red absorption FOR the long; a buy-side (blue) stack at/above a short border is blue absorption FOR the short.',
+    'Each candidate carries a code-owned `stall` block computed from the execution bars: `stall.confirmed` means price stalled at the stack with heavy participation (bars/volume/trades at the stack, no meaningful net progress) — treat that candidate as absorption. An UNconfirmed candidate is a stack with no stall visible in the rolling bar window (possibly aged out, not refuted) — weigh it by the recent bar sequence instead. A sell-side (red) stack at/below a long border where the flush failed to keep price down is red absorption FOR the long; a buy-side (blue) stack at/above a short border is blue absorption FOR the short.',
   ].join('\n')
 }
 

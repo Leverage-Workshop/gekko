@@ -1,5 +1,6 @@
 import { scanAbsorption } from '@/lib/engine/absorption'
-import type { AbsorptionScanResult } from '@/lib/engine/absorption'
+import { confirmStalls } from '@/lib/engine/stallConfirmation'
+import type { ConfirmedAbsorptionScanResult } from '@/lib/engine/stallConfirmation'
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { detectLvnHvn } from '@/lib/engine/lvnDetection'
@@ -68,11 +69,14 @@ export interface EngineFacts {
    */
   lvn: { rotation: LvnDetectionResult; balanceArea: LvnDetectionResult }
   /**
-   * Absorption-candidate stacks from the half/full-rotation delta exports.
-   * Candidates only — the model must confirm price stalled at each stack on
-   * the execution chart before calling absorption.
+   * Absorption-candidate stacks from the half/full-rotation delta exports,
+   * each annotated with a code-owned stall confirmation computed from the
+   * enriched execution bars (feat-047): heavy participation at the stack with
+   * no meaningful price progress. `stall.confirmed` candidates ARE absorption;
+   * unconfirmed ones are stacks with no stall visible in the rolling bar
+   * window (possibly aged out — not refuted).
    */
-  absorption: AbsorptionScanResult
+  absorption: ConfirmedAbsorptionScanResult
   magnetCheck: MagnetCheck
   terrain: TerrainZonesResult
   /** POC/VAH/VAL per volume profile. */
@@ -132,10 +136,13 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     rotation: detectLvnHvn(rotationVbp.rows),
     balanceArea: detectLvnHvn(balanceAreaVbp.rows),
   }
-  const absorption = scanAbsorption({
-    halfRotation: halfRotationDelta.rows,
-    fullRotation: fullRotationDelta.rows,
-  })
+  const absorption = confirmStalls(
+    scanAbsorption({
+      halfRotation: halfRotationDelta.rows,
+      fullRotation: fullRotationDelta.rows,
+    }),
+    bars,
+  )
   const staleness = assessStaleness({ receivedAt: input.receivedAt, now: input.now })
 
   let tpo: TpoFacts | null = null

@@ -30,6 +30,11 @@ function bar(iso: string, low: number, high: number): ExecBar {
     close: high,
     legVWAP: 0,
     deltaIntensity: 1,
+    volume: 750,
+    bidVolume: 375,
+    askVolume: 375,
+    numberOfTrades: 300,
+    delta: 0,
   }
 }
 

@@ -16,6 +16,11 @@ function bar(deltaIntensity: number, legVWAP = 0, close = 100): ExecBar {
     close,
     legVWAP,
     deltaIntensity,
+    volume: 750,
+    bidVolume: 375,
+    askVolume: 375,
+    numberOfTrades: 300,
+    delta: 0,
   }
 }
 

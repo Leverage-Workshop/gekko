@@ -4,8 +4,11 @@ import { loadDoctrine } from '@/lib/analyze/doctrine'
 import type { DoctrineTask } from '@/lib/analyze/doctrine'
 import type { LoadBundleDeps } from '@/lib/analyze/loadBundle'
 import { loadLatestBundle } from '@/lib/analyze/loadBundle'
-import type { AbsorptionScanResult, DeltaProfileRow } from '@/lib/engine/absorption'
+import type { DeltaProfileRow } from '@/lib/engine/absorption'
 import { scanAbsorption } from '@/lib/engine/absorption'
+import { confirmStalls } from '@/lib/engine/stallConfirmation'
+import type { ConfirmedAbsorptionScanResult } from '@/lib/engine/stallConfirmation'
+import type { ExecBar } from '@/lib/engine/parseExecBars'
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { parseDeltaProfile } from '@/lib/engine/parseProfile'
 import { parseExecBars } from '@/lib/engine/parseExecBars'
@@ -78,14 +81,15 @@ function parseDeltaRows(
 function scanEvalAbsorption(
   halfRotationContent: string | null,
   fullRotationContent: string | null,
+  execBars: readonly ExecBar[],
   warnings: string[],
-): AbsorptionScanResult | null {
+): ConfirmedAbsorptionScanResult | null {
   const halfRotation = parseDeltaRows(halfRotationContent, 'half-rotation', warnings)
   const fullRotation = parseDeltaRows(fullRotationContent, 'full-rotation', warnings)
   if (halfRotation.length === 0 && fullRotation.length === 0) {
     return null
   }
-  return scanAbsorption({ halfRotation, fullRotation })
+  return confirmStalls(scanAbsorption({ halfRotation, fullRotation }), execBars)
 }
 
 /** The `config` singleton fields the eval-task consumes. */
@@ -214,6 +218,7 @@ export async function runEval(
   const absorption = scanEvalAbsorption(
     bundle.halfRotationDeltaContent,
     bundle.fullRotationDeltaContent,
+    execBars,
     warnings,
   )
 

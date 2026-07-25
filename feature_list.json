@@ -511,7 +511,8 @@
       "dependencies": [
         "feat-054"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "2026-07-24: Sierra study ExecutionDataExporter.cpp extended with Volume,BidVolume,AskVolume,NumberOfTrades (delta = Ask\u2212Bid); parseExecBars updated in lockstep (11-col hard header check); new lib/engine/barFlow.ts (cumulative delta, divergence at fresh extreme, climax prints, avg trade size) surfaced via deltaTelemetry.flow; new lib/engine/stallConfirmation.ts annotates absorption candidates with code-owned stall confirmation (analyze + eval); eval recent-bars table carries delta/volume/trades; prompt-data-sync vision-exclusivity gate flipped (stall read left the analyze prompt). ./init.sh green: typecheck, lint, 848 tests, build."
     },
     {
       "id": "feat-048",
