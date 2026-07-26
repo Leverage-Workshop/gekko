@@ -89,6 +89,11 @@ For the riskiest integrations, prefer the installed tooling over training memory
   `trigger-dev-task-writer` / `trigger-dev-expert` subagents.
 - **LLM**: Vercel AI SDK with OpenRouter as the gateway; model id comes from the `config` row
   (default `anthropic/claude-sonnet-5`). Never hardcode the model.
+- **Supabase**: the MCP server is disabled; use the `gekko-db` skill
+  (`.claude/skills/gekko-db/SKILL.md`) for direct REST access. The skill contains a
+  snapshot of the live schema — **whenever a feature changes the DB (new migration,
+  column, table, function, bucket, or RLS policy), update the skill in the same PR** so
+  it never drifts from the live database.
 
 ## Escalation
 
