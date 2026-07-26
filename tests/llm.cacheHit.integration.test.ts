@@ -7,14 +7,17 @@ import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
  * feat-023 — GATED prompt-cache integration check (the "assert
  * usage.cache_read_input_tokens > 0 on repeat runs" requirement).
  *
- * SKIPPED unless OPENROUTER_API_KEY is set (offline CI is unaffected). With a
- * key it makes two identical, real, small LLM calls through OpenRouter with
+ * SKIPPED unless RUN_LLM_INTEGRATION=1 AND OPENROUTER_API_KEY are both set.
+ * Key presence alone is NOT enough: the trading machine exports .env into
+ * terminals, so gating on the key alone made every `npm test` run fire two
+ * real Sonnet-5 calls (full doctrine prefix) and silently drain OpenRouter
+ * credits. With both set it makes two identical, real, small LLM calls with
  * `cacheSystem: true` and asserts the SECOND call reports cached input
  * tokens > 0 — proving the ephemeral cache-control write on run 1 is read
  * back on run 2.
  *
  * Run it explicitly with:
- *   OPENROUTER_API_KEY=sk-or-... npx vitest run tests/llm.cacheHit.integration.test.ts
+ *   RUN_LLM_INTEGRATION=1 OPENROUTER_API_KEY=sk-or-... npx vitest run tests/llm.cacheHit.integration.test.ts
  *
  * Notes:
  * - Anthropic prompt caching needs a >= ~1024-token cacheable prefix, so the
@@ -33,9 +36,10 @@ const Out = z.object({
   confidence: z.number(),
 })
 
-const hasKey = Boolean(process.env.OPENROUTER_API_KEY)
+const optedIn =
+  process.env.RUN_LLM_INTEGRATION === '1' && Boolean(process.env.OPENROUTER_API_KEY)
 
-describe.skipIf(!hasKey)('prompt cache read-back (live OpenRouter)', () => {
+describe.skipIf(!optedIn)('prompt cache read-back (live OpenRouter)', () => {
   it(
     'reports cachedInputTokens > 0 on the second identical call',
     { timeout: 180_000 },
