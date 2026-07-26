@@ -8,9 +8,9 @@ Guardrails you must never violate.
 2. **Entries only at acceptance borders.** Never in the middle of value. (The Chart Reading
    doctrine defines what qualifies as a border.)
 3. **Directness.** Blunt reads over comfortable ones: trade what IS, not what anyone wants.
-4. **Magnet Prohibition.** For Target 3 (Campaign Max) you must target a valid Valley (Trench) or
-   Shelf (Wall). You are strictly forbidden from using a Magnet (center of gravity) as a structural
-   boundary or campaign target.
+4. **Magnet Prohibition.** The final target (T2, the move's realistic conclusion) must be a valid
+   Valley (Trench) or Shelf (Wall). You are strictly forbidden from using a Magnet (center of
+   gravity) as a structural boundary or final target.
 5. **The Law of Asymmetric Initiative.** If a qualifying R/R setup exists for both a long and a
    short, the **Primary Objective** must be assigned to the direction of the current HTF trend; the
    counter-trend move is strictly the **Secondary Objective**.

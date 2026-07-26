@@ -426,7 +426,8 @@ describe('loadDoctrine', () => {
       expect(prefix).toContain('## Entry priority (trend direction)')
       expect(prefix).toContain('## Stop placement')
       expect(prefix).toContain('NEVER emit an Entry B')
-      expect(prefix).toContain('T1 → T2 → T3 ladder')
+      expect(prefix).toContain('exactly **TWO** rungs, **T1 → T2**')
+      expect(prefix).toContain('Never emit a T3')
     }
 
     const update = loadDoctrine('update')

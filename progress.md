@@ -4,7 +4,8 @@
 
 **Last Updated:** 2026-07-26
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **per-model reasoning-effort steering** (feat-055), on top of the **delta
+Latest: **two-target ladder doctrine** (feat-056), on top of
+**per-model reasoning-effort steering** (feat-055), the **delta
 split on the structural profiles + code-owned node build quality** (feat-050),
 the HTF 30-min bar export + code-owned HTF structure (feat-049), the daily
 value-area history + code-owned value migration (feat-048), the enriched
@@ -17,6 +18,27 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Two-target ladder doctrine (2026-07-26, feat-056).**
+Operator decision: the T1/T2/T3 ladder required a homerun to pay all rungs, so
+objectives now carry exactly TWO targets. **T2 (Conclusion)** is the model's
+best structural estimate of where the move realistically concludes when it
+plays out reasonably well (an LVN return over a distribution concludes at the
+distribution's opposite side) — the full HTF campaign traverse is narrative
+context, never a rung, and the Magnet Prohibition now binds T2 as the final
+target. **T1 (Tactical)** is an engine structure level between entry and T2,
+ideally near the midpoint of the traverse, with latitude toward whichever real
+border sits closest to it — the first obstacle a few points off entry no longer
+qualifies. Doctrine rewritten in `knowledge/system/output-objective.md`
+(+ constraints.md #4, chart-reading.md ×3); analyze/update user prompts updated;
+`validateBriefing` gains `enforceTargetCeiling` (trims any third rung with a
+warning — mirrors the single-entry precedent; NO schema `.max(2)` and `'T3'`
+stays in the `TargetLabel` enum because historical three-rung briefings must
+keep parsing through `Briefing.safeParse` on the dashboard/update read paths)
+and `ladderWarnings` now expects the two-target ladder plus warns when T1 is
+not between entry and T2 (nearest-first — the R/R gate measures to the first
+listed target). Since T1 now sits deeper than the old first-obstacle rung, the
+R/R gate clears more easily by construction. 932 tests green.
 
 **Per-model reasoning-effort steering (2026-07-26, feat-055).**
 Follow-up to the 2026-07-25 briefing audit (`docs/briefing-audit-2026-07-25.md`,

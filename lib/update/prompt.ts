@@ -65,7 +65,7 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     `- The CURRENT engine zone borders are: ${borders.join(', ')}. If these disagree with the previous briefing's terrain, the engine is right — flag the drift in the relevant rationale.`,
     `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly from your chosen entry/stop/T1. The R/R gate is ${input.rrMin}:1 — do not propose objectives that cannot clear it.`,
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure (the senior long-term read), A = rotation structure. `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',
-    '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Entry priority, stop placement and the T1 -> T2 -> T3 target ladder follow the Objective contract in the system prompt.',
+    '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Entry priority, stop placement and the two-target T1 -> T2 ladder (T2 = the move\'s realistic conclusion, T1 = a structure rung near the middle of the entry->T2 traverse) follow the Objective contract in the system prompt.',
     DISTINCT_ANCHORS_RULE,
     ...[dataEdgeRule(facts)].filter(Boolean),
     ...[campaignBoundaryRule(facts)].filter(Boolean),

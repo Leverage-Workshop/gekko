@@ -22,7 +22,14 @@ export type Direction = z.infer<typeof Direction>
 export const LevelKind = z.enum(['trench', 'wall', 'magnet', 'mgi'])
 export type LevelKind = z.infer<typeof LevelKind>
 
-/** Objective target rungs T1/T2/T3. */
+/**
+ * Objective target rungs. Doctrine is the two-target T1→T2 ladder (2026-07-26 —
+ * T2 is the move's realistic conclusion, T1 a structure rung near the middle of
+ * the entry→T2 traverse); 'T3' stays parseable ONLY because persisted briefings
+ * are re-read through this schema (dashboardData / updateBundle safeParse) and
+ * historical rows carry the old three-rung ladder. New generations must not
+ * emit it — validateBriefing trims any third rung.
+ */
 export const TargetLabel = z.enum(['T1', 'T2', 'T3'])
 export type TargetLabel = z.infer<typeof TargetLabel>
 
@@ -103,6 +110,10 @@ export type Target = z.infer<typeof Target>
 // enforced by the prompt plus validateBriefing's enforceSingleEntry trim, not
 // a schema `.max(1)`, so a drifting model degrades to a warning instead of a
 // generation-time schema failure.
+// NOTE (2026-07-26): two-target doctrine — at most TWO targets (T1 → T2). The
+// ceiling follows the same pattern (prompt + validateBriefing's
+// enforceTargetCeiling trim, no schema `.max(2)`): historical briefings with
+// the old T1→T2→T3 ladder must keep parsing on the dashboard/update read path.
 export const Objective = z.object({
   macroGoal: z.string(),
   rationale: z.string(),

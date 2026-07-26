@@ -82,7 +82,7 @@ function isFiniteNumber(v: unknown): v is number {
  * @param input.direction  'long' | 'short'.
  * @param input.entry      Entry price (the structural border being engaged).
  * @param input.stop       Hard stop / invalidation price.
- * @param input.targets    Target prices, nearest-first (T1, T2, T3). May be empty.
+ * @param input.targets    Target prices, nearest-first (T1, T2). May be empty.
  * @param input.rrMin      Minimum acceptable R/R (default {@link DEFAULT_RR_MIN}).
  * @param input.priorStop  The prior briefing's stop for this objective, for the no-widen
  *                         check; omit/null to skip it.
@@ -174,7 +174,7 @@ export function evaluateRiskReward(input: {
  *   - entry  = the first listed entry (Entry A — the primary structural border).
  *   - stop   = the stop farthest from entry on the protective side (the hard invalidation);
  *              this yields the largest risk, i.e. the most conservative R/R.
- *   - targets= the objective's targets in listed order (expected T1→T3, nearest first).
+ *   - targets= the objective's targets in listed order (expected T1→T2, nearest first).
  *
  * @throws if the objective has no entries or no stop on the protective side of entry.
  */
