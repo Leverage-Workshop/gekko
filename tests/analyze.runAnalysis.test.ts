@@ -295,6 +295,42 @@ describe('runAnalysis', () => {
     expect(result.highConviction).toBe(true)
   })
 
+  it('passes the effort of the model slot that serves the run', async () => {
+    const harness = makeDeps({
+      fetchConfig: async () => ({
+        model_id: 'test/model-x',
+        rr_min: 3,
+        model_effort: 'high' as const,
+        high_conviction_enabled: false,
+        high_conviction_model_id: 'test/opus-hc',
+        high_conviction_model_effort: 'xhigh' as const,
+      }),
+    })
+    await runAnalysis(harness.deps, { triggerReason: 'manual' })
+    expect(harness.getCaptured()!.effort).toBe('high')
+  })
+
+  it('passes the high-conviction effort when routed to the high-conviction slot', async () => {
+    const harness = makeDeps({
+      fetchConfig: async () => ({
+        model_id: 'test/model-x',
+        rr_min: 3,
+        model_effort: 'low' as const,
+        high_conviction_enabled: true,
+        high_conviction_model_id: 'test/opus-hc',
+        high_conviction_model_effort: 'xhigh' as const,
+      }),
+    })
+    await runAnalysis(harness.deps, { triggerReason: 'manual' })
+    expect(harness.getCaptured()!.effort).toBe('xhigh')
+  })
+
+  it('sends a null effort (provider default) on a pre-migration config read', async () => {
+    const harness = makeDeps()
+    await runAnalysis(harness.deps, { triggerReason: 'manual' })
+    expect(harness.getCaptured()!.effort).toBeNull()
+  })
+
   it('stays on model_id when the high-conviction flag is off', async () => {
     const harness = makeDeps({
       fetchConfig: async () => ({

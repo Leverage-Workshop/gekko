@@ -7,6 +7,7 @@ import {
   extractCost,
   generateStructured,
   getOpenRouter,
+  openrouterModelSettings,
 } from '@/lib/llm'
 
 const Out = z.object({ bias: z.enum(['long', 'short']), score: z.number() })
@@ -69,6 +70,24 @@ describe('assertModelMatch', () => {
         'anthropic/claude-sonnet-4-5-20250929',
       ),
     ).toThrow(/Model mismatch/)
+  })
+})
+
+describe('openrouterModelSettings', () => {
+  it('sends NO reasoning parameter when effort is unset (provider default)', () => {
+    expect(openrouterModelSettings()).toEqual({ usage: { include: true } })
+    expect(openrouterModelSettings(null)).toEqual({ usage: { include: true } })
+  })
+
+  it('sends reasoning.effort when an effort override is set', () => {
+    expect(openrouterModelSettings('high')).toEqual({
+      usage: { include: true },
+      reasoning: { effort: 'high' },
+    })
+    expect(openrouterModelSettings('minimal')).toEqual({
+      usage: { include: true },
+      reasoning: { effort: 'minimal' },
+    })
   })
 })
 

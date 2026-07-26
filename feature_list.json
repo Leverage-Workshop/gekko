@@ -581,6 +581,14 @@
       "dependencies": [],
       "status": "done",
       "evidence": "feat-054 (2026-07-24): ./init.sh fully green \u2014 typecheck 0 errors, lint 0 errors (6 pre-existing warnings), 794 tests pass across 51 files (29 new in tests/prompt-data-sync.test.ts), next build OK. Gate verified by mutation: deleting the exec_csv registry row fails 'manifest field exec_csv has a registry row'; renaming payload key absorptionCandidates->absorptionStacks fails the surfaces set-equality check; appending an unregistered tpo_data manifest field fails its registry-row check; injecting a tpoFacts payload key flips the vision-exclusivity conditional and fails until the TPO screenshot instruction is removed. Prefix sizes at gate time: analyze 29141 / update 28881 / eval 29302 chars; fixture analyze user prompt 63504 chars."
+    },
+    {
+      "id": "feat-055",
+      "name": "Config: per-model reasoning-effort steering (reasoning.effort columns)",
+      "description": "Follow-up to the 2026-07-25 briefing audit (docs/briefing-audit-2026-07-25.md): operator-controlled OpenRouter `reasoning.effort` per config model slot. Migration 20260726000000_model_reasoning_effort.sql adds nullable, CHECK-constrained `model_effort`, `triage_model_effort` and `high_conviction_model_effort` columns (NULL = provider default \u2014 generateStructured sends no reasoning parameter at all). New dependency-free `lib/llm/reasoning.ts` leaf module (REASONING_EFFORTS / ReasoningEffort) shared by the browser settings form and the server provider path; `openrouterModelSettings(effort)` builds the provider settings (usage accounting always on, reasoning.effort only when set). Effort plumbed through analyze/update (effort travels with the model slot that serves the run \u2014 high-conviction routing picks high_conviction_model_effort) and the eval triage call. fetchConfig degrades across three migration tiers (full \u2192 pre-effort \u2192 legacy) with effortColumnsMissing surfaced to /settings and /api/config; ConfigUpdateSchema validates the three effort fields; /settings renders a Reasoning Effort select under each model input.",
+      "dependencies": [],
+      "status": "done",
+      "evidence": "feat-055 (2026-07-26): ./init.sh fully green \u2014 typecheck 0 errors, lint 0 errors (7 pre-existing underscore warnings), 930 tests pass across 60 files (12 new: openrouterModelSettings omits reasoning when unset / sends it when set, analyze+update slot-effort routing incl. high-conviction xhigh, eval triage effort, config schema accepts all six efforts + null and rejects unknown/case-mismatch, three-tier fetchConfigRow fallback with effort padding, migration additive-and-constrained guard), next build OK. Migration model_reasoning_effort applied to live Supabase via MCP (list_migrations confirms; last prior was htf_csv_ref). NULL efforts on the live row = provider default, so behavior is unchanged until the operator picks an effort in /settings."
     }
   ]
 }

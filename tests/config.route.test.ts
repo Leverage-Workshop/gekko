@@ -25,6 +25,9 @@ const ROW = {
   rr_min: 3,
   high_conviction_enabled: false,
   high_conviction_model_id: 'anthropic/claude-opus-4-8',
+  model_effort: null,
+  triage_model_effort: null,
+  high_conviction_model_effort: null,
   updated_at: '2026-07-08T12:00:00Z',
 }
 
@@ -34,6 +37,9 @@ const VALID_BODY = {
   rr_min: 2.5,
   high_conviction_enabled: true,
   high_conviction_model_id: 'anthropic/claude-opus-4-8',
+  model_effort: 'high',
+  triage_model_effort: null,
+  high_conviction_model_effort: null,
 }
 
 function fakeClient({
@@ -81,7 +87,7 @@ describe('GET /api/config', () => {
     expect(res.status).toBe(200)
     expect(body).toEqual({
       success: true,
-      data: { config: ROW, highConvictionColumnsMissing: false },
+      data: { config: ROW, highConvictionColumnsMissing: false, effortColumnsMissing: false },
     })
   })
 
@@ -89,7 +95,7 @@ describe('GET /api/config', () => {
     const { model_id, triage_model_id, rr_min, updated_at } = ROW
     fakeClient({
       select: (columns) =>
-        columns.includes('high_conviction_enabled')
+        columns.includes('high_conviction_enabled') || columns.includes('model_effort')
           ? { data: null, error: { code: '42703', message: 'column does not exist' } }
           : { data: { model_id, triage_model_id, rr_min, updated_at }, error: null },
     })
@@ -98,7 +104,9 @@ describe('GET /api/config', () => {
 
     expect(res.status).toBe(200)
     expect(body.data.highConvictionColumnsMissing).toBe(true)
+    expect(body.data.effortColumnsMissing).toBe(true)
     expect(body.data.config.high_conviction_enabled).toBe(false)
+    expect(body.data.config.model_effort).toBeNull()
   })
 
   it('returns 404 when the config row is unseeded', async () => {
@@ -170,6 +178,7 @@ describe('POST /api/config', () => {
     expect(res.status).toBe(400)
     expect(body.error).toBe(MIGRATION_REQUIRED_MESSAGE)
     expect(body.error).toContain('high_conviction_flag')
+    expect(body.error).toContain('model_reasoning_effort')
   })
 
   it('returns a clean 500 on unexpected write errors', async () => {

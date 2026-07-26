@@ -12,6 +12,7 @@ import {
 } from '@/lib/observability'
 import type { LlmTelemetryRuntime, TelemetryOptions } from '@/lib/observability'
 import { getOpenRouter } from './client'
+import type { ReasoningEffort } from './reasoning'
 
 /**
  * Default model id, mirroring the `config.model_id` column default.
@@ -20,6 +21,21 @@ import { getOpenRouter } from './client'
  * price, with image input + structured outputs + prompt caching.
  */
 export const DEFAULT_MODEL_ID = 'anthropic/claude-sonnet-5'
+
+/**
+ * Model settings for the default OpenRouter `resolveModel`: usage accounting
+ * always on, plus `reasoning.effort` only when an effort override is set — an
+ * absent override must send NO reasoning parameter, leaving the provider
+ * default in charge.
+ */
+export function openrouterModelSettings(
+  effort?: ReasoningEffort | null,
+): { usage: { include: true }; reasoning?: { effort: ReasoningEffort } } {
+  return {
+    usage: { include: true },
+    ...(effort ? { reasoning: { effort } } : {}),
+  }
+}
 
 /** A chart image to attach to the prompt as a vision part (base64-encoded PNG). */
 export interface ChartImage {
@@ -32,6 +48,12 @@ export interface ChartImage {
 export interface GenerateStructuredParams<T> {
   /** OpenRouter model id, e.g. `config.model_id`. Defaults to {@link DEFAULT_MODEL_ID}. */
   model?: string
+  /**
+   * OpenRouter `reasoning.effort` for this call (the config row's per-model
+   * effort column). Null/undefined sends no reasoning parameter — the
+   * provider's default effort applies.
+   */
+  effort?: ReasoningEffort | null
   /** Zod schema the model output is constrained to and validated against. */
   schema: z.ZodType<T>
   /** Instruction text (the "what to produce" prompt). */
@@ -153,13 +175,14 @@ export async function generateStructured<T>(
 ): Promise<GenerateStructuredResult<T>> {
   const {
     model = DEFAULT_MODEL_ID,
+    effort = null,
     schema,
     prompt,
     system,
     cacheSystem = false,
     images = [],
     telemetry,
-    resolveModel = (id) => getOpenRouter()(id, { usage: { include: true } }),
+    resolveModel = (id) => getOpenRouter()(id, openrouterModelSettings(effort)),
     generate,
     getTelemetry = getLlmTelemetry,
   } = params

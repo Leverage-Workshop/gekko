@@ -202,12 +202,24 @@ describe('runEval', () => {
     expect(result.nearEntry).toBe(true)
   })
 
+  it('passes the triage effort override to the LLM call', async () => {
+    const harness = makeDeps({
+      fetchConfig: async () => ({
+        triage_model_id: 'test/triage-y',
+        triage_model_effort: 'minimal' as const,
+      }),
+    })
+    await runEval(harness.deps)
+    expect(harness.getCaptured()!.effort).toBe('minimal')
+  })
+
   it('drives the LLM call from the triage config, doctrine and the bundle', async () => {
     const harness = makeDeps()
     await runEval(harness.deps)
     const captured = harness.getCaptured()!
 
     expect(captured.model).toBe('test/triage-y')
+    expect(captured.effort).toBeNull()
     expect(captured.system).toBe('DOCTRINE PREFIX')
     expect(captured.telemetry).toEqual({ functionId: 'eval-task' })
     expect(captured.cacheSystem).toBe(true)

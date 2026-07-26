@@ -2,10 +2,11 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-25
-**Active Feature:** none — all features `done` (feat-021 skipped). Latest: **delta
-split on the structural profiles + code-owned node build quality** (feat-050), on top
-of the HTF 30-min bar export + code-owned HTF structure (feat-049), the daily
+**Last Updated:** 2026-07-26
+**Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
+Latest: **per-model reasoning-effort steering** (feat-055), on top of the **delta
+split on the structural profiles + code-owned node build quality** (feat-050),
+the HTF 30-min bar export + code-owned HTF structure (feat-049), the daily
 value-area history + code-owned value migration (feat-048), the enriched
 execution bars + engine-owned order flow (feat-047), the numeric TPO
 export + code-owned TPO facts (feat-046) and direction-aware
@@ -16,6 +17,33 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Per-model reasoning-effort steering (2026-07-26, feat-055).**
+Follow-up to the 2026-07-25 briefing audit (`docs/briefing-audit-2026-07-25.md`,
+Flash-vs-Terra A/B): the operator wants to steer OpenRouter's `reasoning.effort`
+per model slot from /settings instead of always running provider defaults (both
+gemini-3.6-flash and gpt-5.6-terra default to "medium"). Migration
+`20260726000000_model_reasoning_effort.sql` (applied to live Supabase via MCP)
+adds nullable CHECK-constrained `model_effort`, `triage_model_effort` and
+`high_conviction_model_effort` columns; NULL = provider default —
+`generateStructured` sends no reasoning parameter at all (an absent override must
+not become `reasoning: {effort: null}`). New dependency-free leaf module
+`lib/llm/reasoning.ts` (`REASONING_EFFORTS` = none/minimal/low/medium/high/xhigh,
+mirroring the @openrouter/ai-sdk-provider union) is imported by both the browser
+settings form and the server path; `openrouterModelSettings(effort)` keeps usage
+accounting on and adds `reasoning.effort` only when set. Providers reject efforts
+they don't support ⇒ loud run failure, never silent degradation. Effort travels
+with the model slot that serves the run: analyze/update pick
+`high_conviction_model_effort` when routed high-conviction, else `model_effort`;
+the eval-task uses `triage_model_effort` (its `select('*')` config read needs no
+column-list change). `fetchConfigRow` now degrades across THREE migration tiers
+(full → pre-effort → legacy) and reports `effortColumnsMissing` alongside
+`highConvictionColumnsMissing`; /settings shows an apply-the-migration warning and
+a "Reasoning Effort" select (Provider default + six levels) under each of the
+three model inputs; `ConfigUpdateSchema` validates the three fields (nullable
+enum). ./init.sh green: typecheck, lint (0 errors), 930 tests (12 new), build.
+Live row's efforts are all NULL, so behavior is unchanged until the operator picks
+an effort.
 
 **Delta split on the structural profiles + node build quality (2026-07-25, feat-050).**
 Data-todos item 5. Sierra side: `D:\SierraChart\ACS_Source\VbPDataExporter.cpp` (the

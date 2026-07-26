@@ -23,6 +23,8 @@ export function realAnalyzeDeps(): AnalyzeDeps {
         rr_min: row.rr_min,
         high_conviction_enabled: row.high_conviction_enabled,
         high_conviction_model_id: row.high_conviction_model_id,
+        model_effort: row.model_effort,
+        high_conviction_model_effort: row.high_conviction_model_effort,
       }
     },
 

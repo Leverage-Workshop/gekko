@@ -1,7 +1,7 @@
 import { Briefing } from '@/knowledge/schema/briefing.schema'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
-import type { GenerateStructuredResult } from '@/lib/llm'
+import type { GenerateStructuredResult, ReasoningEffort } from '@/lib/llm'
 import { loadDoctrine } from './doctrine'
 import type { DoctrineTask } from './doctrine'
 import { computeEngineFacts, engineAnchorPrices, engineZoneBorders } from './engineFacts'
@@ -35,6 +35,13 @@ export interface AnalyzeConfig {
   high_conviction_enabled?: boolean
   /** OpenRouter id for high-conviction reviews; comes from config, never code. */
   high_conviction_model_id?: string | null
+  /**
+   * OpenRouter reasoning.effort per model slot (model_reasoning_effort
+   * migration). Optional so a pre-migration config read stays valid; absent or
+   * null means provider default (no reasoning parameter sent).
+   */
+  model_effort?: ReasoningEffort | null
+  high_conviction_model_effort?: ReasoningEffort | null
 }
 
 export interface AnalyzeDeps extends LoadBundleDeps, PersistDeps {
@@ -43,6 +50,8 @@ export interface AnalyzeDeps extends LoadBundleDeps, PersistDeps {
   /** LLM call; injectable for tests. Defaults to {@link generateStructured}. */
   generate?: (params: {
     model: string
+    /** Reasoning effort for the chosen model; null = provider default. */
+    effort?: ReasoningEffort | null
     system: string
     cacheSystem: boolean
     prompt: string
@@ -102,6 +111,10 @@ export async function runAnalysis(
     highConviction && config?.high_conviction_model_id
       ? config.high_conviction_model_id
       : (config?.model_id ?? DEFAULT_MODEL_ID)
+  // The effort override travels with the model slot that served the run.
+  const effort = highConviction
+    ? (config?.high_conviction_model_effort ?? null)
+    : (config?.model_effort ?? null)
   const rrMin = config?.rr_min ?? DEFAULT_RR_MIN
 
   const bundle = await loadLatestBundle(deps)
@@ -125,6 +138,7 @@ export async function runAnalysis(
   const generate = deps.generate ?? generateStructured
   const result = await generate({
     model: modelId,
+    effort,
     system: (deps.loadDoctrine ?? loadDoctrine)('analyze'),
     cacheSystem: true,
     prompt: buildAnalysisPrompt({
