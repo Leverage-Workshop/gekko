@@ -19,6 +19,21 @@ standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
 
+**Live cache-probe test re-gated (2026-07-26, PR #96).**
+The feat-023 gated integration test (`tests/llm.cacheHit.integration.test.ts`)
+armed itself on mere `OPENROUTER_API_KEY` presence. Because the trading machine
+exports `.env` into terminals (the `useEnvFile` injection issue, resurfaced —
+`python.terminal.useEnvFile` is already `false`, so the vector is something
+else), every `npm test` / `./init.sh` run fired two REAL
+`anthropic/claude-sonnet-5` calls with the full doctrine prefix. That was the
+source of the unexplained Sonnet 5 entries in the OpenRouter activity log AND
+the credit drain behind the 2026-07-26 analyze-task failure ("requires more
+credits… requested 65536, can only afford 58620"). The test now requires
+`RUN_LLM_INTEGRATION=1` in addition to the key. Suite: 931 passed / 1 skipped.
+Open follow-ups: top up OpenRouter credits; rotate the OpenRouter key (it was
+also echoed into a session transcript during diagnosis); find the actual env
+injection vector.
+
 **Two-target ladder doctrine (2026-07-26, feat-056).**
 Operator decision: the T1/T2/T3 ladder required a homerun to pay all rungs, so
 objectives now carry exactly TWO targets. **T2 (Conclusion)** is the model's
