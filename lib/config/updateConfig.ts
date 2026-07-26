@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { REASONING_EFFORTS } from '@/lib/llm/reasoning'
 import { FULL_CONFIG_COLUMNS, isMissingColumnError, type ConfigRow } from './fetchConfig'
 
 /**
@@ -14,6 +15,11 @@ const modelId = z
   .min(1, 'Required')
   .regex(/^[\w.-]+\/[\w.:-]+$/, 'Must be an OpenRouter id shaped provider/model')
 
+/** OpenRouter reasoning.effort per model slot; null = provider default. */
+const effort = z
+  .enum(REASONING_EFFORTS, 'Must be one of: ' + REASONING_EFFORTS.join(', '))
+  .nullable()
+
 export const ConfigUpdateSchema = z.object({
   model_id: modelId,
   triage_model_id: modelId,
@@ -24,6 +30,9 @@ export const ConfigUpdateSchema = z.object({
     .max(10, 'Must be at most 10'),
   high_conviction_enabled: z.boolean('Must be a boolean'),
   high_conviction_model_id: modelId,
+  model_effort: effort,
+  triage_model_effort: effort,
+  high_conviction_model_effort: effort,
 })
 
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
@@ -34,8 +43,8 @@ export type ConfigUpdateOutcome =
 
 /** Surfaced (as a 400) when a POST touches columns the live DB doesn't have yet. */
 export const MIGRATION_REQUIRED_MESSAGE =
-  'The high-conviction columns are missing in the live database — apply the ' +
-  'supabase/migrations/20260708090000_high_conviction_flag.sql migration ' +
+  'A config column is missing in the live database — apply the pending ' +
+  'supabase/migrations (high_conviction_flag.sql, model_reasoning_effort.sql) ' +
   '(Supabase MCP server or dashboard SQL editor) first, then save again.'
 
 export async function updateConfigRow(
@@ -62,5 +71,7 @@ export async function updateConfigRow(
       error: 'Config row (id=1) is missing — apply the seed_config migration first.',
     }
   }
-  return { ok: true, row: data as ConfigRow }
+  // `as unknown`: supabase-js can't statically parse the long column list
+  // into a row shape, so it types `data` as an error sentinel.
+  return { ok: true, row: data as unknown as ConfigRow }
 }

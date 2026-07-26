@@ -364,6 +364,21 @@ describe('runUpdate', () => {
     expect(result.highConviction).toBe(true)
   })
 
+  it('passes the effort of the model slot that serves the update', async () => {
+    const harness = makeDeps({
+      fetchConfig: async () => ({
+        model_id: 'test/model-x',
+        rr_min: 3,
+        model_effort: 'high' as const,
+        high_conviction_enabled: false,
+        high_conviction_model_id: 'test/opus-hc',
+        high_conviction_model_effort: 'xhigh' as const,
+      }),
+    })
+    await runUpdate(harness.deps, { triggerReason: 'manual' })
+    expect(harness.getCaptured()!.effort).toBe('high')
+  })
+
   it('falls back to code defaults when the config row is missing', async () => {
     const harness = makeDeps({ fetchConfig: async () => null })
     const result = await runUpdate(harness.deps, { triggerReason: 'manual' })

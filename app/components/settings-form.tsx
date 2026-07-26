@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { REASONING_EFFORTS, type ReasoningEffort } from '@/lib/llm/reasoning'
 import { Button } from './button'
 
 // Settings form (feat-028): edits the config singleton via POST /api/config.
@@ -14,6 +15,9 @@ export interface SettingsInitialValues {
   rr_min: number
   high_conviction_enabled: boolean
   high_conviction_model_id: string
+  model_effort: ReasoningEffort | null
+  triage_model_effort: ReasoningEffort | null
+  high_conviction_model_effort: ReasoningEffort | null
 }
 
 interface SettingsFormProps {
@@ -21,6 +25,8 @@ interface SettingsFormProps {
   updatedAt: string | null
   /** Live DB predates the high_conviction_flag migration (feat-031). */
   highConvictionColumnsMissing: boolean
+  /** Live DB predates the model_reasoning_effort migration. */
+  effortColumnsMissing: boolean
 }
 
 type SaveState =
@@ -62,12 +68,68 @@ function FieldError({ messages }: { messages?: string[] }) {
   return <p className="mt-1 text-xs font-light tracking-wide text-m-red">{messages[0]}</p>
 }
 
-export function SettingsForm({ initial, updatedAt, highConvictionColumnsMissing }: SettingsFormProps) {
+const EFFORT_LABELS: Record<ReasoningEffort, string> = {
+  none: 'None',
+  minimal: 'Minimal',
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  xhigh: 'X-High',
+}
+
+/**
+ * Reasoning-effort selector rendered under each model input. Empty value maps
+ * to null (provider default — no reasoning parameter sent with the call).
+ */
+function EffortSelect({
+  id,
+  value,
+  onChange,
+  messages,
+}: {
+  id: string
+  value: ReasoningEffort | null
+  onChange: (value: ReasoningEffort | null) => void
+  messages?: string[]
+}) {
+  return (
+    <div className="mt-3">
+      <FieldLabel htmlFor={id}>Reasoning Effort</FieldLabel>
+      <select
+        id={id}
+        name={id}
+        value={value ?? ''}
+        onChange={(e) =>
+          onChange(e.target.value === '' ? null : (e.target.value as ReasoningEffort))
+        }
+        className={inputClass}
+      >
+        <option value="">Provider default</option>
+        {REASONING_EFFORTS.map((effort) => (
+          <option key={effort} value={effort}>
+            {EFFORT_LABELS[effort]}
+          </option>
+        ))}
+      </select>
+      <FieldError messages={messages} />
+    </div>
+  )
+}
+
+export function SettingsForm({
+  initial,
+  updatedAt,
+  highConvictionColumnsMissing,
+  effortColumnsMissing,
+}: SettingsFormProps) {
   const [modelId, setModelId] = useState(initial.model_id)
   const [triageModelId, setTriageModelId] = useState(initial.triage_model_id)
   const [rrMin, setRrMin] = useState(String(initial.rr_min))
   const [hcEnabled, setHcEnabled] = useState(initial.high_conviction_enabled)
   const [hcModelId, setHcModelId] = useState(initial.high_conviction_model_id)
+  const [modelEffort, setModelEffort] = useState(initial.model_effort)
+  const [triageEffort, setTriageEffort] = useState(initial.triage_model_effort)
+  const [hcEffort, setHcEffort] = useState(initial.high_conviction_model_effort)
   const [state, setState] = useState<SaveState>({ phase: 'idle' })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [lastUpdatedAt, setLastUpdatedAt] = useState(updatedAt)
@@ -94,6 +156,9 @@ export function SettingsForm({ initial, updatedAt, highConvictionColumnsMissing 
           rr_min: rr,
           high_conviction_enabled: hcEnabled,
           high_conviction_model_id: hcModelId.trim(),
+          model_effort: modelEffort,
+          triage_model_effort: triageEffort,
+          high_conviction_model_effort: hcEffort,
         }),
       })
       const body = (await res.json().catch(() => null)) as ConfigResponse | null
@@ -129,6 +194,12 @@ export function SettingsForm({ initial, updatedAt, highConvictionColumnsMissing 
         <p className="mt-1 text-xs font-light text-muted">
           OpenRouter id used by the full analyze-task briefing.
         </p>
+        <EffortSelect
+          id="model_effort"
+          value={modelEffort}
+          onChange={setModelEffort}
+          messages={fieldErrors.model_effort}
+        />
       </div>
 
       <div>
@@ -146,6 +217,12 @@ export function SettingsForm({ initial, updatedAt, highConvictionColumnsMissing 
         <p className="mt-1 text-xs font-light text-muted">
           Cheap tier for the Check Entry eval-task — never the full briefing model.
         </p>
+        <EffortSelect
+          id="triage_model_effort"
+          value={triageEffort}
+          onChange={setTriageEffort}
+          messages={fieldErrors.triage_model_effort}
+        />
       </div>
 
       <div>
@@ -204,8 +281,21 @@ export function SettingsForm({ initial, updatedAt, highConvictionColumnsMissing 
             placeholder="provider/model"
           />
           <FieldError messages={fieldErrors.high_conviction_model_id} />
+          <EffortSelect
+            id="high_conviction_model_effort"
+            value={hcEffort}
+            onChange={setHcEffort}
+            messages={fieldErrors.high_conviction_model_effort}
+          />
         </div>
       </div>
+
+      {effortColumnsMissing && (
+        <p className="text-xs font-light tracking-wide text-warning">
+          The reasoning-effort columns are not in the live database yet — apply the
+          model_reasoning_effort migration before saving.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-6 border-t border-hairline pt-8">
         <Button type="submit" disabled={state.phase === 'saving'}>

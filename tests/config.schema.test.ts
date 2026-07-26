@@ -10,6 +10,9 @@ const valid = {
   rr_min: 3,
   high_conviction_enabled: false,
   high_conviction_model_id: 'anthropic/claude-opus-4-8',
+  model_effort: null,
+  triage_model_effort: null,
+  high_conviction_model_effort: null,
 }
 
 function fieldErrors(payload: unknown): Record<string, unknown> {
@@ -104,6 +107,34 @@ describe('ConfigUpdateSchema', () => {
     expect(ConfigUpdateSchema.safeParse({}).success).toBe(false)
     const partial: Partial<typeof valid> = { ...valid }
     delete partial.high_conviction_model_id
+    expect(ConfigUpdateSchema.safeParse(partial).success).toBe(false)
+  })
+
+  it('accepts every documented reasoning effort and null (provider default)', () => {
+    for (const effort of ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', null]) {
+      const parsed = ConfigUpdateSchema.safeParse({
+        ...valid,
+        model_effort: effort,
+        triage_model_effort: effort,
+        high_conviction_model_effort: effort,
+      })
+      expect(parsed.success).toBe(true)
+    }
+  })
+
+  it('rejects unknown reasoning efforts and non-string values', () => {
+    expect(fieldErrors({ ...valid, model_effort: 'max' }).model_effort).toMatch(/one of/)
+    expect(
+      ConfigUpdateSchema.safeParse({ ...valid, triage_model_effort: 'MEDIUM' }).success,
+    ).toBe(false)
+    expect(
+      ConfigUpdateSchema.safeParse({ ...valid, high_conviction_model_effort: 1 }).success,
+    ).toBe(false)
+  })
+
+  it('rejects a payload missing the effort fields (form always sends them)', () => {
+    const partial: Partial<typeof valid> = { ...valid }
+    delete partial.model_effort
     expect(ConfigUpdateSchema.safeParse(partial).success).toBe(false)
   })
 })

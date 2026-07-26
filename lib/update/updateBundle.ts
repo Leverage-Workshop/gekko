@@ -12,7 +12,7 @@ import {
 import type { DoctrineTask, LoadBundleDeps, PersistDeps } from '@/lib/analyze'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
-import type { GenerateStructuredResult } from '@/lib/llm'
+import type { GenerateStructuredResult, ReasoningEffort } from '@/lib/llm'
 import { composeUpdateBriefing } from './composeBriefing'
 import { buildUpdatePrompt } from './prompt'
 
@@ -50,6 +50,8 @@ export interface UpdateDeps extends LoadBundleDeps, PersistDeps {
   /** LLM call; injectable for tests. Defaults to {@link generateStructured}. */
   generate?: (params: {
     model: string
+    /** Reasoning effort for the chosen model; null = provider default. */
+    effort?: ReasoningEffort | null
     system: string
     cacheSystem: boolean
     prompt: string
@@ -103,6 +105,10 @@ export async function runUpdate(
     highConviction && config?.high_conviction_model_id
       ? config.high_conviction_model_id
       : (config?.model_id ?? DEFAULT_MODEL_ID)
+  // The effort override travels with the model slot that served the run.
+  const effort = highConviction
+    ? (config?.high_conviction_model_effort ?? null)
+    : (config?.model_effort ?? null)
   const rrMin = config?.rr_min ?? DEFAULT_RR_MIN
 
   const parentRow = await deps.fetchLatestBriefing()
@@ -142,6 +148,7 @@ export async function runUpdate(
   const generate = deps.generate ?? generateStructured
   const result = await generate({
     model: modelId,
+    effort,
     system: (deps.loadDoctrine ?? loadDoctrine)('update'),
     cacheSystem: true,
     prompt: buildUpdatePrompt({

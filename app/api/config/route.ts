@@ -31,11 +31,13 @@ export const runtime = 'nodejs'
 type ConfigPayload = {
   config: ConfigRow
   highConvictionColumnsMissing?: boolean
+  effortColumnsMissing?: boolean
 }
 
 export async function GET(): Promise<Response> {
   try {
-    const { row, highConvictionColumnsMissing } = await fetchConfigRow(getServiceClient())
+    const { row, highConvictionColumnsMissing, effortColumnsMissing } =
+      await fetchConfigRow(getServiceClient())
     if (!row) {
       return json(
         { success: false, error: 'Config row (id=1) is missing — apply the seed_config migration first.' },
@@ -43,7 +45,7 @@ export async function GET(): Promise<Response> {
       )
     }
     return json<ConfigPayload>(
-      { success: true, data: { config: row, highConvictionColumnsMissing } },
+      { success: true, data: { config: row, highConvictionColumnsMissing, effortColumnsMissing } },
       200,
     )
   } catch (error) {
