@@ -240,6 +240,28 @@ function enforceSingleEntry(
 }
 
 /**
+ * Two-target doctrine (2026-07-26): an objective carries at most T1 → T2 — T2 the move's
+ * realistic conclusion, T1 a structure rung between entry and T2. The old T1→T2→T3 ladder
+ * demanded a homerun to run its course; any rung past the second is trimmed here (schema
+ * `.max(2)` would break re-parsing historical three-rung briefings, so like the single-entry
+ * ceiling this binds as a trim, not a generation-time schema failure).
+ */
+function enforceTargetCeiling(
+  name: 'primary' | 'secondary',
+  objective: Objective,
+  warnings: string[],
+): Objective {
+  if (objective.targets.length <= 2) return objective
+  const kept = objective.targets.slice(0, 2)
+  warnings.push(
+    `${name} objective emitted ${objective.targets.length} targets — two-target doctrine keeps ${kept
+      .map((target) => `"${target.label}" @ ${target.price}`)
+      .join(' and ')} and drops the rest`,
+  )
+  return { ...objective, targets: kept }
+}
+
+/**
  * Distinct-anchor invariant (2026-07-20; direction-aware 2026-07-24): the two objectives
  * must anchor at different structural borders. Same-direction objectives need
  * {@link MIN_OBJECTIVE_ENTRY_SEPARATION_PTS}; opposite-direction objectives need
@@ -339,8 +361,10 @@ function offAnchorEntryWarnings(
 }
 
 /**
- * Target-ladder advisories (feat-041, gem-comparison-2026-07-18 G3): the full T1→T2→T3
- * ladder is expected whenever engine borders offer rungs. Advisory only — never throws.
+ * Target-ladder advisories (feat-041, gem-comparison-2026-07-18 G3; two-target doctrine
+ * 2026-07-26): the two-target T1→T2 ladder is expected whenever engine structure offers a
+ * rung between entry and the far target, and T1 must sit between entry and T2 (nearest
+ * first — the R/R gate measures to the first listed target). Advisory only — never throws.
  */
 function ladderWarnings(
   name: 'primary' | 'secondary',
@@ -348,16 +372,27 @@ function ladderWarnings(
   engineBorders: readonly number[],
   warnings: string[],
 ): void {
-  if (engineBorders.length === 0 || objective.targets.length >= 2) return
   const long = objective.direction === 'long'
   const entry = objective.entries[0].price
+  const [t1, t2] = objective.targets
+  if (t1 && t2) {
+    const orderedBeyondT1 = long ? t2.price > t1.price : t2.price < t1.price
+    const t1InsideTraverse = long ? t1.price > entry : t1.price < entry
+    if (!orderedBeyondT1 || !t1InsideTraverse) {
+      warnings.push(
+        `${name} objective's targets are out of order (entry ${entry}, T1 ${t1.price}, T2 ${t2.price} for a ${objective.direction}) — T1 must sit between entry and T2, nearest first`,
+      )
+    }
+    return
+  }
+  if (engineBorders.length === 0 || objective.targets.length >= 2) return
   const extreme = long ? Math.max(...engineBorders) : Math.min(...engineBorders)
   const rungs = engineBorders.filter((p) =>
     long ? p > entry && p < extreme : p < entry && p > extreme,
   )
   if (rungs.length >= 2) {
     warnings.push(
-      `${name} objective carries ${objective.targets.length} target while ${rungs.length} engine borders lie between entry and the campaign extreme — the T1→T2→T3 ladder is expected`,
+      `${name} objective carries ${objective.targets.length} target while ${rungs.length} engine borders lie between entry and the campaign extreme — the two-target T1→T2 ladder is expected`,
     )
   }
 }
@@ -410,8 +445,16 @@ export function enforceCodeOwnedFacts(
     }
   }
 
-  const primarySingle = enforceSingleEntry('primary', briefing.primary, warnings)
-  const secondarySingle = enforceSingleEntry('secondary', briefing.secondary, warnings)
+  const primarySingle = enforceTargetCeiling(
+    'primary',
+    enforceSingleEntry('primary', briefing.primary, warnings),
+    warnings,
+  )
+  const secondarySingle = enforceTargetCeiling(
+    'secondary',
+    enforceSingleEntry('secondary', briefing.secondary, warnings),
+    warnings,
+  )
 
   assertDistinctObjectiveAnchors(primarySingle, secondarySingle)
   if (options.enforceEntryStandoff && options.meta) {

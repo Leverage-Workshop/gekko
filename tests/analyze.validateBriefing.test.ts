@@ -236,7 +236,7 @@ describe('enforceCodeOwnedFacts', () => {
       engineBorders: [30400, 30360, 30320, 30280, 30250, 30200],
     })
     expect(
-      result.warnings.some((w) => w.includes('primary') && w.includes('T1→T2→T3 ladder is expected')),
+      result.warnings.some((w) => w.includes('primary') && w.includes('T1→T2 ladder is expected')),
     ).toBe(true)
   })
 
@@ -251,14 +251,13 @@ describe('enforceCodeOwnedFacts', () => {
     ).toBe(false)
   })
 
-  it('does not warn on targets when the ladder is present', () => {
+  it('does not warn on targets when the two-target ladder is present', () => {
     const result = enforceCodeOwnedFacts(
       briefing({
         primary: longObjective({
           targets: [
-            { label: 'T1', price: 30280, description: 'first obstacle' },
-            { label: 'T2', price: 30320, description: 'next border' },
-            { label: 'T3', price: 30360, description: 'campaign max' },
+            { label: 'T1', price: 30280, description: 'mid-traverse shelf' },
+            { label: 'T2', price: 30320, description: 'far side of the distribution' },
           ],
         }),
       }),
@@ -267,6 +266,49 @@ describe('enforceCodeOwnedFacts', () => {
     expect(
       result.warnings.some((w) => w.includes('primary') && w.includes('ladder is expected')),
     ).toBe(false)
+    expect(
+      result.warnings.some((w) => w.includes('primary') && w.includes('out of order')),
+    ).toBe(false)
+  })
+
+  it('trims a third target rung (two-target doctrine), warning once', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: longObjective({
+          targets: [
+            { label: 'T1', price: 30280, description: 'mid-traverse shelf' },
+            { label: 'T2', price: 30320, description: 'far side of the distribution' },
+            { label: 'T3', price: 30360, description: 'campaign max' },
+          ],
+        }),
+      }),
+      { rrMin: 3, engineBorders: [30400, 30360, 30320, 30280, 30250, 30200] },
+    )
+    expect(result.briefing.primary.targets.map((t) => t.label)).toEqual(['T1', 'T2'])
+    expect(
+      result.warnings.some(
+        (w) => w.includes('primary objective emitted 3 targets') && w.includes('30320'),
+      ),
+    ).toBe(true)
+    // The engine R/R still measures to the nearest kept rung.
+    expect(result.riskReward.primary.targets.map((t) => t.price)).toEqual([30280, 30320])
+  })
+
+  it('warns when T1 does not sit between entry and T2', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: longObjective({
+          targets: [
+            { label: 'T1', price: 30320, description: 'far border listed first' },
+            { label: 'T2', price: 30280, description: 'near shelf listed second' },
+          ],
+        }),
+      }),
+      { rrMin: 3 },
+    )
+    expect(
+      result.warnings.some((w) => w.includes('primary') && w.includes('out of order')),
+    ).toBe(true)
   })
 
   it('does not mutate the input briefing', () => {

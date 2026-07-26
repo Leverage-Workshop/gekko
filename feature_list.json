@@ -589,6 +589,14 @@
       "dependencies": [],
       "status": "done",
       "evidence": "feat-055 (2026-07-26): ./init.sh fully green \u2014 typecheck 0 errors, lint 0 errors (7 pre-existing underscore warnings), 930 tests pass across 60 files (12 new: openrouterModelSettings omits reasoning when unset / sends it when set, analyze+update slot-effort routing incl. high-conviction xhigh, eval triage effort, config schema accepts all six efforts + null and rejects unknown/case-mismatch, three-tier fetchConfigRow fallback with effort padding, migration additive-and-constrained guard), next build OK. Migration model_reasoning_effort applied to live Supabase via MCP (list_migrations confirms; last prior was htf_csv_ref). NULL efforts on the live row = provider default, so behavior is unchanged until the operator picks an effort in /settings."
+    },
+    {
+      "id": "feat-056",
+      "name": "Doctrine: two-target ladder (T2 = realistic conclusion, T1 = mid-traverse structure rung)",
+      "description": "Operator-directed doctrine change (2026-07-26): objectives carry exactly TWO targets instead of the T1/T2/T3 homerun ladder. T2 (Conclusion) is the model's best structural estimate of where the move realistically concludes when it plays out reasonably well (e.g. an LVN return over a distribution concludes at the distribution's opposite side) - the full HTF campaign traverse is narrative context, never a rung. T1 (Tactical) is an engine structure level between entry and T2, ideally near the midpoint of the traverse, with latitude toward whichever real border sits closest to it. Rewrote knowledge/system/output-objective.md targets section, re-pointed the Magnet Prohibition at the final target T2 (constraints.md, chart-reading.md x3), updated the analyze/update user-prompt ladder lines, and added enforceTargetCeiling to validateBriefing (trims any third rung with a warning - mirrors the single-entry precedent, no schema .max(2) because historical three-rung briefings must keep parsing via Briefing.safeParse on the dashboard/update read path; 'T3' stays in the TargetLabel enum for the same reason). ladderWarnings reworked: expects the two-target ladder when rungs exist, and newly warns when T1 does not sit between entry and T2 (nearest-first, since the R/R gate measures to the first listed target).",
+      "dependencies": [],
+      "status": "done",
+      "evidence": "feat-056 (2026-07-26): ./init.sh fully green - typecheck 0 errors, lint 0 errors (7 pre-existing underscore warnings), 932 tests pass across 60 files (net +2: enforceTargetCeiling trims a third rung and keeps the engine R/R measuring to the kept T1/T2; out-of-order T1 beyond T2 draws the advisory), next build OK. Prefix assertion updated (analyze.runAnalysis: 'exactly **TWO** rungs, **T1 -> T2**' + 'Never emit a T3'); briefing.schema tests keep the three-rung fixture as a deliberate legacy-parse guard."
     }
   ]
 }

@@ -51,7 +51,7 @@ initiative flips at the exact point of contact.
      highs/lows, the current rotation extent and the measured 30-min ATR (with ATR-normalized
      swing distances) — the HTF screenshot adds distribution shape only, never the trend call.
    - **Execute the Magnet Check.** If an MGI level sits in the center of thick volume, it is a
-     **Magnet** and cannot serve as a structural border or a Target 3 (Campaign Max).
+     **Magnet** and cannot serve as a structural border or a final target (T2).
    - LVN/HVN nodes and POC/value-area summaries come per volume profile: the **400-pt rotation**
      (medium-term) and the **balance-area** (long-term). A **Balance Area** begins when two days
      of overlapping value occur and expands while subsequent days keep overlapping value, with
@@ -85,7 +85,7 @@ initiative flips at the exact point of contact.
      not the screenshot, decides the stall.
 5. **Synthesize — the Law of Asymmetric Initiative.** If the terrain offers a valid setup for both
    fronts, the Primary Objective is awarded to the front aligned with the HTF trend. Ensure the final
-   objective (T3) is a Shelf or Valley, never a Magnet. (Asymmetric Initiative + the Campaign
+   objective (T2) is a Shelf or Valley, never a Magnet. (Asymmetric Initiative + the Campaign
    Boundary Override are hard constraints.)
 
 **Conflict protocol:** if micro-telemetry (CSV/Execution) conflicts with macro-structure (HTF/JSON),
@@ -148,8 +148,9 @@ Is price at an Acceptance Border?
 
 ### Structural target selection
 Target the borders of acceptance, not the heart of it. A Magnet is high-volume consensus where price
-lingers; a Shelf or Valley is where the battle was won or lost. Campaign Max (T3) must always be a
-structural exhaustion point (Shelf) or a liquidity void (Valley).
+lingers; a Shelf or Valley is where the battle was won or lost. The final target (T2, the move's
+realistic conclusion) must always be a structural exhaustion point (Shelf) or a liquidity void
+(Valley).
 
 ### The Vanguard Protocol (Rip / Rolling Pivot)
 The Rip overrides standard mean-reversion impulses in trending environments — always consult it

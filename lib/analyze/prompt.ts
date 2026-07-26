@@ -86,8 +86,8 @@ export function dataEdgeRule(facts: EngineFacts): string {
  * 2026-07-24 — the morning briefing bracketed one contested zone with a long and a short
  * 17.15 pts apart, two nearby borders acting as one straddle). Kept in the user message
  * because it carries the live validation thresholds; the rest of the entry/stop/ladder
- * doctrine (single entry, entry priority, stop placement, T1→T2→T3 — feat-041/042,
- * single-entry 2026-07-18) lives in the cached prefix
+ * doctrine (single entry, entry priority, stop placement, the two-target T1→T2 ladder —
+ * feat-041/042, single-entry 2026-07-18, two-target 2026-07-26) lives in the cached prefix
  * (knowledge/system/output-objective.md). Shared with the update-task prompt.
  */
 export const DISTINCT_ANCHORS_RULE = `- DISTINCT ANCHORS (required): the primary and secondary objectives MUST anchor at DIFFERENT structural borders — same-direction objectives at least ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts apart, OPPOSITE-direction objectives at least ${MIN_OPPOSING_ENTRY_SEPARATION_PTS} pts apart — validation rejects the briefing otherwise. An opposite-direction straddle ("short the reoffer / long the hold") bracketing one contested zone is ONE undecided scenario, not two objectives — even when the two entries sit at nominally different nearby borders. The counter-scenario anchors at the structure defining ITS OWN trade — the floor cluster below for a fade long, the failed ceiling overhead for a counter short — with its entry trigger expressing the reclaim/failure that activates it.`
@@ -159,7 +159,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- ACTIVE PATTERN SCAN (required): scan the execution chart for the doctrine playbook setups (Failed Breakout Trap, Controlled Flush & Reload, Three-Push Exhaustion, absorption or exhaustion at a border). At least one `overview.orderFlowContext` bullet MUST either name the active pattern and where it fired, or state plainly that no playbook pattern is present.',
     '- Every `overview` prose section needs at least 2 substantive bullets naming concrete engine levels (the schema rejects fewer).',
     `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly from your chosen entry/stop/T1. The R/R gate is ${input.rrMin}:1 — do not propose objectives that cannot clear it.`,
-    '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Entry priority, stop placement and the T1 -> T2 -> T3 target ladder follow the Objective contract in the system prompt.',
+    '- Entries, stops and T1 must sit on engine-supplied structure — a zone border or a `terrain.levels` price — never in the middle of value. Entry priority, stop placement and the two-target T1 -> T2 ladder (T2 = the move\'s realistic conclusion, T1 = a structure rung near the middle of the entry->T2 traverse) follow the Objective contract in the system prompt.',
     '- BOTH objectives (primary AND secondary) must each carry at least one entry, at least one stop on the protective side of that entry, and at least T1. The secondary is the best available counter-scenario; if it is not yet actionable, express that in its entry `trigger` conditions — never by omitting entries, stops or targets.',
     DISTINCT_ANCHORS_RULE,
     entryStandoffRule(input.facts),

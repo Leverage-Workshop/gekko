@@ -153,7 +153,7 @@ export function classifyMagnet(
 /**
  * Run the Magnet Check over a set of MGI levels: classify each level against a prebuilt
  * magnet set. Any level flagged `isMagnet` is a structural invalidation (cannot be a border
- * or T3). The caller builds the set with {@link collectMagnets} so the same magnets serve
+ * or a final target). The caller builds the set with {@link collectMagnets} so the same magnets serve
  * this check and terrainZones' border classification.
  *
  * @param input.magnets    Prebuilt magnet set ({@link collectMagnets}).

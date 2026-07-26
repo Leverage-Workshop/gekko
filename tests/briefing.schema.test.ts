@@ -11,7 +11,10 @@ import {
   EvalStatus,
 } from '@/knowledge/schema/briefing.schema'
 
-// A minimal-but-complete Objective used across Briefing fixtures.
+// A minimal-but-complete Objective used across Briefing fixtures. Deliberately
+// carries the legacy three-rung T1→T2→T3 ladder: persisted briefings from before
+// the two-target doctrine (2026-07-26) must keep parsing (the ceiling binds in
+// validateBriefing's enforceTargetCeiling trim, not the schema).
 const validObjective = {
   macroGoal: 'Long the reclaim of the value-area low',
   rationale: 'HTF uptrend; absorption at the LVN border',
@@ -85,7 +88,7 @@ describe('enums', () => {
     expect(LevelKind.safeParse('hvn').success).toBe(false)
   })
 
-  it('TargetLabel is T1/T2/T3 only', () => {
+  it('TargetLabel is T1/T2/T3 only (T3 legacy-parse, never generated)', () => {
     expect(TargetLabel.options).toEqual(['T1', 'T2', 'T3'])
     expect(TargetLabel.safeParse('T4').success).toBe(false)
   })

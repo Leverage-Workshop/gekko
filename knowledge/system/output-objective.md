@@ -10,16 +10,22 @@ Each objective (primary and secondary) carries:
   the DIFFERENT border defining the counter-scenario. NEVER emit an Entry B / add-on / breakout
   rung or a second stop.
 - **`stops`** — exactly **ONE** protective stop with its invalidation.
-- **`targets`** — the **full T1 → T2 → T3 ladder** whenever distinct engine borders exist in the
-  trade direction (distinct rungs even for close levels). Ship fewer targets ONLY when the engine
-  map genuinely offers no further border before the campaign extreme, and say so in the rationale:
-  - **T1 (Tactical)** — the first obstacle / immediate S/R in the trade direction (any engine
-    level qualifies).
-  - **T2 (Objective)** — the next acceptance border (the standard target).
-  - **T3 (Campaign Max)** — the full traverse of the HTF distribution / a major HTF MGI at an LVN.
-    T3 must land on a Valley (Trench) or Shelf (Wall) at the NEAR edge of the void being
-    traversed — never a Magnet (Magnet Prohibition), and never a level that can only be reached by
+- **`targets`** — exactly **TWO** rungs, **T1 → T2**, nearest first. Pick T2 first, then place T1
+  inside the traverse:
+  - **T2 (Conclusion)** — your best structural estimate of where THIS move realistically concludes
+    when it plays out reasonably well: the far side of the structure being traversed (an LVN return
+    over a distribution concludes at the distribution's opposite side; a rotation off a failed
+    border runs to the next acceptance area's far edge). NOT the homerun — the full HTF campaign
+    traverse is narrative context, never a target rung; a T2 that requires everything to go right
+    is mis-set. T2 must land on a Valley (Trench) or Shelf (Wall) at the NEAR edge of any void
+    beyond it — never a Magnet (Magnet Prohibition), and never a level that can only be reached by
     crossing a second void.
+  - **T1 (Tactical)** — an engine structure level BETWEEN entry and T2, ideally near the midpoint
+    of the entry→T2 traverse — latitude toward whichever real border sits closest to that midpoint.
+    The first obstacle a few points from entry is NOT T1 unless the map genuinely offers nothing
+    deeper.
+  Ship a single target ONLY when the engine map offers no distinct structure between entry and T2,
+  and say so in the rationale. Never emit a T3.
 - **`rr`** — recomputed and overwritten by the engine after you answer; still populate it honestly
   from your chosen entry/stop/T1.
 
