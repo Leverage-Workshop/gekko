@@ -7,15 +7,21 @@
  *   1. 3:1 R/R minimum — `instructions.md` #5 ("Require minimum 3:1 risk/reward for any
  *      setup") and the playbook engagement checklist ("Reward: 3:1 R/R minimum available
  *      to next target?"). The threshold is configurable (`config.rr_min`, default 3.0) but
- *      defaults to the doctrine 3.0 here.
+ *      defaults to the doctrine 3.0 here. Risk is the operator's FIXED operational stop
+ *      ({@link FIXED_RISK_PTS} = 25 pts, 2026-07-27 operator decision), NOT the structural
+ *      stop distance — the operator trades a flat 25-pt stop, so the gate is simply
+ *      "reward to T2 >= rrMin x 25 pts". The structural stop is still validated for
+ *      geometry (protective side) and the no-widen rule, but it no longer sets R/R.
  *
  *   2. Stops never widen — `tactical-companion-playbook.md` "Stop Management: Never Allow
  *      movement farther from entry; Only Tighten When …". Given the prior briefing's stop
  *      for the same objective, a new stop that sits farther from entry (lower for a long,
  *      higher for a short) is a discipline break and invalidates the setup.
  *
- * R/R is measured to the *nearest* target (T1) — the doctrine gates on the "next target",
- * the most conservative rung. Per-target ratios are also returned for the UI.
+ * R/R is measured to the *conclusion* target (T2, the last listed — 2026-07-27 operator
+ * decision): the campaign must be worth 3x the fixed stop by its realistic conclusion.
+ * T1 is a mid-traverse rung with no gate of its own. Per-target ratios are returned for
+ * the UI.
  *
  * Inputs are scalars/arrays by design (this module depends only on the feat-001 scaffold).
  * `objectiveRiskReward` adapts a schema `Objective` onto the scalar core via a *type-only*
@@ -30,6 +36,13 @@ export type RrDirection = 'long' | 'short'
 /** Doctrine default minimum risk/reward (mirrors the seeded `config.rr_min`). */
 export const DEFAULT_RR_MIN = 3.0
 
+/**
+ * The operator's fixed operational stop, in points. All R/R ratios are measured against
+ * this — not against the structural stop distance (2026-07-27 operator decision: "I use
+ * a 25 point stop, not structure, so the reward just needs to be 3x that").
+ */
+export const FIXED_RISK_PTS = 25
+
 // One NQ tick. A stop that moves within a tick of the prior stop is not "widening" — it is
 // the same defensive line, so the no-widen rule tolerates sub-tick noise (cf. ripStatus).
 const EPSILON = 0.25
@@ -38,7 +51,7 @@ export type TargetRr = {
   price: number
   /** Reward distance entry→target in the trade direction (>0 when on the correct side). */
   reward: number
-  /** reward / risk, rounded; 0 when risk or reward is non-positive. */
+  /** reward / {@link FIXED_RISK_PTS}, rounded; 0 when reward is non-positive. */
   rr: number
   /** rr >= rrMin. */
   meetsGate: boolean
@@ -48,11 +61,16 @@ export type RiskReward = {
   direction: RrDirection
   entry: number
   stop: number
-  /** Protective distance entry↔stop (>0 when the stop is on the correct side); 0 otherwise. */
+  /**
+   * STRUCTURAL protective distance entry↔stop (>0 when the stop is on the correct side);
+   * 0 otherwise. Feeds geometry checks and stop advisories only — R/R uses `fixedRiskPts`.
+   */
   risk: number
+  /** The fixed operational stop the ratios are measured against ({@link FIXED_RISK_PTS}). */
+  fixedRiskPts: number
   /** Per-target reward/ratio, in the order supplied (T1 first). */
   targets: TargetRr[]
-  /** Headline ratio — R/R to the nearest target (T1); 0 when no valid target. */
+  /** Headline ratio — R/R to the conclusion target (T2, the last listed); 0 when no valid target. */
   rr: number
   rrMin: number
   /** Headline rr >= rrMin. */
@@ -120,13 +138,15 @@ export function evaluateRiskReward(input: {
   const targetRr: TargetRr[] = targets.map((price) => {
     const rawReward = long ? price - entry : entry - price
     const reward = round2(rawReward)
-    const rr = risk > 0 && reward > 0 ? round2(reward / risk) : 0
+    // Ratio against the fixed operational stop — the structural stop does not set R/R.
+    const rr = reward > 0 ? round2(reward / FIXED_RISK_PTS) : 0
     // Same gate as the headline: rr > 0 keeps a wrong-side target failing even at rrMin 0.
     return { price, reward, rr, meetsGate: rr > 0 && rr >= rrMin }
   })
 
-  const head = targetRr[0]
-  const rr = head?.rr ?? 0
+  // The gate measures to the conclusion target (T2 = last listed; T1 is only a rung).
+  const conclusion = targetRr[targetRr.length - 1]
+  const rr = conclusion?.rr ?? 0
   const meetsGate = rr >= rrMin && rr > 0
 
   // Widening = the stop moved farther from entry than the prior briefing's stop (beyond a
@@ -141,10 +161,14 @@ export function evaluateRiskReward(input: {
   }
   if (targetRr.length === 0) {
     reasons.push('no targets supplied')
-  } else if (head && head.reward <= 0) {
-    reasons.push(`nearest target ${head.price} is on the wrong side of entry ${entry} for a ${direction}`)
+  } else if (conclusion && conclusion.reward <= 0) {
+    reasons.push(
+      `conclusion target ${conclusion.price} is on the wrong side of entry ${entry} for a ${direction}`
+    )
   } else if (!meetsGate) {
-    reasons.push(`R/R ${rr.toFixed(2)} is below the ${rrMin.toFixed(2)} minimum`)
+    reasons.push(
+      `R/R ${rr.toFixed(2)} is below the ${rrMin.toFixed(2)} minimum (conclusion target reward ${conclusion.reward} pts against the fixed ${FIXED_RISK_PTS}-pt stop)`
+    )
   }
   if (stopWidened) {
     reasons.push(`stop ${stop} widens vs the prior briefing stop ${priorStop} (must never move farther from entry)`)
@@ -155,6 +179,7 @@ export function evaluateRiskReward(input: {
     entry,
     stop,
     risk,
+    fixedRiskPts: FIXED_RISK_PTS,
     targets: targetRr,
     rr,
     rrMin,
@@ -173,7 +198,8 @@ export function evaluateRiskReward(input: {
  * Representative inputs are chosen conservatively:
  *   - entry  = the first listed entry (Entry A — the primary structural border).
  *   - stop   = the stop farthest from entry on the protective side (the hard invalidation);
- *              this yields the largest risk, i.e. the most conservative R/R.
+ *              used for geometry checks and the no-widen rule (R/R itself is measured
+ *              against the fixed {@link FIXED_RISK_PTS}-pt operational stop).
  *   - targets= the objective's targets in listed order (expected T1→T2, nearest first).
  *
  * @throws if the objective has no entries or no stop on the protective side of entry.

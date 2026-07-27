@@ -6,7 +6,7 @@ import {
   enforceCodeOwnedFacts,
 } from '@/lib/analyze'
 
-/** A geometrically-sound long: risk 10, T1 reward 30 → rr 3. */
+/** A geometrically-sound long: conclusion 75 pts out / fixed 25-pt stop → rr 3. */
 function longObjective(overrides: Partial<Objective> = {}): Objective {
   return {
     macroGoal: 'Take the wall',
@@ -14,7 +14,7 @@ function longObjective(overrides: Partial<Objective> = {}): Objective {
     direction: 'long',
     entries: [{ label: 'Entry A', price: 30250, trigger: 'absorption' }],
     stops: [{ label: 'Stop', price: 30240, invalidation: 'lost the shelf' }],
-    targets: [{ label: 'T1', price: 30280, description: 'next trench' }],
+    targets: [{ label: 'T1', price: 30325, description: 'next trench' }],
     rr: 99, // deliberately wrong — the engine must overwrite it
     ...overrides,
   }
@@ -47,7 +47,7 @@ function briefing(overrides: Partial<Briefing> = {}): Briefing {
       direction: 'short',
       entries: [{ label: 'Entry A', price: 30290, trigger: 'exhaustion' }],
       stops: [{ label: 'Stop', price: 30300, invalidation: 'acceptance above' }],
-      targets: [{ label: 'T1', price: 30255, description: 'value mid' }],
+      targets: [{ label: 'T1', price: 30215, description: 'value mid' }],
     }),
     dangerZones: [],
     ...overrides,

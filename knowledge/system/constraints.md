@@ -27,8 +27,11 @@ The engine facts in each run's user message are computed deterministically from 
 data. They are authoritative: never re-derive, adjust, or override them. In particular:
 
 - **Risk/reward.** The minimum R/R gate and the recomputed `rr` on each objective are
-  engine-owned. Populate `rr` honestly from your chosen entry/stop/T1, and never propose an
-  objective that cannot clear the gate stated in the user message.
+  engine-owned. R/R is measured against the operator's fixed 25-pt operational stop, not the
+  structural stop, and it gates on T2 (the realistic conclusion): `rr = (entry→T2 distance) / 25`.
+  T1 is a mid-traverse rung with no R/R requirement of its own. Populate `rr` honestly from your
+  chosen entry→T2 distance, and never propose an objective whose T2 cannot clear the gate stated
+  in the user message. The structural stop still defines invalidation — it just does not set R/R.
 - **Stops never widen.** A new stop may only move closer to entry, never farther — this rule binds
   you directly. Only tighten with structural justification: VWAP flip in favor, failed breakout
   behind position, POC/shelf now protecting, or a delta trap behind position.

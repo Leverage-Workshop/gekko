@@ -104,7 +104,8 @@ function modelUpdate(): BriefingUpdate {
       direction: 'long',
       entries: [{ label: 'Entry A (Ideal)', price: 30250, trigger: 'absorption' }],
       stops: [{ label: 'Stop', price: 30240, invalidation: 'lost the shelf' }],
-      targets: [{ label: 'T1', price: 30280, description: 'next trench' }],
+      // 75 pts to the conclusion → rr 3 against the fixed 25-pt stop
+      targets: [{ label: 'T1', price: 30325, description: 'next trench' }],
       rr: 1, // wrong on purpose — engine must overwrite
     },
     secondary: {
@@ -113,7 +114,7 @@ function modelUpdate(): BriefingUpdate {
       direction: 'short',
       entries: [{ label: 'Entry A', price: 30295, trigger: 'exhaustion' }],
       stops: [{ label: 'Stop', price: 30302, invalidation: 'acceptance above' }],
-      targets: [{ label: 'T1', price: 30260, description: 'value mid' }],
+      targets: [{ label: 'T1', price: 30220, description: 'value mid' }],
       rr: 1,
     },
     dangerZones: [{ area: 'FRESH mid-value', why: 'no edge in the middle' }],

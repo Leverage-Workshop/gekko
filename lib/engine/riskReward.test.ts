@@ -3,30 +3,48 @@ import {
   evaluateRiskReward,
   objectiveRiskReward,
   DEFAULT_RR_MIN,
+  FIXED_RISK_PTS,
   type RiskReward,
 } from './riskReward'
 import type { Objective } from '@/knowledge/schema/briefing.schema'
 
-// A realistic NQ long: enter at a border, hard stop a tick-bundle below, targets above.
-// risk = 30400 - 30380 = 20; T1 reward = 30460 - 30400 = 60 → 3.0 R/R exactly.
+// A realistic NQ long: enter at a border, hard structural stop a tick-bundle below,
+// two-target ladder above. R/R is measured against the FIXED 25-pt operational stop and
+// gates on the T2 conclusion (last target): T2 reward = 30475 - 30400 = 75 → 75/25 = 3.0.
+// T1 is a mid-traverse rung with no gate of its own.
 const LONG = {
   direction: 'long' as const,
   entry: 30400,
   stop: 30380,
-  targets: [30460, 30520, 30580],
+  targets: [30440, 30475],
 }
 
 describe('evaluateRiskReward — long geometry', () => {
-  it('computes direction-aware risk and per-target reward/rr (T1 headline)', () => {
+  it('computes structural risk and per-target rr vs the fixed 25-pt stop, gating on T2', () => {
     const r = evaluateRiskReward(LONG)
-    expect(r.risk).toBe(20)
-    expect(r.targets[0]).toMatchObject({ price: 30460, reward: 60, rr: 3, meetsGate: true })
-    expect(r.targets[1].rr).toBe(6) // 120 / 20
-    expect(r.targets[2].rr).toBe(9) // 180 / 20
-    expect(r.rr).toBe(3) // headline = nearest target
+    expect(r.risk).toBe(20) // structural distance, reported but not the R/R basis
+    expect(r.fixedRiskPts).toBe(25)
+    expect(FIXED_RISK_PTS).toBe(25)
+    expect(r.targets[0]).toMatchObject({ price: 30440, reward: 40, rr: 1.6, meetsGate: false })
+    expect(r.targets[1]).toMatchObject({ price: 30475, reward: 75, rr: 3, meetsGate: true })
+    expect(r.rr).toBe(3) // headline = conclusion target (T2, last listed)
     expect(r.meetsGate).toBe(true)
     expect(r.valid).toBe(true)
     expect(r.reasons).toEqual([])
+  })
+
+  it('R/R ignores the structural stop distance — a tighter structural stop yields the same rr', () => {
+    const r = evaluateRiskReward({ ...LONG, stop: 30390 }) // structural risk 10, not 20
+    expect(r.risk).toBe(10)
+    expect(r.rr).toBe(3) // still 75 / 25 to T2
+    expect(r.valid).toBe(true)
+  })
+
+  it('a short T1 rung does not fail the setup — only the T2 conclusion gates', () => {
+    const r = evaluateRiskReward({ ...LONG, targets: [30410, 30475] }) // T1 only 10 pts out
+    expect(r.targets[0].meetsGate).toBe(false)
+    expect(r.meetsGate).toBe(true)
+    expect(r.valid).toBe(true)
   })
 
   it('defaults rrMin to the doctrine 3.0', () => {
@@ -34,10 +52,10 @@ describe('evaluateRiskReward — long geometry', () => {
     expect(evaluateRiskReward(LONG).rrMin).toBe(3.0)
   })
 
-  it('gates: R/R below the minimum is invalid with a reason', () => {
-    // tighten T1 to 30450 → reward 50 / risk 20 = 2.5 < 3
-    const r = evaluateRiskReward({ ...LONG, targets: [30450, 30520] })
-    expect(r.rr).toBe(2.5)
+  it('gates: T2 R/R below the minimum is invalid with a reason', () => {
+    // pull T2 in to 30460 → conclusion reward 60 / 25 = 2.4 < 3
+    const r = evaluateRiskReward({ ...LONG, targets: [30440, 30460] })
+    expect(r.rr).toBe(2.4)
     expect(r.meetsGate).toBe(false)
     expect(r.valid).toBe(false)
     expect(r.reasons.some((m) => m.includes('below the 3.00 minimum'))).toBe(true)
@@ -50,15 +68,15 @@ describe('evaluateRiskReward — long geometry', () => {
     expect(r.valid).toBe(false)
   })
 
-  it('flags a stop on the wrong side of entry (risk 0, invalid)', () => {
+  it('flags a stop on the wrong side of entry (risk 0, invalid) without zeroing rr', () => {
     const r = evaluateRiskReward({ ...LONG, stop: 30420 }) // above entry for a long
     expect(r.risk).toBe(0)
-    expect(r.rr).toBe(0)
+    expect(r.rr).toBe(3) // rr is fixed-stop based, so it survives; geometry still invalidates
     expect(r.valid).toBe(false)
     expect(r.reasons.some((m) => m.includes('wrong side of entry'))).toBe(true)
   })
 
-  it('flags a nearest target on the wrong side of entry', () => {
+  it('flags a conclusion target on the wrong side of entry', () => {
     const r = evaluateRiskReward({ ...LONG, targets: [30390] }) // below entry for a long
     expect(r.targets[0].reward).toBe(-10)
     expect(r.rr).toBe(0)
@@ -66,11 +84,11 @@ describe('evaluateRiskReward — long geometry', () => {
     expect(r.reasons.some((m) => m.includes('wrong side of entry'))).toBe(true)
   })
 
-  it('rrMin 0: a wrong-side target (rr 0) still fails the per-target gate', () => {
+  it('rrMin 0: a wrong-side rung (rr 0) still fails its per-target gate; the headline follows T2', () => {
     const r = evaluateRiskReward({ ...LONG, targets: [30390, 30460], rrMin: 0 })
     expect(r.targets[0]).toMatchObject({ price: 30390, rr: 0, meetsGate: false })
     expect(r.targets[1].meetsGate).toBe(true) // right-side target passes a zero minimum
-    expect(r.meetsGate).toBe(false) // headline gates on the wrong-side T1
+    expect(r.meetsGate).toBe(true) // headline gates on the T2 conclusion
   })
 
   it('flags missing targets', () => {
@@ -86,13 +104,14 @@ describe('evaluateRiskReward — short geometry (mirror)', () => {
     direction: 'short' as const,
     entry: 30400,
     stop: 30420, // protective side is above for a short
-    targets: [30340, 30280], // profit below
+    targets: [30360, 30325], // profit below; T2 reward 75 → 3.0
   }
 
   it('inverts risk/reward correctly', () => {
     const r = evaluateRiskReward(SHORT)
     expect(r.risk).toBe(20) // 30420 - 30400
-    expect(r.targets[0]).toMatchObject({ price: 30340, reward: 60, rr: 3 })
+    expect(r.targets[0]).toMatchObject({ price: 30360, reward: 40, rr: 1.6 })
+    expect(r.targets[1]).toMatchObject({ price: 30325, reward: 75, rr: 3 })
     expect(r.rr).toBe(3)
     expect(r.valid).toBe(true)
   })
@@ -123,7 +142,7 @@ describe('evaluateRiskReward — stops never widen', () => {
       direction: 'short',
       entry: 30400,
       stop: 30430,
-      targets: [30330],
+      targets: [30325],
       priorStop: 30420,
     })
     expect(r.stopWidened).toBe(true)
@@ -165,7 +184,7 @@ describe('objectiveRiskReward — schema adapter', () => {
   function makeObjective(over: Partial<Objective> = {}): Objective {
     return {
       macroGoal: 'Reclaim value',
-      rationale: '3:1 R/R off LVN support with confirmed blue initiative.',
+      rationale: '3:1 R/R to the T2 conclusion off LVN support with confirmed blue initiative.',
       direction: 'long',
       entries: [
         { label: 'Entry A', price: 30400, trigger: 'blue absorption at border' },
@@ -176,21 +195,20 @@ describe('objectiveRiskReward — schema adapter', () => {
         { label: 'Stop B', price: 30380, invalidation: 'hard structural' },
       ],
       targets: [
-        { label: 'T1', price: 30460, description: 'first shelf' },
-        { label: 'T2', price: 30520, description: 'POC' },
-        { label: 'T3', price: 30580, description: 'campaign border' },
+        { label: 'T1', price: 30440, description: 'first shelf rung' },
+        { label: 'T2', price: 30475, description: 'campaign conclusion' },
       ],
       rr: 0,
       ...over,
     }
   }
 
-  it('uses Entry A and the farthest protective stop (most conservative R/R)', () => {
+  it('uses Entry A, the farthest protective stop, and gates on the T2 conclusion', () => {
     const r: RiskReward = objectiveRiskReward(makeObjective())
     expect(r.entry).toBe(30400)
-    expect(r.stop).toBe(30380) // farthest of the two stops → largest risk
+    expect(r.stop).toBe(30380) // farthest of the two stops → structural invalidation
     expect(r.risk).toBe(20)
-    expect(r.rr).toBe(3)
+    expect(r.rr).toBe(3) // (30475 - 30400) / 25
     expect(r.valid).toBe(true)
   })
 
