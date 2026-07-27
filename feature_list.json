@@ -607,6 +607,16 @@
         "feat-056"
       ],
       "evidence": "lib/engine/riskReward.test.ts rewritten around the fixed-25/T2 basis (26 tests incl. 'tighter structural stop yields the same rr' and 'short T1 rung does not fail the setup'); fixtures updated in analyze.validateBriefing/analyze.runAnalysis/update.runUpdate/doctrine-drift tests; ./init.sh green 2026-07-27 (typecheck, lint, 933 passed / 1 skipped, build)."
+    },
+    {
+      "id": "feat-058",
+      "name": "Doctrine: single prints favor entries in their direction; fade anchors at the scar's near-edge border",
+      "description": "Operator-directed doctrine change (2026-07-27): single-print zones are NOT fragile repair-magnet territory that disqualifies nearby borders - they mark one-sided initiative and FAVOR entries in the direction of the move that created them. Root cause of the 2026-07-27 11:18 briefing skipping the authorized 28201.43 counter-short (MGI cluster 28201.43/28212.5/28218/28227.75 + volume ledge, keyInflections said the failed reclaim 'authorizes the counter-short') and shipping it 436 pts overhead at 28500 instead: the analyze prompt taught 'tpo.singlePrintZones are fragile fast-traverse scars (weak support/resistance, repair magnets)', so the model exiled the fade past the 28206-28340 scar to the far-side structure. Rewrote the tpo bullet in lib/analyze/prompt.ts (single prints favor same-direction entries; a rally back into a downside scar is a reoffer candidate at the near-edge border; never relocate an entry because the scar 'might get repaired'), added the near-edge fade-anchor rule to knowledge/system/output-objective.md (shared with the update task), and aligned the singlePrintZones doc comment in lib/engine/tpoFacts.ts. No engine/validator behavior change - prompts and doctrine only.",
+      "status": "done",
+      "dependencies": [
+        "feat-057"
+      ],
+      "evidence": "Prompt/doctrine-only change; ./init.sh green 2026-07-27 (typecheck, lint 0 errors, 933 passed / 1 skipped, build). Root-cause evidence: LangSmith trace 019fa4cc-2e54-7000-8000-02c5b00be07b (single pass, no retry), briefing 466da72c-9f52-4c79-93c6-9685e9b337bc keyInflections vs entry_levels contradiction, balance-area.vbp volume ledge 28226->28208."
     }
   ]
 }

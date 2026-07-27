@@ -45,8 +45,10 @@ export type TpoFacts = {
   initialBalance: { high: number; low: number } | null
   sessionRange: { high: number; low: number }
   /**
-   * Contiguous count==1 runs strictly INSIDE the profile — fast-traverse
-   * scars that repair easily (fragile support/resistance). Runs touching the
+   * Contiguous count==1 runs strictly INSIDE the profile — one-sided
+   * initiative traverses (operator doctrine 2026-07-27: they favor entries in
+   * the direction of the move that created them, anchored at the near-edge
+   * border; never a reason to disqualify that border). Runs touching the
    * profile's extreme rows are tails, not single-print zones.
    */
   singlePrintZones: SinglePrintZone[]

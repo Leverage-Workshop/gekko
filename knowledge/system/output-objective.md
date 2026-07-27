@@ -42,6 +42,15 @@ overhead / a short underfoot), except marginally at a contested border price is 
 now. A breach-and-accept THROUGH a Tier-1 campaign border is NEVER the entry.
 Do not chase breakdowns below a floor cluster or breakouts above a ceiling cluster.
 
+A single-print scar or low-volume void adjacent to a border is a feature of the trade, not a veto:
+single prints mark one-sided initiative and FAVOR entries in the direction of the move that created
+them. When a structural border sits at the NEAR edge of a scar or void, that near-edge border IS the
+fade anchor — the rally (or flush) back into it is the reoffer/rebid the entry trigger expresses.
+Exiling the entry to the structure at the FAR side of the zone because the scar "might get repaired"
+defers the trade instead of defining it (2026-07-27: a briefing's own key inflection authorized the
+counter-short at the 28201.43 trench at the near edge of a single-print scar, then shipped the short
+436 pts overhead at the far-side structure — unactionable).
+
 ## Stop placement
 
 A stop must sit BEYOND THE FAR SIDE of the entry's ENTIRE composite border band (every member

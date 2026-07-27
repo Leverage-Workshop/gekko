@@ -4,7 +4,9 @@
 
 **Last Updated:** 2026-07-27
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **fixed 25-pt R/R basis gated on T2** (feat-057), on top of
+Latest: **single-print doctrine inverted — scars favor same-direction entries,
+fades anchor at the near-edge border** (feat-058), on top of
+**fixed 25-pt R/R basis gated on T2** (feat-057), and before that
 **two-target ladder doctrine** (feat-056), and before that
 **per-model reasoning-effort steering** (feat-055), the **delta
 split on the structural profiles + code-owned node build quality** (feat-050),
@@ -19,6 +21,28 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Single-print doctrine inverted (2026-07-27, feat-058).**
+Investigated the 2026-07-27 11:18 briefing skipping the 28210 short: the MGI
+cluster (Rip AAA trench 28201.43, PDL/PW Low 28212.5, VRange −2 28218, PM Low
+28227.75) plus a volume ledge (bin volume collapses ~2,200 → 37 contracts
+across 28226 → 28208) was fully mapped, the model's own `keyInflections` said
+the failed reclaim at 28201.43 "authorizes the counter-short" — yet the
+secondary short shipped at 28500, 436 pts above price (unactionable; eval
+would report NO_ENTRY_NEAR on a 28210 reoffer). LangSmith showed a single LLM
+pass, no validator retry; no engine gate blocks a 28201.43 short. Root cause:
+the analyze prompt taught `tpo.singlePrintZones` are "fragile fast-traverse
+scars (weak support/resistance, repair magnets)", and the engine scar
+28206–28340 sat on top of the cluster, so the model exiled the fade past the
+scar to the far-side structure (the 8:44 briefing had faded 28176.5 only
+because the AAA badge then sat below the scar). Operator doctrine is the
+opposite: single prints favor entries in the DIRECTION of the move that
+created them, and a border at a scar's near edge keeps full entry authority.
+Rewrote the tpo bullet in `lib/analyze/prompt.ts`, added the near-edge
+fade-anchor rule to `knowledge/system/output-objective.md` (cached prefix,
+shared with the update task), aligned the `singlePrintZones` doc comment in
+`lib/engine/tpoFacts.ts`. Prompts/doctrine only — no engine or validator
+behavior change, no test-fixture churn.
 
 **Fixed 25-pt R/R basis, gated on T2 (2026-07-27, feat-057).**
 Operator decision: "I use a 25 point stop, not structure, so the reward just
