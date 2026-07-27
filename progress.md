@@ -4,8 +4,9 @@
 
 **Last Updated:** 2026-07-27
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **single-print doctrine inverted — scars favor same-direction entries,
-fades anchor at the near-edge border** (feat-058), on top of
+Latest: **MGI level attribution on every price in objective content** (feat-059),
+on top of **single-print doctrine inverted — scars favor same-direction entries,
+fades anchor at the near-edge border** (feat-058), and before that
 **fixed 25-pt R/R basis gated on T2** (feat-057), and before that
 **two-target ladder doctrine** (feat-056), and before that
 **per-model reasoning-effort steering** (feat-055), the **delta
@@ -21,6 +22,20 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**MGI level attribution in objectives (2026-07-27, feat-059).**
+Operator request: when an objective headline (`macroGoal`) states a price tied
+to MGI level(s), name those levels — and do the same throughout the objective
+content. Added a "Level attribution" section to
+`knowledge/system/output-objective.md` (cached system prefix shared by the
+analyze and update tasks): every price stated in `macroGoal`, `rationale`,
+entry `label`/`trigger`, stop `invalidation` or target `description` names its
+structure in parentheses after the number — MGI engine labels when the price
+is or clusters with MGI level(s) (a composite border names ALL members, e.g.
+"28212.5 (PDL / PW Low)"), otherwise the non-MGI engine structure ("28210
+(LVN, balance-area profile)"). The `macroGoal` contract line now carries a
+worked headline example. Doctrine prose only — no engine, validator or schema
+change. `./init.sh` green (933 passed / 1 skipped, lint 0 errors).
 
 **Single-print doctrine inverted (2026-07-27, feat-058).**
 Investigated the 2026-07-27 11:18 briefing skipping the 28210 short: the MGI

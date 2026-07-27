@@ -617,6 +617,16 @@
         "feat-057"
       ],
       "evidence": "Prompt/doctrine-only change; ./init.sh green 2026-07-27 (typecheck, lint 0 errors, 933 passed / 1 skipped, build). Root-cause evidence: LangSmith trace 019fa4cc-2e54-7000-8000-02c5b00be07b (single pass, no retry), briefing 466da72c-9f52-4c79-93c6-9685e9b337bc keyInflections vs entry_levels contradiction, balance-area.vbp volume ledge 28226->28208."
+    },
+    {
+      "id": "feat-059",
+      "name": "Doctrine: MGI level attribution on every price stated in objective content",
+      "description": "Operator-directed doctrine change (2026-07-27): every price stated anywhere in an objective - macroGoal headline, rationale, entry label/trigger, stop invalidation, target description - must name the structure it sits on in parentheses after the number. When the price is (or clusters with) MGI level(s), name them with their engine labels (composite border member labels / mgiPriority.levels labels), e.g. 'Short the reoffer at 28212.5 (PDL / PW Low) -> 28050 (VRange -2)'; a composite border names ALL its members. Non-MGI engine structure (LVN/HVN node, balance-area border, TPO level) names that structure instead. Added a 'Level attribution' section to knowledge/system/output-objective.md (cached system prefix shared by the analyze and update tasks) and extended the macroGoal contract line with the headline example. No engine/validator behavior change - doctrine prose only.",
+      "status": "done",
+      "dependencies": [
+        "feat-058"
+      ],
+      "evidence": "Doctrine-prose-only change; ./init.sh green 2026-07-27 (typecheck, lint 0 errors, 933 passed / 1 skipped, build). Operator request 2026-07-27: objective headlines (and all objective content) stating a price tied to MGI level(s) must name those levels."
     }
   ]
 }

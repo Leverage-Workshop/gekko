@@ -2,7 +2,9 @@
 
 Each objective (primary and secondary) carries:
 
-- **`macroGoal`** — a 1-line action statement: Action + Level → Objective.
+- **`macroGoal`** — a 1-line action statement: Action + Level → Objective. Every price it
+  states carries its structural identity per the Level Attribution rule below — name the MGI
+  level(s) at that price, e.g. "Short the reoffer at 28212.5 (PDL / PW Low) → 28050 (VRange −2)".
 - **`rationale`** — a 1-line structural justification.
 - **`direction`** — `long` or `short`.
 - **`entries`** — exactly **ONE** entry with its trigger. The primary's is labeled
@@ -31,6 +33,18 @@ Each objective (primary and secondary) carries:
 
 Entries, stops, and T1 must sit on engine-supplied structure — a zone border or a terrain level —
 never in the middle of value.
+
+## Level attribution
+
+Every price you state anywhere in an objective — `macroGoal`, `rationale`, entry `label` and
+`trigger`, stop `invalidation`, target `description` — names the structure it sits on, in
+parentheses right after the number. When the price is (or clusters with) MGI level(s), name them
+with their engine labels — the composite border's member labels or the `mgiPriority.levels`
+label: "28212.5 (PDL / PW Low)", "reoffer at 28201.43 (IBL / PW Low trench)". A composite border
+names ALL its members. When the price is engine structure with no MGI member — an LVN/HVN node, a
+balance-area border, a TPO level — name that structure instead: "28210 (LVN, balance-area
+profile)", "28226 (poor low)". A bare price the operator must cross-reference against the terrain
+map is a defect.
 
 ## Entry priority (trend direction)
 
