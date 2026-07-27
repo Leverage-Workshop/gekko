@@ -597,6 +597,16 @@
       "dependencies": [],
       "status": "done",
       "evidence": "feat-056 (2026-07-26): ./init.sh fully green - typecheck 0 errors, lint 0 errors (7 pre-existing underscore warnings), 932 tests pass across 60 files (net +2: enforceTargetCeiling trims a third rung and keeps the engine R/R measuring to the kept T1/T2; out-of-order T1 beyond T2 draws the advisory), next build OK. Prefix assertion updated (analyze.runAnalysis: 'exactly **TWO** rungs, **T1 -> T2**' + 'Never emit a T3'); briefing.schema tests keep the three-rung fixture as a deliberate legacy-parse guard."
+    },
+    {
+      "id": "feat-057",
+      "name": "Doctrine: R/R measured against fixed 25-pt operational stop, gated on T2 conclusion",
+      "description": "Operator-directed doctrine change (2026-07-27): the operator trades a flat 25-pt stop, not the structural stop, and the 3:1 gate applies to the campaign's realistic conclusion (T2), not the T1 rung. riskReward.ts now exposes FIXED_RISK_PTS=25 and computes every per-target rr as reward/25; the headline rr and the rr_min gate measure to the LAST listed target (T2) instead of the first, so the gate is 'entry->T2 >= rr_min x 25 pts' (75 pts at the default 3.0). The structural stop keeps its roles - protective-side geometry check, MIN_STRUCTURAL_STOP_PTS advisory, stops-never-widen rule - it just no longer sets R/R. Updated analyze/update prompt rr lines (gate stated in points to T2), knowledge/system/constraints.md R/R bullet, chart-reading.md engagement checklist, and the Objective.rr schema comment. RiskReward gains fixedRiskPts; gate-failure reasons name the conclusion target and the fixed stop basis.",
+      "status": "done",
+      "dependencies": [
+        "feat-056"
+      ],
+      "evidence": "lib/engine/riskReward.test.ts rewritten around the fixed-25/T2 basis (26 tests incl. 'tighter structural stop yields the same rr' and 'short T1 rung does not fail the setup'); fixtures updated in analyze.validateBriefing/analyze.runAnalysis/update.runUpdate/doctrine-drift tests; ./init.sh green 2026-07-27 (typecheck, lint, 933 passed / 1 skipped, build)."
     }
   ]
 }

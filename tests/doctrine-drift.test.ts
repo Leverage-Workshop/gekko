@@ -11,7 +11,7 @@ import {
 import { DEFAULT_MAGNET_TOLERANCE } from '@/lib/engine/magnetCheck'
 import { RED_EXTREME, RED_BUILDING_MIN_BARS, computeRipStatus } from '@/lib/engine/ripStatus'
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
-import { DEFAULT_RR_MIN, evaluateRiskReward } from '@/lib/engine/riskReward'
+import { DEFAULT_RR_MIN, FIXED_RISK_PTS, evaluateRiskReward } from '@/lib/engine/riskReward'
 import { DEFAULT_STALENESS_MARGIN_MS } from '@/lib/engine/staleness'
 import { DEFAULT_NEAR_ENTRY_POINTS } from '@/lib/eval/proximity'
 
@@ -74,11 +74,12 @@ describe('doctrine drift guard (feat-032)', () => {
 
       const entry = 30000
       const stop = entry - 10
+      // R/R is measured against the fixed 25-pt operational stop, to the conclusion target.
       const atGate = evaluateRiskReward({
         direction: 'long',
         entry,
         stop,
-        targets: [entry + 10 * DEFAULT_RR_MIN],
+        targets: [entry + FIXED_RISK_PTS * DEFAULT_RR_MIN],
       })
       expect(atGate.rrMin).toBe(DEFAULT_RR_MIN)
       expect(atGate.meetsGate).toBe(true)
@@ -87,7 +88,7 @@ describe('doctrine drift guard (feat-032)', () => {
         direction: 'long',
         entry,
         stop,
-        targets: [entry + 10 * DEFAULT_RR_MIN - 5],
+        targets: [entry + FIXED_RISK_PTS * DEFAULT_RR_MIN - 5],
       })
       expect(belowGate.meetsGate).toBe(false)
     })

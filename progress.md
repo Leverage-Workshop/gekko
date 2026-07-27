@@ -2,9 +2,10 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-26
+**Last Updated:** 2026-07-27
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **two-target ladder doctrine** (feat-056), on top of
+Latest: **fixed 25-pt R/R basis gated on T2** (feat-057), on top of
+**two-target ladder doctrine** (feat-056), and before that
 **per-model reasoning-effort steering** (feat-055), the **delta
 split on the structural profiles + code-owned node build quality** (feat-050),
 the HTF 30-min bar export + code-owned HTF structure (feat-049), the daily
@@ -18,6 +19,22 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Fixed 25-pt R/R basis, gated on T2 (2026-07-27, feat-057).**
+Operator decision: "I use a 25 point stop, not structure, so the reward just
+needs to be 3x that" + "T2 should be 3:1 RR, not T1". `riskReward.ts` now
+computes every rr as `reward / FIXED_RISK_PTS` (25) and the headline rr / gate
+measure to the LAST listed target (the T2 conclusion), so the gate is
+entry→T2 ≥ rr_min × 25 pts (75 pts at the default 3.0). The structural stop
+keeps its geometry check, the MIN_STRUCTURAL_STOP_PTS advisory and the
+stops-never-widen rule, but no longer sets R/R. Prompt rr lines (analyze +
+update), constraints.md, chart-reading.md and the schema rr comment updated to
+match. Context: investigated the 2026-07-27 08:00 briefing whose primary entry
+sat 235 pts below price — the bundle was fresh and the levels were drawn
+faithfully; the model had anchored the long at the 27939 flush low because
+price had crashed below the entire MGI map (no mapped floor beneath IBL
+28075.25). A rerun produced sane near-price levels with the same two-target
+shape, so feat-056 was NOT the drawing culprit and was left in place.
 
 **Live cache-probe test re-gated (2026-07-26, PR #96).**
 The feat-023 gated integration test (`tests/llm.cacheHit.integration.test.ts`)

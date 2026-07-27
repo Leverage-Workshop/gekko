@@ -364,7 +364,8 @@ function offAnchorEntryWarnings(
  * Target-ladder advisories (feat-041, gem-comparison-2026-07-18 G3; two-target doctrine
  * 2026-07-26): the two-target T1→T2 ladder is expected whenever engine structure offers a
  * rung between entry and the far target, and T1 must sit between entry and T2 (nearest
- * first — the R/R gate measures to the first listed target). Advisory only — never throws.
+ * first — the R/R gate measures to the last listed target, the T2 conclusion). Advisory
+ * only — never throws.
  */
 function ladderWarnings(
   name: 'primary' | 'secondary',

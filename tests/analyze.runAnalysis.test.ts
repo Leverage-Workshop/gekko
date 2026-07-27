@@ -72,8 +72,8 @@ function modelBriefing(): Briefing {
         { label: 'Entry A (Ideal)', price: facts.currentPrice - 10, trigger: 'absorption' },
       ],
       stops: [{ label: 'Stop', price: facts.currentPrice - 20, invalidation: 'lost the shelf' }],
-      targets: [{ label: 'T1', price: facts.currentPrice + 20, description: 'next trench' }],
-      rr: 1, // wrong on purpose — engine must overwrite (risk 10, reward 30 → 3)
+      targets: [{ label: 'T1', price: facts.currentPrice + 65, description: 'next trench' }],
+      rr: 1, // wrong on purpose — engine must overwrite (75 pts to conclusion / fixed 25 → 3)
     },
     secondary: {
       macroGoal: 'Fade the poor high',
@@ -83,7 +83,7 @@ function modelBriefing(): Briefing {
       stops: [
         { label: 'Stop', price: facts.currentPrice + 42, invalidation: 'acceptance above' },
       ],
-      targets: [{ label: 'T1', price: facts.currentPrice, description: 'value mid' }],
+      targets: [{ label: 'T1', price: facts.currentPrice - 40, description: 'value mid' }],
       rr: 1,
     },
     dangerZones: [{ area: 'mid-value', why: 'no edge in the middle' }],
