@@ -103,4 +103,27 @@ describe('composeUpdateBriefing', () => {
     expect(parent).toEqual(parentCopy)
     expect(update).toEqual(updateCopy)
   })
+
+  // feat-061: the untargeted objective is hard-frozen on directive runs — the
+  // operator steered one objective; the other must not drift.
+  it('freezes the secondary from the parent when the directive targets the primary', () => {
+    const composed = composeUpdateBriefing(parent, update, {
+      objective: 'primary',
+      text: 'ONL',
+    })
+
+    expect(composed.primary).toEqual(update.primary)
+    expect(composed.secondary).toEqual(parent.secondary)
+    expect(composed.dangerZones).toEqual(update.dangerZones)
+  })
+
+  it('freezes the primary from the parent when the directive targets the secondary', () => {
+    const composed = composeUpdateBriefing(parent, update, {
+      objective: 'secondary',
+      text: 'move the entry to 30295',
+    })
+
+    expect(composed.primary).toEqual(parent.primary)
+    expect(composed.secondary).toEqual(update.secondary)
+  })
 })

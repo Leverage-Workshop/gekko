@@ -637,6 +637,16 @@
         "feat-059"
       ],
       "evidence": "./init.sh green 2026-07-28 (typecheck, lint 0 errors, 957 passed / 1 skipped, build). New tests: lib/engine/dailyRanges.test.ts, lib/engine/overnightSession.test.ts, valueMigration recentSessions, engineFacts wiring (dailyRanges/overnightSession + RTH-only degrade), schema legacy-union round-trips, dashboard legacy-row parse, composeBriefing legacy + modern carry-forward. Registry rows added to docs/engine-ownership.md (prompt-data-sync gate)."
+    },
+    {
+      "id": "feat-061",
+      "name": "Operator directive on objective cards",
+      "description": "Operator-requested (2026-07-28, mockup provided): a small textbox in each objective card's header lets the operator steer where that objective anchors - a symbolic level (\"ONL\"), a price (\"move the entry to 27950\"), or short prose. Enter POSTs /api/briefings/update with a Zod-validated body { directive: { objective: 'primary'|'secondary', text: <=280 chars, single line } } (OperatorDirective in lib/update/directive.ts - input only, never a model-facing schema). The route skips the fresh-bundle handshake on directive runs (operator decision: react to the briefing on screen; awaitFreshBundle(undefined) no-ops) and triggers update-task with triggerReason 'operator-directive'. buildUpdatePrompt inserts an '# Operator directive' section in the user message (purely additive - the directive-less prompt stays byte-identical, protecting the prompt cache; system doctrine untouched) with precedence rules: honor the directive on engine structure, doctrine + code gates still bind, and the untargeted objective is FROZEN. composeUpdateBriefing hard-freezes the untargeted slot from the parent verbatim (operator decision: the other card must not drift; an incompatible directive fails the distinct-anchor floors loudly after 3 retries). Directive persists to briefings.operator_directive jsonb (migration 20260728090000, applied live; gekko-db skill snapshot updated) and renders as an 'Operator directive: ...' annotation on the resulting card. UI: app/components/objective-directive-input.tsx client island in the card header (DESIGN.md text-input token at h-9 header scale), sharing the extracted useTriggeredRun hook (app/components/use-triggered-run.ts) with TriggerRunButton - queue -> Realtime watch -> router.refresh unchanged.",
+      "status": "done",
+      "dependencies": [
+        "feat-060"
+      ],
+      "evidence": "./init.sh green 2026-07-28 (typecheck 0, lint 0 errors, 973 passed / 1 skipped, build OK). 16 new tests: briefings.update.route.test.ts (directive run skips requestFreshBundle + carries triggerReason 'operator-directive'; trim; 400 rejection matrix incl. multi-line; malformed JSON degrades to plain update), update.runUpdate.test.ts (prompt threading with frozen-entry price; directive-less prompt byte-identical outside the additive section; freeze + operator_directive persisted end-to-end; column absent on plain runs), update.composeBriefing.test.ts (freeze both directions), analyze.persistBriefing.test.ts (column stamped/absent), briefing.dashboard.test.ts (jsonb parse degrades to null). Migration 20260728090000_operator_directive applied to live DB via Supabase MCP (schema_migrations now 23 rows); gekko-db SKILL.md snapshot updated in same PR."
     }
   ]
 }

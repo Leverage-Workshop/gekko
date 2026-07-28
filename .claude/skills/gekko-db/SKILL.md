@@ -118,6 +118,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | trigger_reason, model_id, htf_trend, rip_status | text, nullable | |
 | terrain, primary_obj, secondary_obj, danger_zones, overview, raw_model_json | jsonb, nullable | |
 | tactical_read | jsonb, nullable | {location, ripStatus, initiative} for updates (feat-038) |
+| operator_directive | jsonb, nullable | {objective: primary\|secondary, text} for directive-driven updates (feat-061) |
 
 ### entry_levels — FK `briefing_id → briefings.id`
 | column | type | notes |
@@ -172,10 +173,10 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Migrations & DDL
 
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (22 rows as of 2026-07-26).
+  `supabase_migrations.schema_migrations` (23 rows as of 2026-07-28).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has
   no corresponding repo file — it added the anon RLS policy above. Don't be surprised
-  by the count mismatch (21 repo files vs 22 live).
+  by the count mismatch (22 repo files vs 23 live).
 - Check applied migrations:
   `curl -s -X POST "$URL/rest/v1/rpc/..."` won't work for this — `schema_migrations`
   isn't exposed via PostgREST. Instead compare repo filenames against the snapshot

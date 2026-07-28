@@ -100,6 +100,7 @@ describe('buildBriefingRow', () => {
     expect('kind' in row).toBe(false)
     expect('parent_briefing_id' in row).toBe(false)
     expect('tactical_read' in row).toBe(false)
+    expect('operator_directive' in row).toBe(false)
   })
 
   it('stamps kind/parent/tactical_read for update rows (feat-038)', () => {
@@ -120,6 +121,30 @@ describe('buildBriefingRow', () => {
     expect(row.parent_briefing_id).toBe('briefing-0')
     expect(row.tactical_read).toEqual(tacticalRead)
     expect(row.raw_model_json).toEqual(briefing)
+    // Plain updates carry no directive — the column must stay absent.
+    expect('operator_directive' in row).toBe(false)
+  })
+
+  it('stamps operator_directive for directive-driven update rows (feat-061)', () => {
+    const tacticalRead = {
+      location: 'Killbox, wall above at 30300',
+      ripStatus: 'Holding as support',
+      initiative: 'Buyers on positive delta',
+    }
+    const row = buildBriefingRow({
+      bundleId: 'bundle-1',
+      triggerReason: 'operator-directive',
+      model: 'anthropic/claude-sonnet-5',
+      briefing,
+      update: {
+        kind: 'update',
+        parentBriefingId: 'briefing-0',
+        tacticalRead,
+        operatorDirective: { objective: 'secondary', text: 'ONL' },
+      },
+    })
+
+    expect(row.operator_directive).toEqual({ objective: 'secondary', text: 'ONL' })
   })
 })
 

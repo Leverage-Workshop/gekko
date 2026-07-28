@@ -1,7 +1,7 @@
 import { AbortTaskRunError, logger, metadata, schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod";
 import { AnalyzeInputError } from "@/lib/analyze";
-import { UpdateInputError, realUpdateDeps, runUpdate } from "@/lib/update";
+import { OperatorDirective, UpdateInputError, realUpdateDeps, runUpdate } from "@/lib/update";
 import type { UpdateResult } from "@/lib/update";
 import { sendGekkoPush } from "@/lib/push";
 import { awaitFreshBundle } from "./freshBundle";
@@ -19,8 +19,17 @@ export const updateTask = schemaTask({
   schema: z.object({
     triggerReason: z.string().default("manual"),
     // Pending bundle_requests row the route inserted; absent on runs
-    // triggered outside the dashboard (no fresh-bundle wait then).
+    // triggered outside the dashboard (no fresh-bundle wait then) AND on
+    // operator-directive runs, which deliberately revise from the latest
+    // stored bundle instead of waiting for a fresh export (feat-061).
     bundleRequestId: z.string().uuid().optional(),
+    // feat-061: operator steer for one objective. Task-payload schema only —
+    // never model-facing, so .optional() is safe here. A directive whose
+    // anchor cannot coexist with the frozen other objective (distinct-anchor
+    // floors in enforceCodeOwnedFacts) throws on every attempt and finishes
+    // FAILED after the 3 retries — accepted: the operator asked for a
+    // placement the doctrine forbids, and the card's status note surfaces it.
+    directive: OperatorDirective.optional(),
   }),
   retry: {
     maxAttempts: 3,
@@ -36,6 +45,7 @@ export const updateTask = schemaTask({
     try {
       result = await runUpdate(realUpdateDeps(), {
         triggerReason: payload.triggerReason,
+        directive: payload.directive,
       });
     } catch (error) {
       // AnalyzeInputError: no usable bundle. UpdateInputError: no (or an
@@ -66,6 +76,9 @@ export const updateTask = schemaTask({
     metadata.set("briefingId", result.briefingId);
     metadata.set("parentBriefingId", result.parentBriefingId);
     metadata.set("stale", result.stale);
+    if (payload.directive) {
+      metadata.set("operatorDirective", payload.directive);
+    }
 
     logger.info("update briefing persisted", {
       briefingId: result.briefingId,
@@ -79,6 +92,7 @@ export const updateTask = schemaTask({
       entryLevelCount: result.entryLevelCount,
       stale: result.stale,
       warnings: result.warnings,
+      operatorDirective: payload.directive ?? null,
     });
 
     // feat-027: Web Push AFTER successful persistence. Fire-and-forget — a

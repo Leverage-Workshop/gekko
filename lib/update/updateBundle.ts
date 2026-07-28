@@ -14,6 +14,7 @@ import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult, ReasoningEffort } from '@/lib/llm'
 import { composeUpdateBriefing } from './composeBriefing'
+import type { OperatorDirective } from './directive'
 import { buildUpdatePrompt } from './prompt'
 
 /**
@@ -83,7 +84,11 @@ export interface UpdateResult {
 
 export async function runUpdate(
   deps: UpdateDeps,
-  options: { triggerReason: string },
+  options: {
+    triggerReason: string
+    /** feat-061: present only on operator-directive runs. */
+    directive?: OperatorDirective
+  },
 ): Promise<UpdateResult> {
   const now = deps.now?.() ?? new Date()
   const warnings: string[] = []
@@ -164,13 +169,14 @@ export async function runUpdate(
         kind: parentRow.kind ?? 'morning',
         ageMinutes,
       },
+      directive: options.directive,
     }),
     images: bundle.images,
     schema: BriefingUpdate,
     telemetry: { functionId: 'update-task' },
   })
 
-  const composed = composeUpdateBriefing(parent, result.object)
+  const composed = composeUpdateBriefing(parent, result.object, options.directive)
   // No enforceEntryStandoff here: an update revises a standing plan, and price
   // approaching its planned entry is the success path, not an at-price defect.
   // (The chase-side gate therefore only warns on this path — an entry price has
@@ -198,6 +204,7 @@ export async function runUpdate(
       kind: 'update',
       parentBriefingId: parentRow.id,
       tacticalRead: result.object.tacticalRead,
+      operatorDirective: options.directive,
     },
   })
 
