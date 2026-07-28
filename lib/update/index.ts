@@ -1,5 +1,6 @@
 export { composeUpdateBriefing } from './composeBriefing'
 export { realUpdateDeps } from './deps'
+export { OperatorDirective } from './directive'
 export { buildUpdatePrompt } from './prompt'
 export type { ParentBriefingContext, UpdatePromptInput } from './prompt'
 export { UpdateInputError, runUpdate } from './updateBundle'

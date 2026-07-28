@@ -54,6 +54,7 @@ const briefingRow: DashboardBriefingRow = {
   model_id: 'anthropic/claude-sonnet-5',
   kind: 'morning',
   tactical_read: null,
+  operator_directive: null,
   raw_model_json: briefingPayload,
 }
 
@@ -281,6 +282,24 @@ describe('loadDashboardData', () => {
     expect(await asRead(tacticalRead)).toEqual(tacticalRead)
     expect(await asRead(null)).toBeNull()
     expect(await asRead({ location: 'only one line' })).toBeNull()
+  })
+
+  it('parses operator_directive for directive-driven rows and degrades to null on bad data (feat-061)', async () => {
+    const asDirective = async (operator_directive: unknown) => {
+      const data = await loadDashboardData(
+        fakeDeps({
+          fetchLatestBriefing: async () => ({ ...briefingRow, kind: 'update', operator_directive }),
+        }),
+        { now: NOW },
+      )
+      return data.briefing!.operatorDirective
+    }
+
+    const directive = { objective: 'primary', text: 'ONL' }
+    expect(await asDirective(directive)).toEqual(directive)
+    expect(await asDirective(null)).toBeNull()
+    expect(await asDirective({ objective: 'tertiary', text: 'ONL' })).toBeNull()
+    expect(await asDirective('ONL')).toBeNull()
   })
 
   it('falls back to the payload triggerReason when the column is null', async () => {

@@ -1,6 +1,10 @@
 import type { PersistedBriefing } from '@/knowledge/schema/briefing.schema'
 import type { ChartAttachment, EngineFacts } from '@/lib/analyze'
-import { engineZoneBorders } from '@/lib/analyze'
+import {
+  MIN_OBJECTIVE_ENTRY_SEPARATION_PTS,
+  MIN_OPPOSING_ENTRY_SEPARATION_PTS,
+  engineZoneBorders,
+} from '@/lib/analyze'
 import {
   DISTINCT_ANCHORS_RULE,
   campaignBoundaryRule,
@@ -8,6 +12,7 @@ import {
   dataEdgeRule,
   factsPayload,
 } from '@/lib/analyze/prompt'
+import type { OperatorDirective } from './directive'
 
 /**
  * User-message assembly for the update-task `generateObject` call. Mirrors
@@ -37,6 +42,46 @@ export interface UpdatePromptInput {
   charts: readonly ChartAttachment[]
   rrMin: number
   parent: ParentBriefingContext
+  /**
+   * feat-061: present only on operator-directive runs. The directive text goes
+   * in THIS user message, never in the doctrine system prompt (which is
+   * prompt-cached and must stay byte-identical across runs); a directive-less
+   * prompt is byte-identical to a pre-feat-061 one.
+   */
+  directive?: OperatorDirective
+}
+
+/**
+ * The `# Operator directive` section (feat-061). The untargeted objective is
+ * hard-frozen code-side (composeUpdateBriefing replaces it with the parent's
+ * version verbatim), so the model is told to copy it and to place the directed
+ * entry clear of its frozen entry — the distinct-anchor floors are enforced
+ * against the FROZEN entry, and a directive that cannot coexist with it fails
+ * the run rather than moving an objective the operator didn't touch.
+ */
+function operatorDirectiveSection(
+  directive: OperatorDirective,
+  parent: PersistedBriefing,
+): string[] {
+  const target = directive.objective
+  const other = target === 'primary' ? 'secondary' : 'primary'
+  const frozen = parent[other]
+  const frozenEntry = frozen.entries[0]
+  const frozenAnchor = frozenEntry
+    ? `its frozen ${frozen.direction} entry at ${frozenEntry.price}`
+    : `its frozen entry`
+
+  return [
+    '# Operator directive (the reason for this run)',
+    `The operator requested this update with a directive targeting the ${target.toUpperCase()} objective:`,
+    `> ${directive.text}`,
+    'Precedence rules:',
+    `- Honor the directive when regenerating the ${target} objective. If it names a symbolic level (e.g. "ONL", "VAH"), resolve it against the labeled MGI levels and engine facts below. If it cannot be honored exactly on engine-supplied structure, anchor as close to the directive as structure allows and state the deviation explicitly in that objective's rationale.`,
+    '- The directive steers WHERE the objective anchors — every other rule still binds: data ownership, entries/stops/T1 on engine structure, level attribution, and the R/R gate.',
+    `- The ${other} objective is FROZEN: the engine replaces whatever you output for \`${other}\` with the previous briefing's version verbatim, so copy it unchanged. Your ${target} entry must keep the distinct-anchor floors against ${frozenAnchor}: at least ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts away if same direction, ${MIN_OPPOSING_ENTRY_SEPARATION_PTS} pts if opposite.`,
+    '- `tacticalRead` and `dangerZones`: refresh normally against current data.',
+    '',
+  ]
 }
 
 export function buildUpdatePrompt(input: UpdatePromptInput): string {
@@ -50,6 +95,9 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     '2. A fresh Strategic Alignment — the exact `primary`, `secondary` and `dangerZones` sections from the Morning Brief format, updated for current realities.',
     'You do NOT output `overview` or `terrain` — they carry forward from the previous briefing below. Keep your objectives consistent with its terrain zone stack unless the fresh engine facts contradict it, and say so in the rationale when they do.',
     '',
+    ...(input.directive
+      ? operatorDirectiveSection(input.directive, parent.briefing)
+      : []),
     '# Previous briefing (inherited context)',
     `Issued ${parent.createdAt} (${parent.ageMinutes} min ago, kind: ${parent.kind}). Its overview and terrain persist verbatim alongside your update; treat its objectives as the standing plan you are revising.`,
     '```json',

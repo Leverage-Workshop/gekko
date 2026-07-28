@@ -1,5 +1,8 @@
 import type { PersistedBriefing, TacticalRead } from '@/knowledge/schema/briefing.schema'
 import type { RiskReward } from '@/lib/engine/riskReward'
+// Type-only, from the module file (not the lib/update barrel, which imports
+// lib/analyze back) — directive.ts depends only on zod, so no import cycle.
+import type { OperatorDirective } from '@/lib/update/directive'
 
 /**
  * Persistence step of the analyze-task AND update-task: one `briefings` row,
@@ -34,6 +37,8 @@ export interface BriefingInsert {
   kind?: 'update'
   parent_briefing_id?: string
   tactical_read?: TacticalRead
+  /** feat-061: operator-directive runs only — the steer that drove this update. */
+  operator_directive?: OperatorDirective
 }
 
 /** Insert shape for `public.entry_levels`. */
@@ -68,7 +73,13 @@ export interface PersistInput {
   /** Engine R/R verdicts — the protective stop per objective. */
   riskReward: { primary: RiskReward; secondary: RiskReward }
   /** feat-038: present only for update-task runs. */
-  update?: { kind: 'update'; parentBriefingId: string; tacticalRead: TacticalRead }
+  update?: {
+    kind: 'update'
+    parentBriefingId: string
+    tacticalRead: TacticalRead
+    /** feat-061: present only on operator-directive runs. */
+    operatorDirective?: OperatorDirective
+  }
 }
 
 export function buildBriefingRow(
@@ -91,6 +102,9 @@ export function buildBriefingRow(
       kind: input.update.kind,
       parent_briefing_id: input.update.parentBriefingId,
       tactical_read: input.update.tacticalRead,
+      ...(input.update.operatorDirective && {
+        operator_directive: input.update.operatorDirective,
+      }),
     }),
   }
 }

@@ -17,6 +17,7 @@ import { EvalStrip } from './components/eval-strip'
 import { Footer } from './components/footer'
 import { HighlightedText } from './components/highlighted-text'
 import { MStripe } from './components/m-stripe'
+import { ObjectiveDirectiveInput } from './components/objective-directive-input'
 import { RunBriefingButton, RunUpdateButton } from './components/trigger-run-button'
 import { TopNav } from './components/top-nav'
 import { UpdateGlow } from './components/update-glow'
@@ -241,10 +242,16 @@ function ObjectiveCard({
   heading,
   objective,
   terms,
+  directiveSlot,
+  appliedDirective,
 }: {
   heading: string
   objective: Objective
   terms: string[]
+  /** Which briefing slot this card renders — targets the directive input (feat-061). */
+  directiveSlot: 'primary' | 'secondary'
+  /** The operator directive this briefing was generated from, when it targeted this card. */
+  appliedDirective: string | null
 }) {
   const rows: { point: string; price: number; description: string; isStop: boolean }[] = [
     ...objective.entries.map((entry) => ({
@@ -280,7 +287,10 @@ function ObjectiveCard({
   return (
     <article className={`border border-hairline border-t-2 ${accentTop} bg-surface-card p-6`}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
-        <span className="text-xs font-bold uppercase tracking-[1.5px] text-ink">{heading}</span>
+        <span className="flex flex-wrap items-center gap-3">
+          <span className="text-xs font-bold uppercase tracking-[1.5px] text-ink">{heading}</span>
+          <ObjectiveDirectiveInput slot={directiveSlot} />
+        </span>
         <span className="flex items-center gap-4">
           <span
             className={`border px-2.5 py-1 text-xs font-bold uppercase tracking-[1.5px] ${accentBadge}`}
@@ -296,6 +306,12 @@ function ObjectiveCard({
       <h3 className={`mt-4 text-xl font-bold tracking-tight ${accentText}`}>
         {objective.macroGoal}
       </h3>
+      {appliedDirective && (
+        <p className="mt-2 text-xs font-light uppercase tracking-wide text-muted">
+          Operator directive:{' '}
+          <span className="normal-case text-body-strong">{appliedDirective}</span>
+        </p>
+      )}
       <p className="mt-2 text-sm font-light leading-relaxed text-body">
         <HighlightedText text={objective.rationale} terms={terms} />
       </p>
@@ -445,11 +461,23 @@ export default async function Home() {
                             heading="I · Primary Objective"
                             objective={payload.primary}
                             terms={terms}
+                            directiveSlot="primary"
+                            appliedDirective={
+                              briefing.operatorDirective?.objective === 'primary'
+                                ? briefing.operatorDirective.text
+                                : null
+                            }
                           />
                           <ObjectiveCard
                             heading="II · Secondary Objective"
                             objective={payload.secondary}
                             terms={terms}
+                            directiveSlot="secondary"
+                            appliedDirective={
+                              briefing.operatorDirective?.objective === 'secondary'
+                                ? briefing.operatorDirective.text
+                                : null
+                            }
                           />
                         </div>
                       }

@@ -274,6 +274,72 @@ describe('runUpdate', () => {
     expect(captured.prompt).toContain(`meta.currentPrice = ${facts.currentPrice}`)
   })
 
+  // feat-061: operator directive — steered update with the other objective frozen.
+  it('threads a directive into the prompt with the frozen entry and precedence rules', async () => {
+    const harness = makeDeps()
+    await runUpdate(harness.deps, {
+      triggerReason: 'operator-directive',
+      directive: { objective: 'primary', text: 'ONL' },
+    })
+    const captured = harness.getCaptured()!
+
+    expect(captured.system).toBe('DOCTRINE PREFIX')
+    expect(captured.prompt).toContain('# Operator directive (the reason for this run)')
+    expect(captured.prompt).toContain('targeting the PRIMARY objective')
+    expect(captured.prompt).toContain('> ONL')
+    // The frozen secondary's anchor is stated so the model can respect the floors.
+    expect(captured.prompt).toContain('The secondary objective is FROZEN')
+    expect(captured.prompt).toContain('its frozen short entry at 30295')
+    expect(captured.prompt).toContain('at least 5 pts away if same direction, 25 pts if opposite')
+  })
+
+  it('emits a directive-less prompt byte-identical outside the directive section (cache guard)', async () => {
+    const plain = makeDeps()
+    await runUpdate(plain.deps, { triggerReason: 'manual' })
+    const withDirective = makeDeps()
+    await runUpdate(withDirective.deps, {
+      triggerReason: 'manual',
+      directive: { objective: 'primary', text: 'ONL' },
+    })
+
+    const plainPrompt = plain.getCaptured()!.prompt
+    const directivePrompt = withDirective.getCaptured()!.prompt
+    expect(plainPrompt).not.toContain('# Operator directive')
+    // Removing the directive section reproduces the plain prompt exactly —
+    // the section is purely additive, so the shared prefix (and the cached
+    // system prompt) never shift.
+    const start = directivePrompt.indexOf('# Operator directive')
+    const end = directivePrompt.indexOf('# Previous briefing')
+    expect(start).toBeGreaterThan(-1)
+    expect(directivePrompt.slice(0, start) + directivePrompt.slice(end)).toBe(plainPrompt)
+  })
+
+  it('freezes the untargeted objective from the parent and persists the directive', async () => {
+    const harness = makeDeps()
+    await runUpdate(harness.deps, {
+      triggerReason: 'operator-directive',
+      directive: { objective: 'primary', text: 'ONL' },
+    })
+    const row = harness.getBriefingRow()!
+
+    // Directed slot: the model's fresh objective. Frozen slot: the parent's
+    // verbatim, regardless of what the model output for it.
+    expect(row.primary_obj.macroGoal).toBe('FRESH long the shelf reclaim')
+    expect(row.secondary_obj.macroGoal).toBe('PARENT secondary')
+    expect(row.secondary_obj.entries).toEqual([{ label: 'E1', price: 30295, trigger: 'old' }])
+    expect(row.raw_model_json.secondary.macroGoal).toBe('PARENT secondary')
+    // Audit column + code-owned meta:
+    expect(row.operator_directive).toEqual({ objective: 'primary', text: 'ONL' })
+    expect(row.trigger_reason).toBe('operator-directive')
+    expect(row.raw_model_json.meta.triggerReason).toBe('operator-directive')
+  })
+
+  it('omits the operator_directive column on plain update runs', async () => {
+    const harness = makeDeps()
+    await runUpdate(harness.deps, { triggerReason: 'manual' })
+    expect(harness.getBriefingRow()!).not.toHaveProperty('operator_directive')
+  })
+
   it('throws UpdateInputError when no previous briefing exists', async () => {
     const harness = makeDeps({ fetchLatestBriefing: async () => null })
     await expect(runUpdate(harness.deps, { triggerReason: 'manual' })).rejects.toThrow(

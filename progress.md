@@ -4,7 +4,8 @@
 
 **Last Updated:** 2026-07-28
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Tactical Overview redesigned to HTF / MTF / Current** (feat-060), on top
+Latest: **Operator directive on objective cards** (feat-061), on top of
+**Tactical Overview redesigned to HTF / MTF / Current** (feat-060), on top
 of **MGI level attribution on every price in objective content** (feat-059),
 on top of **single-print doctrine inverted — scars favor same-direction entries,
 fades anchor at the near-edge border** (feat-058), and before that
@@ -23,6 +24,39 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Operator directive on objective cards (2026-07-28, feat-061).**
+Operator request (mockup provided): a textbox in each objective card's header
+to redirect where that objective anchors — "ONL", "move the entry to 27950",
+or short prose — regenerating the objective and its targets. Two operator
+decisions taken up front: directive runs REUSE the latest bundle (no
+fresh-bundle handshake — the operator is reacting to the briefing on screen;
+`awaitFreshBundle(undefined)` no-ops) and the untargeted objective is
+HARD-FROZEN (`composeUpdateBriefing` copies it from the parent verbatim; a
+directive that can't coexist with it under the distinct-anchor floors fails
+loudly after the 3 task retries rather than silently moving the other card).
+Implementation rides the existing update path end to end: Zod
+`OperatorDirective` ({objective, text ≤280 single-line}, `lib/update/
+directive.ts` — input-only, never model-facing, so OpenAI strict mode and
+the Anthropic schema-size ceiling are untouched) → optional route body on
+`/api/briefings/update` (400 on invalid before any side effects;
+triggerReason `operator-directive`) → update-task payload → `runUpdate`
+options → an additive `# Operator directive` section in the user prompt
+(byte-identical prompt without a directive — asserted in tests — so the
+prompt cache and doctrine system prompt never shift) stating the directive,
+precedence rules, and the frozen objective's entry price so the model
+respects the separation floors on attempt 1. Directive persists to
+`briefings.operator_directive` jsonb (migration `20260728090000`, applied
+live via MCP; gekko-db skill snapshot updated) and renders as an "Operator
+directive:" annotation on the resulting card. UI: `ObjectiveDirectiveInput`
+client island (DESIGN.md text-input token at h-9 header scale) slotted into
+the server-rendered card header; the queue → Realtime watch →
+`router.refresh()` machine extracted from `TriggerRunButton` into a shared
+`useTriggeredRun` hook (`app/components/use-triggered-run.ts`) — all four
+existing buttons keep identical behavior. 16 new tests (route directive
+paths + rejection matrix, prompt threading + cache guard, freeze in compose
+and end-to-end, persistence column presence/absence, dashboard jsonb parse
+degrade-to-null).
 
 **Tactical Overview redesign (2026-07-28, feat-060).**
 Operator request: replace the four Gem-derived overview sections with three

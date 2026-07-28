@@ -2,6 +2,9 @@ import { EvalCheck, PersistedBriefing, TacticalRead } from '@/knowledge/schema/b
 import { z } from 'zod'
 import { parseExecBars, type ExecBar } from '@/lib/engine/parseExecBars'
 import { assessStaleness, type StalenessAssessment } from '@/lib/engine/staleness'
+// From the module file, not the lib/update barrel — same cycle-avoidance as
+// lib/analyze/persistBriefing.ts.
+import { OperatorDirective } from '@/lib/update/directive'
 
 /**
  * Dashboard data loading (feat-019): the latest `briefings` row, the latest
@@ -22,6 +25,8 @@ export interface DashboardBriefingRow {
   kind: string | null
   /** Update rows only: the Immediate Tactical Read jsonb (feat-038). */
   tactical_read: unknown
+  /** Directive-driven update rows only: {objective, text} jsonb (feat-061). */
+  operator_directive: unknown
   /** Full Briefing payload as persisted; re-validated against the Zod schema. */
   raw_model_json: unknown
 }
@@ -101,6 +106,8 @@ export interface DashboardBriefing {
   kind: 'morning' | 'update'
   /** Non-null only for update rows whose tactical_read parses; degrades to null. */
   tacticalRead: TacticalRead | null
+  /** Non-null only for directive-driven rows whose jsonb parses; degrades to null. */
+  operatorDirective: OperatorDirective | null
   payload: PersistedBriefing
 }
 
@@ -175,8 +182,10 @@ export async function loadDashboardData(
     const parsed = PersistedBriefing.safeParse(briefingRow.raw_model_json)
     if (parsed.success) {
       // The tactical read degrades to null on any parse failure — it is an
-      // update-only garnish and must never block the briefing render.
+      // update-only garnish and must never block the briefing render. Same
+      // for the operator directive (feat-061): an annotation, never a gate.
       const tacticalRead = TacticalRead.safeParse(briefingRow.tactical_read)
+      const operatorDirective = OperatorDirective.safeParse(briefingRow.operator_directive)
       briefing = {
         id: briefingRow.id,
         createdAt: briefingRow.created_at,
@@ -184,6 +193,7 @@ export async function loadDashboardData(
         modelId: briefingRow.model_id,
         kind: briefingRow.kind === 'update' ? 'update' : 'morning',
         tacticalRead: tacticalRead.success ? tacticalRead.data : null,
+        operatorDirective: operatorDirective.success ? operatorDirective.data : null,
         payload: parsed.data,
       }
     } else {
