@@ -30,10 +30,9 @@ function briefing(overrides: Partial<Briefing> = {}): Briefing {
       ripStatus: 'green',
     },
     overview: {
-      currentPosition: ['inside value'],
-      structuralArchitecture: ['balanced'],
-      orderFlowContext: ['blue initiative'],
-      keyInflections: [],
+      htfView: ['value migrating higher', 'ranges contracting'],
+      mtfView: ['balanced', 'value overlapping'],
+      current: ['inside value', 'blue initiative'],
     },
     terrain: {
       zones: [

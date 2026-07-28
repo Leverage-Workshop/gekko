@@ -44,10 +44,9 @@ function modelBriefing(): Briefing {
       ripStatus: facts.ripStatus?.condition ?? 'unknown',
     },
     overview: {
-      currentPosition: ['above the Rip'],
-      structuralArchitecture: ['balance over the POC shelf'],
-      orderFlowContext: ['blue initiative holding'],
-      keyInflections: [{ level: facts.profileSummary.rotation.pocPrice, why: 'POC magnet' }],
+      htfView: ['value migrating higher', 'ranges contracting'],
+      mtfView: ['balance over the POC shelf', 'value overlapping three days'],
+      current: ['above the Rip', 'blue initiative holding'],
     },
     terrain: {
       zones: facts.terrain.zones.map((zone) => ({

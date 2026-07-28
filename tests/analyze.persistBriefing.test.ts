@@ -17,10 +17,9 @@ const briefing: Briefing = {
     ripStatus: 'green — above the Rip',
   },
   overview: {
-    currentPosition: ['inside value'],
-    structuralArchitecture: [],
-    orderFlowContext: [],
-    keyInflections: [],
+    htfView: ['value migrating higher', 'ranges contracting'],
+    mtfView: ['value built higher three days', 'IB narrow'],
+    current: ['inside value', 'no playbook pattern active'],
   },
   terrain: {
     zones: [{ color: 'green', top: 30300, bottom: 30200, label: 'Killbox' }],

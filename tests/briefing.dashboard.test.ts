@@ -18,10 +18,9 @@ const briefingPayload: Briefing = {
     ripStatus: 'green — above the Rip',
   },
   overview: {
-    currentPosition: ['inside value', 'above the Rip'],
-    structuralArchitecture: ['acceptance above', 'void below the shelf'],
-    orderFlowContext: ['buyers hold', 'no playbook pattern active'],
-    keyInflections: [{ level: 30300, why: 'attic border' }],
+    htfView: ['value migrating higher', 'ranges contracting'],
+    mtfView: ['acceptance above', 'void below the shelf'],
+    current: ['inside value, above the Rip', 'no playbook pattern active'],
   },
   terrain: {
     zones: [{ color: 'green', top: 30300, bottom: 30200, label: 'Killbox' }],
@@ -137,6 +136,26 @@ describe('loadDashboardData', () => {
     expect(data.briefingError).toBeNull()
     expect(data.evalResult).toEqual(evalRow)
     expect(data.evalSuperseded).toBe(false)
+  })
+
+  it('still parses a pre-feat-060 row with the legacy four-section overview', async () => {
+    const legacyOverview = {
+      currentPosition: ['inside value', 'above the Rip'],
+      structuralArchitecture: ['acceptance above', 'void below the shelf'],
+      orderFlowContext: ['buyers hold', 'no playbook pattern active'],
+      keyInflections: [{ level: 30300, why: 'attic border' }],
+    }
+    const legacyRow: DashboardBriefingRow = {
+      ...briefingRow,
+      raw_model_json: { ...briefingPayload, overview: legacyOverview },
+    }
+    const data = await loadDashboardData(
+      fakeDeps({ fetchLatestBriefing: async () => legacyRow }),
+      { now: NOW },
+    )
+    expect(data.briefingError).toBeNull()
+    expect(data.briefing).not.toBeNull()
+    expect(data.briefing!.payload.overview).toEqual(legacyOverview)
   })
 
   it('withholds an eval that predates the current briefing — it checked the previous levels', async () => {

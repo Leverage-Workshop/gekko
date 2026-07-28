@@ -1,4 +1,9 @@
-import type { Briefing, BriefingMeta, Objective } from '@/knowledge/schema/briefing.schema'
+import type {
+  Briefing,
+  BriefingMeta,
+  Objective,
+  PersistedBriefing,
+} from '@/knowledge/schema/briefing.schema'
 import { DEFAULT_RR_MIN, objectiveRiskReward } from '@/lib/engine/riskReward'
 import type { RiskReward } from '@/lib/engine/riskReward'
 
@@ -68,9 +73,9 @@ export const MIN_ENTRY_STANDOFF_PTS = 1
  */
 export const MAX_ENTRY_CHASE_PTS = 5
 
-export interface ValidatedBriefing {
+export interface ValidatedBriefing<B extends PersistedBriefing = Briefing> {
   /** The briefing with engine-recomputed `rr` on both objectives. */
-  briefing: Briefing
+  briefing: B
   /** Engine R/R verdicts (protective stop, gate, reasons) per objective. */
   riskReward: { primary: RiskReward; secondary: RiskReward }
   /** Advisory findings (gate misses, off-engine borders, widened stops). */
@@ -126,7 +131,7 @@ function samePrice(a: number, b: number): boolean {
  *
  * @throws {BriefingValidationError} on any gap, overlap or inverted zone.
  */
-export function assertZoneContiguity(briefing: Briefing): void {
+export function assertZoneContiguity(briefing: PersistedBriefing): void {
   const zones = briefing.terrain.zones
   if (zones.length === 0) {
     throw new BriefingValidationError('terrain.zones is empty')
@@ -148,7 +153,7 @@ export function assertZoneContiguity(briefing: Briefing): void {
 }
 
 function offEngineBorders(
-  briefing: Briefing,
+  briefing: PersistedBriefing,
   engineBorders: readonly number[],
 ): number[] {
   const modelBorders = briefing.terrain.zones.flatMap((z) => [z.top, z.bottom])
@@ -426,12 +431,15 @@ function recomputeObjective(
 /**
  * Validate a model briefing against the engine and overwrite the code-owned
  * fields. Hard invariant violations throw (the task retries with a fresh
- * generation); advisory findings are returned as warnings.
+ * generation); advisory findings are returned as warnings. Generic over the
+ * briefing shape: fresh analyze generations pass {@link Briefing}; the update
+ * path passes {@link PersistedBriefing} (a legacy parent's overview carries
+ * forward untouched — nothing here reads the overview).
  */
-export function enforceCodeOwnedFacts(
-  briefing: Briefing,
+export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
+  briefing: B,
   options: ValidateOptions = {},
-): ValidatedBriefing {
+): ValidatedBriefing<B> {
   const rrMin = options.rrMin ?? DEFAULT_RR_MIN
   const warnings: string[] = []
 

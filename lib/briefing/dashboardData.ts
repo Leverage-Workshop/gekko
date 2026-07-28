@@ -1,4 +1,4 @@
-import { Briefing, EvalCheck, TacticalRead } from '@/knowledge/schema/briefing.schema'
+import { EvalCheck, PersistedBriefing, TacticalRead } from '@/knowledge/schema/briefing.schema'
 import { z } from 'zod'
 import { parseExecBars, type ExecBar } from '@/lib/engine/parseExecBars'
 import { assessStaleness, type StalenessAssessment } from '@/lib/engine/staleness'
@@ -101,7 +101,7 @@ export interface DashboardBriefing {
   kind: 'morning' | 'update'
   /** Non-null only for update rows whose tactical_read parses; degrades to null. */
   tacticalRead: TacticalRead | null
-  payload: Briefing
+  payload: PersistedBriefing
 }
 
 export interface DashboardData {
@@ -172,7 +172,7 @@ export async function loadDashboardData(
   let briefing: DashboardBriefing | null = null
   let briefingError: string | null = null
   if (briefingRow) {
-    const parsed = Briefing.safeParse(briefingRow.raw_model_json)
+    const parsed = PersistedBriefing.safeParse(briefingRow.raw_model_json)
     if (parsed.success) {
       // The tactical read degrades to null on any parse failure — it is an
       // update-only garnish and must never block the briefing render.

@@ -98,12 +98,33 @@ describe('computeEngineFacts', () => {
     ).toBe(true)
   })
 
+  it('computes daily ranges alongside value migration (feat-060)', () => {
+    const result = facts({ dailyVaContent: read('daily-value-areas.csv') })
+    expect(result.dailyRanges).not.toBeNull()
+    expect(result.dailyRanges!.days[0]).toEqual({ date: '2026-06-15', rangePts: 379 })
+    expect(result.dailyRanges!.days).toHaveLength(8)
+    // Recent 3 (379/240/251 → 290) vs prior 5 (mean 234): expanding.
+    expect(result.dailyRanges!.meanRecentPts).toBe(290)
+    expect(result.dailyRanges!.meanPriorPts).toBe(234)
+    expect(result.dailyRanges!.read).toBe('expanding')
+    // The day-by-day value series rides along on valueMigration.
+    expect(result.valueMigration!.recentSessions).toHaveLength(8)
+    expect(result.valueMigration!.recentSessions[0].date).toBe('2026-06-15')
+  })
+
+  it('degrades to dailyRanges:null together with valueMigration when the history is missing', () => {
+    const absent = facts()
+    expect(absent.dailyRanges).toBeNull()
+    const malformed = facts({ dailyVaContent: 'not a value-area csv' })
+    expect(malformed.dailyRanges).toBeNull()
+  })
+
   it('computes HTF structure from the 30-min bar export (feat-049)', () => {
     const result = facts({ htfCsvContent: read('htf_bar_data.rolling.csv') })
     expect(result.htfStructure).not.toBeNull()
     expect(result.htfStructure!.trend).toEqual({
-      state: 'up',
-      basis: 'higher swing highs and higher swing lows',
+      state: 'down',
+      basis: 'lower swing highs and lower swing lows',
     })
     expect(result.htfStructure!.atrPoints).toBeGreaterThan(0)
     expect(result.htfStructure!.recentSwingHighs.length).toBeGreaterThan(0)
@@ -126,6 +147,30 @@ describe('computeEngineFacts', () => {
     expect(
       malformed.warnings.some((w) => w.includes('htf_bar_data.rolling.csv failed to parse')),
     ).toBe(true)
+  })
+
+  it('computes the overnight session from the full-24h HTF bars (feat-060)', () => {
+    const result = facts({ htfCsvContent: read('htf_bar_data.rolling.csv') })
+    expect(result.overnightSession).not.toBeNull()
+    expect(result.overnightSession!.sessionDate).toBe('2026-07-28')
+    expect(result.overnightSession!.overnight.high).toBe(28228)
+    expect(result.overnightSession!.overnight.low).toBe(27839.5)
+    expect(result.overnightSession!.overnight.rangePts).toBe(388.5)
+    expect(result.overnightSession!.rthSoFar).toMatchObject({ open: 27948.75, barCount: 10 })
+    expect(result.warnings.some((w) => w.includes('overnight'))).toBe(false)
+  })
+
+  it('degrades to overnightSession:null with a warning on an RTH-only HTF export', () => {
+    // Two RTH-hours bars only — parses fine, but carries no overnight session.
+    const rthOnly = [
+      'DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume',
+      '2026-07-28 09:00:00,28000.00,28010.00,27990.00,28005.00,1000,500,500',
+      '2026-07-28 09:30:00,28005.00,28015.00,27995.00,28010.00,1000,500,500',
+    ].join('\n')
+    const result = facts({ htfCsvContent: rthOnly })
+    expect(result.htfStructure).not.toBeNull()
+    expect(result.overnightSession).toBeNull()
+    expect(result.warnings.some((w) => w.includes('no overnight bars'))).toBe(true)
   })
 
   it('reports POC/VAH/VAL per volume profile', () => {

@@ -2,9 +2,10 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-27
+**Last Updated:** 2026-07-28
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **MGI level attribution on every price in objective content** (feat-059),
+Latest: **Tactical Overview redesigned to HTF / MTF / Current** (feat-060), on top
+of **MGI level attribution on every price in objective content** (feat-059),
 on top of **single-print doctrine inverted — scars favor same-direction entries,
 fades anchor at the near-edge border** (feat-058), and before that
 **fixed 25-pt R/R basis gated on T2** (feat-057), and before that
@@ -22,6 +23,38 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Tactical Overview redesign (2026-07-28, feat-060).**
+Operator request: replace the four Gem-derived overview sections with three
+timeframe-descending ones — `htfView` (value migration across days, daily-range
+contraction/expansion, HTF trend), `mtfView` (the last few days day-by-day),
+`current` (overnight summary, then the RTH session so far) — with hard
+vocabulary rules: NO terrain-zone names (Kill Box / Elevator Shaft / etc. are
+not on the operator's charts) and NO ATR anywhere in overview prose (ranges
+quoted in actual points); every price carries its structure attribution.
+Implementation: new `Overview` schema (3 × 2–5 bullets; `keyInflections`
+dropped — it was generated but never rendered) plus `LegacyOverview` /
+`PersistedOverview` / `PersistedBriefing` so pre-feat-060 rows keep parsing on
+the dashboard and update-parent read paths (same pattern as the legacy T3
+rung); `composeUpdateBriefing`, `persistBriefing`, `enforceCodeOwnedFacts`
+(now generic), `dashboardData`, `highlight` and `OverviewPane` retyped, the
+pane branching on shape. New cheap engine facts: `lib/engine/dailyRanges.ts`
+(per-session range series + contracting/expanding/stable read from
+`daily-value-areas.csv`), `valueMigration.recentSessions` (last ≤10 sessions
+day-by-day), `lib/engine/overnightSession.ts` (overnight high/low/range +
+RTH-so-far extremes from the 30-min bars; the export's chart time is US
+Central — Globex reopen 17:00, RTH open 08:30 — and the module null-degrades
+with a warning on RTH-only exports). `factsPayload` gains `dailyRanges` and
+`overnightSession`; registry rows added to `docs/engine-ownership.md` (the
+prompt-data-sync gate binds them); doctrine rewritten in
+`knowledge/system/output-briefing.md`; analyze-prompt rules remapped (Active
+Pattern Scan verdict + stale flag now land in `overview.current`).
+`chart-data/htf_bar_data.rolling.csv` refreshed to a full-24h live snapshot
+(Jul 10–28, US Central) — the old fixture was RTH-only in ET and could never
+exercise the overnight facts; two fixture-derived HTF expectations updated
+(trend now down, ATR 116.23). MTF still has no multi-day TPO export — a
+possible follow-up Sierra export. `./init.sh` green (957 passed / 1 skipped,
+lint 0 errors).
 
 **MGI level attribution in objectives (2026-07-27, feat-059).**
 Operator request: when an objective headline (`macroGoal`) states a price tied

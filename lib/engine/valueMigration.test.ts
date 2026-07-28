@@ -5,6 +5,7 @@ import { parseDailyValueAreas, type DailyValueArea } from './parseDailyValueArea
 import {
   DRIFT_WINDOW_SESSIONS,
   POC_DRIFT_FLAT_MAX_PTS_PER_DAY,
+  RECENT_SESSIONS_SURFACED,
   computeValueMigration,
 } from './valueMigration'
 
@@ -112,6 +113,26 @@ describe('computeValueMigration', () => {
       relation: 'contains',
       midpointShiftPts: 0,
     })
+  })
+
+  it('surfaces the day-by-day recentSessions series, newest first, capped (feat-060)', () => {
+    const many = Array.from({ length: RECENT_SESSIONS_SURFACED + 5 }, (_, i) =>
+      session(`2026-07-${String(28 - i).padStart(2, '0')}`, 29900 - i * 10),
+    )
+    const facts = computeValueMigration(many, null)
+    expect(facts.recentSessions).toHaveLength(RECENT_SESSIONS_SURFACED)
+    expect(facts.recentSessions[0]).toEqual({
+      date: '2026-07-28',
+      poc: 29900,
+      vah: 29950,
+      val: 29850,
+      sessionHigh: 30000,
+      sessionLow: 29800,
+    })
+    expect(facts.recentSessions[1].date).toBe('2026-07-27')
+    // Fewer sessions than the cap → all of them, in order.
+    const few = computeValueMigration(many.slice(0, 2), null)
+    expect(few.recentSessions.map((s) => s.date)).toEqual(['2026-07-28', '2026-07-27'])
   })
 
   it('single-session history has no overlap read and zero drift', () => {

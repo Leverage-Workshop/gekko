@@ -45,16 +45,41 @@ export const KeyInflection = z.object({
 })
 export type KeyInflection = z.infer<typeof KeyInflection>
 
+/**
+ * Tactical Overview redesign (feat-060, 2026-07-28): three timeframe-descending
+ * prose sections — HTF view (value migration, daily-range contraction/
+ * expansion, HTF trend), MTF view (the last few days day-by-day), Current
+ * (overnight session, then the RTH session so far). Floor of 2 bullets per
+ * section (gem-comparison F6 — single-bullet overviews read as sparse), ceiling
+ * of 5 (ADHD profile — `current` must fit the overnight brief, the RTH read,
+ * the Active Pattern Scan verdict and a possible stale flag). `minItems`/
+ * `maxItems` are both proven safe under OpenAI strict structured outputs.
+ */
 export const Overview = z.object({
-  // Gem template floor: two concise bullets per prose section (gem-comparison F6 —
-  // single-bullet overviews read as sparse).
+  htfView: z.array(z.string()).min(2).max(5),
+  mtfView: z.array(z.string()).min(2).max(5),
+  current: z.array(z.string()).min(2).max(5),
+})
+export type Overview = z.infer<typeof Overview>
+
+/**
+ * Pre-feat-060 overview shape — HISTORICAL ROWS ONLY, never generated. Stays
+ * parseable for the same reason 'T3' does (see {@link TargetLabel}): persisted
+ * briefings are re-read through the schema (dashboardData / updateBundle
+ * safeParse) and old rows carry this shape. `keyInflections` was never
+ * rendered by the UI.
+ */
+export const LegacyOverview = z.object({
   currentPosition: z.array(z.string()).min(2),
   structuralArchitecture: z.array(z.string()).min(2),
   orderFlowContext: z.array(z.string()).min(2),
-  // Gem doctrine (ADHD profile): max 2 key areas per briefing.
   keyInflections: z.array(KeyInflection).min(1).max(2),
 })
-export type Overview = z.infer<typeof Overview>
+export type LegacyOverview = z.infer<typeof LegacyOverview>
+
+/** What a persisted `overview` column/payload may hold: current or legacy shape. */
+export const PersistedOverview = z.union([Overview, LegacyOverview])
+export type PersistedOverview = z.infer<typeof PersistedOverview>
 
 /** Contiguous Stratosphere→Abyss zone (top > bottom). Borders engine-validated. */
 export const TerrainZone = z.object({
@@ -150,6 +175,16 @@ export const Briefing = z.object({
   dangerZones: z.array(DangerZone),
 })
 export type Briefing = z.infer<typeof Briefing>
+
+/**
+ * Read-path variant of {@link Briefing} for PERSISTED rows (dashboard render,
+ * update-task parent parse): identical except `overview` also accepts the
+ * pre-feat-060 legacy shape. Never passed to a model — the generation contract
+ * stays {@link Briefing}, so the strict-structured-outputs walker never sees
+ * the union.
+ */
+export const PersistedBriefing = Briefing.extend({ overview: PersistedOverview })
+export type PersistedBriefing = z.infer<typeof PersistedBriefing>
 
 // --- BriefingUpdate ---------------------------------------------------------
 

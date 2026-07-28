@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Briefing } from '@/knowledge/schema/briefing.schema'
+import { Briefing, PersistedBriefing } from '@/knowledge/schema/briefing.schema'
 import type { BriefingUpdate } from '@/knowledge/schema/briefing.schema'
 import { composeUpdateBriefing } from '@/lib/update'
 
-const parent: Briefing = {
+// Deliberately the PRE-feat-060 legacy overview shape: updates must keep
+// carrying a legacy parent's overview forward verbatim.
+const parent: PersistedBriefing = {
   meta: {
     createdAt: '2026-07-13T13:00:00Z',
     triggerReason: 'manual',
@@ -72,8 +74,25 @@ describe('composeUpdateBriefing', () => {
     expect(composed.terrain).toEqual(parent.terrain)
   })
 
-  it('produces a parseable full Briefing (the dashboard contract)', () => {
+  it('produces a parseable PersistedBriefing (the dashboard contract) even from a legacy parent', () => {
     const composed = composeUpdateBriefing(parent, update)
+    expect(PersistedBriefing.safeParse(composed).success).toBe(true)
+    // The legacy overview shape is a persisted-rows-only affordance — the
+    // generation contract itself must not accept it.
+    expect(Briefing.safeParse(composed).success).toBe(false)
+  })
+
+  it('carries a feat-060 three-section overview forward unchanged', () => {
+    const modernParent: PersistedBriefing = {
+      ...parent,
+      overview: {
+        htfView: ['value migrating higher', 'ranges contracting'],
+        mtfView: ['value overlapping three days', 'narrow IB'],
+        current: ['ON low held', 'no playbook pattern active'],
+      },
+    }
+    const composed = composeUpdateBriefing(modernParent, update)
+    expect(composed.overview).toEqual(modernParent.overview)
     expect(Briefing.safeParse(composed).success).toBe(true)
   })
 

@@ -319,8 +319,8 @@ describe('runEval', () => {
     const prompt = harness.getCaptured()!.prompt
 
     expect(prompt).toContain('# HTF structure context')
-    expect(prompt).toContain('trend UP (higher swing highs and higher swing lows)')
-    expect(prompt).toContain('30-min ATR 29.66 pts')
+    expect(prompt).toContain('trend DOWN (lower swing highs and lower swing lows)')
+    expect(prompt).toContain('30-min ATR 116.23 pts')
     expect(prompt).toContain('from the last swing high')
   })
 
