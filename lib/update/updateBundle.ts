@@ -1,4 +1,4 @@
-import { Briefing, BriefingUpdate } from '@/knowledge/schema/briefing.schema'
+import { BriefingUpdate, PersistedBriefing } from '@/knowledge/schema/briefing.schema'
 import type { AnalyzeConfig } from '@/lib/analyze'
 import {
   computeEngineFacts,
@@ -115,7 +115,7 @@ export async function runUpdate(
   if (!parentRow) {
     throw new UpdateInputError('no previous briefing exists — run a full briefing first')
   }
-  const parentParse = Briefing.safeParse(parentRow.raw_model_json)
+  const parentParse = PersistedBriefing.safeParse(parentRow.raw_model_json)
   if (!parentParse.success) {
     throw new UpdateInputError(
       `previous briefing ${parentRow.id} no longer parses as a Briefing — run a full briefing first`,

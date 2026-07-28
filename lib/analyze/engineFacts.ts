@@ -24,9 +24,13 @@ import type { TpoFacts } from '@/lib/engine/tpoFacts'
 import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
 import { computeValueMigration } from '@/lib/engine/valueMigration'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
+import { computeDailyRanges } from '@/lib/engine/dailyRanges'
+import type { DailyRangeFacts } from '@/lib/engine/dailyRanges'
 import { parseHtfBars } from '@/lib/engine/parseHtfBars'
 import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import { computeOvernightSession } from '@/lib/engine/overnightSession'
+import type { OvernightSessionFacts } from '@/lib/engine/overnightSession'
 
 /**
  * Deterministic engine pass over one export bundle: every computed fact the
@@ -116,6 +120,13 @@ export interface EngineFacts {
    */
   valueMigration: ValueMigrationFacts | null
   /**
+   * Code-owned daily-range read (feat-060): per-session range series and the
+   * contraction/expansion verdict, in plain points (the overview must never
+   * cite ATR). Null when the bundle has no (or a malformed)
+   * `daily-value-areas.csv` — flagged in `warnings`.
+   */
+  dailyRanges: DailyRangeFacts | null
+  /**
    * Code-owned HTF structure read (feat-049): trend state from the swing
    * sequence, recent swing highs/lows, rotation extent and measured 30-min
    * ATR — `meta.htfTrend` verifies against this instead of being a pure
@@ -123,6 +134,13 @@ export interface EngineFacts {
    * `htf_bar_data.rolling.csv` — flagged in `warnings`.
    */
   htfStructure: HtfStructureFacts | null
+  /**
+   * Code-owned overnight-session read (feat-060): the Globex session's
+   * high/low/range plus RTH-so-far extremes from the 30-min bars. Null when
+   * the bundle has no HTF bar export OR the export carries no overnight bars
+   * (RTH-only chart) — flagged in `warnings`.
+   */
+  overnightSession: OvernightSessionFacts | null
   /** Non-fatal degradations (missing rip, terrain issues, ...). */
   warnings: string[]
 }
@@ -212,25 +230,35 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   }
 
   let valueMigration: ValueMigrationFacts | null = null
+  let dailyRanges: DailyRangeFacts | null = null
   if (input.dailyVaContent) {
     try {
-      valueMigration = computeValueMigration(
-        parseDailyValueAreas(input.dailyVaContent),
-        mgi.currentPrice,
-      )
+      const dailySessions = parseDailyValueAreas(input.dailyVaContent)
+      valueMigration = computeValueMigration(dailySessions, mgi.currentPrice)
+      dailyRanges = computeDailyRanges(dailySessions)
     } catch (error) {
       warnings.push(
-        `daily-value-areas.csv failed to parse — value migration not computed: ${error instanceof Error ? error.message : String(error)}`,
+        `daily-value-areas.csv failed to parse — value migration and daily ranges not computed: ${error instanceof Error ? error.message : String(error)}`,
       )
     }
   } else {
-    warnings.push('bundle has no daily value-area history — value migration not computed')
+    warnings.push(
+      'bundle has no daily value-area history — value migration and daily ranges not computed',
+    )
   }
 
   let htfStructure: HtfStructureFacts | null = null
+  let overnightSession: OvernightSessionFacts | null = null
   if (input.htfCsvContent) {
     try {
-      htfStructure = computeHtfStructure(parseHtfBars(input.htfCsvContent), mgi.currentPrice)
+      const htfBars = parseHtfBars(input.htfCsvContent)
+      htfStructure = computeHtfStructure(htfBars, mgi.currentPrice)
+      overnightSession = computeOvernightSession(htfBars, mgi.currentPrice)
+      if (overnightSession === null) {
+        warnings.push(
+          'HTF export carries no overnight bars — overnight session facts not computed',
+        )
+      }
     } catch (error) {
       warnings.push(
         `htf_bar_data.rolling.csv failed to parse — HTF structure not computed: ${error instanceof Error ? error.message : String(error)}`,
@@ -344,7 +372,9 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     profileSummary,
     tpo,
     valueMigration,
+    dailyRanges,
     htfStructure,
+    overnightSession,
     warnings,
   }
 }

@@ -1,4 +1,4 @@
-import type { Briefing } from '@/knowledge/schema/briefing.schema'
+import type { PersistedBriefing } from '@/knowledge/schema/briefing.schema'
 
 /**
  * Briefing prose segmentation: split model-written text into plain runs,
@@ -37,7 +37,7 @@ const DOCTRINE_TERMS = [
 ]
 
 /** Level + zone labels from the payload, merged with the doctrine vocabulary. */
-export function buildHighlightTerms(payload: Briefing): string[] {
+export function buildHighlightTerms(payload: PersistedBriefing): string[] {
   const labels = [
     ...payload.terrain.levels.map((level) => level.label),
     ...payload.terrain.zones.map((zone) => zone.label),

@@ -7,6 +7,7 @@ import {
   Objective,
   Direction,
   LevelKind,
+  PersistedBriefing,
   TargetLabel,
   EvalStatus,
 } from '@/knowledge/schema/briefing.schema'
@@ -38,10 +39,9 @@ const validBriefing = {
     ripStatus: 'Green',
   },
   overview: {
-    currentPosition: ['Holding above VAL', 'Rip green with price above the reclaim'],
-    structuralArchitecture: ['Balanced HTF distribution', 'Void below the VAL trench'],
-    orderFlowContext: ['Blue initiative building', 'No playbook pattern active'],
-    keyInflections: [{ level: 24000, why: 'Value-area low' }],
+    htfView: ['Value migrating higher across the week', 'Daily ranges contracting'],
+    mtfView: ['Three overlapping value days', 'Narrow IB with single prints below'],
+    current: ['ON low tested and held', 'No playbook pattern active'],
   },
   terrain: {
     zones: [
@@ -149,8 +149,8 @@ describe('Briefing', () => {
     }
   })
 
-  it('requires at least two bullets in each overview prose section (F6)', () => {
-    for (const section of ['currentPosition', 'structuralArchitecture', 'orderFlowContext'] as const) {
+  it('requires at least two bullets in each overview section (F6)', () => {
+    for (const section of ['htfView', 'mtfView', 'current'] as const) {
       const bad = {
         ...validBriefing,
         overview: { ...validBriefing.overview, [section]: ['only one bullet'] },
@@ -159,16 +159,40 @@ describe('Briefing', () => {
     }
   })
 
-  it('bounds keyInflections to 1–2 entries (ADHD max-2 doctrine)', () => {
-    const inflection = { level: 24000, why: 'Value-area low' }
-    const withCount = (n: number) => ({
-      ...validBriefing,
-      overview: { ...validBriefing.overview, keyInflections: Array(n).fill(inflection) },
-    })
-    expect(Briefing.safeParse(withCount(0)).success).toBe(false)
-    expect(Briefing.safeParse(withCount(1)).success).toBe(true)
-    expect(Briefing.safeParse(withCount(2)).success).toBe(true)
-    expect(Briefing.safeParse(withCount(3)).success).toBe(false)
+  it('caps each overview section at 5 bullets (ADHD tightness)', () => {
+    for (const section of ['htfView', 'mtfView', 'current'] as const) {
+      const bad = {
+        ...validBriefing,
+        overview: { ...validBriefing.overview, [section]: Array(6).fill('a bullet') },
+      }
+      expect(Briefing.safeParse(bad).success).toBe(false)
+      const atCeiling = {
+        ...validBriefing,
+        overview: { ...validBriefing.overview, [section]: Array(5).fill('a bullet') },
+      }
+      expect(Briefing.safeParse(atCeiling).success).toBe(true)
+    }
+  })
+
+  // Pre-feat-060 rows carry the legacy four-section overview. Like the T3
+  // rung, that shape stays parseable on the persisted read path only — the
+  // generation contract rejects it.
+  const legacyOverview = {
+    currentPosition: ['Holding above VAL', 'Rip green with price above the reclaim'],
+    structuralArchitecture: ['Balanced HTF distribution', 'Void below the VAL trench'],
+    orderFlowContext: ['Blue initiative building', 'No playbook pattern active'],
+    keyInflections: [{ level: 24000, why: 'Value-area low' }],
+  }
+
+  it('rejects the legacy four-section overview at generation time', () => {
+    const legacy = { ...validBriefing, overview: legacyOverview }
+    expect(Briefing.safeParse(legacy).success).toBe(false)
+  })
+
+  it('PersistedBriefing accepts both the current and the legacy overview shape', () => {
+    expect(PersistedBriefing.safeParse(validBriefing).success).toBe(true)
+    const legacy = { ...validBriefing, overview: legacyOverview }
+    expect(PersistedBriefing.safeParse(legacy).success).toBe(true)
   })
 })
 

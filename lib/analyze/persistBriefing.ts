@@ -1,4 +1,4 @@
-import type { Briefing, TacticalRead } from '@/knowledge/schema/briefing.schema'
+import type { PersistedBriefing, TacticalRead } from '@/knowledge/schema/briefing.schema'
 import type { RiskReward } from '@/lib/engine/riskReward'
 
 /**
@@ -17,11 +17,11 @@ export interface BriefingInsert {
   model_id: string
   htf_trend: string
   rip_status: string
-  terrain: Briefing['terrain']
-  primary_obj: Briefing['primary']
-  secondary_obj: Briefing['secondary']
-  danger_zones: Briefing['dangerZones']
-  overview: Briefing['overview']
+  terrain: PersistedBriefing['terrain']
+  primary_obj: PersistedBriefing['primary']
+  secondary_obj: PersistedBriefing['secondary']
+  danger_zones: PersistedBriefing['dangerZones']
+  overview: PersistedBriefing['overview']
   /**
    * The POST-enforcement briefing (validated + code-owned facts overwritten)
    * — NOT the model's raw output. The dashboard re-validates and renders
@@ -29,7 +29,7 @@ export interface BriefingInsert {
    * pre-enforcement output is observable via LangSmith telemetry (feat-030)
    * when enabled.
    */
-  raw_model_json: Briefing
+  raw_model_json: PersistedBriefing
   /** feat-038: 'update' rows only — omitted for analyze so the DB default applies. */
   kind?: 'update'
   parent_briefing_id?: string
@@ -64,7 +64,7 @@ export interface PersistInput {
   /** The model id that actually served the request. */
   model: string
   /** Engine-validated briefing (rr already recomputed). */
-  briefing: Briefing
+  briefing: PersistedBriefing
   /** Engine R/R verdicts — the protective stop per objective. */
   riskReward: { primary: RiskReward; secondary: RiskReward }
   /** feat-038: present only for update-task runs. */
@@ -101,7 +101,7 @@ export function buildBriefingRow(
  */
 export function buildEntryLevelRows(
   briefingId: string,
-  briefing: Briefing,
+  briefing: PersistedBriefing,
   riskReward: PersistInput['riskReward'],
 ): EntryLevelInsert[] {
   const objectives = [

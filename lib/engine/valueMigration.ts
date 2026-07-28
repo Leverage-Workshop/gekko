@@ -13,6 +13,9 @@ import type { DailyValueArea } from './parseDailyValueAreas'
 /** Sessions (newest-first) the POC drift pace is measured across. */
 export const DRIFT_WINDOW_SESSIONS = 5
 
+/** Completed sessions (newest-first) surfaced day-by-day in `recentSessions` (feat-060). */
+export const RECENT_SESSIONS_SURFACED = 10
+
 /**
  * Mean POC drift below this (NQ points per session, over the drift window)
  * reads as "flat" — value building in place rather than migrating.
@@ -50,6 +53,20 @@ export type ValueMigrationFacts = {
     sessionHigh: number
     sessionLow: number
   }
+  /**
+   * The last ≤{@link RECENT_SESSIONS_SURFACED} completed sessions, newest
+   * first — the day-by-day value series (feat-060) behind the overview's
+   * HTF/MTF narrative (where value built each day, how the POCs stack), which
+   * the drift/streak scalars alone cannot convey.
+   */
+  recentSessions: {
+    date: string
+    poc: number
+    vah: number
+    val: number
+    sessionHigh: number
+    sessionLow: number
+  }[]
   /** Mean signed POC change per session over the drift window. */
   pocDrift: {
     direction: 'up' | 'down' | 'flat'
@@ -173,6 +190,14 @@ export function computeValueMigration(
       sessionHigh: latest.sessionHigh,
       sessionLow: latest.sessionLow,
     },
+    recentSessions: sessions.slice(0, RECENT_SESSIONS_SURFACED).map((s) => ({
+      date: s.date,
+      poc: s.poc,
+      vah: s.vah,
+      val: s.val,
+      sessionHigh: s.sessionHigh,
+      sessionLow: s.sessionLow,
+    })),
     pocDrift: { direction, pointsPerDay, windowSessions },
     valueTrend: { consecutiveHigherValueDays, consecutiveLowerValueDays },
     priorDayOverlap: sessions.length > 1 ? relate(sessions[0], sessions[1]) : null,

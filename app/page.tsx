@@ -1,7 +1,7 @@
 import type {
   DangerZone,
   Objective,
-  Overview,
+  PersistedOverview,
   TacticalRead,
 } from '@/knowledge/schema/briefing.schema'
 import {
@@ -11,7 +11,7 @@ import {
   realDashboardDeps,
   type DashboardData,
 } from '@/lib/briefing'
-import type { Briefing } from '@/knowledge/schema/briefing.schema'
+import type { PersistedBriefing } from '@/knowledge/schema/briefing.schema'
 import { BriefingTabs } from './components/briefing-tabs'
 import { EvalStrip } from './components/eval-strip'
 import { Footer } from './components/footer'
@@ -80,13 +80,24 @@ function ripStatusTone(status: string): string {
   return 'text-ink'
 }
 
-/** Tactical Overview tab: the three prose groups as stacked cards. */
-function OverviewPane({ overview, terms }: { overview: Overview; terms: string[] }) {
-  const groups: { title: string; items: string[] }[] = [
-    { title: 'Current Position', items: overview.currentPosition },
-    { title: 'Structural Architecture', items: overview.structuralArchitecture },
-    { title: 'Order Flow Context', items: overview.orderFlowContext },
-  ]
+/**
+ * Tactical Overview tab: the three prose groups as stacked cards. Branches on
+ * the overview shape — HTF View / MTF View / Current for feat-060 briefings,
+ * the legacy three groups for pre-feat-060 rows still in the DB.
+ */
+function OverviewPane({ overview, terms }: { overview: PersistedOverview; terms: string[] }) {
+  const groups: { title: string; items: string[] }[] =
+    'htfView' in overview
+      ? [
+          { title: 'HTF View', items: overview.htfView },
+          { title: 'MTF View', items: overview.mtfView },
+          { title: 'Current', items: overview.current },
+        ]
+      : [
+          { title: 'Current Position', items: overview.currentPosition },
+          { title: 'Structural Architecture', items: overview.structuralArchitecture },
+          { title: 'Order Flow Context', items: overview.orderFlowContext },
+        ]
   return (
     <div className="flex flex-col gap-6">
       {groups.map((group) => (
@@ -128,7 +139,7 @@ function MetaColumn({
     modelId: string | null
     kind: 'morning' | 'update'
   }
-  payload: Briefing
+  payload: PersistedBriefing
   isStale: boolean
   staleWarning: string | null
   terms: string[]

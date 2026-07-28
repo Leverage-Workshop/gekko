@@ -627,6 +627,16 @@
         "feat-058"
       ],
       "evidence": "Doctrine-prose-only change; ./init.sh green 2026-07-27 (typecheck, lint 0 errors, 933 passed / 1 skipped, build). Operator request 2026-07-27: objective headlines (and all objective content) stating a price tied to MGI level(s) must name those levels."
+    },
+    {
+      "id": "feat-060",
+      "name": "Tactical Overview redesign: HTF view / MTF view / Current",
+      "description": "Operator-directed redesign (2026-07-28): the briefing overview drops the four Gem-derived sections (currentPosition/structuralArchitecture/orderFlowContext/keyInflections) for three timeframe-descending sections - htfView (value migration across days, daily-range contraction/expansion in plain points, HTF trend), mtfView (the last few days day-by-day from the daily value-area series + current-session TPO facts), current (overnight session summary, then the RTH session so far: attempts/rejections, ON level tests, delta initiative, Active Pattern Scan verdict, stale flag). Hard vocabulary rules: overview prose never uses terrain-zone names (Kill Box, Elevator Shaft, Stratosphere, Attic, Foundation, Abyss - not on the operator's charts) and never mentions ATR (ranges quoted in actual points); every price carries its structure attribution in parens. New cheap engine facts feeding it: lib/engine/dailyRanges.ts (range series + contracting/expanding/stable read from daily-value-areas.csv), valueMigration.recentSessions (last <=10 sessions day-by-day), lib/engine/overnightSession.ts (overnight high/low/range + RTH-so-far from the full-24h US-Central htf_bars.csv; null-degrades on RTH-only exports). Schema: Overview = {htfView, mtfView, current} each 2-5 bullets; keyInflections dropped (was never rendered); LegacyOverview/PersistedOverview/PersistedBriefing keep pre-feat-060 rows parsing on the dashboard and update-parent read paths (same pattern as the legacy T3 rung). UI OverviewPane branches on shape. chart-data/htf_bar_data.rolling.csv fixture refreshed to a full-24h live snapshot (Jul 10-28) so the sync gate exercises the overnight facts.",
+      "status": "done",
+      "dependencies": [
+        "feat-059"
+      ],
+      "evidence": "./init.sh green 2026-07-28 (typecheck, lint 0 errors, 957 passed / 1 skipped, build). New tests: lib/engine/dailyRanges.test.ts, lib/engine/overnightSession.test.ts, valueMigration recentSessions, engineFacts wiring (dailyRanges/overnightSession + RTH-only degrade), schema legacy-union round-trips, dashboard legacy-row parse, composeBriefing legacy + modern carry-forward. Registry rows added to docs/engine-ownership.md (prompt-data-sync gate)."
     }
   ]
 }

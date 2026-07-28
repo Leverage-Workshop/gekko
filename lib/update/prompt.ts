@@ -1,4 +1,4 @@
-import type { Briefing } from '@/knowledge/schema/briefing.schema'
+import type { PersistedBriefing } from '@/knowledge/schema/briefing.schema'
 import type { ChartAttachment, EngineFacts } from '@/lib/analyze'
 import { engineZoneBorders } from '@/lib/analyze'
 import {
@@ -17,8 +17,8 @@ import {
  */
 
 export interface ParentBriefingContext {
-  /** The parent's enforced `raw_model_json` (already Briefing-validated). */
-  briefing: Briefing
+  /** The parent's enforced `raw_model_json` (already schema-validated; may carry a pre-feat-060 legacy overview). */
+  briefing: PersistedBriefing
   /** The parent row's `created_at`. */
   createdAt: string
   /** 'morning' | 'update' — labeled so the model knows how stale the inherited context is. */
