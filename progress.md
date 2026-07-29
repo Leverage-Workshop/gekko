@@ -4,7 +4,8 @@
 
 **Last Updated:** 2026-07-29
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **full-session Globex exec-bar export ingest** (feat-062), on top of
+Latest: **session-anchored intraday facts — VWAP / cum delta / one-timeframing**
+(feat-063), on top of **full-session Globex exec-bar export ingest** (feat-062), on top of
 **Operator directive on objective cards** (feat-061), on top of
 **Tactical Overview redesigned to HTF / MTF / Current** (feat-060), on top
 of **MGI level attribution on every price in objective content** (feat-059),
@@ -25,6 +26,22 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Session-anchored intraday facts (2026-07-29, feat-063).**
+New engine module `lib/engine/sessionIntraday.ts` — the operator's intraday
+trend read, from the full-session exec bars: Globex- and RTH-anchored session
+VWAP (raw-bar accumulation, slope vs 30 min ago), session cumulative delta
+(same anchors, last-30-min trend), and 15-min one-timeframing (state, bars
+held, break level, real-time developing-bar break). VWAP/cum-delta null +
+warning when the export starts >30 min after the Globex open (the retired
+rolling export); OTF computes regardless. Wired into EngineFacts,
+factsPayload (analyze + update prompts), facts-guide lines in both prompts,
+engine-ownership registry. 14 new tests including the real fixture (rolling
+window captured at 21:52 — correctly reads as FULL coverage of the young
+Globex session). Still open for the next feature: composite `intradayTrend`
+synthesis (OTF + micro swing structure with a Dow break rule + momentum
+stack + flow confirmation), HTF trend intact/under-test/broken qualifier,
+eval-gate threading.
 
 **Full-session Globex exec-bar export ingest (2026-07-29, feat-062).**
 Operator-directed data upgrade, first step of the intraday-trend rethink. The

@@ -31,6 +31,8 @@ import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
 import { computeOvernightSession } from '@/lib/engine/overnightSession'
 import type { OvernightSessionFacts } from '@/lib/engine/overnightSession'
+import { computeSessionIntraday } from '@/lib/engine/sessionIntraday'
+import type { SessionIntradayFacts } from '@/lib/engine/sessionIntraday'
 
 /**
  * Deterministic engine pass over one export bundle: every computed fact the
@@ -141,6 +143,15 @@ export interface EngineFacts {
    * (RTH-only chart) — flagged in `warnings`.
    */
   overnightSession: OvernightSessionFacts | null
+  /**
+   * Code-owned session-anchored intraday read (feat-063), computed from the
+   * full-session Globex exec-bar export (feat-062): session VWAP (Globex- and
+   * RTH-anchored) with slope, session cumulative delta, and 15-min
+   * one-timeframing. VWAP/cum-delta anchors are null when the export starts
+   * mid-session (`coverage: 'partial'`, e.g. the retired rolling export) —
+   * flagged in `warnings`.
+   */
+  sessionIntraday: SessionIntradayFacts
   /** Non-fatal degradations (missing rip, terrain issues, ...). */
   warnings: string[]
 }
@@ -186,6 +197,12 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const bars = parseExecBars(input.execCsvContent)
   const deltaTelemetry = computeDeltaTelemetry(bars)
   const mgi = computeMgiPriority(input.mgi)
+  const sessionIntraday = computeSessionIntraday(bars, mgi.currentPrice)
+  if (sessionIntraday.coverage === 'partial') {
+    warnings.push(
+      `exec export starts ${sessionIntraday.firstBarTime}, well after the Globex open — session VWAP and cumulative delta not computed (partial session coverage)`,
+    )
+  }
   // Node build quality (feat-050): the canonical node lists are annotated with
   // the raw delta that built them when the profile export carries the Delta
   // column. Terrain and the magnet verdicts consume the UNannotated objects —
@@ -375,6 +392,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     dailyRanges,
     htfStructure,
     overnightSession,
+    sessionIntraday,
     warnings,
   }
 }

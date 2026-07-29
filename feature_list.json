@@ -657,6 +657,16 @@
         "feat-047"
       ],
       "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/7 pre-existing warnings, 976 tests passed / 1 skipped, build compiled). New tests: uploader candidate-filename priority (globex.csv > extensionless globex > rolling fallback) in tests/uploader.bundle.test.ts."
+    },
+    {
+      "id": "feat-063",
+      "name": "Session-anchored intraday facts: VWAP, cumulative delta, one-timeframing",
+      "description": "Second step of the intraday-trend rethink (operator, 2026-07-29). New code-owned engine module lib/engine/sessionIntraday.ts computed from the full-session Globex exec-bar export (feat-062): (1) session VWAP - Globex- and RTH-anchored, accumulated over the RAW exec bars (typical price x volume; finer than any resample), with current-price distance/position and a slope read (VWAP now vs 30 min ago, flat within 2 pts); (2) session cumulative delta on the same two anchors with a last-30-min trend read (flat within 50 contracts); (3) one-timeframing on 15-MIN resampled bars (operator: 30-min too high for NQ, 5-min breaks on every pause) - up run holds while each completed bar's low stays at-or-above the prior bar's low (one-tick tolerance), mirrored on highs for down; state/barsHeld/since/breakLevel plus developingBarBroke (the partial bar already trading through the level breaks the run in real time); 'none' = two-timeframing/rotational. resampleBars(bars, minutes) is the exported time-bucket resampler (empty buckets skipped, last bar developing). Coverage guard: VWAP/cum-delta anchors are NULL when the export starts >30 min after the Globex open ('partial', e.g. the retired rolling export) - engineFacts pushes a warning; OTF still computes (recent structure is valid regardless of window start). Wired: EngineFacts.sessionIntraday (non-null), factsPayload for BOTH analyze and update prompts, facts-guide lines in each ('the intraday trend read at the operator's trade horizon - weigh alongside the Rip'), engine-ownership registry row. Operator explicitly wants NO new chart studies/export columns - everything computed in code. NEXT (not this feature): composite intradayTrend synthesis + HTF trend intact/under-test/broken qualifier + eval-gate threading.",
+      "status": "done",
+      "dependencies": [
+        "feat-062"
+      ],
+      "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/7 pre-existing warnings, 990 tests passed / 1 skipped, build compiled). New tests: lib/engine/sessionIntraday.test.ts (14 \u2014 resampler, coverage guard, VWAP anchors/slope, cum-delta anchors/trend, OTF up/down/none/developing-bar-break, real fixture). feat-054 sync gate covers the new factsPayload key via the engine-ownership registry row."
     }
   ]
 }
