@@ -5,6 +5,7 @@ import type { ExecBar } from '@/lib/engine/parseExecBars'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import type { IntradayTrendFacts } from '@/lib/engine/intradayTrend'
 import type { ChartAttachment } from '@/lib/analyze'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
 
@@ -57,6 +58,14 @@ export interface EvalPromptInput {
    * an adverse move can be judged as rotation noise vs trend break.
    */
   htfStructure?: HtfStructureFacts | null
+  /**
+   * Code-owned composite intraday trend (feat-064) from the full-session exec
+   * bars — the trend read at the operator's trade horizon. Rendered as one
+   * context line: direction/conviction/character plus open disagreements.
+   * Computed WITHOUT the Rip frame on this path (the eval bundle carries no
+   * MGI). Null/absent when unavailable.
+   */
+  intradayTrend?: IntradayTrendFacts | null
   /**
    * Position-eval mode: the direction of the operator's open position. The
    * verdict is a hold-or-exit read at the current price instead of an entry
@@ -140,7 +149,26 @@ function htfContextLine(htf: HtfStructureFacts | null | undefined): string {
     ? `; current rotation ${htf.rotation.low}–${htf.rotation.high} (${htf.rotation.extentPts} pts, ${htf.rotation.extentAtr} ATR)`
     : ''
   const swings = swingBits.length > 0 ? `; price is ${swingBits.join(' and ')}` : ''
-  return `Code-owned (30-min chart): trend ${htf.trend.state.toUpperCase()} (${htf.trend.basis}); 30-min ATR ${htf.atrPoints} pts${rotation}${swings}. An adverse move well inside 1 rotation/a few ATR is rotation noise; beyond the last swing against the trade is a structure break.`
+  const integrity = htf.trend.integrity
+    ? ` — integrity ${htf.trend.integrity.toUpperCase()} (${htf.trend.integrityBasis})`
+    : ''
+  return `Code-owned (30-min chart): trend ${htf.trend.state.toUpperCase()} (${htf.trend.basis})${integrity}; 30-min ATR ${htf.atrPoints} pts${rotation}${swings}. An adverse move well inside 1 rotation/a few ATR is rotation noise; beyond the last swing against the trade is a structure break. The swing state lags by 2.5 h — weigh the integrity qualifier, not the raw state.`
+}
+
+/**
+ * One code-owned composite intraday trend line (feat-064): the trend read at
+ * the operator's trade horizon — direction, conviction, character and open
+ * component disagreements. Computed without the Rip frame on this path.
+ */
+function intradayTrendLine(trend: IntradayTrendFacts | null | undefined): string {
+  if (!trend) {
+    return 'No composite intraday trend is available for this bundle.'
+  }
+  const disagreements =
+    trend.disagreements.length > 0
+      ? ` Open conflicts: ${trend.disagreements.join('; ')}.`
+      : ''
+  return `Code-owned (full-session exec bars): ${trend.basis}.${disagreements} A directional entry WITH this read needs less confirmation than one against it; an entry against a strong ${trend.direction} read demands a confirmed reversal pattern at structure.`
 }
 
 /** The absorption-candidate section: code-owned facts or an honest absence note. */
@@ -264,6 +292,9 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '',
     '# HTF structure context (code-owned, from the 30-min HTF bar export)',
     htfContextLine(input.htfStructure),
+    '',
+    '# Intraday trend context (code-owned composite, from the full-session exec bars)',
+    intradayTrendLine(input.intradayTrend),
     '',
     '# Absorption candidates (code-detected on the execution delta-profile exports)',
     absorptionSection(input.absorption),

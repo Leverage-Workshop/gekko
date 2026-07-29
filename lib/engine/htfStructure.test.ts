@@ -133,6 +133,49 @@ describe('computeHtfStructure', () => {
     expect(facts.windowEnd).toMatch(/^2026-07-2\d \d\d:\d\d$/)
   })
 
+  describe('trend integrity (feat-064)', () => {
+    // DOWN_PATH mirror: last swing high 122.5, last swing low 104.5 (18-pt rotation).
+    it('reads intact when the counter-move is inside normal rotation', () => {
+      const facts = computeHtfStructure(barsFromPath(DOWN_PATH), 106)
+
+      expect(facts.trend.state).toBe('down')
+      expect(facts.trend.integrity).toBe('intact')
+      expect(facts.trend.integrityBasis).toMatch(/retraced only/)
+    })
+
+    it('reads under-test when the counter-move retraces most of the rotation', () => {
+      const facts = computeHtfStructure(barsFromPath(DOWN_PATH), 115)
+
+      expect(facts.trend.state).toBe('down')
+      expect(facts.trend.integrity).toBe('under-test')
+      expect(facts.trend.integrityBasis).toMatch(/retraced ~58%/)
+    })
+
+    it('reads broken when price trades through the defining swing high of a downtrend', () => {
+      const facts = computeHtfStructure(barsFromPath(DOWN_PATH), 123)
+
+      expect(facts.trend.state).toBe('down')
+      expect(facts.trend.integrity).toBe('broken')
+      expect(facts.trend.integrityBasis).toMatch(/above the 122.5 defining swing high/)
+    })
+
+    it('reads broken when price trades through the defining swing low of an uptrend', () => {
+      const facts = computeHtfStructure(barsFromPath(UP_PATH), 117)
+
+      expect(facts.trend.state).toBe('up')
+      expect(facts.trend.integrity).toBe('broken')
+      expect(facts.trend.integrityBasis).toMatch(/below the 117.5 defining swing low/)
+    })
+
+    it('carries no integrity qualifier on a range state', () => {
+      const facts = computeHtfStructure(barsFromPath(Array(20).fill(100)), 100)
+
+      expect(facts.trend.state).toBe('range')
+      expect(facts.trend.integrity).toBeNull()
+      expect(facts.trend.integrityBasis).toBeNull()
+    })
+  })
+
   it('computes sane facts from the real sample export (chart-data/)', () => {
     const bars = parseHtfBars(
       readFileSync(join(process.cwd(), 'chart-data', 'htf_bar_data.rolling.csv'), 'utf-8'),

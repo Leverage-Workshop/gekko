@@ -18,6 +18,18 @@ export const ATR_PERIOD_BARS = 14
 /** Confirmed swings reported per side (newest first). */
 export const REPORTED_SWINGS_PER_SIDE = 3
 
+/**
+ * A counter-move retracing more than this fraction of the defining rotation
+ * puts the trend 'under-test' (feat-064). Confirmed pivots lag by
+ * {@link SWING_PIVOT_STRENGTH} bars (2.5 h), so without this qualifier a fast
+ * V-reversal leaves the state frozen — the 2026-07-29 incident: "down" while
+ * price had retraced ~95% of the rotation and sat 30 pts under the swing high.
+ */
+export const UNDER_TEST_RETRACE_FRACTION = 0.5
+
+/** One NQ tick — price beyond the defining swing by more than this breaks the sequence. */
+const PRICE_EPSILON = 0.25
+
 export type HtfSwing = {
   price: number
   /** Bar start time, `YYYY-MM-DD HH:MM` chart time. */
@@ -25,6 +37,17 @@ export type HtfSwing = {
 }
 
 export type HtfTrendState = 'up' | 'down' | 'range'
+
+/**
+ * How the confirmed swing sequence squares with the CURRENT price (feat-064):
+ * 'broken' — price has traded through the defining swing (above the last swing
+ * high in a downtrend / below the last swing low in an uptrend); the sequence
+ * is invalidated in real time even though new pivots haven't confirmed.
+ * 'under-test' — the counter-move has retraced more than
+ * {@link UNDER_TEST_RETRACE_FRACTION} of the defining rotation.
+ * 'intact' — the counter-move is inside normal rotation.
+ */
+export type HtfTrendIntegrity = 'intact' | 'under-test' | 'broken'
 
 export type HtfStructureFacts = {
   barsAnalyzed: number
@@ -38,6 +61,14 @@ export type HtfStructureFacts = {
     state: HtfTrendState
     /** What the state was read from (swing sequence), for the briefing prose. */
     basis: string
+    /**
+     * Real-time qualifier on the lagging swing state (feat-064). Null when the
+     * state is 'range' (no directional sequence to qualify) or swings are
+     * missing. A directional state must NEVER be narrated without it.
+     */
+    integrity: HtfTrendIntegrity | null
+    /** What the integrity was read from, for the briefing prose. */
+    integrityBasis: string | null
   }
   /** Most recent CONFIRMED swing highs/lows, newest first (up to 3 each). */
   recentSwingHighs: HtfSwing[]
@@ -179,6 +210,36 @@ export function computeHtfStructure(
     }
   }
 
+  // Integrity (feat-064): square the lagging swing state with the live price.
+  // A 'down' call means nothing when price has already traded through the
+  // defining swing high — pivots need 2.5 h to confirm; the price doesn't.
+  let integrity: HtfTrendIntegrity | null = null
+  let integrityBasis: string | null = null
+  if ((state === 'down' || state === 'up') && lastHigh && lastLow) {
+    const extent = lastHigh.price - lastLow.price
+    const counterMovePts = state === 'down' ? price - lastLow.price : lastHigh.price - price
+    // Price extending WITH the trend (beyond the defining extreme) clamps to 0.
+    const retrace = extent > 0 ? Math.max(0, counterMovePts / extent) : 0
+    const retracePct = Math.round(retrace * 100)
+    const brokeDefiningSwing =
+      state === 'down'
+        ? price > lastHigh.price + PRICE_EPSILON
+        : price < lastLow.price - PRICE_EPSILON
+    if (brokeDefiningSwing) {
+      integrity = 'broken'
+      integrityBasis =
+        state === 'down'
+          ? `price ${round2(price)} has traded above the ${round2(lastHigh.price)} defining swing high — the down sequence is broken in real time, pending new swing confirmation`
+          : `price ${round2(price)} has traded below the ${round2(lastLow.price)} defining swing low — the up sequence is broken in real time, pending new swing confirmation`
+    } else if (retrace > UNDER_TEST_RETRACE_FRACTION) {
+      integrity = 'under-test'
+      integrityBasis = `the counter-move has retraced ~${retracePct}% of the ${round2(extent)}-pt defining rotation (${round2(lastLow.price)}–${round2(lastHigh.price)})`
+    } else {
+      integrity = 'intact'
+      integrityBasis = `the counter-move has retraced only ~${retracePct}% of the defining rotation`
+    }
+  }
+
   const toSwing = (p: Pivot): HtfSwing => ({
     price: round2(p.price),
     dateTime: fmtChartTime(p.dateTime),
@@ -203,7 +264,7 @@ export function computeHtfStructure(
     windowEnd: fmtChartTime(bars[bars.length - 1].dateTime),
     lastClose: round2(bars[bars.length - 1].close),
     atrPoints,
-    trend: { state, basis },
+    trend: { state, basis, integrity, integrityBasis },
     recentSwingHighs: highs.slice(-REPORTED_SWINGS_PER_SIDE).reverse().map(toSwing),
     recentSwingLows: lows.slice(-REPORTED_SWINGS_PER_SIDE).reverse().map(toSwing),
     rotation,

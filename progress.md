@@ -4,7 +4,8 @@
 
 **Last Updated:** 2026-07-29
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **session-anchored intraday facts — VWAP / cum delta / one-timeframing**
+Latest: **composite intraday trend + HTF integrity qualifier** (feat-064), on top of
+**session-anchored intraday facts — VWAP / cum delta / one-timeframing**
 (feat-063), on top of **full-session Globex exec-bar export ingest** (feat-062), on top of
 **Operator directive on objective cards** (feat-061), on top of
 **Tactical Overview redesigned to HTF / MTF / Current** (feat-060), on top
@@ -26,6 +27,25 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Composite intraday trend + HTF integrity qualifier (2026-07-29, feat-064).**
+Closes the intraday-trend rethink. `htfStructure.trend.integrity`
+(intact / under-test / broken vs the live price, 50%-retrace threshold,
+one-tick break epsilon) — both prompts forbid narrating a directional HTF
+state without it; the fixture test now pins the incident shape (state down +
+integrity broken). New `lib/engine/intradayTrend.ts`: direction = majority of
+{15-min OTF (vote withheld if the developing bar broke the run), micro swing
+structure on exec bars with a real-time Dow break rule, 15/60/180-min momentum
+stack (flat thresholds 10/20/40 pts)}; conviction = confirming reads (session
+cum delta, Rip, VWAP position); character trending/transitioning/rotational;
+disagreements[] surfaced verbatim in prose. Threaded into analyze + update
+factsPayload/guides (senior to the HTF swing state for session narration) and
+the eval prompt (new intraday-trend context line; Rip frame null on that
+path — eval has no MGI). Analyze prompt budget consciously 80k → 85k
+(measured 81,819). Timezone verified on request: exec/HTF timestamps are
+Chicago wall clock; local-parse + local-field reads make every session
+boundary (17:00 Globex / 08:30 RTH) runtime-TZ invariant — proven byte-identical
+under America/Chicago, UTC, Australia/Sydney.
 
 **Session-anchored intraday facts (2026-07-29, feat-063).**
 New engine module `lib/engine/sessionIntraday.ts` — the operator's intraday

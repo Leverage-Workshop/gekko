@@ -19,6 +19,8 @@ import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { parseHtfBars } from '@/lib/engine/parseHtfBars'
 import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import { computeIntradayTrend } from '@/lib/engine/intradayTrend'
+import { computeSessionIntraday } from '@/lib/engine/sessionIntraday'
 import { generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult, ReasoningEffort } from '@/lib/llm'
 import type { PersistEvalDeps } from './persistEval'
@@ -269,6 +271,14 @@ export async function runEval(
   const execBars = parseExecBars(bundle.execCsvContent)
   const deltaTelemetry = computeDeltaTelemetry(execBars)
   const recentBars = execBars.slice(-deltaTelemetry.recentWindow)
+  // Composite intraday trend (feat-064) — no Rip frame on this path (the eval
+  // bundle carries no MGI); the frame confirmation simply doesn't count.
+  const intradayTrend = computeIntradayTrend({
+    bars: execBars,
+    sessionIntraday: computeSessionIntraday(execBars, currentPrice),
+    ripCondition: null,
+    currentPrice,
+  })
   const absorption = scanEvalAbsorption(
     bundle.halfRotationDeltaContent,
     bundle.fullRotationDeltaContent,
@@ -368,6 +378,7 @@ export async function runEval(
       recentBars,
       valueMigration,
       htfStructure,
+      intradayTrend,
       position,
     }),
     images: bundle.images,

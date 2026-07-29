@@ -33,6 +33,8 @@ import { computeOvernightSession } from '@/lib/engine/overnightSession'
 import type { OvernightSessionFacts } from '@/lib/engine/overnightSession'
 import { computeSessionIntraday } from '@/lib/engine/sessionIntraday'
 import type { SessionIntradayFacts } from '@/lib/engine/sessionIntraday'
+import { computeIntradayTrend } from '@/lib/engine/intradayTrend'
+import type { IntradayTrendFacts } from '@/lib/engine/intradayTrend'
 
 /**
  * Deterministic engine pass over one export bundle: every computed fact the
@@ -152,6 +154,15 @@ export interface EngineFacts {
    * flagged in `warnings`.
    */
   sessionIntraday: SessionIntradayFacts
+  /**
+   * Code-owned composite intraday trend (feat-064) — the trend read at the
+   * operator's trade horizon: direction from a majority of structural votes
+   * (15-min one-timeframing, micro swing structure with a Dow break rule,
+   * multi-window momentum), conviction from the confirming reads (session
+   * cumulative delta, Rip, session-VWAP position), character
+   * trending/transitioning/rotational, with disagreements listed explicitly.
+   */
+  intradayTrend: IntradayTrendFacts
   /** Non-fatal degradations (missing rip, terrain issues, ...). */
   warnings: string[]
 }
@@ -314,6 +325,13 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     warnings.push('mgi.daily.rip missing — Rip/Vanguard condition not computed')
   }
 
+  const intradayTrend = computeIntradayTrend({
+    bars,
+    sessionIntraday,
+    ripCondition: ripStatus?.condition ?? null,
+    currentPrice: mgi.currentPrice,
+  })
+
   // Magnet set: built ONCE from the BALANCE-AREA profile (feat-037 — the Gem's
   // Magnet Check reads the HTF chart's balance-area VbP) and shared by the
   // magnetCheck fact and terrain border classification, so there is exactly one
@@ -393,6 +411,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     htfStructure,
     overnightSession,
     sessionIntraday,
+    intradayTrend,
     warnings,
   }
 }
