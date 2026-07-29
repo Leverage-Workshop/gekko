@@ -4,7 +4,8 @@
 
 **Last Updated:** 2026-07-29
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **composite intraday trend + HTF integrity qualifier** (feat-064), on top of
+Latest: **objectives awarded off the intraday trend** (feat-065), on top of
+**composite intraday trend + HTF integrity qualifier** (feat-064), on top of
 **session-anchored intraday facts — VWAP / cum delta / one-timeframing**
 (feat-063), on top of **full-session Globex exec-bar export ingest** (feat-062), on top of
 **Operator directive on objective cards** (feat-061), on top of
@@ -27,6 +28,21 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Objectives awarded off the intraday trend (2026-07-29, feat-065).**
+Operator doctrine change: the Law of Asymmetric Initiative now awards the
+PRIMARY objective off `intradayTrend.direction` (the feat-064 composite), not
+the HTF swing state — HTF is campaign background only. Weak conviction still
+awards but the rationale carries the disagreements; `neutral` = no trend
+claim, primary goes to the structurally superior setup with the rotational
+read stated. Campaign Boundary Override unchanged. Rewritten in
+constraints.md #5, output-briefing.md, output-update.md, chart-reading.md
+step 5, + reinforcement in both volatile prompt guide lines. Sierra-side same
+session: fixed ExecutionDataExporter.cpp session-start walk (D:\SierraChart\
+ACS_Source) — `Hour <= 17` excluded the whole 17:00 reopen hour and the
+day-change guard never re-anchored after the evening reopen; now anchors on a
+real SessionStart datetime (most recent 17:00 CT). Operator rebuilt; globex
+export confirmed working (replay chart explains truncated evening files).
 
 **Composite intraday trend + HTF integrity qualifier (2026-07-29, feat-064).**
 Closes the intraday-trend rethink. `htfStructure.trend.integrity`

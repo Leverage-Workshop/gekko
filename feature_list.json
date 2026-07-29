@@ -677,6 +677,16 @@
         "feat-063"
       ],
       "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/7 pre-existing warnings, 1003 tests passed / 1 skipped, build compiled). New tests: intradayTrend.test.ts (8 - aligned up/down, neutral, hollow-structure disagreement, Dow break flip, OTF vote withheld on developing-bar break, transitioning character), htfStructure integrity (5 - intact/under-test/broken both directions, null on range). Real-bundle validation: the 2026-07-29 13:47 bundle that produced the frozen 'Down' briefing reads 'up (strong), trending' via the micro-swing Dow break (27820), momentum +288/15min +352/60min; HTF integrity reads 'broken' on the fixture bundle. Analyze prompt budget raised 80k->85k consciously in the same diff."
+    },
+    {
+      "id": "feat-065",
+      "name": "Objectives awarded off the intraday trend (Law of Asymmetric Initiative rework)",
+      "description": "Operator doctrine change (2026-07-29): the Law of Asymmetric Initiative now assigns the PRIMARY objective to the direction of the code-owned composite intradayTrend.direction (feat-064), NOT the HTF swing state - the HTF trend is campaign background whose pivots confirm 2.5 h late and never awards the primary. A weak-conviction direction still awards the primary but the rationale must carry the composite's open disagreements; on 'neutral' (rotational tape) there is no trend claim - the primary goes to the structurally superior setup (border quality, cleaner traverse to T2) with the rotational read stated in the rationale. Campaign Boundary Override exception unchanged. Rewritten in all four doctrine sites: knowledge/system/constraints.md #5 (the law), knowledge/system/output-briefing.md and output-update.md (primary/secondary contract lines), knowledge/doctrine/chart-reading.md step 5 (synthesis); plus reinforcement clauses in the volatile analyze + update prompt intradayTrend guide lines. No schema or engine change.",
+      "status": "done",
+      "dependencies": [
+        "feat-064"
+      ],
+      "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/7 pre-existing warnings, 1003 tests passed / 1 skipped, build compiled). Doctrine-only change; prefix budget gate and prompt-data-sync gate both pass with the reworded law."
     }
   ]
 }
