@@ -46,7 +46,7 @@ and judgment; the engine supplies all computed fields.
     color and narrative label.
   - `levels`: carry the engine border verdicts verbatim (price + kind: trench / wall / magnet /
     mgi); you supply the label wording.
-- **`primary` / `secondary`** — one `Objective` each. The primary is HTF-trend-aligned per the Law
-  of Asymmetric Initiative; the secondary is the counter-scenario, anchored at its own distinct
-  border.
+- **`primary` / `secondary`** — one `Objective` each. The primary is INTRADAY-trend-aligned
+  (`intradayTrend.direction`) per the Law of Asymmetric Initiative — never awarded off the lagging
+  HTF swing state; the secondary is the counter-scenario, anchored at its own distinct border.
 - **`dangerZones`** — each an area plus why it is dangerous.

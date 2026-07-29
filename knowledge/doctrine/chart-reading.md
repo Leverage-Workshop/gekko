@@ -84,9 +84,11 @@ initiative flips at the exact point of contact.
      no stall visible in the rolling bar window (possibly aged out, not refuted) — the bar data,
      not the screenshot, decides the stall.
 5. **Synthesize — the Law of Asymmetric Initiative.** If the terrain offers a valid setup for both
-   fronts, the Primary Objective is awarded to the front aligned with the HTF trend. Ensure the final
-   objective (T2) is a Shelf or Valley, never a Magnet. (Asymmetric Initiative + the Campaign
-   Boundary Override are hard constraints.)
+   fronts, the Primary Objective is awarded to the front aligned with the code-owned INTRADAY trend
+   (`intradayTrend.direction`); the HTF swing state is campaign context, never the award criterion.
+   On a `neutral` read the tape is rotational — award the primary to the structurally superior
+   setup. Ensure the final objective (T2) is a Shelf or Valley, never a Magnet. (Asymmetric
+   Initiative + the Campaign Boundary Override are hard constraints.)
 
 **Conflict protocol:** if micro-telemetry (CSV/Execution) conflicts with macro-structure (HTF/JSON),
 **macro terrain wins**. Initiative without structural advantage is a meat grinder — we only fight at
