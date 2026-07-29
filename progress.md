@@ -2,9 +2,10 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-28
+**Last Updated:** 2026-07-29
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Operator directive on objective cards** (feat-061), on top of
+Latest: **full-session Globex exec-bar export ingest** (feat-062), on top of
+**Operator directive on objective cards** (feat-061), on top of
 **Tactical Overview redesigned to HTF / MTF / Current** (feat-060), on top
 of **MGI level attribution on every price in objective content** (feat-059),
 on top of **single-print doctrine inverted — scars favor same-direction entries,
@@ -24,6 +25,28 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Full-session Globex exec-bar export ingest (2026-07-29, feat-062).**
+Operator-directed data upgrade, first step of the intraday-trend rethink. The
+morning's briefings called the HTF trend "Down" while NQ was ~700 pts off the
+session low — root cause: the 30-min fractal swing logic (5 bars each side =
+2.5h confirmation lag) never consults current price, and the only "trend" in
+the briefing is that HTF background fact. Plan agreed with the operator:
+(1) THIS feature — switch the exec-bar export from the rolling ~250-bar window
+(~2.8h) to all bars since Globex open; Sierra reconfigured to write
+`execution_bar_data.globex`. Uploader now maps candidate filenames per field
+(globex.csv → extensionless globex → retired rolling fallback for the
+Windows-checkout-drift window); ingest field/column/object name unchanged, no
+migration. (2) NEXT — engine work: resample 5-min bars from the timestamped
+exec bars and compute session VWAP, session cumulative delta, and
+one-timeframing (sub-30-min; operator says 30-min is too high for NQ) in code
+— operator explicitly wants NO new chart studies or export columns. Then a
+composite code-owned `intradayTrend` fact (OTF + micro swing structure with a
+Dow break rule + multi-window momentum stack + flow confirmation + Rip/value
+frame) and the HTF trend demoted to background with an
+intact/under-test/broken qualifier. TODO: capture a real
+`execution_bar_data.globex.csv` into `chart-data/` once Sierra writes one, and
+remind the operator to pull + restart the Windows uploader checkout.
 
 **Operator directive on objective cards (2026-07-28, feat-061).**
 Operator request (mockup provided): a textbox in each objective card's header

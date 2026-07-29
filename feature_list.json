@@ -647,6 +647,16 @@
         "feat-060"
       ],
       "evidence": "./init.sh green 2026-07-28 (typecheck 0, lint 0 errors, 973 passed / 1 skipped, build OK). 16 new tests: briefings.update.route.test.ts (directive run skips requestFreshBundle + carries triggerReason 'operator-directive'; trim; 400 rejection matrix incl. multi-line; malformed JSON degrades to plain update), update.runUpdate.test.ts (prompt threading with frozen-entry price; directive-less prompt byte-identical outside the additive section; freeze + operator_directive persisted end-to-end; column absent on plain runs), update.composeBriefing.test.ts (freeze both directions), analyze.persistBriefing.test.ts (column stamped/absent), briefing.dashboard.test.ts (jsonb parse degrades to null). Migration 20260728090000_operator_directive applied to live DB via Supabase MCP (schema_migrations now 23 rows); gekko-db SKILL.md snapshot updated in same PR."
+    },
+    {
+      "id": "feat-062",
+      "name": "Full-session Globex execution-bar export ingest",
+      "description": "Operator-directed data upgrade (2026-07-29, prompted by the frozen 'Down' HTF trend call while NQ rallied ~700 pts off the session low): the exec-bar export switches from the rolling ~250-bar window (execution_bar_data.rolling.csv, ~2.8h of trade) to a full-session-since-Globex-open export the operator reconfigured in Sierra (execution_bar_data.globex). Uploader LOCAL_FILENAMES_BY_FIELD now takes candidate filenames in priority order per ingest field: exec_csv prefers execution_bar_data.globex.csv, then extensionless execution_bar_data.globex, then falls back to the retired rolling filename so a not-yet-reconfigured chart (Windows-checkout drift gotcha) still ships bundles. Ingest field (exec_csv), storage object name (execution_bars.csv), and raw_bundles.exec_csv_ref are unchanged - no migration; every engine consumer parses content, not filenames, and nothing embeds the raw CSV in a prompt (eval slices recent windows). This is the data prerequisite for the upcoming intraday-trend engine work: 5-min resampled bars, session VWAP, session cumulative delta, and sub-30-min one-timeframing computed in code from the full-session series (operator: no new chart studies/export columns). chart-data/ still holds the rolling sample; capture a real execution_bar_data.globex.csv sample into chart-data/ once Sierra writes one.",
+      "status": "done",
+      "dependencies": [
+        "feat-047"
+      ],
+      "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/7 pre-existing warnings, 976 tests passed / 1 skipped, build compiled). New tests: uploader candidate-filename priority (globex.csv > extensionless globex > rolling fallback) in tests/uploader.bundle.test.ts."
     }
   ]
 }

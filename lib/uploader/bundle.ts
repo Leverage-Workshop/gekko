@@ -15,33 +15,42 @@ import { BUNDLE_ID_FIELD, FILE_FIELDS, MGI_FIELD } from '@/lib/ingest'
  * endpoint extracts the price from that JSON. The uploader just ships the file.
  */
 
-/** Local export filename Sierra Chart writes for each ingest field. */
-const LOCAL_FILENAME_BY_FIELD: Readonly<Record<string, string>> = {
-  htf_png: 'htf_clean.png',
-  tpo_png: 'tpo.png',
-  exec_png: 'execution_clean.png',
-  exec_csv: 'execution_bar_data.rolling.csv',
-  rotation_vbp: 'four-hundred-rotation.vbp.md',
-  balance_area_vbp: 'balance-area.vbp.md',
-  half_rotation_delta: 'half-rotation-delta.vbp.md',
-  full_rotation_delta: 'full-rotation-delta.vbp.md',
-  tpo_data: 'tpo.data.md',
-  daily_va: 'daily-value-areas.csv',
-  htf_csv: 'htf_bar_data.rolling.csv',
+/**
+ * Local export filename candidates Sierra Chart writes for each ingest field,
+ * in priority order — the first present file wins. `exec_csv` prefers the
+ * full-session Globex export (feat-062) and falls back to the retired rolling
+ * 250-bar export so a not-yet-reconfigured chart still ships a bundle.
+ */
+const LOCAL_FILENAMES_BY_FIELD: Readonly<Record<string, readonly string[]>> = {
+  htf_png: ['htf_clean.png'],
+  tpo_png: ['tpo.png'],
+  exec_png: ['execution_clean.png'],
+  exec_csv: [
+    'execution_bar_data.globex.csv',
+    'execution_bar_data.globex',
+    'execution_bar_data.rolling.csv',
+  ],
+  rotation_vbp: ['four-hundred-rotation.vbp.md'],
+  balance_area_vbp: ['balance-area.vbp.md'],
+  half_rotation_delta: ['half-rotation-delta.vbp.md'],
+  full_rotation_delta: ['full-rotation-delta.vbp.md'],
+  tpo_data: ['tpo.data.md'],
+  daily_va: ['daily-value-areas.csv'],
+  htf_csv: ['htf_bar_data.rolling.csv'],
 }
 
 type LocalFile = {
   readonly field: string
-  readonly filename: string
+  readonly filenames: readonly string[]
   readonly contentType: string
 }
 
 const LOCAL_FILES: readonly LocalFile[] = FILE_FIELDS.map((f) => {
-  const filename = LOCAL_FILENAME_BY_FIELD[f.field]
-  if (!filename) {
+  const filenames = LOCAL_FILENAMES_BY_FIELD[f.field]
+  if (!filenames || filenames.length === 0) {
     throw new Error(`No local export filename mapped for ingest field '${f.field}'`)
   }
-  return { field: f.field, filename, contentType: f.contentType }
+  return { field: f.field, filenames, contentType: f.contentType }
 })
 
 /** Sidecar filename holding the MGI static-levels JSON (posted as the `mgi` field). */
@@ -49,7 +58,7 @@ export const MGI_FILENAME = 'mgi_static_levels.json'
 
 /** Every filename the uploader watches for inside the export folder. */
 export const BUNDLE_FILENAMES: readonly string[] = [
-  ...LOCAL_FILES.map((f) => f.filename),
+  ...LOCAL_FILES.flatMap((f) => f.filenames),
   MGI_FILENAME,
 ]
 
@@ -74,9 +83,12 @@ const decoder = new TextDecoder()
 export async function readBundle(read: FileReader): Promise<Bundle> {
   const files: BundlePart[] = []
   for (const f of LOCAL_FILES) {
-    const bytes = await read(f.filename)
-    if (bytes) {
-      files.push({ field: f.field, filename: f.filename, contentType: f.contentType, bytes })
+    for (const filename of f.filenames) {
+      const bytes = await read(filename)
+      if (bytes) {
+        files.push({ field: f.field, filename, contentType: f.contentType, bytes })
+        break
+      }
     }
   }
 
