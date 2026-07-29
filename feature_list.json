@@ -687,6 +687,16 @@
         "feat-064"
       ],
       "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/7 pre-existing warnings, 1003 tests passed / 1 skipped, build compiled). Doctrine-only change; prefix budget gate and prompt-data-sync gate both pass with the reworded law."
+    },
+    {
+      "id": "feat-066",
+      "name": "Faint balance-area promotions no longer confer AAA",
+      "description": "Operator observation (2026-07-29 evening): the briefings called the 28212.5/28227.75 (PW Low / PM Low) band an 'AAA trench', but the balance-area VbP is extremely thin there - the levels are barely noticeable on the chart. Diagnosis (real bundle 07bd2556): the trench promoted with flanking blocks of 4,766/3,498 contracts on a profile whose peak acceptance is 11,048 (32-43% of peak) - the F5 promoteMinVolFrac floor is measured against the profile MEAN, which the profile's own enormous thin tail (two days of one-directional selloff inside the balance area's ~2,000-pt span) dilutes, so barely-visible tail structure passed and the balance-area source conferred the senior AAA badge that the prompts explicitly weight ('the most important levels on the map', preferred contested borders). Fix: TerrainParams.aaaMinFlankPeakFrac (0.5) - a balance-area trench/wall promotion whose thinner flanking block is under half the balance-area profile's PEAK volume is marked faint (BorderVerdict.faint, reason appends 'faint acceptance (flank N = P% of profile peak) - not AAA'); mergePartitions confers AAA only on a NON-faint balance-area member, faint-only borders rank A. The border itself survives (still a hard partition, still an entry anchor, zone topology unchanged); only the senior badge is withheld. Faintness is a balance-area-only concept - rotation promotions are never marked faint (the rotation profile is short-window by nature and its A class is already the floor). Both prompt significance guide lines updated: never call faint balance-area borders AAA in prose. Real-bundle validation: all four thin-tail borders (28212.5 trench, 27640 ONL trench, 27510.5 VRange-3 wall + Weekly VWAP already A) now rank A with explicit faint reasons - an honest map, since the profile's real acceptance sits 1,000+ pts overhead at the 29,310 POC.",
+      "status": "done",
+      "dependencies": [
+        "feat-065"
+      ],
+      "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/7 pre-existing warnings, 1005 tests passed / 1 skipped, build compiled). New tests: faint balance-area trench demotes to A with 'faint acceptance ... - not AAA' reason; rotation promotions never faint. All 51 pre-existing terrain tests pass unchanged (synthetic AAA fixtures have real flanks). Real-bundle validation (07bd2556): 28212.5 PW Low/PM Low trench now [A] with reason 'faint acceptance (flank 3498 = 32% of profile peak 11048) - not AAA'."
     }
   ]
 }
