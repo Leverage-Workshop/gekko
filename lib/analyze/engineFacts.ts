@@ -49,7 +49,7 @@ export interface EngineFactsInput {
   halfRotationDeltaContent: string
   /** Execution delta profile, ~75-pt / full-rotation anchor (`full-rotation-delta.vbp.md`). */
   fullRotationDeltaContent: string
-  /** Execution-bar CSV export (`execution_bar_data.rolling.csv`). */
+  /** Execution-bar CSV export (`execution_bar_data.globex.csv`, full session since Globex open). */
   execCsvContent: string
   /**
    * Numeric TPO export (`tpo.data.md`, feat-046). Best-effort: absent or

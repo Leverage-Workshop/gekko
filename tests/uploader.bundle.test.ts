@@ -26,7 +26,8 @@ const SAMPLE = {
   htf: 'htf_clean.png',
   tpo: 'tpo.png',
   exec: 'execution_clean.png',
-  csv: 'execution_bar_data.rolling.csv',
+  csv: 'execution_bar_data.globex.csv',
+  csvRolling: 'execution_bar_data.rolling.csv',
   rotationVbp: 'four-hundred-rotation.vbp.md',
   balanceAreaVbp: 'balance-area.vbp.md',
   halfDelta: 'half-rotation-delta.vbp.md',
@@ -80,6 +81,32 @@ describe('readBundle', () => {
     expect(csv?.contentType).toBe('text/csv')
   })
 
+  it('prefers the globex exec export over the retired rolling export', async () => {
+    const bundle = await readBundle(
+      reader({ [SAMPLE.csv]: 'DateTime,Open\n1', [SAMPLE.csvRolling]: 'DateTime,Open\n2' }),
+    )
+
+    expect(bundle.files).toHaveLength(1)
+    expect(bundle.files[0].field).toBe('exec_csv')
+    expect(bundle.files[0].filename).toBe(SAMPLE.csv)
+  })
+
+  it('accepts the extensionless globex exec export name', async () => {
+    const bundle = await readBundle(reader({ 'execution_bar_data.globex': 'DateTime,Open\n' }))
+
+    expect(bundle.files).toHaveLength(1)
+    expect(bundle.files[0].field).toBe('exec_csv')
+    expect(bundle.files[0].filename).toBe('execution_bar_data.globex')
+  })
+
+  it('falls back to the rolling exec export when no globex file is present', async () => {
+    const bundle = await readBundle(reader({ [SAMPLE.csvRolling]: 'DateTime,Open\n' }))
+
+    expect(bundle.files).toHaveLength(1)
+    expect(bundle.files[0].field).toBe('exec_csv')
+    expect(bundle.files[0].filename).toBe(SAMPLE.csvRolling)
+  })
+
   it('omits absent files and reads the mgi sidecar', async () => {
     const bundle = await readBundle(reader({ [SAMPLE.htf]: new Uint8Array([1]), [SAMPLE.mgi]: '{"a":1}\n' }))
 
@@ -118,11 +145,13 @@ describe('readBundle', () => {
 })
 
 describe('BUNDLE_FILENAMES', () => {
-  it('watches Sierra’s eleven export files plus the mgi JSON', () => {
+  it('watches every export filename candidate plus the mgi JSON', () => {
     expect(BUNDLE_FILENAMES).toEqual([
       'htf_clean.png',
       'tpo.png',
       'execution_clean.png',
+      'execution_bar_data.globex.csv',
+      'execution_bar_data.globex',
       'execution_bar_data.rolling.csv',
       'four-hundred-rotation.vbp.md',
       'balance-area.vbp.md',

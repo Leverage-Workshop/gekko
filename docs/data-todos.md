@@ -6,9 +6,10 @@ expected value. Compiled 2026-07-24 from a review of the current bundle contract
 trace (`docs/traces/analyze-task-2026-07-20/`).
 
 **Current bundle (9 files, exported by the ACSIL studies to `C:\gekko\export` ~every 30 s):**
-`htf_clean.png`, `tpo.png`, `execution_clean.png`, `execution_bar_data.rolling.csv`,
-`four-hundred-rotation.vbp.md`, `balance-area.vbp.md`, `half-rotation-delta.vbp.md`,
-`full-rotation-delta.vbp.md`, `mgi_static_levels.json`.
+`htf_clean.png`, `tpo.png`, `execution_clean.png`, `execution_bar_data.globex.csv`
+(full session since Globex open — replaced `execution_bar_data.rolling.csv` 2026-07-29,
+feat-062), `four-hundred-rotation.vbp.md`, `balance-area.vbp.md`,
+`half-rotation-delta.vbp.md`, `full-rotation-delta.vbp.md`, `mgi_static_levels.json`.
 
 **Guiding principle:** every item below moves something the LLM currently squints at in a
 PNG (or can't see at all) into numeric data the engine can compute deterministically —
