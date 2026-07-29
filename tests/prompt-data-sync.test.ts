@@ -318,12 +318,15 @@ describe('prompt-data sync gate (feat-054)', () => {
       // Measured 2026-07-24: 63_504 on the chart-data fixture bundle. New data
       // tables (TPO ladders, bar histories) must be summarized/projected, not
       // dumped — factsPayload is the compact projection for exactly this reason.
+      // Raised 80k → 85k 2026-07-29 (feat-063/064): the sessionIntraday +
+      // intradayTrend facts and their guide lines added ~2k of legitimately
+      // new, already-compact data (measured 81_819).
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 80k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 85k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(80_000)
+      ).toBeLessThan(85_000)
     })
   })
 })

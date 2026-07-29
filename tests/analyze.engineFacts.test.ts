@@ -122,9 +122,14 @@ describe('computeEngineFacts', () => {
   it('computes HTF structure from the 30-min bar export (feat-049)', () => {
     const result = facts({ htfCsvContent: read('htf_bar_data.rolling.csv') })
     expect(result.htfStructure).not.toBeNull()
+    // The fixture reproduces the 2026-07-29 incident shape: the lagging swing
+    // sequence says down while the MGI price (29945.75) is already above the
+    // defining swing high — integrity flags it broken in real time (feat-064).
     expect(result.htfStructure!.trend).toEqual({
       state: 'down',
       basis: 'lower swing highs and lower swing lows',
+      integrity: 'broken',
+      integrityBasis: expect.stringMatching(/traded above the .* defining swing high/),
     })
     expect(result.htfStructure!.atrPoints).toBeGreaterThan(0)
     expect(result.htfStructure!.recentSwingHighs.length).toBeGreaterThan(0)
