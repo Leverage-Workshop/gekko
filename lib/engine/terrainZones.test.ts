@@ -538,6 +538,44 @@ describe('assembleTerrain — balance-area seniority (dual-profile)', () => {
     expect(trench.source).toBe('rotation')
     expect(r.borders.find(b => b.price === 30175)?.significance).toBe('A')
   })
+
+  it('demotes a FAINT balance-area promotion to A class (feat-066)', () => {
+    // Same valley-between-blocks shape at 30250, but the profile's real acceptance
+    // is a dominant 10k block far above — the 1k flanks are 10% of profile peak,
+    // barely visible on the chart. The trench stays a border; the AAA badge does not.
+    const balance = buildProfile(
+      [
+        [30150, 30240, 1000],
+        [30260, 30350, 1000],
+        [30400, 30440, 10000],
+      ],
+      30000,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile: buildProfile([[30150, 30350, 1000]], 30000, 30500),
+      lvn: { hvn: [], lvn: [], peakVolume: 1000 },
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({
+        summary: { pocPrice: 30600, valueAreaHigh: 30610, valueAreaLow: 30590 },
+        hvn: [],
+      }),
+      mgi: makeMgi(30100, [{ price: 30250, label: 'Weekly VWAP', tier: 1 }]),
+    })
+    const verdict = r.levels.find(l => l.level.price === 30250)!
+    expect(verdict.kind).toBe('trench')
+    expect(verdict.source).toBe('balance-area')
+    expect(verdict.faint).toBe(true)
+    expect(verdict.reason).toMatch(/faint acceptance .* — not AAA/)
+    expect(r.borders.find(b => b.price === 30250)?.significance).toBe('A')
+  })
+
+  it('never marks rotation promotions faint — faintness is a balance-area senior-class concept', () => {
+    const r = runWithBalanceArea()
+    const rotationTrench = r.levels.find(l => l.level.price === 30175)!
+    expect(rotationTrench.source).toBe('rotation')
+    expect(rotationTrench.faint).toBe(false)
+  })
 })
 
 describe('assembleTerrain — bare MGI is never a zone border', () => {

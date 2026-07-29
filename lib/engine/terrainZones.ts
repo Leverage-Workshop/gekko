@@ -137,6 +137,12 @@ export type BorderVerdict = {
   magnet: MagnetHit | null
   /** Nearest detector LVN/HVN node within tolerance, or null. */
   detectorNode: DetectorNodeRef | null
+  /**
+   * Balance-area promotion with flanking acceptance under `aaaMinFlankPeakFrac`
+   * of the profile peak (feat-066): still a real trench/wall, but it must not
+   * confer AAA class — the long-term profile is thin there.
+   */
+  faint: boolean
   reason: string
 }
 
@@ -152,7 +158,9 @@ export type TerrainZoneFact = {
 /**
  * Border significance class (operator doctrine 2026-07-22): AAA = promoted on the balance-area
  * profile (the senior, long-term read — fewer levels resolve there, but the ones that do are
- * the most important on the map); A = promoted on the rotation profile only.
+ * the most important on the map); A = promoted on the rotation profile only, OR on the
+ * balance-area profile with faint flanking acceptance (feat-066 — thin-tail structure keeps
+ * its border but not the senior badge).
  */
 export type BorderSignificance = 'AAA' | 'A'
 
@@ -167,7 +175,7 @@ export type CompositeBorder = {
   /** Trench wins over Wall when a cluster mixes kinds (doctrine priority). */
   kind: 'trench' | 'wall'
   label: string
-  /** AAA when any member promoted on the balance-area profile. */
+  /** AAA when any member promoted NON-faint on the balance-area profile (feat-066). */
   significance: BorderSignificance
   /** Best (lowest) MGI tier among members. */
   tier: number
@@ -250,6 +258,15 @@ export type TerrainParams = {
    * pairs are exempt (balance-area structure is kept even when tight).
    */
   aTierMinSpanPts: number
+  /**
+   * A balance-area promotion only confers AAA class when its thinner flanking block reaches
+   * this fraction of the balance-area profile's PEAK volume (feat-066). The F5 mean floor is
+   * diluted by the profile's own thin tail (a long one-directional traverse drags the mean
+   * down), so barely-visible local structure was earning the senior badge — the 2026-07-29
+   * briefings called a 32%-of-peak dip an "AAA trench" on a profile the operator reads as
+   * empty there. Faint promotions keep their trench/wall kind but rank A.
+   */
+  aaaMinFlankPeakFrac: number
 }
 
 /**
@@ -270,6 +287,7 @@ export const DEFAULT_TERRAIN_PARAMS: TerrainParams = {
   mergeTolerancePts: 16,
   promoteMinVolFrac: 0.5,
   aTierMinSpanPts: 60,
+  aaaMinFlankPeakFrac: 0.5,
 }
 
 function round2(n: number): number {
@@ -374,6 +392,8 @@ function nearestDetectorNode(
 type ProfileContext = {
   rowsAsc: TerrainProfileRow[]
   meanVol: number
+  /** Max raw bin volume — the AAA faintness reference (feat-066). */
+  peakVol: number
   lvn: LvnDetectionResult
   source: 'rotation' | 'balance-area'
 }
@@ -384,6 +404,12 @@ type ProfileRead = {
   hard: boolean
   reason: string
   local: LocalProfile
+  /**
+   * Balance-area promotions only: the flanking acceptance is under
+   * `aaaMinFlankPeakFrac` of the profile's peak — structure exists locally but
+   * the long-term profile is thin there, so the promotion must not confer AAA.
+   */
+  faint: boolean
 }
 
 /**
@@ -415,18 +441,33 @@ function readProfile(
     kind: 'mgi',
     hard: false,
     local,
+    faint: false,
     reason: `structure-shaped but too thin to promote (block ${blockVol} < floor ${round2(promoteFloor)})`,
   })
+  // AAA faintness (feat-066, balance-area only): the F5 mean floor is diluted by the
+  // profile's own thin tail, so a promotion there additionally needs its flanking
+  // acceptance to be real on the PROFILE'S scale to earn the senior class.
+  const faintness = (thinnerFlank: number): { faint: boolean; note: string } => {
+    if (ctx.source !== 'balance-area' || ctx.peakVol <= 0) return { faint: false, note: '' }
+    const frac = thinnerFlank / ctx.peakVol
+    if (frac >= params.aaaMinFlankPeakFrac) return { faint: false, note: '' }
+    return {
+      faint: true,
+      note: `; faint acceptance (flank ${round2(thinnerFlank)} = ${Math.round(frac * 100)}% of profile peak ${round2(ctx.peakVol)}) — not AAA`,
+    }
+  }
 
   // 1. Trench — a dip flanked by blocks on both sides (Valley + MGI).
   if (centerDip && leftBlock && rightBlock) {
     const thinner = Math.min(local.leftMax, local.rightMax)
     if (thinner < promoteFloor) return tooThin(thinner)
+    const { faint, note } = faintness(thinner)
     return {
       kind: 'trench',
       hard: true,
       local,
-      reason: `valley (center ${C} of local peak) between blocks (L ${L}, R ${R})`,
+      faint,
+      reason: `valley (center ${C} of local peak) between blocks (L ${L}, R ${R})${note}`,
     }
   }
 
@@ -434,11 +475,13 @@ function readProfile(
   //    MGI). Checked before Magnet: an MGI at a block EDGE is a Wall, not a Magnet.
   if (!centerBlock && leftBlock && rightVoid) {
     if (local.leftMax < promoteFloor) return tooThin(local.leftMax)
-    return { kind: 'wall', hard: true, local, reason: `block below (L ${L}) drops into void above (R ${R})` }
+    const { faint, note } = faintness(local.leftMax)
+    return { kind: 'wall', hard: true, local, faint, reason: `block below (L ${L}) drops into void above (R ${R})${note}` }
   }
   if (!centerBlock && rightBlock && leftVoid) {
     if (local.rightMax < promoteFloor) return tooThin(local.rightMax)
-    return { kind: 'wall', hard: true, local, reason: `block above (R ${R}) drops into void below (L ${L})` }
+    const { faint, note } = faintness(local.rightMax)
+    return { kind: 'wall', hard: true, local, faint, reason: `block above (R ${R}) drops into void below (L ${L})${note}` }
   }
 
   // 3. Magnet — thick, roughly-equal volume with no dip AND aligned with a POC/VAH/VAL/HVN.
@@ -449,12 +492,13 @@ function readProfile(
       kind: 'magnet',
       hard: false,
       local,
+      faint: false,
       reason: `thick both sides, no dip; on ${near?.magnet.label} (${near?.distance} pts) — invalidation`,
     }
   }
 
   // 4. Plain coordinate — no volume-structure promotion.
-  return { kind: 'mgi', hard: false, local, reason: 'no local block/void structure to promote' }
+  return { kind: 'mgi', hard: false, local, faint: false, reason: 'no local block/void structure to promote' }
 }
 
 /**
@@ -497,6 +541,7 @@ function classifyBorder(
       local: null,
       magnet: magnet.nearest,
       detectorNode: null,
+      faint: false,
       reason: 'anchor outside the volume profile range',
     }
   }
@@ -510,6 +555,7 @@ function classifyBorder(
     local: pick.read.local,
     magnet: magnet.nearest,
     detectorNode: nearestDetectorNode(level.price, pick.ctx.lvn, params.magnetTolerance),
+    faint: pick.read.faint,
     reason: pick.read.reason + via,
   }
 }
@@ -539,7 +585,9 @@ function mergePartitions(partitions: BorderVerdict[], tolerance: number): Compos
       price: rep.level.price,
       kind,
       label: [...new Set(members.map(m => m.level.label))].join(' / '),
-      significance: members.some(m => m.source === 'balance-area')
+      // AAA needs a NON-faint balance-area promotion (feat-066): faint
+      // balance-area structure keeps its border but ranks with rotation class.
+      significance: members.some(m => m.source === 'balance-area' && !m.faint)
         ? ('AAA' as const)
         : ('A' as const),
       tier: Math.min(...members.map(m => m.level.tier)),
@@ -811,11 +859,14 @@ export function assembleTerrain(input: {
     rows.filter(r => isFiniteNumber(r.price) && isFiniteNumber(r.volume)).sort((a, b) => a.price - b.price)
   const meanVolOf = (rows: TerrainProfileRow[]) =>
     rows.length > 0 ? rows.reduce((sum, r) => sum + r.volume, 0) / rows.length : 0
+  const peakVolOf = (rows: TerrainProfileRow[]) =>
+    rows.length > 0 ? Math.max(...rows.map(r => r.volume)) : 0
 
   const rowsAsc = cleanRows(input.profile)
   const rotationCtx: ProfileContext = {
     rowsAsc,
     meanVol: meanVolOf(rowsAsc),
+    peakVol: peakVolOf(rowsAsc),
     lvn: input.lvn,
     source: 'rotation',
   }
@@ -825,6 +876,7 @@ export function assembleTerrain(input: {
       ? {
           rowsAsc: balanceRows,
           meanVol: meanVolOf(balanceRows),
+          peakVol: peakVolOf(balanceRows),
           lvn: input.balanceAreaLvn ?? { hvn: [], lvn: [], peakVolume: 0 },
           source: 'balance-area',
         }

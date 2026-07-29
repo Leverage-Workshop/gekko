@@ -4,7 +4,8 @@
 
 **Last Updated:** 2026-07-29
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **objectives awarded off the intraday trend** (feat-065), on top of
+Latest: **faint balance-area promotions no longer confer AAA** (feat-066), on top of
+**objectives awarded off the intraday trend** (feat-065), on top of
 **composite intraday trend + HTF integrity qualifier** (feat-064), on top of
 **session-anchored intraday facts — VWAP / cum delta / one-timeframing**
 (feat-063), on top of **full-session Globex exec-bar export ingest** (feat-062), on top of
@@ -28,6 +29,18 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Faint balance-area promotions no longer confer AAA (2026-07-29, feat-066).**
+Operator flagged the "AAA trench" at 28212.5/28227.75 as barely noticeable on
+the balance-area VbP. Verified on the real bundle: flanks 32-43% of the
+profile's 11,048 peak — the F5 floor uses the profile MEAN, which the
+profile's own thin tail dilutes. New `aaaMinFlankPeakFrac` (0.5): a
+balance-area promotion whose thinner flank is under half the profile PEAK is
+marked `faint` (verdict field + reason suffix "faint acceptance ... — not
+AAA") and ranks A instead of AAA; the border itself survives as a hard
+partition/entry anchor. Rotation promotions never faint. Prompt significance
+lines updated ("never call faint balance-area borders AAA in prose").
+Real-bundle result: all four thin-tail borders now A with explicit reasons.
 
 **Objectives awarded off the intraday trend (2026-07-29, feat-065).**
 Operator doctrine change: the Law of Asymmetric Initiative now awards the
