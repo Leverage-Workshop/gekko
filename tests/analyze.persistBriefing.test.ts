@@ -17,9 +17,18 @@ const briefing: Briefing = {
     ripStatus: 'green — above the Rip',
   },
   overview: {
-    htfView: ['value migrating higher', 'ranges contracting'],
-    mtfView: ['value built higher three days', 'IB narrow'],
-    current: ['inside value', 'no playbook pattern active'],
+    htfView: {
+      narrative: 'Value migrated higher across the week while ranges contracted.',
+      keyPoints: ['value migrating higher', 'ranges contracting'],
+    },
+    mtfView: {
+      narrative: 'Value built higher three days running on a narrow IB.',
+      keyPoints: ['value built higher three days', 'IB narrow'],
+    },
+    current: {
+      narrative: 'Price opened inside value with no playbook pattern active.',
+      keyPoints: ['inside value', 'no playbook pattern active'],
+    },
   },
   terrain: {
     zones: [{ color: 'green', top: 30300, bottom: 30200, label: 'Killbox' }],

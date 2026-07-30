@@ -1,6 +1,8 @@
 import type {
+  BulletOverview,
   DangerZone,
   Objective,
+  Overview,
   PersistedOverview,
   TacticalRead,
 } from '@/knowledge/schema/briefing.schema'
@@ -83,17 +85,29 @@ function ripStatusTone(status: string): string {
 
 /**
  * Tactical Overview tab: the three prose groups as stacked cards. Branches on
- * the overview shape — HTF View / MTF View / Current for feat-060 briefings,
- * the legacy three groups for pre-feat-060 rows still in the DB.
+ * the overview shape — narrative + key points for feat-068 briefings
+ * (time-ordered paragraph above the distilled bullets), the three bullet
+ * arrays for feat-060..067 rows, the legacy three groups for pre-feat-060
+ * rows still in the DB.
  */
+function isBulletOverview(overview: Overview | BulletOverview): overview is BulletOverview {
+  return Array.isArray(overview.htfView)
+}
+
 function OverviewPane({ overview, terms }: { overview: PersistedOverview; terms: string[] }) {
-  const groups: { title: string; items: string[] }[] =
+  const groups: { title: string; narrative?: string; items: string[] }[] =
     'htfView' in overview
-      ? [
-          { title: 'HTF View', items: overview.htfView },
-          { title: 'MTF View', items: overview.mtfView },
-          { title: 'Current', items: overview.current },
-        ]
+      ? isBulletOverview(overview)
+        ? [
+            { title: 'HTF View', items: overview.htfView },
+            { title: 'MTF View', items: overview.mtfView },
+            { title: 'Current', items: overview.current },
+          ]
+        : [
+            { title: 'HTF View', narrative: overview.htfView.narrative, items: overview.htfView.keyPoints },
+            { title: 'MTF View', narrative: overview.mtfView.narrative, items: overview.mtfView.keyPoints },
+            { title: 'Current', narrative: overview.current.narrative, items: overview.current.keyPoints },
+          ]
       : [
           { title: 'Current Position', items: overview.currentPosition },
           { title: 'Structural Architecture', items: overview.structuralArchitecture },
@@ -111,6 +125,11 @@ function OverviewPane({ overview, terms }: { overview: PersistedOverview; terms:
               {group.title}
             </span>
           </div>
+          {group.narrative ? (
+            <p className="mt-4 text-sm font-light leading-relaxed text-body-strong">
+              <HighlightedText text={group.narrative} terms={terms} />
+            </p>
+          ) : null}
           <div className="mt-4">
             <BulletList items={group.items} terms={terms} />
           </div>

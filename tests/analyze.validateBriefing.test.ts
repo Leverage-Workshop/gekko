@@ -30,9 +30,18 @@ function briefing(overrides: Partial<Briefing> = {}): Briefing {
       ripStatus: 'green',
     },
     overview: {
-      htfView: ['value migrating higher', 'ranges contracting'],
-      mtfView: ['balanced', 'value overlapping'],
-      current: ['inside value', 'blue initiative'],
+      htfView: {
+        narrative: 'Value migrated higher across the week while ranges contracted.',
+        keyPoints: ['value migrating higher', 'ranges contracting'],
+      },
+      mtfView: {
+        narrative: 'The last three days built overlapping, balanced value.',
+        keyPoints: ['balanced', 'value overlapping'],
+      },
+      current: {
+        narrative: 'Price opened inside value and blue initiative held the session.',
+        keyPoints: ['inside value', 'blue initiative'],
+      },
     },
     terrain: {
       zones: [

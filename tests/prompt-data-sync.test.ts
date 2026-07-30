@@ -297,9 +297,11 @@ describe('prompt-data sync gate (feat-054)', () => {
 
   describe('prompt size budgets (chars; bump consciously, in this diff)', () => {
     // Measured 2026-07-24: analyze 29_141 / update 28_881 / eval 29_302.
+    // Raised 2026-07-29 (feat-068): the narrative-overview contract grew
+    // output-briefing.md — analyze measured 37_323.
     // Floors catch accidental truncation (a doctrine file emptied or dropped
     // from assembly); ceilings catch silent bloat from new data.
-    const PREFIX_BUDGET = { floor: 20_000, ceiling: 36_000 }
+    const PREFIX_BUDGET = { floor: 20_000, ceiling: 39_000 }
 
     it.each(['analyze', 'update', 'eval'] as const)(
       'the %s cached prefix stays inside budget',

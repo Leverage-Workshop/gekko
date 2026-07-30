@@ -82,13 +82,38 @@ describe('composeUpdateBriefing', () => {
     expect(Briefing.safeParse(composed).success).toBe(false)
   })
 
-  it('carries a feat-060 three-section overview forward unchanged', () => {
-    const modernParent: PersistedBriefing = {
+  it('carries a feat-060 bullet-array overview forward unchanged (persisted-only shape)', () => {
+    const bulletParent: PersistedBriefing = {
       ...parent,
       overview: {
         htfView: ['value migrating higher', 'ranges contracting'],
         mtfView: ['value overlapping three days', 'narrow IB'],
         current: ['ON low held', 'no playbook pattern active'],
+      },
+    }
+    const composed = composeUpdateBriefing(bulletParent, update)
+    expect(composed.overview).toEqual(bulletParent.overview)
+    expect(PersistedBriefing.safeParse(composed).success).toBe(true)
+    // Bullet arrays are historical: the feat-068 generation contract rejects them.
+    expect(Briefing.safeParse(composed).success).toBe(false)
+  })
+
+  it('carries a feat-068 narrative overview forward unchanged', () => {
+    const modernParent: PersistedBriefing = {
+      ...parent,
+      overview: {
+        htfView: {
+          narrative: 'Value migrated higher across the week while ranges contracted.',
+          keyPoints: ['value migrating higher', 'ranges contracting'],
+        },
+        mtfView: {
+          narrative: 'Three overlapping value days stacked POCs into a shelf.',
+          keyPoints: ['value overlapping three days', 'narrow IB'],
+        },
+        current: {
+          narrative: 'Overnight held its low and RTH opened inside value.',
+          keyPoints: ['ON low held', 'no playbook pattern active'],
+        },
       },
     }
     const composed = composeUpdateBriefing(modernParent, update)
