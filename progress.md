@@ -4,7 +4,8 @@
 
 **Last Updated:** 2026-07-30
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Shallow balance-area valleys no longer confer AAA** (feat-069), on top of
+Latest: **Vanilla role prompt replaces the Gekko persona** (feat-070), on top of
+**Shallow balance-area valleys no longer confer AAA** (feat-069), on top of
 **Tactical Overview reads as narrative + key points** (feat-068, built
 concurrently with feat-067 in an isolated worktree; merged after PR #107), on top of
 **intraday trend in the dashboard meta strip** (feat-067), on top of
@@ -33,6 +34,23 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Vanilla role prompt replaces the Gekko persona (2026-07-30, feat-070).**
+Operator decision: the Gordon Gekko persona (`knowledge/system/persona.md`)
+dated from the manual chat-Gem era; the operator no longer converses with the
+system and briefing output wasn't carrying the voice anyway. Replaced by
+`knowledge/system/role.md` — a vanilla prompt keeping ONLY the
+analysis-governing content not duplicated elsewhere: advisory-only constraint,
+attention-economy output rules (short declarative sentences anchored to
+levels, max 2 key areas per briefing), the say-plainly no-trade bias
+("better to miss a move than force a bad entry"), and
+plan-executes-without-renegotiation (stops are invalidation, not
+suggestions). Dropped as voice or as duplicated: identity/tone bullets,
+trend-continuation bias (constraints #5 Law of Asymmetric Initiative),
+trade-what-IS (constraints #3), LVN-entry preference (chart-reading),
+one-action macroGoal (Objective contract), ADHD framing (schema comment now
+says "attention economy"). `doctrine.ts` SHARED_PREFIX, both tests, and doc
+references updated; `gem-files/` and `docs/traces/` untouched (historical).
 
 **Shallow balance-area valleys no longer confer AAA (2026-07-30, feat-069).**
 Operator flagged a "AAA trench" at Weekly VWAP (27917.62) with nothing visible

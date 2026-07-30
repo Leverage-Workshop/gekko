@@ -412,9 +412,9 @@ describe('runAnalysis', () => {
 })
 
 describe('loadDoctrine', () => {
-  it('assembles the persona, constraints and doctrine files', () => {
+  it('assembles the role, constraints and doctrine files', () => {
     const doctrine = loadDoctrine('analyze')
-    expect(doctrine).toContain('Gekko')
+    expect(doctrine).toContain('advisory-only')
     expect(doctrine).toContain('Magnet Prohibition')
     expect(doctrine).toContain('# Chart Reading')
     expect(doctrine).toContain('# MGI Glossary')

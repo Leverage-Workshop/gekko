@@ -727,6 +727,16 @@
         "feat-066"
       ],
       "evidence": "./init.sh green 2026-07-30 (exit 0: typecheck, lint 0 errors/8 pre-existing warnings, 1014 tests passed / 1 skipped, build compiled). New tests: shallow balance-area valley (depth 0.875) demotes to A with 'shallow valley ... - not AAA' reason; deep valley under the same asymmetric flanks (depth 0.5) keeps AAA; rotation promotions never carry the shallow flag. Real-bundle validation (14-bundle sweep 2026-07-28..30): the 2026-07-30 Weekly VWAP false positive (depth 0.89) demotes AAA->A while both genuine Monthly VWAP AAA trenches (0.54, 0.64) and all AAA walls are unchanged. Analyze user-prompt budget consciously raised 85k->87k (measured 85,850)."
+    },
+    {
+      "id": "feat-070",
+      "name": "Vanilla role prompt replaces the Gekko persona",
+      "description": "Operator decision (2026-07-30): the Gordon Gekko persona in knowledge/system/persona.md dated from the manual chat-Gem era, the operator no longer interacts conversationally, and briefing output wasn't carrying the voice anyway. persona.md is replaced by knowledge/system/role.md \u2014 a vanilla prompt keeping only the analysis-governing content that is not duplicated elsewhere in the doctrine: the advisory-only constraint, the attention-economy output rules (short declarative sentences anchored to levels, max 2 key areas per briefing), the say-so-plainly no-trade bias, and the plan-executes-without-renegotiation rule. Dropped as pure voice or as duplicated elsewhere: Gekko identity/tone bullets (trend-continuation bias lives in the Law of Asymmetric Initiative, trade-what-IS in constraints #3, LVN-entry preference in chart-reading, one-action macroGoal in the Objective contract). doctrine.ts SHARED_PREFIX, tests, and docs references updated; gem-files/ and docs/traces/ left as historical artifacts.",
+      "status": "done",
+      "dependencies": [
+        "feat-022"
+      ],
+      "evidence": "./init.sh green on feat-070-vanilla-role-prompt (typecheck, lint, vitest, build). tests/knowledge-restructure.test.ts guards the renamed system/role.md; tests/analyze.runAnalysis.test.ts asserts the assembled prefix carries the advisory-only role instead of the persona."
     }
   ]
 }

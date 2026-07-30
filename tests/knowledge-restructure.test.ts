@@ -14,7 +14,7 @@ const ROOT = join(__dirname, '..')
 const KNOWLEDGE = join(ROOT, 'knowledge')
 
 const KNOWLEDGE_FILES = [
-  'system/persona.md',
+  'system/role.md',
   'system/constraints.md',
   'system/output-briefing.md',
   'system/output-objective.md',

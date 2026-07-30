@@ -19,7 +19,7 @@ import { join } from 'node:path'
 
 export type DoctrineTask = 'analyze' | 'update' | 'eval'
 
-const SHARED_PREFIX = ['knowledge/system/persona.md', 'knowledge/system/constraints.md'] as const
+const SHARED_PREFIX = ['knowledge/system/role.md', 'knowledge/system/constraints.md'] as const
 
 /** The Objective contract is shared by the two briefing-shaped tasks only. */
 const OUTPUT_FILES: Record<DoctrineTask, readonly string[]> = {
