@@ -59,12 +59,12 @@ function fmtChartTime(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function minutesOfDay(d: Date): number {
+export function minutesOfDay(d: Date): number {
   return d.getHours() * 60 + d.getMinutes()
 }
 
 /** Calendar date (chart time) of the trading day a bar belongs to: bars at/after the Globex reopen roll to the next day. */
-function tradingDayOf(bar: HtfBar): string {
+export function tradingDayOf(bar: HtfBar): string {
   const d = new Date(bar.dateTime)
   if (minutesOfDay(d) >= GLOBEX_OPEN_MINUTES) d.setDate(d.getDate() + 1)
   const pad = (n: number) => String(n).padStart(2, '0')

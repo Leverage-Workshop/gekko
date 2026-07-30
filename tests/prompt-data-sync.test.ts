@@ -326,12 +326,15 @@ describe('prompt-data sync gate (feat-054)', () => {
       // Raised 85k → 87k 2026-07-30 (feat-069): the `shallow` flag on every
       // border verdict (AAA valley-depth transparency, mirroring `faint`)
       // added ~850 chars of boolean fields (measured 85_850).
+      // Raised 87k → 91k 2026-07-30 (feat-071): the multiDayTpo composite
+      // (composite POC/VA/range, ≤3 HVNs, ≤3 LVNs, 5-session walk) plus its
+      // ownership bullet added ~2.8k of already-projected data (measured 88_613).
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 87k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 91k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(87_000)
+      ).toBeLessThan(91_000)
     })
   })
 })
