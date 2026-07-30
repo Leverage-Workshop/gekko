@@ -18,9 +18,18 @@ const briefingPayload: Briefing = {
     ripStatus: 'green — above the Rip',
   },
   overview: {
-    htfView: ['value migrating higher', 'ranges contracting'],
-    mtfView: ['acceptance above', 'void below the shelf'],
-    current: ['inside value, above the Rip', 'no playbook pattern active'],
+    htfView: {
+      narrative: 'Value migrated higher across the week while ranges contracted.',
+      keyPoints: ['value migrating higher', 'ranges contracting'],
+    },
+    mtfView: {
+      narrative: 'Acceptance built above while a void sat below the shelf.',
+      keyPoints: ['acceptance above', 'void below the shelf'],
+    },
+    current: {
+      narrative: 'Price opened inside value and held above the Rip.',
+      keyPoints: ['inside value, above the Rip', 'no playbook pattern active'],
+    },
   },
   terrain: {
     zones: [{ color: 'green', top: 30300, bottom: 30200, label: 'Killbox' }],

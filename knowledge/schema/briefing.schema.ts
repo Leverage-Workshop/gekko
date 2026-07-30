@@ -46,21 +46,49 @@ export const KeyInflection = z.object({
 export type KeyInflection = z.infer<typeof KeyInflection>
 
 /**
- * Tactical Overview redesign (feat-060, 2026-07-28): three timeframe-descending
- * prose sections — HTF view (value migration, daily-range contraction/
- * expansion, HTF trend), MTF view (the last few days day-by-day), Current
- * (overnight session, then the RTH session so far). Floor of 2 bullets per
- * section (gem-comparison F6 — single-bullet overviews read as sparse), ceiling
- * of 5 (ADHD profile — `current` must fit the overnight brief, the RTH read,
- * the Active Pattern Scan verdict and a possible stale flag). `minItems`/
- * `maxItems` are both proven safe under OpenAI strict structured outputs.
+ * One Tactical Overview section (feat-068, 2026-07-29): a time-ordered
+ * narrative paragraph plus the few points that data surfaces. `narrative`
+ * walks the timeframe chronologically (operator ask: "a paragraph giving a
+ * time-based description of what's occurred"); `keyPoints` are the distilled
+ * takeaways, NOT a restatement — floor of 2 (gem-comparison F6: single-bullet
+ * sections read as sparse), ceiling of 4 (ADHD profile; the narrative now
+ * carries the description, so the feat-060 ceiling of 5 comes down one).
+ * `minItems`/`maxItems` are proven safe under OpenAI strict structured
+ * outputs; string length floors are deliberately NOT schema-enforced (the
+ * prompt owns narrative substance).
+ */
+export const OverviewSection = z.object({
+  narrative: z.string(),
+  keyPoints: z.array(z.string()).min(2).max(4),
+})
+export type OverviewSection = z.infer<typeof OverviewSection>
+
+/**
+ * Tactical Overview: three timeframe-descending sections — HTF view (value
+ * migration, daily-range contraction/expansion, HTF trend), MTF view (the
+ * last few days day-by-day), Current (overnight session, then the RTH session
+ * so far) — each a narrative + key points (feat-068; section split feat-060).
  */
 export const Overview = z.object({
+  htfView: OverviewSection,
+  mtfView: OverviewSection,
+  current: OverviewSection,
+})
+export type Overview = z.infer<typeof Overview>
+
+/**
+ * feat-060..feat-067 overview shape (three bullet arrays) — HISTORICAL ROWS
+ * ONLY, never generated. Stays parseable for the same reason 'T3' does (see
+ * {@link TargetLabel}): persisted briefings are re-read through the schema
+ * (dashboardData / updateBundle safeParse) and rows from that window carry
+ * this shape.
+ */
+export const BulletOverview = z.object({
   htfView: z.array(z.string()).min(2).max(5),
   mtfView: z.array(z.string()).min(2).max(5),
   current: z.array(z.string()).min(2).max(5),
 })
-export type Overview = z.infer<typeof Overview>
+export type BulletOverview = z.infer<typeof BulletOverview>
 
 /**
  * Pre-feat-060 overview shape — HISTORICAL ROWS ONLY, never generated. Stays
@@ -77,8 +105,8 @@ export const LegacyOverview = z.object({
 })
 export type LegacyOverview = z.infer<typeof LegacyOverview>
 
-/** What a persisted `overview` column/payload may hold: current or legacy shape. */
-export const PersistedOverview = z.union([Overview, LegacyOverview])
+/** What a persisted `overview` column/payload may hold: current or a historical shape. */
+export const PersistedOverview = z.union([Overview, BulletOverview, LegacyOverview])
 export type PersistedOverview = z.infer<typeof PersistedOverview>
 
 /** Contiguous Stratosphere→Abyss zone (top > bottom). Borders engine-validated. */
@@ -192,10 +220,10 @@ export type Briefing = z.infer<typeof Briefing>
 /**
  * Read-path variant of {@link Briefing} for PERSISTED rows (dashboard render,
  * update-task parent parse): identical except `overview` also accepts the
- * pre-feat-060 legacy shape and `meta` carries the code-stamped
- * `intradayTrend` (feat-067). Never passed to a model — the generation
- * contract stays {@link Briefing}, so the strict-structured-outputs walker
- * never sees the union or the optional.
+ * historical shapes (feat-060 bullet arrays, pre-feat-060 legacy) and `meta`
+ * carries the code-stamped `intradayTrend` (feat-067). Never passed to a
+ * model — the generation contract stays {@link Briefing}, so the
+ * strict-structured-outputs walker never sees the union or the optional.
  */
 export const PersistedBriefing = Briefing.extend({
   overview: PersistedOverview,

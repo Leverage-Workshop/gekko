@@ -44,9 +44,18 @@ function modelBriefing(): Briefing {
       ripStatus: facts.ripStatus?.condition ?? 'unknown',
     },
     overview: {
-      htfView: ['value migrating higher', 'ranges contracting'],
-      mtfView: ['balance over the POC shelf', 'value overlapping three days'],
-      current: ['above the Rip', 'blue initiative holding'],
+      htfView: {
+        narrative: 'Value migrated higher across the week while ranges contracted.',
+        keyPoints: ['value migrating higher', 'ranges contracting'],
+      },
+      mtfView: {
+        narrative: 'Balance built over the POC shelf on three overlapping value days.',
+        keyPoints: ['balance over the POC shelf', 'value overlapping three days'],
+      },
+      current: {
+        narrative: 'Price held above the Rip with blue initiative through the session.',
+        keyPoints: ['above the Rip', 'blue initiative holding'],
+      },
     },
     terrain: {
       zones: facts.terrain.zones.map((zone) => ({

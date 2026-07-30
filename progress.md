@@ -4,7 +4,9 @@
 
 **Last Updated:** 2026-07-29
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **intraday trend in the dashboard meta strip** (feat-067), on top of
+Latest: **Tactical Overview reads as narrative + key points** (feat-068, built
+concurrently with feat-067 in an isolated worktree; merged after PR #107), on top of
+**intraday trend in the dashboard meta strip** (feat-067), on top of
 **faint balance-area promotions no longer confer AAA** (feat-066), on top of
 **objectives awarded off the intraday trend** (feat-065), on top of
 **composite intraday trend + HTF integrity qualifier** (feat-064), on top of
@@ -30,6 +32,24 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Tactical Overview reads as narrative + key points (2026-07-29, feat-068).**
+Operator ask: each overview section should read as a time-based narrative
+paragraph of what occurred over that timeframe, then a few bullets with the
+most important points the data surfaces; levels called by MGI name, not raw
+price. Schema: `OverviewSection { narrative, keyPoints[2..4] }` for
+htfView/mtfView/current (ceiling 5→4 — the narrative carries the description);
+the feat-060 bullet-array shape parses as `BulletOverview` on the persisted
+read path only, alongside the pre-060 `LegacyOverview`. Contract: narratives
+are time-ordered with explicit anchors ("off the 17:00 reopen…"), 4–6
+sentences, each ending by setting up the section below; keyPoints never
+restate the narrative; Active Pattern Scan verdict + stale flag are required
+`current` keyPoints. Vocabulary inversion vs the Objective contract: NAME
+first ("PW Low"), price at most in parens — the terms highlighter already
+matches MGI labels so names light up in the narrative. OverviewPane renders
+the paragraph above the bullets with a three-way shape branch. Updates carry
+the overview forward verbatim, unchanged. Analyze cached-prefix budget
+36k→39k chars (measured 37,323).
 
 **Intraday trend in the dashboard meta strip (2026-07-29, feat-067).**
 Operator ask: split the meta strip's HTF Trend cell in two and show the

@@ -707,6 +707,16 @@
         "feat-064"
       ],
       "evidence": "./init.sh green 2026-07-29 (typecheck clean, tests 1009 passed / 1 skipped, build compiled). New tests: summarizeIntradayTrend formats directional ('Up (strong) - trending'), neutral (no conviction clause) and conflict-count summaries; PersistedBriefing meta parses with and without the stamped key (old rows keep parsing); enforceMeta stamps intradayTrend verbatim with no drift warning."
+    },
+    {
+      "id": "feat-068",
+      "name": "Tactical Overview reads as narrative + key points, levels by MGI name",
+      "description": "Operator ask (2026-07-29 evening): the Tactical Overview's bullet-fact sections should read as a narrative - each section a time-based paragraph of what occurred over that timeframe, followed by a few bullets carrying the most important points the data surfaces; levels highlighted by MGI name, not raw price. Schema: Overview's three sections (htfView/mtfView/current) each become OverviewSection { narrative, keyPoints[2..4] } - the keyPoints ceiling drops from 5 to 4 since the narrative now carries the description; the feat-060 bullet-array shape moves to BulletOverview in the PersistedOverview union (historical rows only, never generated) alongside the pre-feat-060 LegacyOverview. Contract (output-briefing.md): narratives are TIME-ORDERED with explicit time anchors ('Thursday's session...', 'off the 17:00 reopen...'), 4-6 sentences, each ending by setting up the section below (htfView -> the recent days, mtfView -> today's posture, current -> the read the objectives act on); keyPoints are distilled takeaways, never a restatement; the Active Pattern Scan verdict and any stale-bundle flag are required current keyPoints. Vocabulary inversion: overview levels are called by MGI/structural NAME first ('PW Low', 'the overnight high') with price at most in parens - inverting the Objective contract's price-first Level Attribution - since the names are on the operator's charts and the terms highlighter matches them; a bare price stays a defect, price-only allowed solely for levels with no name. UI: OverviewPane renders the narrative paragraph (term-highlighted, body-strong) above the keyPoint bullets, with a three-way shape branch (feat-068 narrative / feat-060 bullets / legacy). Updates still carry the overview forward verbatim. Analyze cached-prefix budget raised 36k -> 39k chars (contract growth, measured 37,323).",
+      "status": "done",
+      "dependencies": [
+        "feat-060"
+      ],
+      "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/8 warnings - 7 pre-existing + 1 matching the file's destructure idiom, 1007 tests passed / 1 skipped, build compiled). New/updated tests: narrative required per section, keyPoints floor 2 / ceiling 4, historical bullet + legacy shapes rejected at generation but parse as PersistedBriefing, composeUpdateBriefing carries bullet-era and narrative-era parents forward unchanged, strict-mode walker passes the nested OverviewSection."
     }
   ]
 }
