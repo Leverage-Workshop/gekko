@@ -323,12 +323,15 @@ describe('prompt-data sync gate (feat-054)', () => {
       // Raised 80k → 85k 2026-07-29 (feat-063/064): the sessionIntraday +
       // intradayTrend facts and their guide lines added ~2k of legitimately
       // new, already-compact data (measured 81_819).
+      // Raised 85k → 87k 2026-07-30 (feat-069): the `shallow` flag on every
+      // border verdict (AAA valley-depth transparency, mirroring `faint`)
+      // added ~850 chars of boolean fields (measured 85_850).
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 85k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 87k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(85_000)
+      ).toBeLessThan(87_000)
     })
   })
 })
