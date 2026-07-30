@@ -4,7 +4,12 @@
 
 **Last Updated:** 2026-07-30
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Vanilla role prompt replaces the Gekko persona** (feat-070), on top of
+Latest: **Multi-day TPO composite + HTF/MTF narrative restyle + name-first
+emphasis** (feat-071 — the missing multi-day TPO study reconstructed from the
+HTF 30-min bars as engine fact `multiDayTpo`; htfView/mtfView contracts
+rewritten to the Current section's storytelling register; UI emphasis
+inverted so MGI names are bold and prices in parens are not), on top of
+**Vanilla role prompt replaces the Gekko persona** (feat-070), on top of
 **Shallow balance-area valleys no longer confer AAA** (feat-069), on top of
 **Tactical Overview reads as narrative + key points** (feat-068, built
 concurrently with feat-067 in an isolated worktree; merged after PR #107), on top of
@@ -34,6 +39,31 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Multi-day TPO composite + HTF/MTF narrative restyle + name-first emphasis
+(2026-07-30, feat-071).** Operator report: the Tactical Overview's Current
+section reads as envisioned, but htfView/mtfView recite dates and bare POC
+prices, and the UI bolds prices while the MGI names go unemphasized. Three
+fixes. (1) The missing multi-day TPO study is reconstructed in code from the
+HTF 30-min bars (`lib/engine/multiDayTpo.ts`): each 30-min bar is one TPO
+period, so counting the 1-pt bins each bar's low→high traverses rebuilds the
+ladder — validated against the live `tpo.data.md` (single-session rebuild
+reproduces the study's POC exactly, VAH/VAL within one bin). The last 5 RTH
+sessions merge into engine fact `multiDayTpo`: composite POC + prominence,
+70% value area, range, HVN shelves, interior LVN valleys, per-session POC
+walk, current-vs-composite-value. (2) `output-briefing.md` htfView/mtfView
+contracts + the analyze-prompt overview bullet rewritten: all three sections
+carry the same storytelling register — a campaign told at named structure,
+never a date-by-date number recitation; day-value references named by day
+("Tuesday's POC (27600)"), the composite by identity ("the 5-day composite
+POC (28054)"); mtfView anchors on `multiDayTpo`, never the chart image.
+(3) Emphasis inverted in `highlighted-text.tsx`/`highlight.ts`: names bold
+bright, prices unemphasized; labels also match with their kind suffix
+stripped ("Weekly VWAP" ← "Weekly VWAP wall"); POC/VAH/VAL/HVN/LVN/IBH/IBL/
+Initial Balance/ONH/ONL join the doctrine vocabulary. Prompt budget raised
+87k → 91k consciously (measured 88.6k); engine-ownership `htf_csv` row
+extended. Note: knowledge files ship with the trigger.dev deploy — live
+briefings pick up the new prompts on the next `trigger deploy`.
 
 **Vanilla role prompt replaces the Gekko persona (2026-07-30, feat-070).**
 Operator decision: the Gordon Gekko persona (`knowledge/system/persona.md`)

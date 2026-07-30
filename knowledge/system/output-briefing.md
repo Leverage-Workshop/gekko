@@ -22,18 +22,27 @@ and judgment; the engine supplies all computed fields.
   - `keyPoints` — the few points that data surfaces, sharp enough to act on. They are the
     distilled takeaways a scanning eye must not miss, NOT a summary of the narrative — a
     keyPoint restating a narrative sentence is a defect.
-  - `htfView` — the higher-timeframe map: how value migrated across the recent sessions
-    (POC drift, higher/lower-value day streaks, and the day-by-day `valueMigration.recentSessions`
-    series), whether the daily ranges are contracting or expanding (from `dailyRanges` — quote the
-    actual recent session ranges in points, e.g. "the last three sessions travelled 96, 71 and
-    58 pts — compression like this often precedes an expansion day"), and the overall HTF
-    trend from the confirmed swing sequence with its integrity qualifier.
-  - `mtfView` — the last few days in detail: walk the daily value-area series day by day (value
-    building higher, lower, or overlapping; where the POCs stack as high-volume references),
-    then today's developing structure from the code-owned `tpo` facts (value area, POC
+  - `htfView` — the higher-timeframe story, told the way `current` tells the session: a
+    campaign narrated at NAMED structure, not a recitation of dates and POC prices. Where was
+    the market at the start of the window, what broke or held to bring it here — and every
+    stop on that journey is named ("value collapsed through PW Low, washed out at Tuesday's
+    POC (27600), then rebuilt above the Weekly VWAP"). Behind the story sit the numbers: value
+    migration (`valueMigration` — POC drift, higher/lower-value day streaks), range behavior
+    (`dailyRanges` — quote actual session ranges in points, e.g. "the last three sessions
+    travelled 96, 71 and 58 pts"), and the HTF swing trend with its integrity qualifier.
+    A paragraph that reads as a date-by-date list of value-area numbers is a defect — the
+    numbers support the story, they are not the story.
+  - `mtfView` — the last few days in detail, anchored on the code-owned `multiDayTpo`
+    composite (the numeric multi-day Market Profile). Open with where the multi-day balance
+    sits — the composite value area and POC, named as such ("the 5-day composite POC
+    (28054)") — then narrate how that balance BUILT: which sessions stacked value where, which
+    named levels the fights happened at, per `multiDayTpo.perSession` and the daily value-area
+    series. Name the composite HVN shelves and interior LVN valleys as the multi-day
+    references they are (an LVN valley is a thin traversal the market may retrace quickly).
+    Land on today's developing structure from the code-owned `tpo` facts (value area, POC
     prominence, Initial Balance, single prints, poor high/low). The Market Profile screenshot
-    adds intraday distribution *shape* only — when a multi-day read leans on the chart image
-    rather than the numeric series, say so.
+    adds intraday distribution *shape* only — the multi-day read comes from `multiDayTpo`,
+    never from the chart image.
   - `current` — the immediate session, told in order: the overnight session from the 17:00
     reopen (`overnightSession` — overnight high/low/range and where price sits against them),
     then the RTH session so far — did price attempt higher and get rejected, was the overnight
@@ -53,9 +62,12 @@ and judgment; the engine supplies all computed fields.
       ("PW Low", "the overnight high", "the balance-area POC") — those names are on the
       operator's charts; raw prices are not. A price may follow the name in parentheses when
       precision matters ("PW Low (28212.5)"), inverting the Objective contract's
-      price-first Level Attribution convention. A bare price with no name is a defect; only a
-      level with no MGI or structural name at all may be given by price alone, and then it
-      still carries a description ("the untracked swing low at 27950").
+      price-first Level Attribution convention. Structural references without an MGI label
+      still get a NAME: a day's value reference is named by its day ("Tuesday's POC (27600)",
+      "Monday's VAH (28068.75)"), the multi-day composite by its identity ("the 5-day
+      composite POC (28054)", "the composite LVN valley (27387)"). A bare price with no name
+      is a defect; only a level with no derivable name at all may be given by price alone,
+      and then it still carries a description ("the untracked swing low at 27950").
 - **`terrain`** —
   - `zones`: reproduce the engine zone stack exactly — contiguous Stratosphere→Abyss, the bottom
     of zone N equal to the top of zone N+1, border prices verbatim. You supply only each zone's

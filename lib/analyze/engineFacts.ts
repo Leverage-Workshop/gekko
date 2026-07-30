@@ -31,6 +31,8 @@ import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
 import { computeOvernightSession } from '@/lib/engine/overnightSession'
 import type { OvernightSessionFacts } from '@/lib/engine/overnightSession'
+import { computeMultiDayTpo } from '@/lib/engine/multiDayTpo'
+import type { MultiDayTpoFacts } from '@/lib/engine/multiDayTpo'
 import { computeSessionIntraday } from '@/lib/engine/sessionIntraday'
 import type { SessionIntradayFacts } from '@/lib/engine/sessionIntraday'
 import { computeIntradayTrend } from '@/lib/engine/intradayTrend'
@@ -145,6 +147,15 @@ export interface EngineFacts {
    * (RTH-only chart) — flagged in `warnings`.
    */
   overnightSession: OvernightSessionFacts | null
+  /**
+   * Code-owned multi-day TPO composite (feat-071): the last ~5 RTH sessions'
+   * TPO profiles reconstructed from the 30-min bars (one bar = one TPO
+   * period) and merged — composite POC/value area/range, HVN shelves,
+   * interior LVN valleys, per-session POC walk. The numeric multi-day Market
+   * Profile behind `overview.mtfView`. Null when the bundle has no HTF bar
+   * export or it holds fewer than two RTH sessions — flagged in `warnings`.
+   */
+  multiDayTpo: MultiDayTpoFacts | null
   /**
    * Code-owned session-anchored intraday read (feat-063), computed from the
    * full-session Globex exec-bar export (feat-062): session VWAP (Globex- and
@@ -277,6 +288,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
 
   let htfStructure: HtfStructureFacts | null = null
   let overnightSession: OvernightSessionFacts | null = null
+  let multiDayTpo: MultiDayTpoFacts | null = null
   if (input.htfCsvContent) {
     try {
       const htfBars = parseHtfBars(input.htfCsvContent)
@@ -285,6 +297,12 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
       if (overnightSession === null) {
         warnings.push(
           'HTF export carries no overnight bars — overnight session facts not computed',
+        )
+      }
+      multiDayTpo = computeMultiDayTpo(htfBars, mgi.currentPrice)
+      if (multiDayTpo === null) {
+        warnings.push(
+          'HTF export holds fewer than two RTH sessions — multi-day TPO composite not computed',
         )
       }
     } catch (error) {
@@ -410,6 +428,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     dailyRanges,
     htfStructure,
     overnightSession,
+    multiDayTpo,
     sessionIntraday,
     intradayTrend,
     warnings,

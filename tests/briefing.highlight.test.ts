@@ -77,4 +77,34 @@ describe('buildHighlightTerms', () => {
     expect(terms).not.toContain('Rip Wall')
     expect(terms.filter((t) => t === 'Kill Box')).toHaveLength(1)
   })
+
+  it('adds kind-suffix-stripped bases so prose that drops the suffix still matches', () => {
+    const payload = {
+      terrain: {
+        zones: [],
+        levels: [
+          { price: 2, label: 'Weekly VWAP wall', kind: 'wall' },
+          { price: 1, label: 'PM Low trench', kind: 'trench' },
+        ],
+      },
+    } as unknown as Briefing
+
+    const terms = buildHighlightTerms(payload)
+    expect(terms).toContain('Weekly VWAP')
+    expect(terms).toContain('PM Low')
+    // The full labels stay too — longest-first matching prefers them when written out.
+    expect(terms).toContain('Weekly VWAP wall')
+    expect(terms).toContain('PM Low trench')
+  })
+
+  it('carries the volume/TPO structural vocabulary', () => {
+    const payload = {
+      terrain: { zones: [], levels: [] },
+    } as unknown as Briefing
+
+    const terms = buildHighlightTerms(payload)
+    for (const term of ['POC', 'VAH', 'VAL', 'HVN', 'LVN', 'Initial Balance', 'ONH', 'ONL']) {
+      expect(terms).toContain(term)
+    }
+  })
 })

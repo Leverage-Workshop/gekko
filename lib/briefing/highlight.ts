@@ -34,15 +34,35 @@ const DOCTRINE_TERMS = [
   'VRange',
   'PDH',
   'PDL',
+  'POC',
+  'VAH',
+  'VAL',
+  'HVN',
+  'LVN',
+  'IBH',
+  'IBL',
+  'Initial Balance',
+  'ONH',
+  'ONL',
 ]
 
-/** Level + zone labels from the payload, merged with the doctrine vocabulary. */
+/**
+ * Level labels often carry the border kind as a suffix ("Weekly VWAP wall")
+ * while the prose drops it ("Weekly VWAP") — the stripped base must match too.
+ */
+const KIND_SUFFIX_RE = /\s+(?:wall|trench|magnet)$/i
+
+/**
+ * Level + zone labels from the payload (each also as its kind-suffix-stripped
+ * base), merged with the doctrine vocabulary.
+ */
 export function buildHighlightTerms(payload: PersistedBriefing): string[] {
   const labels = [
     ...payload.terrain.levels.map((level) => level.label),
     ...payload.terrain.zones.map((zone) => zone.label),
   ]
-  return [...new Set([...labels, ...DOCTRINE_TERMS])].filter(
+  const bases = labels.map((label) => label.replace(KIND_SUFFIX_RE, ''))
+  return [...new Set([...labels, ...bases, ...DOCTRINE_TERMS])].filter(
     (term) => term.trim().length > 0,
   )
 }

@@ -737,6 +737,17 @@
         "feat-022"
       ],
       "evidence": "./init.sh green on feat-070-vanilla-role-prompt (typecheck, lint, vitest, build). tests/knowledge-restructure.test.ts guards the renamed system/role.md; tests/analyze.runAnalysis.test.ts asserts the assembled prefix carries the advisory-only role instead of the persona."
+    },
+    {
+      "id": "feat-071",
+      "name": "Multi-day TPO composite + HTF/MTF narrative restyle + name-first emphasis",
+      "description": "Operator report (2026-07-30): the Tactical Overview's Current section reads as envisioned but htfView/mtfView are recitations of dates and bare POC prices, and the UI bolds prices while MGI names go unemphasized. Three fixes. (1) Code-owned multi-day TPO composite (lib/engine/multiDayTpo.ts): the missing multi-day TPO study is reconstructed from the HTF 30-min bars per the operator's suggestion — each 30-min bar is one TPO period, so counting the 1-pt bins each bar traverses rebuilds the ladder (validated against the live tpo.data.md 2026-07-30: single-session rebuild reproduces the study's POC exactly, VAH/VAL within one bin). Last 5 RTH sessions merge into a composite — POC with prominence, 70% value area (tie-balanced greedy expansion), range, ≤3 HVN shelves, ≤3 interior LVN valleys, per-session POC/range walk, current-vs-composite-value — surfaced as engine fact multiDayTpo (null + warning when the export holds <2 RTH sessions). (2) Narrative restyle: analyze-prompt overview bullet + output-briefing.md htfView/mtfView contracts rewritten — both sections must carry the same storytelling register as current (a campaign told at named structure), day-value references named by day (\"Tuesday's POC (27600)\"), composite references by identity (\"the 5-day composite POC (28054)\"), mtfView anchored on multiDayTpo instead of the chart image. (3) Emphasis inversion (app/components/highlighted-text.tsx + lib/briefing/highlight.ts): names now bold-bright (font-bold text-ink), prices unemphasized (tracking-tight only) — name in bold, price in parens unbolded per the operator; level labels also match with their kind suffix stripped (\"Weekly VWAP\" matches label \"Weekly VWAP wall\") and the volume/TPO vocabulary (POC/VAH/VAL/HVN/LVN/IBH/IBL/Initial Balance/ONH/ONL) joins the doctrine terms. Prompt budget consciously raised 87k → 91k (measured 88_613); engine-ownership registry htf_csv row extended.",
+      "status": "done",
+      "dependencies": [
+        "feat-049",
+        "feat-068"
+      ],
+      "evidence": "./init.sh green on feat-071-mtf-composite-overview (typecheck, lint, 1027 tests, build). lib/engine/multiDayTpo.test.ts covers session splitting, RTH filtering, composite POC/VA, session cap, developing-session flag, LVN/HVN detection, current-vs-value; tests/briefing.highlight.test.ts covers suffix-stripped label matching + structural vocabulary; tests/prompt-data-sync.test.ts registry + budget gates pass. Live validation: composite POC 28054 / VA 27566-28246 / LVN valleys ~27350-27390 on the 2026-07-30 bundle, single-session rebuild matches Sierra TPO export."
     }
   ]
 }
