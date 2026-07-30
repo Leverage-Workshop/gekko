@@ -194,6 +194,22 @@ describe('Briefing', () => {
     const legacy = { ...validBriefing, overview: legacyOverview }
     expect(PersistedBriefing.safeParse(legacy).success).toBe(true)
   })
+
+  // feat-067: meta.intradayTrend is code-stamped after generation — persisted
+  // rows from before the feature lack the key and must keep parsing, while the
+  // generation contract stays free of the field entirely.
+  it('PersistedBriefing meta accepts the code-stamped intradayTrend and its absence', () => {
+    expect(PersistedBriefing.safeParse(validBriefing).success).toBe(true)
+    const stamped = {
+      ...validBriefing,
+      meta: { ...validBriefing.meta, intradayTrend: 'Up (strong) · trending' },
+    }
+    const parsed = PersistedBriefing.safeParse(stamped)
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data.meta.intradayTrend).toBe('Up (strong) · trending')
+    }
+  })
 })
 
 describe('Objective', () => {

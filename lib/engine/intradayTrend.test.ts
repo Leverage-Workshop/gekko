@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { ExecBar } from './parseExecBars'
 import { computeSessionIntraday } from './sessionIntraday'
-import { computeIntradayTrend, type IntradayTrendFacts } from './intradayTrend'
+import {
+  computeIntradayTrend,
+  summarizeIntradayTrend,
+  type IntradayTrendFacts,
+} from './intradayTrend'
 
 /** Synthetic exec bar: flat OHLC at `price` unless overridden. */
 function mkBar(
@@ -181,5 +185,40 @@ describe('computeIntradayTrend', () => {
     const facts = trendOf(bars, rows[rows.length - 1].p, null)
 
     expect(facts.character).toBe('transitioning')
+  })
+})
+
+describe('summarizeIntradayTrend (feat-067 — the meta-strip one-liner)', () => {
+  it('summarizes a confirmed directional trend with conviction and character', () => {
+    // Steady climb with buying delta and a green Rip: up, trending, no conflicts.
+    const rows = Array.from({ length: 45 }, (_, i) => ({ p: 28000 + i * 5, delta: 200 }))
+    const bars = seriesFrom('2026-07-29T08:30:00', 5, rows)
+    const facts = trendOf(bars, rows[rows.length - 1].p, 'green')
+
+    expect(summarizeIntradayTrend(facts)).toBe('Up (strong) · trending')
+  })
+
+  it('summarizes a neutral read without a conviction qualifier', () => {
+    // A flat tape casts no structural vote: neutral, no "(conviction)" clause.
+    const rows = Array.from({ length: 10 }, () => ({ p: 28000 }))
+    const bars = seriesFrom('2026-07-29T08:30:00', 5, rows)
+    const facts = trendOf(bars, 28000, null)
+
+    expect(facts.direction).toBe('neutral')
+    expect(summarizeIntradayTrend(facts)).toBe(`Neutral · ${facts.character}`)
+  })
+
+  it('appends the open-conflict count when components disagree', () => {
+    // Down structure against buying session delta and a green Rip.
+    const rows = Array.from({ length: 45 }, (_, i) => ({ p: 28000 - i * 5, delta: 200 }))
+    const bars = seriesFrom('2026-07-29T08:30:00', 5, rows)
+    const facts = trendOf(bars, rows[rows.length - 1].p, 'green')
+
+    expect(facts.direction).toBe('down')
+    expect(facts.disagreements.length).toBeGreaterThan(0)
+    const plural = facts.disagreements.length === 1 ? 'conflict' : 'conflicts'
+    expect(summarizeIntradayTrend(facts)).toBe(
+      `Down (${facts.conviction}) · ${facts.character} · ${facts.disagreements.length} ${plural}`,
+    )
   })
 })

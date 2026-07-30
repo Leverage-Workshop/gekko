@@ -1,4 +1,5 @@
 import { Briefing } from '@/knowledge/schema/briefing.schema'
+import { summarizeIntradayTrend } from '@/lib/engine/intradayTrend'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult, ReasoningEffort } from '@/lib/llm'
@@ -168,6 +169,7 @@ export async function runAnalysis(
       // null when the engine couldn't compute a Rip condition (rip absent) —
       // enforceMeta then keeps the model's read.
       ripStatus: facts.ripStatus?.condition ?? null,
+      intradayTrend: summarizeIntradayTrend(facts.intradayTrend),
     },
   })
   warnings.push(...validated.warnings)

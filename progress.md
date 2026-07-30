@@ -4,7 +4,8 @@
 
 **Last Updated:** 2026-07-29
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **faint balance-area promotions no longer confer AAA** (feat-066), on top of
+Latest: **intraday trend in the dashboard meta strip** (feat-067), on top of
+**faint balance-area promotions no longer confer AAA** (feat-066), on top of
 **objectives awarded off the intraday trend** (feat-065), on top of
 **composite intraday trend + HTF integrity qualifier** (feat-064), on top of
 **session-anchored intraday facts — VWAP / cum delta / one-timeframing**
@@ -29,6 +30,21 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Intraday trend in the dashboard meta strip (2026-07-29, feat-067).**
+Operator ask: split the meta strip's HTF Trend cell in two and show the
+intraday trend in one column. The intraday trend is code-owned (feat-064
+composite), so the new cell renders a deterministic engine summary — new
+`summarizeIntradayTrend()` formats "Up (strong) · trending" /
+"Neutral · rotational", appending the open-conflict count when components
+disagree. Plumbing mirrors the ripStatus code-owned pattern: `CodeOwnedMeta`
+gains a required `intradayTrend`, `enforceMeta` stamps it verbatim (the
+generation contract is UNCHANGED — the model never emits it, no
+strict-structured-outputs impact), both analyze and update pipelines pass the
+summary. Read path: new `PersistedBriefingMeta` makes the key optional so
+pre-feat-067 rows keep parsing; the UI shows a dash for them. Meta strip grid
+is now Price | Rip | Intraday Trend (semantic tones: success up / m-red down)
+| HTF Trend | run meta. `./init.sh` green: 1009 tests passed / 1 skipped.
 
 **Faint balance-area promotions no longer confer AAA (2026-07-29, feat-066).**
 Operator flagged the "AAA trench" at 28212.5/28227.75 as barely noticeable on

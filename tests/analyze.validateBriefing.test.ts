@@ -324,6 +324,7 @@ describe('enforceCodeOwnedFacts', () => {
         currentPrice: 30260,
         triggerReason: 'scheduled',
         ripStatus: 'yellow',
+        intradayTrend: 'Up (strong) · trending',
       },
     })
 
@@ -331,6 +332,10 @@ describe('enforceCodeOwnedFacts', () => {
     expect(result.briefing.meta.currentPrice).toBe(30260)
     expect(result.briefing.meta.triggerReason).toBe('scheduled')
     expect(result.briefing.meta.ripStatus).toBe('yellow')
+    // intradayTrend is stamped verbatim (feat-067) — never model-emitted, no drift warning.
+    // (toMatchObject: the fixture's inferred meta type predates the stamped key.)
+    expect(result.briefing.meta).toMatchObject({ intradayTrend: 'Up (strong) · trending' })
+    expect(result.warnings.some((w) => w.includes('intradayTrend'))).toBe(false)
     // htfTrend stays model-owned.
     expect(result.briefing.meta.htfTrend).toBe('up')
     expect(result.warnings.some((w) => w.includes('meta.createdAt'))).toBe(true)
@@ -347,6 +352,7 @@ describe('enforceCodeOwnedFacts', () => {
         currentPrice: 30255,
         triggerReason: 'manual',
         ripStatus: null,
+        intradayTrend: 'Neutral · rotational',
       },
     })
 
@@ -362,6 +368,7 @@ describe('enforceCodeOwnedFacts', () => {
         currentPrice: 30255,
         triggerReason: 'manual',
         ripStatus: 'green',
+        intradayTrend: 'Up (strong) · trending',
       },
     })
 
@@ -443,6 +450,7 @@ describe('entry standoff (enforceEntryStandoff)', () => {
     createdAt: '2026-07-06T12:00:00Z',
     triggerReason: 'manual',
     ripStatus: 'green',
+    intradayTrend: 'Up (strong) · trending',
   }
 
   it('throws when an entry is pinned at current price', () => {
@@ -496,6 +504,7 @@ describe('entry chase side (2026-07-23: a fresh long generated 30 pts above pric
     createdAt: '2026-07-06T12:00:00Z',
     triggerReason: 'manual',
     ripStatus: 'green',
+    intradayTrend: 'Up (strong) · trending',
   }
 
   it('throws on a fresh long anchored far above current price (breakout chase)', () => {
