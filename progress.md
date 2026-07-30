@@ -2,9 +2,10 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-29
+**Last Updated:** 2026-07-30
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Tactical Overview reads as narrative + key points** (feat-068, built
+Latest: **Shallow balance-area valleys no longer confer AAA** (feat-069), on top of
+**Tactical Overview reads as narrative + key points** (feat-068, built
 concurrently with feat-067 in an isolated worktree; merged after PR #107), on top of
 **intraday trend in the dashboard meta strip** (feat-067), on top of
 **faint balance-area promotions no longer confer AAA** (feat-066), on top of
@@ -32,6 +33,22 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Shallow balance-area valleys no longer confer AAA (2026-07-30, feat-069).**
+Operator flagged a "AAA trench" at Weekly VWAP (27917.62) with nothing visible
+on the balance-area VbP. Verified on the real bundle: the profile there is a
+flat shelf — center at 89% of its own thinner flank — and the "valley" was
+manufactured by a single 10,622 bin 32 pts away stretching the LOCAL PEAK the
+trench test normalises against (blockFrac 0.55 / valleyFrac 0.6 overlap, so a
+flank barely above the center still reads as a "block"). Fix mirrors feat-066:
+new `aaaMaxCenterFlankFrac` (0.75) — a balance-area TRENCH promotion only
+confers AAA when its center is ≤ 0.75× the thinner flanking block's max;
+shallow promotions keep the trench kind + border but rank A (new `shallow`
+flag, reason suffix "shallow valley … — not AAA"). Threshold from a 14-bundle
+sweep: genuine AAA valleys read 0.54–0.64 depth, the false positive 0.89; no
+other border in the sweep changes. Walls exempt (no valley geometry); rotation
+promotions never carry the flag. Prompt significance lines updated; analyze
+user-prompt budget 85k→87k (the per-verdict boolean, measured 85,850).
 
 **Tactical Overview reads as narrative + key points (2026-07-29, feat-068).**
 Operator ask: each overview section should read as a time-based narrative

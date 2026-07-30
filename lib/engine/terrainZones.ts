@@ -143,6 +143,12 @@ export type BorderVerdict = {
    * confer AAA class — the long-term profile is thin there.
    */
   faint: boolean
+  /**
+   * Balance-area trench whose center is above `aaaMaxCenterFlankFrac` of the
+   * thinner flanking block (feat-069): the "valley" exists only against the
+   * local peak, not against its own flanks — still a trench, never AAA.
+   */
+  shallow: boolean
   reason: string
 }
 
@@ -160,7 +166,8 @@ export type TerrainZoneFact = {
  * profile (the senior, long-term read — fewer levels resolve there, but the ones that do are
  * the most important on the map); A = promoted on the rotation profile only, OR on the
  * balance-area profile with faint flanking acceptance (feat-066 — thin-tail structure keeps
- * its border but not the senior badge).
+ * its border but not the senior badge) or a shallow valley (feat-069 — a dip that only exists
+ * against the local peak, not against its own flanks).
  */
 export type BorderSignificance = 'AAA' | 'A'
 
@@ -175,7 +182,7 @@ export type CompositeBorder = {
   /** Trench wins over Wall when a cluster mixes kinds (doctrine priority). */
   kind: 'trench' | 'wall'
   label: string
-  /** AAA when any member promoted NON-faint on the balance-area profile (feat-066). */
+  /** AAA when any member promoted NON-faint (feat-066) and NON-shallow (feat-069) on the balance-area profile. */
   significance: BorderSignificance
   /** Best (lowest) MGI tier among members. */
   tier: number
@@ -267,6 +274,15 @@ export type TerrainParams = {
    * empty there. Faint promotions keep their trench/wall kind but rank A.
    */
   aaaMinFlankPeakFrac: number
+  /**
+   * A balance-area TRENCH promotion only confers AAA class when its center volume is <= this
+   * fraction of the thinner flanking block's max (feat-069). The valley test normalises to the
+   * LOCAL PEAK, so one remote tall bin inside the flank window can manufacture a "dip" while
+   * the center sits level with its own flanks — the 2026-07-30 briefing called a flat shelf at
+   * Weekly VWAP (center 89% of the thinner flank) a AAA trench off a single spike 32 pts away.
+   * Shallow promotions keep their trench kind but rank A, like faint ones.
+   */
+  aaaMaxCenterFlankFrac: number
 }
 
 /**
@@ -288,6 +304,9 @@ export const DEFAULT_TERRAIN_PARAMS: TerrainParams = {
   promoteMinVolFrac: 0.5,
   aTierMinSpanPts: 60,
   aaaMinFlankPeakFrac: 0.5,
+  // 0.75 splits the observed field cleanly: genuine AAA valleys in the 2026-07-28..30 bundles
+  // run 0.54-0.64 center-vs-thinner-flank; the flat-shelf false positive read 0.89.
+  aaaMaxCenterFlankFrac: 0.75,
 }
 
 function round2(n: number): number {
@@ -410,6 +429,13 @@ type ProfileRead = {
    * the long-term profile is thin there, so the promotion must not confer AAA.
    */
   faint: boolean
+  /**
+   * Balance-area TRENCH promotions only (feat-069): the center is above
+   * `aaaMaxCenterFlankFrac` of the thinner flanking block — the "valley" exists
+   * only against the local peak, not against its own flanks, so the promotion
+   * must not confer AAA.
+   */
+  shallow: boolean
 }
 
 /**
@@ -442,6 +468,7 @@ function readProfile(
     hard: false,
     local,
     faint: false,
+    shallow: false,
     reason: `structure-shaped but too thin to promote (block ${blockVol} < floor ${round2(promoteFloor)})`,
   })
   // AAA faintness (feat-066, balance-area only): the F5 mean floor is diluted by the
@@ -462,12 +489,20 @@ function readProfile(
     const thinner = Math.min(local.leftMax, local.rightMax)
     if (thinner < promoteFloor) return tooThin(thinner)
     const { faint, note } = faintness(thinner)
+    // AAA valley depth (feat-069, balance-area only): the dip must be real against its OWN
+    // flanks, not just against a remote local-peak bin — see `aaaMaxCenterFlankFrac`.
+    const depth = thinner > 0 ? local.centerVol / thinner : 0
+    const shallow = ctx.source === 'balance-area' && depth > params.aaaMaxCenterFlankFrac
+    const depthNote = shallow
+      ? `; shallow valley (center ${local.centerVol} = ${Math.round(depth * 100)}% of thinner flank ${thinner}) — not AAA`
+      : ''
     return {
       kind: 'trench',
       hard: true,
       local,
       faint,
-      reason: `valley (center ${C} of local peak) between blocks (L ${L}, R ${R})${note}`,
+      shallow,
+      reason: `valley (center ${C} of local peak) between blocks (L ${L}, R ${R})${note}${depthNote}`,
     }
   }
 
@@ -476,12 +511,12 @@ function readProfile(
   if (!centerBlock && leftBlock && rightVoid) {
     if (local.leftMax < promoteFloor) return tooThin(local.leftMax)
     const { faint, note } = faintness(local.leftMax)
-    return { kind: 'wall', hard: true, local, faint, reason: `block below (L ${L}) drops into void above (R ${R})${note}` }
+    return { kind: 'wall', hard: true, local, faint, shallow: false, reason: `block below (L ${L}) drops into void above (R ${R})${note}` }
   }
   if (!centerBlock && rightBlock && leftVoid) {
     if (local.rightMax < promoteFloor) return tooThin(local.rightMax)
     const { faint, note } = faintness(local.rightMax)
-    return { kind: 'wall', hard: true, local, faint, reason: `block above (R ${R}) drops into void below (L ${L})${note}` }
+    return { kind: 'wall', hard: true, local, faint, shallow: false, reason: `block above (R ${R}) drops into void below (L ${L})${note}` }
   }
 
   // 3. Magnet — thick, roughly-equal volume with no dip AND aligned with a POC/VAH/VAL/HVN.
@@ -493,12 +528,13 @@ function readProfile(
       hard: false,
       local,
       faint: false,
+      shallow: false,
       reason: `thick both sides, no dip; on ${near?.magnet.label} (${near?.distance} pts) — invalidation`,
     }
   }
 
   // 4. Plain coordinate — no volume-structure promotion.
-  return { kind: 'mgi', hard: false, local, faint: false, reason: 'no local block/void structure to promote' }
+  return { kind: 'mgi', hard: false, local, faint: false, shallow: false, reason: 'no local block/void structure to promote' }
 }
 
 /**
@@ -542,6 +578,7 @@ function classifyBorder(
       magnet: magnet.nearest,
       detectorNode: null,
       faint: false,
+      shallow: false,
       reason: 'anchor outside the volume profile range',
     }
   }
@@ -556,6 +593,7 @@ function classifyBorder(
     magnet: magnet.nearest,
     detectorNode: nearestDetectorNode(level.price, pick.ctx.lvn, params.magnetTolerance),
     faint: pick.read.faint,
+    shallow: pick.read.shallow,
     reason: pick.read.reason + via,
   }
 }
@@ -585,9 +623,9 @@ function mergePartitions(partitions: BorderVerdict[], tolerance: number): Compos
       price: rep.level.price,
       kind,
       label: [...new Set(members.map(m => m.level.label))].join(' / '),
-      // AAA needs a NON-faint balance-area promotion (feat-066): faint
-      // balance-area structure keeps its border but ranks with rotation class.
-      significance: members.some(m => m.source === 'balance-area' && !m.faint)
+      // AAA needs a NON-faint (feat-066), NON-shallow (feat-069) balance-area
+      // promotion: demoted structure keeps its border but ranks with rotation class.
+      significance: members.some(m => m.source === 'balance-area' && !m.faint && !m.shallow)
         ? ('AAA' as const)
         : ('A' as const),
       tier: Math.min(...members.map(m => m.level.tier)),

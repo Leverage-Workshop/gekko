@@ -717,6 +717,16 @@
         "feat-060"
       ],
       "evidence": "./init.sh green 2026-07-29 (exit 0: typecheck, lint 0 errors/8 warnings - 7 pre-existing + 1 matching the file's destructure idiom, 1007 tests passed / 1 skipped, build compiled). New/updated tests: narrative required per section, keyPoints floor 2 / ceiling 4, historical bullet + legacy shapes rejected at generation but parse as PersistedBriefing, composeUpdateBriefing carries bullet-era and narrative-era parents forward unchanged, strict-mode walker passes the nested OverviewSection."
+    },
+    {
+      "id": "feat-069",
+      "name": "Shallow balance-area valleys no longer confer AAA",
+      "description": "Operator report (2026-07-30 morning): the briefing called a 'AAA trench' at Weekly VWAP (27917.62) where the balance-area profile is a flat shelf - center volume at 89% of its own thinner flank, with the 'valley' manufactured entirely by a single tall bin 32 pts away stretching the local peak (the trench branch normalises center AND flanks to the LOCAL PEAK, and blockFrac 0.55 / valleyFrac 0.6 overlap enough that a flank barely above the center still reads as a 'block'). Fix mirrors feat-066: new terrain param aaaMaxCenterFlankFrac (default 0.75) - a balance-area TRENCH promotion only confers AAA when centerVol <= 0.75 x the thinner flanking block's max; shallow promotions keep their trench kind and border but rank A (new `shallow` flag on ProfileRead/BorderVerdict, reason note 'shallow valley (center X = N% of thinner flank Y) - not AAA', mergePartitions AAA condition now requires !faint && !shallow). Threshold from a 14-bundle sweep (2026-07-28..30): genuine AAA valleys read 0.54-0.64 center-vs-thinner-flank, the flat-shelf false positive 0.89 - 0.75 splits the field cleanly and leaves every other border in the sweep unchanged (walls exempt: block-into-void geometry has no valley-depth concept; rotation promotions never carry the flag - AAA is a balance-area concept). Analyze + update prompt significance-class docs extended so the model narrates demoted borders as A, never AAA.",
+      "status": "done",
+      "dependencies": [
+        "feat-066"
+      ],
+      "evidence": "./init.sh green 2026-07-30 (exit 0: typecheck, lint 0 errors/8 pre-existing warnings, 1014 tests passed / 1 skipped, build compiled). New tests: shallow balance-area valley (depth 0.875) demotes to A with 'shallow valley ... - not AAA' reason; deep valley under the same asymmetric flanks (depth 0.5) keeps AAA; rotation promotions never carry the shallow flag. Real-bundle validation (14-bundle sweep 2026-07-28..30): the 2026-07-30 Weekly VWAP false positive (depth 0.89) demotes AAA->A while both genuine Monthly VWAP AAA trenches (0.54, 0.64) and all AAA walls are unchanged. Analyze user-prompt budget consciously raised 85k->87k (measured 85,850)."
     }
   ]
 }

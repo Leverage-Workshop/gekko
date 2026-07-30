@@ -576,6 +576,80 @@ describe('assembleTerrain — balance-area seniority (dual-profile)', () => {
     expect(rotationTrench.source).toBe('rotation')
     expect(rotationTrench.faint).toBe(false)
   })
+
+  // A remote tall bin can manufacture a "valley" against the LOCAL PEAK while the center sits
+  // level with its own flanks (2026-07-30 Weekly VWAP: center at 89% of the thinner flank read
+  // as a AAA trench on a flat shelf). Geometry: flanks 800 / 1300, so the local-peak ratios
+  // pass every promotion check, and only the center-vs-thinner-flank depth separates the cases.
+  function runAsymmetricValley(centerVol: number) {
+    const balance = buildProfile(
+      [
+        [30150, 30240, 800],
+        [30245, 30255, centerVol],
+        [30260, 30350, 1300],
+      ],
+      30000,
+      30500,
+    )
+    return assembleTerrain({
+      profile: buildProfile([[30150, 30350, 1000]], 30000, 30500), // one solid block on rotation
+      lvn: { hvn: [], lvn: [], peakVolume: 1000 },
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({
+        summary: { pocPrice: 30600, valueAreaHigh: 30610, valueAreaLow: 30590 }, // far away
+        hvn: [],
+      }),
+      mgi: makeMgi(30100, [{ price: 30250, label: 'Weekly VWAP', tier: 1 }]),
+    })
+  }
+
+  it('demotes a SHALLOW balance-area valley to A class (feat-069)', () => {
+    // Center 700 vs thinner flank 800 → depth 0.875: barely below its own flanks, only a
+    // "valley" because the 1300 bin stretches the local peak. Trench stays; AAA does not.
+    const r = runAsymmetricValley(700)
+    const verdict = r.levels.find(l => l.level.price === 30250)!
+    expect(verdict.kind).toBe('trench')
+    expect(verdict.source).toBe('balance-area')
+    expect(verdict.shallow).toBe(true)
+    expect(verdict.reason).toMatch(/shallow valley .* — not AAA/)
+    expect(r.borders.find(b => b.price === 30250)?.significance).toBe('A')
+  })
+
+  it('keeps AAA for a genuinely deep valley under the same asymmetric flanks (feat-069)', () => {
+    // Center 400 vs thinner flank 800 → depth 0.5: a real excavation, senior badge stands.
+    const r = runAsymmetricValley(400)
+    const verdict = r.levels.find(l => l.level.price === 30250)!
+    expect(verdict.kind).toBe('trench')
+    expect(verdict.shallow).toBe(false)
+    expect(r.borders.find(b => b.price === 30250)?.significance).toBe('AAA')
+  })
+
+  it('never marks rotation promotions shallow — depth gates the balance-area senior class only', () => {
+    // The same shallow geometry as the demotion case, but on the ROTATION profile with no
+    // balance-area read at all: still an A trench, and the shallow flag must stay false.
+    const r = assembleTerrain({
+      profile: buildProfile(
+        [
+          [30150, 30240, 800],
+          [30245, 30255, 700],
+          [30260, 30350, 1300],
+        ],
+        30000,
+        30500,
+      ),
+      lvn: { hvn: [], lvn: [], peakVolume: 1300 },
+      magnets: collectMagnets({
+        summary: { pocPrice: 30600, valueAreaHigh: 30610, valueAreaLow: 30590 },
+        hvn: [],
+      }),
+      mgi: makeMgi(30100, [{ price: 30250, label: 'Weekly VWAP', tier: 1 }]),
+    })
+    const verdict = r.levels.find(l => l.level.price === 30250)!
+    expect(verdict.kind).toBe('trench')
+    expect(verdict.source).toBe('rotation')
+    expect(verdict.shallow).toBe(false)
+    expect(r.borders.find(b => b.price === 30250)?.significance).toBe('A')
+  })
 })
 
 describe('assembleTerrain — bare MGI is never a zone border', () => {
