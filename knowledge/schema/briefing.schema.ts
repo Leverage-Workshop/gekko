@@ -194,6 +194,19 @@ export const BriefingMeta = z.object({
 })
 export type BriefingMeta = z.infer<typeof BriefingMeta>
 
+/**
+ * Read-path meta for PERSISTED rows (feat-067): `intradayTrend` is the
+ * code-owned composite intraday trend summary (summarizeIntradayTrend),
+ * stamped by enforceMeta after generation — never model-emitted, so it lives
+ * off the generation contract ({@link BriefingMeta}) and is `.optional()`
+ * only because pre-feat-067 rows lack the key. Read-path-only schemas are
+ * exempt from the strict-structured-outputs "no optionals" rule.
+ */
+export const PersistedBriefingMeta = BriefingMeta.extend({
+  intradayTrend: z.string().optional(),
+})
+export type PersistedBriefingMeta = z.infer<typeof PersistedBriefingMeta>
+
 export const Briefing = z.object({
   meta: BriefingMeta,
   overview: Overview,
@@ -207,11 +220,15 @@ export type Briefing = z.infer<typeof Briefing>
 /**
  * Read-path variant of {@link Briefing} for PERSISTED rows (dashboard render,
  * update-task parent parse): identical except `overview` also accepts the
- * historical shapes (feat-060 bullet arrays, pre-feat-060 legacy). Never
- * passed to a model — the generation contract stays {@link Briefing}, so the
- * strict-structured-outputs walker never sees the union.
+ * historical shapes (feat-060 bullet arrays, pre-feat-060 legacy) and `meta`
+ * carries the code-stamped `intradayTrend` (feat-067). Never passed to a
+ * model — the generation contract stays {@link Briefing}, so the
+ * strict-structured-outputs walker never sees the union or the optional.
  */
-export const PersistedBriefing = Briefing.extend({ overview: PersistedOverview })
+export const PersistedBriefing = Briefing.extend({
+  overview: PersistedOverview,
+  meta: PersistedBriefingMeta,
+})
 export type PersistedBriefing = z.infer<typeof PersistedBriefing>
 
 // --- BriefingUpdate ---------------------------------------------------------

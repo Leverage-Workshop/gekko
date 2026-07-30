@@ -4,11 +4,9 @@
 
 **Last Updated:** 2026-07-29
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-NOTE: feat-067 is claimed by uncommitted work-in-progress found on main's working
-tree 2026-07-29 evening (code-stamped `meta.intradayTrend` + dashboard meta-strip
-cell, plus a trigger.dev 4.5.7→4.5.8 bump) — not in feature_list.json yet; this
-session skipped to feat-068 and worked in an isolated worktree to avoid touching it.
-Latest: **Tactical Overview reads as narrative + key points** (feat-068), on top of
+Latest: **Tactical Overview reads as narrative + key points** (feat-068, built
+concurrently with feat-067 in an isolated worktree; merged after PR #107), on top of
+**intraday trend in the dashboard meta strip** (feat-067), on top of
 **faint balance-area promotions no longer confer AAA** (feat-066), on top of
 **objectives awarded off the intraday trend** (feat-065), on top of
 **composite intraday trend + HTF integrity qualifier** (feat-064), on top of
@@ -52,6 +50,21 @@ matches MGI labels so names light up in the narrative. OverviewPane renders
 the paragraph above the bullets with a three-way shape branch. Updates carry
 the overview forward verbatim, unchanged. Analyze cached-prefix budget
 36k→39k chars (measured 37,323).
+
+**Intraday trend in the dashboard meta strip (2026-07-29, feat-067).**
+Operator ask: split the meta strip's HTF Trend cell in two and show the
+intraday trend in one column. The intraday trend is code-owned (feat-064
+composite), so the new cell renders a deterministic engine summary — new
+`summarizeIntradayTrend()` formats "Up (strong) · trending" /
+"Neutral · rotational", appending the open-conflict count when components
+disagree. Plumbing mirrors the ripStatus code-owned pattern: `CodeOwnedMeta`
+gains a required `intradayTrend`, `enforceMeta` stamps it verbatim (the
+generation contract is UNCHANGED — the model never emits it, no
+strict-structured-outputs impact), both analyze and update pipelines pass the
+summary. Read path: new `PersistedBriefingMeta` makes the key optional so
+pre-feat-067 rows keep parsing; the UI shows a dash for them. Meta strip grid
+is now Price | Rip | Intraday Trend (semantic tones: success up / m-red down)
+| HTF Trend | run meta. `./init.sh` green: 1009 tests passed / 1 skipped.
 
 **Faint balance-area promotions no longer confer AAA (2026-07-29, feat-066).**
 Operator flagged the "AAA trench" at 28212.5/28227.75 as barely noticeable on

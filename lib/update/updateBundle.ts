@@ -10,6 +10,7 @@ import {
   persistBriefing,
 } from '@/lib/analyze'
 import type { DoctrineTask, LoadBundleDeps, PersistDeps } from '@/lib/analyze'
+import { summarizeIntradayTrend } from '@/lib/engine/intradayTrend'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
 import type { GenerateStructuredResult, ReasoningEffort } from '@/lib/llm'
@@ -190,6 +191,7 @@ export async function runUpdate(
       currentPrice: facts.currentPrice,
       triggerReason: options.triggerReason,
       ripStatus: facts.ripStatus?.condition ?? null,
+      intradayTrend: summarizeIntradayTrend(facts.intradayTrend),
     },
   })
   warnings.push(...validated.warnings)

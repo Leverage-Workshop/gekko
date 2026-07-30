@@ -28,7 +28,7 @@ import { UpdateGlow } from './components/update-glow'
  * Gekko dashboard (feat-019) — a server component that fetches the latest
  * briefing, eval result, and bundle freshness via the service-role client,
  * then renders the briefing as a dense tool view: a full-width meta strip
- * (price/rip/HTF-trend/run-meta cells in one row, with the Tactical Read in
+ * (price/rip/intraday-trend/HTF-trend/run-meta cells in one row, with the Tactical Read in
  * an expander) above two equal body columns (left = EvalStrip: verdict +
  * targets with the condition checks always visible; right = the tabbed
  * briefing: objective cards, tactical overview, danger zones). The trigger
@@ -72,6 +72,17 @@ function BulletList({ items, terms }: { items: string[]; terms: string[] }) {
       ))}
     </ul>
   )
+}
+
+/**
+ * Intraday-trend tone: the code-owned summary leads with Up/Down/Neutral
+ * (summarizeIntradayTrend), mapped onto the same semantic tones as Rip status.
+ */
+function intradayTrendTone(summary: string): string {
+  const value = summary.toLowerCase()
+  if (value.startsWith('up')) return 'text-success'
+  if (value.startsWith('down')) return 'text-m-red'
+  return 'text-ink'
 }
 
 /** Rip-status condition color: Green/Yellow/Red map onto the semantic tones. */
@@ -141,9 +152,10 @@ function OverviewPane({ overview, terms }: { overview: PersistedOverview; terms:
 
 /**
  * Meta strip (full-width row above the body columns): price, rip status,
- * HTF trend and run meta as a single cell row, with the Immediate Tactical
- * Read (feat-038; update briefings only) stacked inside an attached
- * <details> expander.
+ * intraday trend (feat-067 — the code-owned composite summary; pre-feat-067
+ * rows show a dash), HTF trend and run meta as a single cell row, with the
+ * Immediate Tactical Read (feat-038; update briefings only) stacked inside
+ * an attached <details> expander.
  */
 function MetaColumn({
   briefing,
@@ -175,7 +187,7 @@ function MetaColumn({
 
   return (
     <div>
-      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_1fr_auto]">
+      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_auto_1fr_auto]">
         <div className="bg-surface-soft px-5 py-3">
           <p className="text-2xl font-bold tracking-tight text-bmw-blue">
             {formatPrice(payload.meta.currentPrice)}
@@ -193,6 +205,22 @@ function MetaColumn({
             {payload.meta.ripStatus}
           </p>
           <p className="mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">Rip Status</p>
+        </div>
+        <div className="bg-surface-soft px-5 py-3">
+          <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
+            Intraday Trend
+          </p>
+          {payload.meta.intradayTrend ? (
+            <p
+              className={`mt-1 text-sm font-bold uppercase tracking-wide ${intradayTrendTone(
+                payload.meta.intradayTrend
+              )}`}
+            >
+              {payload.meta.intradayTrend}
+            </p>
+          ) : (
+            <p className="mt-1 text-sm font-light text-muted">—</p>
+          )}
         </div>
         <div className="bg-surface-soft px-5 py-3">
           <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">HTF Trend</p>
