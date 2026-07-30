@@ -107,6 +107,25 @@ export type IntradayTrendFacts = {
   disagreements: string[]
 }
 
+/**
+ * Compact operator-facing summary of the composite read — the code-owned
+ * `meta.intradayTrend` stamped into every persisted briefing (feat-067) and
+ * rendered in the dashboard's meta strip. One short line: direction (with
+ * conviction when directional), character, and the open-conflict count when
+ * any component disagrees.
+ */
+export function summarizeIntradayTrend(facts: IntradayTrendFacts): string {
+  const head =
+    facts.direction === 'neutral'
+      ? 'Neutral'
+      : `${facts.direction === 'up' ? 'Up' : 'Down'} (${facts.conviction})`
+  const conflicts =
+    facts.disagreements.length === 0
+      ? ''
+      : ` · ${facts.disagreements.length} conflict${facts.disagreements.length === 1 ? '' : 's'}`
+  return `${head} · ${facts.character}${conflicts}`
+}
+
 function round2(n: number): number {
   return Math.round(n * 100) / 100
 }

@@ -3,6 +3,7 @@ import type {
   BriefingMeta,
   Objective,
   PersistedBriefing,
+  PersistedBriefingMeta,
 } from '@/knowledge/schema/briefing.schema'
 import { DEFAULT_RR_MIN, objectiveRiskReward } from '@/lib/engine/riskReward'
 import type { RiskReward } from '@/lib/engine/riskReward'
@@ -95,6 +96,11 @@ export interface CodeOwnedMeta {
    * the engine could not compute one — in that case the model's value is kept.
    */
   ripStatus: string | null
+  /**
+   * The engine's composite intraday trend summary (summarizeIntradayTrend,
+   * feat-067) — never model-emitted, stamped verbatim into the persisted meta.
+   */
+  intradayTrend: string
 }
 
 export interface ValidateOptions {
@@ -167,7 +173,7 @@ function enforceMeta(
   meta: BriefingMeta,
   code: CodeOwnedMeta,
   warnings: string[],
-): BriefingMeta {
+): PersistedBriefingMeta {
   if (meta.createdAt !== code.createdAt) {
     warnings.push(
       `model claimed meta.createdAt=${meta.createdAt}; code says ${code.createdAt} — overwritten`,
@@ -190,12 +196,15 @@ function enforceMeta(
       `model claimed meta.ripStatus=${meta.ripStatus}; engine says ${code.ripStatus} — overwritten`,
     )
   }
+  // intradayTrend is stamped, not reconciled — the field is absent from the
+  // generation contract, so there is no model claim to warn about.
   return {
     ...meta,
     createdAt: code.createdAt,
     currentPrice: code.currentPrice,
     triggerReason: code.triggerReason,
     ripStatus: code.ripStatus ?? meta.ripStatus,
+    intradayTrend: code.intradayTrend,
   }
 }
 
