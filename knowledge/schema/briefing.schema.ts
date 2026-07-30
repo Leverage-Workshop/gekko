@@ -51,7 +51,7 @@ export type KeyInflection = z.infer<typeof KeyInflection>
  * walks the timeframe chronologically (operator ask: "a paragraph giving a
  * time-based description of what's occurred"); `keyPoints` are the distilled
  * takeaways, NOT a restatement — floor of 2 (gem-comparison F6: single-bullet
- * sections read as sparse), ceiling of 4 (ADHD profile; the narrative now
+ * sections read as sparse), ceiling of 4 (attention economy; the narrative now
  * carries the description, so the feat-060 ceiling of 5 comes down one).
  * `minItems`/`maxItems` are proven safe under OpenAI strict structured
  * outputs; string length floors are deliberately NOT schema-enforced (the

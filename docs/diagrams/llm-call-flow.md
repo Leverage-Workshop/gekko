@@ -69,7 +69,7 @@ would invalidate the cache every run. This is the main cost/latency lever (lines
 ```mermaid
 graph LR
   subgraph cached["Cached per-task system prefix · /knowledge/** · 5-min TTL · ~0.1x read"]
-    P["system/persona.md"]
+    P["system/role.md"]
     C["system/constraints.md"]
     OS["system/output-&lt;task&gt;.md<br/>(+ output-objective.md for analyze/update)"]
     PAT["doctrine/patterns.md"]

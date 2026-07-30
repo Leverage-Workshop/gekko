@@ -123,7 +123,7 @@ wrong). Reference: the math lives today in `gem-files/tactical-companion-playboo
 capture — absorption-vs-exhaustion *shape*, Three-Push Exhaustion / Flush-&-Reload
 *patterns*, poor highs/single prints on the TPO, confirming delta clustering aligns with
 the engine's borders — plus synthesis/judgment (Law of Asymmetric Initiative, Campaign
-Boundary Override, macro-vs-micro conflict resolution) and the persona narrative.
+Boundary Override, macro-vs-micro conflict resolution) and the narrative prose.
 
 **Code-owned LVN flow:** `lvnDetection.ts` computes LVN/HVN node prices from the VbP
 volume series and they are authoritative — there is **no** vision round-trip and the
@@ -176,7 +176,7 @@ Asymmetric Initiative, Leg-VWAP rule, output formats). New layout:
 ```
 /knowledge
   /system
-    persona.md         # Gekko persona, tone, ADHD UX rules (≤2 highlights, one action)
+    role.md            # Advisory-only role + output rules (≤2 highlights, no renegotiation)
     constraints.md     # Hardcoded non-negotiables as guardrails (color=side, stops never
                        #   widen, entries only at borders, Leg VWAP rule, Magnet prohibition,
                        #   Asymmetric Initiative + Campaign Boundary Override)

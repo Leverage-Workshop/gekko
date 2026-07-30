@@ -82,7 +82,7 @@ where the model sees it.
 
 | Segment | analyze | update | eval |
 | --- | --- | --- | --- |
-| `system/persona.md` | ✓ | ✓ | ✓ |
+| `system/role.md` | ✓ | ✓ | ✓ |
 | `system/constraints.md` | ✓ | ✓ | ✓ |
 | `system/output-briefing.md` | ✓ | | |
 | `system/output-update.md` | | ✓ | |
