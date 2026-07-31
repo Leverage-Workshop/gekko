@@ -259,6 +259,20 @@ export function enforceEvalFacts(
     }
   }
 
+  // The Absorption check is a required condition on every level verdict
+  // (feat-072, operator ask 2026-07-30). Warning-only: fabricating a check the
+  // model didn't make would put words in its mouth — the doctrine drives
+  // compliance, the warning surfaces drift.
+  if (
+    result.status !== 'NO_ENTRY_NEAR' &&
+    result.checks &&
+    !result.checks.some((check) => check.name.toLowerCase().includes('absorption'))
+  ) {
+    warnings.push(
+      'model omitted the required "Absorption" condition from checks — review the verdict against the absorption facts',
+    )
+  }
+
   if (result.status !== 'NO_ENTRY_NEAR' && !result.evaluatedLevel) {
     const nearest = proximity.nearest
     if (nearest?.level.price != null && nearest.level.direction != null) {

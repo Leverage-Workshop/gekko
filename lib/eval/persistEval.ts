@@ -1,4 +1,5 @@
 import type { EvalCheck, EvalResult } from '@/knowledge/schema/briefing.schema'
+import type { ConfirmedAbsorptionCandidate } from '@/lib/engine/stallConfirmation'
 
 /**
  * Persistence step of the eval-task: one `eval_results` row per check.
@@ -26,6 +27,13 @@ export interface EvalResultInsert {
   raw_model_json: EvalResult
   current_price: number
   /**
+   * Code-selected stall-confirmed absorption stack nearest the evaluated
+   * level (feat-072) — the stats behind the eval's Absorption condition;
+   * null when the scan found no confirmed stack (or there was nothing to
+   * scan).
+   */
+  absorption_stack: ConfirmedAbsorptionCandidate | null
+  /**
    * Runtime warnings captured at persist time (enforcement coercions,
    * staleness, degraded inputs); null when the run produced none. This is
    * what lets the dashboard explain a code-demoted WAIT whose columns still
@@ -46,6 +54,8 @@ export interface PersistEvalInput {
   /** The model's raw output, pre-enforcement. */
   rawModelResult: EvalResult
   evaluatedLevelId: string | null
+  /** Code-selected confirmed absorption stack for the stat row (feat-072). */
+  absorptionStack?: ConfirmedAbsorptionCandidate | null
   /** All warnings accumulated by the run so far (empty → persisted as null). */
   warnings?: readonly string[]
 }
@@ -68,6 +78,7 @@ export function buildEvalResultRow(input: PersistEvalInput): EvalResultInsert {
     caution: result.caution ?? null,
     raw_model_json: input.rawModelResult,
     current_price: result.meta.currentPrice,
+    absorption_stack: input.absorptionStack ?? null,
     warnings:
       input.warnings && input.warnings.length > 0 ? [...input.warnings] : null,
   }

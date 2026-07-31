@@ -7,6 +7,7 @@ import { loadLatestBundle } from '@/lib/analyze/loadBundle'
 import type { DeltaProfileRow } from '@/lib/engine/absorption'
 import { scanAbsorption } from '@/lib/engine/absorption'
 import { confirmStalls } from '@/lib/engine/stallConfirmation'
+import { selectAbsorptionStack } from './absorptionStack'
 import type { ConfirmedAbsorptionScanResult } from '@/lib/engine/stallConfirmation'
 import type { ExecBar } from '@/lib/engine/parseExecBars'
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
@@ -342,6 +343,7 @@ export async function runEval(
       result,
       rawModelResult: result,
       evaluatedLevelId: null,
+      absorptionStack: selectAbsorptionStack(absorption, currentPrice),
       warnings,
     })
     return {
@@ -396,12 +398,21 @@ export async function runEval(
   })
   warnings.push(...validated.warnings)
 
+  // The stat-row stack (feat-072): the confirmed stack nearest the level the
+  // verdict is actually about — post-enforcement, so a coerced verdict still
+  // anchors on the right price. Level-less verdicts anchor on current price.
+  const absorptionStack = selectAbsorptionStack(
+    absorption,
+    validated.result.evaluatedLevel?.price ?? currentPrice,
+  )
+
   const { evalResultId } = await persistEvalResult(deps, {
     bundleId: bundle.row.id,
     modelId: generated.model,
     result: validated.result,
     rawModelResult: generated.object,
     evaluatedLevelId: validated.evaluatedLevelId,
+    absorptionStack,
     warnings,
   })
 

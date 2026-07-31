@@ -1,4 +1,5 @@
 export { realEvalDeps } from './deps'
+export { selectAbsorptionStack } from './absorptionStack'
 export {
   DEFAULT_TRIAGE_MODEL_ID,
   EvalInputError,

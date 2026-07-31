@@ -29,11 +29,12 @@ export function realDashboardDeps(): DashboardDeps {
     },
 
     fetchLatestEvalResult: async () => {
+      // `*` instead of an explicit column list: naming a column the remote
+      // schema doesn't have yet (absorption_stack migration not applied) is a
+      // PostgREST error, and the strip must degrade instead of failing.
       const { data, error } = await supabase
         .from('eval_results')
-        .select(
-          'id, created_at, model_id, near_entry, status, direction, trigger, stop, targets, reason, checks, next_signal, caution, current_price, warnings, evaluated_level:evaluated_level_id (label, price, direction)',
-        )
+        .select('*, evaluated_level:evaluated_level_id (label, price, direction)')
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()

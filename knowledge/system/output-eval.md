@@ -61,9 +61,13 @@ in this system. Judge initiative from the delta telemetry and the execution char
 
 - **`checks`** — decompose your judgment into 3–6 named conditions, each with a verdict and a
   one-line note. Use short stable names the operator can scan (e.g. "Structure", "Delta",
-  "Absorption", "Execution"). Verdicts: `pass` = supports the entry, `fail` = argues against it
+  "Execution"). Verdicts: `pass` = supports the entry, `fail` = argues against it
   right now, `pending` = not yet confirmed either way. Null on level-less `NO_ENTRY_NEAR`
   verdicts.
+- One of the checks MUST be named exactly **"Absorption"** — every level verdict carries an
+  absorption read. `pass` per the absorption-alone rule above; `pending` when no qualifying
+  stack or stall is visible yet; `fail` only when the absorption evidence runs against the
+  entry (the flush kept moving price through the level).
 - Never use Leg VWAP as a check or as evidence in one. At a reversal or reload entry, price is by
   definition on the counter-trend side of Leg VWAP — citing that as momentum against the entry
   rejects every valid reversal. Judge initiative from delta telemetry and the execution chart

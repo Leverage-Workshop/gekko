@@ -55,6 +55,12 @@ export interface DashboardEvalRow {
    */
   warnings: unknown
   /**
+   * Code-selected stall-confirmed absorption stack jsonb (feat-072); null on
+   * pre-migration rows or when the scan confirmed nothing. Parse via
+   * {@link parseEvalAbsorptionStack}.
+   */
+  absorption_stack: unknown
+  /**
    * The `entry_levels` row the verdict is about, embedded via
    * `evaluated_level_id`; null when the eval matched no level (NO_ENTRY_NEAR)
    * or the level was deleted.
@@ -83,6 +89,41 @@ export function parseEvalChecks(checks: unknown): EvalCheck[] | null {
 export function parseEvalWarnings(warnings: unknown): string[] | null {
   if (warnings == null) return null
   const parsed = z.array(z.string()).min(1).safeParse(warnings)
+  return parsed.success ? parsed.data : null
+}
+
+/**
+ * The persisted `eval_results.absorption_stack` shape (feat-072) — a
+ * ConfirmedAbsorptionCandidate as the eval-task wrote it. Validated
+ * structurally here (the engine type is plain TS, not Zod) so a malformed row
+ * degrades to "no stat row", never a broken strip.
+ */
+const EvalAbsorptionStack = z.object({
+  source: z.string(),
+  side: z.enum(['buy', 'sell']),
+  top: z.number(),
+  bottom: z.number(),
+  binCount: z.number(),
+  qualifyingCount: z.number(),
+  peakAbsDelta: z.number(),
+  netDelta: z.number(),
+  stall: z.object({
+    barsAtStack: z.number(),
+    volumeAtStack: z.number(),
+    tradesAtStack: z.number(),
+    netProgressPts: z.number(),
+    confirmed: z.boolean(),
+  }),
+})
+export type EvalAbsorptionStack = z.infer<typeof EvalAbsorptionStack>
+
+/**
+ * Validate the `eval_results.absorption_stack` jsonb. Returns null when
+ * absent or malformed — the strip simply omits the absorption stat row.
+ */
+export function parseEvalAbsorptionStack(stack: unknown): EvalAbsorptionStack | null {
+  if (stack == null) return null
+  const parsed = EvalAbsorptionStack.safeParse(stack)
   return parsed.success ? parsed.data : null
 }
 

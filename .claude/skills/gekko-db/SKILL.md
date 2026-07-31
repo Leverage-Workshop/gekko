@@ -6,7 +6,7 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot taken 2026-07-26 (22 applied migrations).
+the project's REST APIs. Schema snapshot updated 2026-07-31 (24 applied migrations).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -146,6 +146,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | next_signal | text, nullable | observable that flips WAIT/NOT_VALID → ENTER |
 | caution | text, nullable | one line of what NOT to do |
 | warnings | jsonb, nullable | string[] runtime warnings (feat: eval_result_warnings) |
+| absorption_stack | jsonb, nullable | code-selected stall-confirmed absorption stack (ConfirmedAbsorptionCandidate, feat-072) |
 | raw_model_json | jsonb, nullable | |
 
 ### bundle_requests — FK `bundle_id → raw_bundles.id` (feat: on-demand bundle pulls)
@@ -173,10 +174,12 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Migrations & DDL
 
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (23 rows as of 2026-07-28).
+  `supabase_migrations.schema_migrations` (24 rows as of 2026-07-31).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has
-  no corresponding repo file — it added the anon RLS policy above. Don't be surprised
-  by the count mismatch (22 repo files vs 23 live).
+  no corresponding repo file — it added the anon RLS policy above. And live version
+  timestamps can differ from repo filenames when applied via the claude.ai Supabase
+  MCP (repo `20260731030000_absorption_stack.sql` is live `20260731033446`). Don't be
+  surprised by count/name mismatches (23 repo files vs 24 live).
 - Check applied migrations:
   `curl -s -X POST "$URL/rest/v1/rpc/..."` won't work for this — `schema_migrations`
   isn't exposed via PostgREST. Instead compare repo filenames against the snapshot
