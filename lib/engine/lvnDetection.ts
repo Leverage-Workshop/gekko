@@ -68,6 +68,19 @@ export type LvnDetectionParams = {
   /** A shelf edge is a TAPER-EDGE only if a distribution shoulder near it rises to at least this
    *  fraction of peak volume (i.e. the low shelf borders a real distribution). */
   shoulderFrac: number
+  /** Local-contrast alternative to `shoulderFrac` (feat-073): a shoulder may instead qualify at
+   *  max(shoulderContrastMult × the shelf run's minimum, shoulderFloorFrac × peak) when that bar
+   *  is lower than shoulderFrac × peak. A shelf edge is real relative to its LOCAL distribution,
+   *  so a deep shelf on the far side of the profile from the POC gets a locally-scaled bar
+   *  (2026-07-31: a fake-breakout tail's acceptance knee at ~49% of a distant peak went
+   *  undetected, and the fade entry was exiled to the thin end of the tail). The contrast
+   *  multiple keeps shallow shelves on the strict global bar; the floor keeps a bump that
+   *  merely towers over a dead-zone shelf from qualifying. */
+  shoulderContrastMult: number
+  /** Absolute floor for the local-contrast shoulder, as a fraction of peak volume. Must exceed
+   *  `plateauLevelFrac`, else the bin that terminates the low run would qualify as its own
+   *  shoulder and every long-enough shelf would fire. */
+  shoulderFloorFrac: number
   /** How far (price points) to search outward from a shelf edge for that distribution shoulder.
    *  Caleb labels the knee where a shelf meets a distribution even when the fat bar is not the
    *  immediately-adjacent bin, so the shoulder is sought within a window, not just next-door. */
@@ -84,10 +97,16 @@ export type LvnDetectionParams = {
 //     `shoulderWindow` points (not just next-door), so knees into moderate-volume shelves fire.
 // Selection favored generalization (per the feat-014 lesson — aggressive params overfit): the
 // winning region was a stable cluster, and `hvnDominanceFrac` was kept at 0.35 (not the train-max
-// 0.45) to retain secondary-distribution HVNs. Real numbers (±10pt): TRAIN LVN F1 0.51 / HVN 0.81;
-// HOLDOUT LVN 0.36 / HVN 0.43 — LVN localization is still the known-hard part (the architecture's
-// #1 engine risk). Detection is code-owned and authoritative (no LLM validation of node prices),
-// so these numbers are what ships downstream. See progress.md for the full rationale.
+// 0.45) to retain secondary-distribution HVNs.
+// feat-073 adds the local-contrast shoulder (`shoulderContrastMult` / `shoulderFloorFrac`) after
+// a live miss: the 2026-07-31 fake-breakout tail's acceptance knee sat at ~49% of a distant POC
+// peak, so the 0.6 global bar never fired and the fade entry was exiled to the tail's thin end.
+// Sweep over (contrast × floor) grid: floor 0.5+ loses that knee (the shoulder is 0.49 peak);
+// (3, 0.45) is the best knee-detecting point. Real numbers (±10pt): TRAIN LVN F1 0.45 / HVN 0.81;
+// HOLDOUT LVN 0.44 / HVN 0.43 — train gave up 6pts of (partly overfit) F1 for +8 on holdout, and
+// LVN localization is still the known-hard part (the architecture's #1 engine risk). Detection is
+// code-owned and authoritative (no LLM validation of node prices), so these numbers are what
+// ships downstream. See progress.md for the full rationale.
 export const DEFAULT_LVN_PARAMS: LvnDetectionParams = {
   smoothWindow: 17,
   peakProminenceFrac: 0.2,
@@ -97,6 +116,8 @@ export const DEFAULT_LVN_PARAMS: LvnDetectionParams = {
   plateauRun: 6,
   shoulderFrac: 0.6,
   shoulderWindow: 40,
+  shoulderContrastMult: 3,
+  shoulderFloorFrac: 0.45,
   mergeTolerance: 14,
 }
 
@@ -219,7 +240,6 @@ function detectTaperEdges(
   params: LvnDetectionParams,
 ): Candidate[] {
   const low = params.plateauLevelFrac * peak
-  const shoulder = params.shoulderFrac * peak
   const win = params.shoulderWindow
   const out: Candidate[] = []
   let runStart = -1
@@ -229,6 +249,15 @@ function detectTaperEdges(
     if (!isLow && runStart !== -1) {
       const runEnd = i - 1
       if (runEnd - runStart + 1 >= params.plateauRun) {
+        // The shoulder bar scales with how deep THIS shelf is: deep shelves qualify against a
+        // locally-scaled bar (contrast over the run minimum, floored at shoulderFloorFrac of
+        // peak); shallow shelves stay on the strict global shoulderFrac bar.
+        let runMin = vols[runStart]
+        for (let j = runStart + 1; j <= runEnd; j++) if (vols[j] < runMin) runMin = vols[j]
+        const shoulder = Math.min(
+          params.shoulderFrac * peak,
+          Math.max(params.shoulderContrastMult * runMin, params.shoulderFloorFrac * peak),
+        )
         // Lower boundary knee: distribution sits below the shelf (search toward lower prices).
         const lo = findShoulder(vols, prices, runStart, -1, shoulder, win)
         if (lo >= 0) out.push({ index: runStart, score: (vols[lo] - vols[runStart]) / peak })

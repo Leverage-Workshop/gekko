@@ -65,6 +65,22 @@ defers the trade instead of defining it (2026-07-27: a briefing's own key inflec
 counter-short at the 28201.43 trench at the near edge of a single-print scar, then shipped the short
 436 pts overhead at the far-side structure — unactionable).
 
+The same near-edge principle governs fake-breakout tails. When an MGI extreme (an IB boundary, a
+session low/high) sits at the far end of a thin low-volume tail — the profile shows the session's
+acceptance collapsing well before the extreme — judge which price the retest will actually reach.
+A reversal that leaves a thin tail rarely re-trades it: the rebid/reoffer forms at the tail's
+near-edge acceptance boundary (a taper-edge LVN or the last well-traded shelf), not at the extreme
+print. Prefer anchoring the fade there, and let the MGI extreme at the tail's end serve as the
+stop-side reference — an entry at the extreme demands price traverse the whole tail again and
+usually goes unfilled (2026-07-31: fade shipped at the IBL 28079.75 print at the far end of a
+~30-pt tail; the retest reversed at the ~28112 acceptance edge and never came within 40 pts of the
+entry). This is judgment, not a mechanical rule: when the flush to the extreme is the trade you
+actually want — a campaign border or major HTF cluster sits AT the extreme, or initiative shows
+the tail being actively repaired — anchoring at the extreme is legitimate; say why in the
+rationale. Check the tail on the profile whose timeframe matches the trade: a multi-day composite
+can show fat acceptance where the session profile shows near-zero trade — the session lens governs
+where a retest stalls.
+
 ## Stop placement
 
 A stop must sit BEYOND THE FAR SIDE of the entry's ENTIRE composite border band (every member
