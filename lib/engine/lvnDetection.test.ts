@@ -126,6 +126,11 @@ describe('detectLvnHvn — output shape', () => {
     expect(DEFAULT_LVN_PARAMS.hvnDominanceFrac).toBeGreaterThan(0)
     expect(DEFAULT_LVN_PARAMS.valleyDepthFrac).toBeGreaterThan(0)
     expect(DEFAULT_LVN_PARAMS.shoulderWindow).toBeGreaterThan(0)
+    // feat-073: local-contrast shoulder — floor must sit between the plateau level (else every
+    // run boundary bin would qualify as its own shoulder) and the global shoulder bar.
+    expect(DEFAULT_LVN_PARAMS.shoulderFloorFrac).toBeGreaterThan(DEFAULT_LVN_PARAMS.plateauLevelFrac)
+    expect(DEFAULT_LVN_PARAMS.shoulderFloorFrac).toBeLessThan(DEFAULT_LVN_PARAMS.shoulderFrac)
+    expect(DEFAULT_LVN_PARAMS.shoulderContrastMult).toBeGreaterThan(1)
   })
 })
 
@@ -144,6 +149,50 @@ describe('detectLvnHvn — HVN dominance floor (feat-035)', () => {
     const s = series([2, 30, 70, 100, 70, 30, 4, 2, 2, 20, 50, 20, 2, 2])
     const r = detectLvnHvn(s, { smoothWindow: 1, mergeTolerance: 2, hvnDominanceFrac: 0.35 })
     expect(r.hvn.map(n => n.price).sort()).toEqual([30003, 30010])
+  })
+})
+
+describe('detectLvnHvn — local-contrast shoulder (feat-073)', () => {
+  // Real-bundle failure shape (2026-07-31): the profile POC cluster sits far away, so the
+  // moderate distribution bordering a deep shelf never reaches shoulderFrac × GLOBAL peak —
+  // the fake-breakout tail's acceptance edge went undetected and the fade entry was exiled
+  // to the MGI extreme at the thin end of the tail.
+  const params = {
+    smoothWindow: 1,
+    mergeTolerance: 2,
+    plateauLevelFrac: 0.3,
+    plateauRun: 6,
+    shoulderFrac: 0.6,
+    shoulderWindow: 6,
+    shoulderContrastMult: 3,
+    shoulderFloorFrac: 0.45,
+  }
+
+  it('fires on a deep shelf bordered by a moderate local distribution far from the POC', () => {
+    // Deep shelf (4s, runMin 4% of peak) → local distribution shoulder 45 (45% of peak, below
+    // the 60% global bar) → dead span → global peak 100 beyond shoulderWindow. Effective bar:
+    // min(0.6·100, max(3·4, 0.45·100)) = 45 → the knee at the top of the shelf fires.
+    const s = series([4, 4, 4, 4, 4, 4, 4, 4, 45, 30, 25, 20, 25, 30, 40, 70, 100, 60, 25, 8])
+    const r = detectLvnHvn(s, params)
+    const taper = r.lvn.filter(n => n.type === 'taper-edge')
+    expect(taper.some(n => n.price === 30007)).toBe(true)
+  })
+
+  it('does not fire when the local distribution stays below the floor fraction', () => {
+    // Same shape but the bordering distribution tops out at 40 (< 0.45 · 100): a bump that
+    // towers over the shelf (3 × runMin = 12) is not enough on its own — the absolute floor
+    // keeps noise shelves in dead zones silent.
+    const s = series([4, 4, 4, 4, 4, 4, 4, 4, 40, 30, 25, 20, 25, 30, 40, 70, 100, 60, 25, 8])
+    const r = detectLvnHvn(s, params)
+    expect(r.lvn.filter(n => n.type === 'taper-edge')).toHaveLength(0)
+  })
+
+  it('keeps the strict global bar for shallow shelves', () => {
+    // Shelf runMin 25 (25% of peak): contrast term 3 · 25 = 75 exceeds the 60% global bar, so
+    // the effective bar stays at 60 — a 45-volume neighbor must NOT fire on a shallow shelf.
+    const s = series([25, 25, 25, 25, 25, 25, 25, 25, 45, 30, 28, 26, 28, 30, 40, 70, 100, 60, 28, 26])
+    const r = detectLvnHvn(s, params)
+    expect(r.lvn.filter(n => n.type === 'taper-edge' && n.price <= 30008)).toHaveLength(0)
   })
 })
 

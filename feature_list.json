@@ -758,6 +758,17 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-072-absorption-stack-row (typecheck, lint 0 errors, 1038 tests, build). tests/eval.absorptionStack.test.ts covers nearest-confirmed selection, inside-band distance zero, unconfirmed-skipping, scan-order ties; tests/eval.runEval.test.ts covers doctrine text, omission warning, no-warning-when-present, persisted null column; tests/briefing.dashboard.test.ts covers parse valid/absent/malformed. Live: migration applied (24 migrations), eval_results.absorption_stack queryable via REST."
+    },
+    {
+      "id": "feat-073",
+      "name": "Local-contrast taper-edge LVNs + fake-breakout-tail fade-anchor doctrine",
+      "description": "Operator ask (2026-07-31): the secondary fade was anchored at IBL 28079.75 at the far end of a fake-breakout tail while the actual acceptance edge / rotation-VbP LVN boundary sat at ~28110 \u2014 retests reverse at the edge and never reach the entry, so fills are missed. Root cause: detectLvnHvn's taper-edge pass required the distribution shoulder to reach shoulderFrac (0.6) of the GLOBAL profile peak, so a shelf knee bordering a moderate local distribution on the far side of the profile from the POC (the 28112 knee's shoulder smoothed to ~49% of peak) could never fire \u2014 exactly the fake-breakout geometry \u2014 and with no engine node between the 28204.5 trench and IBL, the model legally snapped the fade to the MGI extreme. Two parts. (1) Engine: new shoulderContrastMult (3) / shoulderFloorFrac (0.45) params give deep shelves a locally-scaled shoulder bar \u2014 effective threshold min(shoulderFrac\u00b7peak, max(contrastMult\u00b7runMin, floorFrac\u00b7peak)) \u2014 while shallow shelves keep the strict global bar (contrast term pushes them back to 0.6); floor must exceed plateauLevelFrac else every run-terminating bin self-qualifies. Sweep-validated: (3, 0.45) is the best knee-detecting point \u2014 TRAIN LVN F1 45% (was 51%, partly overfit), HOLDOUT 44% (was 36%), HVN unchanged 81/43, gate \u226540% passes, and the live bundle f86aa0a9 rotation profile now yields the taper-edge at 28112. (2) Doctrine (model judgment, not a code gate, per operator direction): knowledge/system/output-objective.md extends the PR-98 near-edge principle to fake-breakout tails \u2014 when an MGI extreme sits at the far end of a thin tail, prefer the fade anchor at the tail's near-edge acceptance boundary with the MGI extreme as the stop-side reference, with explicit latitude to anchor at the extreme when a campaign border sits there or the tail is being repaired, and a reminder that the session-lens profile (not the multi-day composite) governs where a retest stalls.",
+      "dependencies": [
+        "feat-035",
+        "feat-016"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-073-local-contrast-taper-edge (typecheck, lint 0 errors, 1041 tests, build). npm run lvn:eval PASS (TRAIN LVN 45% / HVN 81% vs 40% gate; HOLDOUT LVN 44% / HVN 43%). lib/engine/lvnDetection.test.ts feat-073 block covers: deep-shelf knee fires at 45% shoulder far from POC, absolute floor blocks sub-floor bumps, shallow shelves keep the 0.6 global bar, params-shipped invariants (floor > plateauLevelFrac, < shoulderFrac). Live-bundle check: rotation profile of bundle f86aa0a9 (2026-07-31) emits taper-edge 28112 \u2014 the missed acceptance edge."
     }
   ]
 }

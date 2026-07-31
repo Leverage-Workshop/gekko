@@ -2,9 +2,19 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-30 (evening)
+**Last Updated:** 2026-07-31
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Absorption always a condition + code-owned passing-stack stat row**
+Latest: **Local-contrast taper-edge LVNs + fake-breakout-tail fade-anchor doctrine**
+(feat-073 — operator caught the secondary fade anchored at IBL 28079.75 at the far
+end of a fake-breakout tail while retests reversed at the undetected ~28110
+acceptance edge: the taper-edge shoulder test measured against the GLOBAL profile
+peak, blinding it to shelf knees on the far side of the profile from the POC;
+new `shoulderContrastMult`/`shoulderFloorFrac` params give deep shelves a
+locally-scaled bar — sweep-validated at (3, 0.45): TRAIN LVN F1 45%↓6 /
+HOLDOUT 44%↑8, live bundle now emits the 28112 knee — plus output-objective.md
+extends the near-edge fade-anchor principle to thin tails as model judgment,
+MGI extreme becomes the stop-side reference), on top of
+**Absorption always a condition + code-owned passing-stack stat row**
 (feat-072 — every level verdict must carry a check named exactly "Absorption";
 the stall-confirmed stack nearest the evaluated level persists as
 `eval_results.absorption_stack` and renders as a four-column spec-cell band in
@@ -44,6 +54,42 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Local-contrast taper-edge LVNs + fake-breakout-tail fade-anchor doctrine
+(2026-07-31, feat-073).** Operator caught a live entry-selection miss on the
+2026-07-31 briefing: the secondary fade shipped at IBL 28079.75 ("composite
+HVN shelf") while the rotation VbP's acceptance collapsed at ~28110 — bins run
+700–1200 through 28116, then 486/321/142 down to 49 contracts AT the entry.
+Retests reverse at the acceptance edge (lows ~28125–28140) and never reach the
+MGI extreme, so fills are missed. Diagnosis: `detectLvnHvn`'s taper-edge pass
+required a shoulder ≥ `shoulderFrac` (0.6) of the GLOBAL profile peak; the
+knee's local distribution smoothed to ~1026 vs peak 2083 (~49%), so the shelf
+edge could never fire whenever the POC sits in the opposite half of the
+profile — exactly the fake-breakout-before-reversal geometry. With no engine
+node between the 28204.5 trench and IBL (terrain's bottom zone spanned 1,000
+pts), the model legally snapped the fade to the MGI extreme, and the
+balance-area profile (uniformly fat 4.3–5.4k/bin down there) laundered the
+"HVN shelf" attribution. Fix (1), engine: new `shoulderContrastMult` (3) /
+`shoulderFloorFrac` (0.45) — per-run effective bar
+`min(shoulderFrac·peak, max(contrastMult·runMin, floorFrac·peak))`, so deep
+shelves get a locally-scaled bar while the contrast term pushes shallow
+shelves (runMin > 0.15·peak) back onto the strict global rule; the floor must
+exceed `plateauLevelFrac` else every run-terminating bin would self-qualify.
+Grid sweep (contrast × floor, knee-detection as a hard constraint): floor 0.5+
+loses the live knee, (3, 0.45) is the best detecting point — TRAIN LVN F1 45%
+(was 51%, partly overfit), HOLDOUT 44% (was 36%), HVN untouched 81%/43%,
+lvn:eval gate ≥40% passes; live bundle f86aa0a9 now emits taper-edge 28112.
+Fix (2), doctrine as model judgment (operator's explicit call — surface the
+border in code, let the model judge the anchor): `output-objective.md` extends
+the PR-98 near-edge principle to fake-breakout tails — when an MGI extreme
+sits at the far end of a thin tail, prefer the fade anchor at the tail's
+near-edge acceptance boundary with the extreme as the stop-side reference;
+anchoring at the extreme stays legitimate when a campaign border sits there or
+the tail is being repaired (say why in the rationale); the session-lens
+profile, not the multi-day composite, governs where a retest stalls. Note:
+knowledge files ship with the trigger.dev deploy — live briefings pick up the
+doctrine on the next `trigger deploy`; the detector change is live on the next
+Vercel/worker deploy of lib/.
 
 **Absorption always a condition + code-owned passing-stack stat row
 (2026-07-30 evening, feat-072).** Operator ask after reviewing a live eval's
