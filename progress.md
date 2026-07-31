@@ -2,10 +2,15 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-30
+**Last Updated:** 2026-07-30 (evening)
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Multi-day TPO composite + HTF/MTF narrative restyle + name-first
-emphasis** (feat-071 — the missing multi-day TPO study reconstructed from the
+Latest: **Absorption always a condition + code-owned passing-stack stat row**
+(feat-072 — every level verdict must carry a check named exactly "Absorption";
+the stall-confirmed stack nearest the evaluated level persists as
+`eval_results.absorption_stack` and renders as a four-column spec-cell band in
+the eval strip: side-colored netDelta | bars at stack | qualifying/bins | top
+over bottom), on top of **Multi-day TPO composite + HTF/MTF narrative restyle +
+name-first emphasis** (feat-071 — the missing multi-day TPO study reconstructed from the
 HTF 30-min bars as engine fact `multiDayTpo`; htfView/mtfView contracts
 rewritten to the Current section's storytelling register; UI emphasis
 inverted so MGI names are bold and prices in parens are not), on top of
@@ -39,6 +44,32 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Absorption always a condition + code-owned passing-stack stat row
+(2026-07-30 evening, feat-072).** Operator ask after reviewing a live eval's
+absorption facts (the confirmed 20-bar stack at 28154.75–28184): the eval must
+ALWAYS include Absorption as one of its conditions, and the passing stack's
+stats deserve their own scannable row. (1) `output-eval.md` now requires one
+check named exactly "Absorption" on every level verdict (pass per the
+absorption-alone rule; pending when no stack/stall visible; fail only when the
+flush kept moving price through the level); `enforceEvalFacts` warns —
+warning-only, never fabricates — when the model omits it. (2) New
+`lib/eval/absorptionStack.ts` selects the stat-row stack code-side: the
+stall-confirmed candidate nearest the post-enforcement evaluated level
+(current price on level-less verdicts); confirmed-only by design (unconfirmed
+means "no stall visible", not refuted). Persisted verbatim as
+`eval_results.absorption_stack` jsonb — repo migration
+`20260731030000_absorption_stack.sql`, applied live as `20260731033446` via
+the claude.ai Supabase MCP (verified queryable). Degradation on both sides:
+the eval insert retries without the column on PGRST204, and the dashboard
+eval select switched to `*` + embed so a lagging schema can't break either
+path. (3) The eval strip renders the stack as a four-equal-column spec-cell
+band (DESIGN.md spec-cell language) between the verdict header and the
+conditions: netDelta large and side-colored (buy=bmw-blue, sell=m-red,
+signed) | bars at stack | qualifying bins / span | stack top over bottom
+(both `formatPrice`d). `parseEvalAbsorptionStack` degrades malformed jsonb to
+no-row. Note: `output-eval.md` ships with the trigger.dev deploy — live evals
+pick up the required-check doctrine on the next `trigger deploy`.
 
 **Multi-day TPO composite + HTF/MTF narrative restyle + name-first emphasis
 (2026-07-30, feat-071).** Operator report: the Tactical Overview's Current

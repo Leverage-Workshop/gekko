@@ -1,9 +1,11 @@
 import type { EvalCheck } from '@/knowledge/schema/briefing.schema'
 import {
   formatPrice,
+  parseEvalAbsorptionStack,
   parseEvalChecks,
   parseEvalWarnings,
   type DashboardEvalRow,
+  type EvalAbsorptionStack,
 } from '@/lib/briefing'
 import { HighlightedText } from './highlighted-text'
 import { CheckEntryButton, CheckPositionButton } from './trigger-run-button'
@@ -15,7 +17,9 @@ import { CheckEntryButton, CheckPositionButton } from './trigger-run-button'
  * chip, the evaluated entry level (direction-colored like the objective
  * cards) and the trigger buttons that run checks — "Long" / "Short" for a
  * hold-or-exit read on an open position at the current price, and the accent
- * "Eval" for the entry check against the active levels; the
+ * "Eval" for the entry check against the active levels; the code-selected
+ * stall-confirmed absorption stack (feat-072, when persisted) renders as a
+ * four-column spec-cell stat band below it; the
  * structured condition checks (schema `checks`, when present)
  * render always visible below it as a table with per-condition notes, caution
  * and the reason summary. Pre-migration rows without checks degrade to the
@@ -75,6 +79,49 @@ function EvalActions() {
       <CheckPositionButton direction="long" size="sm" />
       <CheckPositionButton direction="short" size="sm" />
       <CheckEntryButton size="sm" />
+    </div>
+  )
+}
+
+/**
+ * The absorption stat band (feat-072): the code-selected stall-confirmed
+ * stack behind the eval's Absorption condition, as four equal spec-cell
+ * columns — net delta in large side-colored type (buy reads bmw-blue like a
+ * long, sell reads m-red like a short), bars at the stack, qualifying bins
+ * over the total span, and the stack's top price over its bottom.
+ */
+function AbsorptionStackRow({ stack }: { stack: EvalAbsorptionStack }) {
+  const deltaTone = stack.side === 'buy' ? 'text-bmw-blue' : 'text-m-red'
+  const deltaValue = `${stack.netDelta > 0 ? '+' : ''}${stack.netDelta}`
+  const label = 'mt-1 text-xs font-bold uppercase tracking-[1.5px] text-muted'
+  return (
+    <div className="grid grid-cols-2 gap-px border-x border-b border-hairline bg-hairline md:grid-cols-4">
+      <div className="bg-surface-soft px-5 py-3">
+        <p className={`text-2xl font-bold tracking-tight ${deltaTone}`}>{deltaValue}</p>
+        <p className={label}>Net Delta</p>
+      </div>
+      <div className="bg-surface-soft px-5 py-3">
+        <p className="text-2xl font-bold tracking-tight text-ink">
+          {stack.stall.barsAtStack}
+        </p>
+        <p className={label}>Bars at Stack</p>
+      </div>
+      <div className="bg-surface-soft px-5 py-3">
+        <p className="text-2xl font-bold tracking-tight text-ink">
+          {stack.qualifyingCount}
+          <span className="text-base font-bold text-muted"> / {stack.binCount}</span>
+        </p>
+        <p className={label}>Qualifying Bins</p>
+      </div>
+      <div className="bg-surface-soft px-5 py-3">
+        <p className="text-base font-bold tracking-tight text-ink">
+          {formatPrice(stack.top)}
+        </p>
+        <p className="text-base font-bold tracking-tight text-body">
+          {formatPrice(stack.bottom)}
+        </p>
+        <p className={label}>Stack Top / Bottom</p>
+      </div>
     </div>
   )
 }
@@ -204,6 +251,7 @@ export function EvalStrip({
   }
 
   const checks = parseEvalChecks(evalResult.checks)
+  const absorptionStack = parseEvalAbsorptionStack(evalResult.absorption_stack)
   const statusStyle = EVAL_STATUS_STYLE[evalResult.status] ?? DEFAULT_STATUS_STYLE
 
   // The evaluated entry level, colored by direction like the objective cards:
@@ -275,6 +323,8 @@ export function EvalStrip({
           <EvalActions />
         </div>
       </div>
+
+      {absorptionStack && <AbsorptionStackRow stack={absorptionStack} />}
 
       <ConditionsDetail
         checks={checks}

@@ -3,6 +3,7 @@ import type { Briefing } from '@/knowledge/schema/briefing.schema'
 import {
   loadDashboardData,
   parseEvalChecks,
+  parseEvalAbsorptionStack,
   parseEvalWarnings,
   type DashboardBriefingRow,
   type DashboardDeps,
@@ -94,6 +95,23 @@ const evalRow: DashboardEvalRow = {
   warnings: [
     'model returned ENTER long but the extreme counts confirm counter-initiative (5 counter-extreme vs 0 entry-extreme bars) and price has closed out of the area (last close 30246.5 vs prior close floor 30250) — coerced to WAIT',
   ],
+  absorption_stack: {
+    source: 'full-rotation',
+    side: 'sell',
+    top: 30254,
+    bottom: 30248.25,
+    binCount: 5,
+    qualifyingCount: 4,
+    peakAbsDelta: 210,
+    netDelta: -455,
+    stall: {
+      barsAtStack: 12,
+      volumeAtStack: 9000,
+      tradesAtStack: 8100,
+      netProgressPts: 3.25,
+      confirmed: true,
+    },
+  },
   evaluated_level: { label: 'Entry A', price: 30250, direction: 'long' },
 }
 
@@ -394,5 +412,29 @@ describe('parseEvalWarnings', () => {
     expect(parseEvalWarnings('not an array')).toBeNull()
     expect(parseEvalWarnings([42])).toBeNull()
     expect(parseEvalWarnings([])).toBeNull()
+  })
+})
+
+describe('parseEvalAbsorptionStack', () => {
+  it('parses a valid absorption_stack jsonb (feat-072)', () => {
+    expect(parseEvalAbsorptionStack(evalRow.absorption_stack)).toEqual(
+      evalRow.absorption_stack,
+    )
+  })
+
+  it('returns null for pre-migration rows and stackless evals (absent)', () => {
+    expect(parseEvalAbsorptionStack(null)).toBeNull()
+    expect(parseEvalAbsorptionStack(undefined)).toBeNull()
+  })
+
+  it('returns null on malformed jsonb — the strip omits the stat row', () => {
+    expect(parseEvalAbsorptionStack('not an object')).toBeNull()
+    expect(parseEvalAbsorptionStack({ side: 'buy', top: 30000 })).toBeNull()
+    expect(
+      parseEvalAbsorptionStack({
+        ...(evalRow.absorption_stack as Record<string, unknown>),
+        side: 'neither',
+      }),
+    ).toBeNull()
   })
 })

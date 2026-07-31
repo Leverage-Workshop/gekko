@@ -93,6 +93,7 @@ function modelEval(): EvalResult {
     checks: [
       { name: 'Structure', verdict: 'pass', note: 'Border is a proven acceptance edge' },
       { name: 'Delta', verdict: 'pass', note: 'Positive mean confirming the long' },
+      { name: 'Absorption', verdict: 'pass', note: 'Red flush stalled at the border' },
     ],
     nextSignal: null,
     caution: 'No adds above T1',
@@ -330,6 +331,52 @@ describe('runEval', () => {
     expect(harness.getCaptured()!.prompt).toContain(
       'No HTF bar data is attached to this bundle',
     )
+  })
+
+  it('requires an Absorption condition on every level verdict (feat-072)', async () => {
+    // The doctrine names the required check; enforcement is warning-only —
+    // fabricating a check the model didn't make would put words in its mouth.
+    expect(loadDoctrine('eval')).toContain('MUST be named exactly **"Absorption"**')
+
+    const harness = makeDeps({
+      generate: async (params) => ({
+        object: {
+          ...modelEval(),
+          checks: [
+            { name: 'Structure', verdict: 'pass', note: 'Border holds' },
+            { name: 'Delta', verdict: 'pass', note: 'Positive mean' },
+          ],
+        },
+        model: params.model,
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 } as GenerateStructuredResult<EvalResult>['usage'],
+        cost: 0,
+        cachedInputTokens: 0,
+        latencyMs: 1,
+      }),
+    })
+    const result = await runEval(harness.deps)
+    expect(
+      result.warnings.some((w) => w.includes('omitted the required "Absorption" condition')),
+    ).toBe(true)
+  })
+
+  it('does not warn about the Absorption condition when the model includes it', async () => {
+    const harness = makeDeps()
+    const result = await runEval(harness.deps)
+    expect(
+      result.warnings.some((w) => w.includes('omitted the required "Absorption" condition')),
+    ).toBe(false)
+  })
+
+  it('persists the code-selected absorption stack column (feat-072)', async () => {
+    // The fixture's delta stacks sit far below the exec-bar window, so no
+    // stall confirms — the column is persisted explicitly as null, not
+    // omitted (the insert shape carries it on every row).
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    const row = harness.getInsertedRow()!
+    expect('absorption_stack' in row).toBe(true)
+    expect(row.absorption_stack).toBeNull()
   })
 
   it('teaches sequence-first initiative and absorption-alone checks', () => {

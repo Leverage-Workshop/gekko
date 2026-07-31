@@ -68,6 +68,22 @@ export function realEvalDeps(): EvalDeps {
         .select('id')
         .single()
       if (error) {
+        // Same degradation contract as the config read above: a column the
+        // remote schema doesn't have yet (absorption_stack migration not
+        // applied) is a PostgREST PGRST204 — persist the verdict without the
+        // stat-row stack rather than failing the whole eval.
+        if (error.code === 'PGRST204') {
+          const { absorption_stack: _absorptionStack, ...legacy } = row
+          const retry = await supabase
+            .from('eval_results')
+            .insert(legacy)
+            .select('id')
+            .single()
+          if (retry.error) {
+            throw retry.error
+          }
+          return { id: retry.data.id as string }
+        }
         throw error
       }
       return { id: data.id as string }

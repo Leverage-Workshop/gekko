@@ -1,7 +1,9 @@
 export {
   loadDashboardData,
+  parseEvalAbsorptionStack,
   parseEvalChecks,
   parseEvalWarnings,
+  type EvalAbsorptionStack,
   type DashboardBriefing,
   type DashboardBriefingRow,
   type DashboardData,
