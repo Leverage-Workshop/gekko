@@ -769,6 +769,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-073-local-contrast-taper-edge (typecheck, lint 0 errors, 1041 tests, build). npm run lvn:eval PASS (TRAIN LVN 45% / HVN 81% vs 40% gate; HOLDOUT LVN 44% / HVN 43%). lib/engine/lvnDetection.test.ts feat-073 block covers: deep-shelf knee fires at 45% shoulder far from POC, absolute floor blocks sub-floor bumps, shallow shelves keep the 0.6 global bar, params-shipped invariants (floor > plateauLevelFrac, < shoulderFrac). Live-bundle check: rotation profile of bundle f86aa0a9 (2026-07-31) emits taper-edge 28112 \u2014 the missed acceptance edge."
+    },
+    {
+      "id": "feat-074",
+      "name": "Fakeout-formed-extreme fade anchor: detector LVN nodes join the legal entry-anchor set",
+      "description": "Operator ask (2026-08-01): despite feat-073, the morning briefing again anchored the secondary fade at IBL 28079.75. Diagnosis: the feat-073 detector half works (replay of bundle a32050bd emits the rotation taper-edge 28112 and balance-area valley 28126) but the doctrine half was unenforceable \u2014 the Output Contract (prompt.ts anchor sentence) and engineAnchorPrices restricted entries to zone borders / terrain.levels / border members, all MGI-anchored, and no MGI level exists at the acceptance edge, so the model's only legal fade anchor in the region was the IBL extreme. Operator framing: a High/Low-type MGI level may itself be the print of a pre-reversal fakeout; when the model judges an extreme was formed that way it should be allowed to anchor at the level where the actual action took place. Three parts. (1) Validation: engineAnchorPrices gains an optional lvn param (EngineFacts['lvn']) and admits detector LVN node prices (taper-edge/valley, both profiles) into the anchor set \u2014 HVN peaks stay excluded (middle of value), data-edge filter unchanged; both call sites (analyzeBundle, updateBundle) pass facts.lvn. (2) Contract: the anchor sentence in lib/analyze/prompt.ts and lib/update/prompt.ts now names `lvnHvnNodes` LVN node prices as legal anchors, reserved for the fakeout-formed-extreme case, with the node named in the label. (3) Doctrine: the output-objective.md fake-breakout-tail paragraph now leads with the formation test \u2014 before anchoring at ANY High/Low MGI level, ask whether the print was fakeout-formed; if so the model MAY anchor at the near-edge LVN node (naming it, e.g. \"28112 (taper-edge LVN)\") with the extreme as stop-side reference; anchoring at the extreme stays legitimate with stated reason. Analyze prefix grew to 39,127 chars \u2014 PREFIX_BUDGET ceiling consciously raised 39k \u2192 41k.",
+      "dependencies": [
+        "feat-073"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-074-fakeout-formed-extreme-anchor (typecheck, lint 0 errors, 1044 tests, build). New engineAnchorPrices describe block in tests/analyze.engineFacts.test.ts: LVN nodes from both profiles join the set, only LVN prices are added (HVN peaks never), data edges stay filtered. Live-bundle check: replay of bundle a32050bd (2026-08-01) yields legal fade anchors 28163/28126/28112 between the 28204.5 trench and IBL where previously IBL was the only legal anchor."
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { computeEngineFacts, engineZoneBorders } from '@/lib/analyze'
+import { computeEngineFacts, engineAnchorPrices, engineZoneBorders } from '@/lib/analyze'
 import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
 
 const read = (name: string) => readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')
@@ -301,5 +301,44 @@ describe('engineZoneBorders', () => {
     expect(new Set(borders).size).toBe(borders.length)
     expect(borders).toContain(result.terrain.zones[0].top)
     expect(borders).toContain(result.terrain.zones.at(-1)!.bottom)
+  })
+})
+
+describe('engineAnchorPrices', () => {
+  it('includes detector LVN node prices from both profiles when node facts are supplied (feat-074)', () => {
+    const result = facts()
+    const anchors = engineAnchorPrices(result.terrain, result.lvn)
+
+    for (const source of ['rotation', 'balanceArea'] as const) {
+      for (const node of result.lvn[source].lvn) {
+        if (result.terrain.dataEdges.includes(node.price)) continue
+        expect(anchors).toContain(node.price)
+      }
+    }
+    expect([...anchors].sort((a, b) => b - a)).toEqual(anchors)
+    expect(new Set(anchors).size).toBe(anchors.length)
+  })
+
+  it('never admits HVN peaks that are not already terrain structure', () => {
+    const result = facts()
+    const withNodes = new Set(engineAnchorPrices(result.terrain, result.lvn))
+    const withoutNodes = new Set(engineAnchorPrices(result.terrain))
+
+    const added = [...withNodes].filter((price) => !withoutNodes.has(price))
+    const lvnPrices = new Set(
+      [...result.lvn.rotation.lvn, ...result.lvn.balanceArea.lvn].map((n) => n.price),
+    )
+    expect(added.length).toBeGreaterThan(0)
+    for (const price of added) {
+      expect(lvnPrices.has(price)).toBe(true)
+    }
+  })
+
+  it('still filters profile data edges out of the anchor set', () => {
+    const result = facts()
+    const anchors = engineAnchorPrices(result.terrain, result.lvn)
+    for (const edge of result.terrain.dataEdges) {
+      expect(anchors).not.toContain(edge)
+    }
   })
 })

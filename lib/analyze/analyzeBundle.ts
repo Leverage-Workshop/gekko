@@ -158,7 +158,7 @@ export async function runAnalysis(
   const validated = enforceCodeOwnedFacts(result.object, {
     rrMin,
     engineBorders: engineZoneBorders(facts.terrain),
-    anchorPrices: engineAnchorPrices(facts.terrain),
+    anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn),
     // Fresh map: entries must stand off current price (the update task, revising a
     // standing plan price is meant to approach, does not set this).
     enforceEntryStandoff: true,

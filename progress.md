@@ -2,9 +2,20 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-31
+**Last Updated:** 2026-08-01
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Local-contrast taper-edge LVNs + fake-breakout-tail fade-anchor doctrine**
+Latest: **Fakeout-formed-extreme fade anchor — detector LVN nodes join the legal
+entry-anchor set** (feat-074 — the 2026-08-01 morning briefing anchored the fade
+at IBL again despite feat-073: the detector emitted the 28112/28126 acceptance-edge
+nodes but the Output Contract and `engineAnchorPrices` restricted entries to
+MGI-anchored terrain structure, so IBL stayed the only legal anchor in the region;
+operator reframing — a High/Low MGI print may itself be a pre-reversal fakeout, and
+when the model judges it was, it may anchor where the actual action took place:
+`engineAnchorPrices(terrain, lvn)` now admits detector LVN node prices (taper-edge/
+valley, both profiles; HVN peaks stay excluded), both prompts name the LVN-node
+anchor as legal for exactly this case, and the doctrine paragraph leads with the
+formation test; analyze prefix 39,127 chars, PREFIX_BUDGET ceiling raised to 41k),
+on top of **Local-contrast taper-edge LVNs + fake-breakout-tail fade-anchor doctrine**
 (feat-073 — operator caught the secondary fade anchored at IBL 28079.75 at the far
 end of a fake-breakout tail while retests reversed at the undetected ~28110
 acceptance edge: the taper-edge shoulder test measured against the GLOBAL profile
@@ -54,6 +65,38 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Fakeout-formed-extreme fade anchor — detector LVN nodes join the legal
+entry-anchor set (2026-08-01, feat-074).** The first post-feat-073 briefing
+(2026-08-01 morning, bundle `a32050bd`) anchored the secondary fade at IBL
+28079.75 again. Replay of the exact bundle with current main proved the
+detector half works — rotation taper-edge 28112 and balance-area valley 28126
+both emitted — but those nodes never became shippable structure: the terrain
+zone stack is MGI-anchored (no MGI level exists between the 28204.5 trench and
+IBL, so no border forms at the acceptance edge), and both the Output Contract
+anchor sentence and `engineAnchorPrices` restricted entries to zone borders /
+`terrain.levels` / border members. The model faced contradictory instructions
+— doctrine said prefer the near-edge LVN, contract forbade entering there —
+and correctly obeyed the contract: IBL was the only legal anchor in the
+region. (Tellingly it used a raw LVN for the STOP — "27908 (balance-area LVN
+valley)" — since off-anchor validation only polices entries.) Operator
+reframing sharpened the doctrine: any High/Low-type MGI print may itself be
+the artifact of a pre-reversal fakeout, and when the model judges an extreme
+was formed that way it should anchor where the actual action took place.
+Three parts. (1) `engineAnchorPrices(terrain, lvn?)` admits detector LVN node
+prices (taper-edge/valley, both profiles) into the legal anchor set; HVN
+peaks stay excluded (middle of value), the data-edge filter is unchanged;
+both call sites pass `facts.lvn`. (2) The anchor sentence in
+`lib/analyze/prompt.ts` and `lib/update/prompt.ts` names `lvnHvnNodes` LVN
+node prices as legal anchors, reserved for the fakeout-formed-extreme case,
+node named in the label. (3) `output-objective.md`'s tail paragraph now leads
+with the formation test before any High/Low anchor is used. Analyze prefix
+grew to 39,127 chars — PREFIX_BUDGET ceiling consciously 39k → 41k. Verified:
+replayed anchor set on bundle `a32050bd` now offers 28163 / 28126 / 28112
+between the trench and IBL. Doctrine + prompt changes reach live runs on the
+next trigger.dev deploy / dev-server restart from a pulled checkout — the
+serving dev worker (`v20260731.17`) builds from wherever `trigger dev` runs,
+and the Windows checkout is known to drift.
 
 **Local-contrast taper-edge LVNs + fake-breakout-tail fade-anchor doctrine
 (2026-07-31, feat-073).** Operator caught a live entry-selection miss on the

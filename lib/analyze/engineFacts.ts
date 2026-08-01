@@ -186,17 +186,27 @@ export function engineZoneBorders(terrain: TerrainZonesResult): number[] {
 
 /**
  * Every engine price an entry may legitimately anchor on: zone borders, level
- * verdicts and composite border band members — minus profile data edges, which
- * are data artifacts the doctrine forbids trading (feat-040 G2). Deduped,
+ * verdicts, composite border band members and — when the per-profile node
+ * facts are supplied — detector LVN node prices (feat-074: the doctrine's
+ * fakeout-formed-extreme fade anchors at the tail's near-edge acceptance
+ * boundary, a taper-edge or valley LVN that carries no MGI name and so never
+ * becomes terrain structure). HVN peaks stay excluded — they are the middle
+ * of value, never an entry. Profile data edges are filtered out, as they are
+ * data artifacts the doctrine forbids trading (feat-040 G2). Deduped,
  * price-descending. Feeds `ValidateOptions.anchorPrices`.
  */
-export function engineAnchorPrices(terrain: TerrainZonesResult): number[] {
+export function engineAnchorPrices(
+  terrain: TerrainZonesResult,
+  lvn?: EngineFacts['lvn'],
+): number[] {
+  const lvnNodes = lvn ? [...lvn.rotation.lvn, ...lvn.balanceArea.lvn] : []
   const anchors = [
     ...terrain.zones.flatMap((zone) => [zone.top, zone.bottom]),
     ...terrain.levels.map((verdict) => verdict.level.price),
     ...terrain.borders.flatMap((border) =>
       border.members.map((member) => member.level.price),
     ),
+    ...lvnNodes.map((node) => node.price),
   ].filter((price) => !terrain.dataEdges.includes(price))
   return [...new Set(anchors)].sort((a, b) => b - a)
 }
