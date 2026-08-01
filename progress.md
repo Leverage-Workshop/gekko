@@ -4,7 +4,23 @@
 
 **Last Updated:** 2026-08-01
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Code-owned fakeout-tail formation test** (feat-075 — the first briefing
+Queued (Codex adversarial prompt review, 2026-08-01): noTrade/abstention objective
+state, present/absent/indeterminate pattern verdict, execution bar size as a
+/settings-editable config value (operator: candles are 750-volume, the doctrine's
+"500 volume" line is stale), and per-run-preamble dedup vs system doctrine.
+Latest: **One-or-two-rung target contract + rr doctrine fix** (feat-076 — Codex
+adversarial review of the recorded LangSmith briefing prompt found the target
+cardinality mutually exclusive ("exactly TWO rungs" vs the single-target
+carve-out 14 lines later vs the preamble's "at least T1") and the
+output-objective.md rr bullet contradicting the authoritative constraints.md
+formula by naming entry/stop/T1; operator picked the one-target variant:
+doctrine now reads ONE or TWO rungs with the conclusion LAST, a sole target is
+LABELED T2 and the R/R gate measures to it, the rr bullet states the
+(entry→T2)/25 formula, both task prompts align, and enforceTargetCeiling
+relabels a sole T1 to T2 with an advisory warning — riskReward gates on the
+last listed target, so a sole "T1" would silently gate a mid-traverse rung;
+schema unchanged at .min(1)/no-max for historical-row backcompat), on top of
+**Code-owned fakeout-tail formation test** (feat-075 — the first briefing
 after feat-074 STILL shipped the IBL fade with a verified-current serving stack:
 the model never spontaneously engages the "reserved" formation exception, so the
 finding is now an engine fact: `lib/engine/fakeoutTails.ts` flags every

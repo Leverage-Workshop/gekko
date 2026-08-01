@@ -12,8 +12,8 @@ Each objective (primary and secondary) carries:
   the DIFFERENT border defining the counter-scenario. NEVER emit an Entry B / add-on / breakout
   rung or a second stop.
 - **`stops`** — exactly **ONE** protective stop with its invalidation.
-- **`targets`** — exactly **TWO** rungs, **T1 → T2**, nearest first. Pick T2 first, then place T1
-  inside the traverse:
+- **`targets`** — **ONE or TWO** rungs, nearest first, the conclusion LAST. Pick T2 first, then
+  place T1 inside the traverse:
   - **T2 (Conclusion)** — your best structural estimate of where THIS move realistically concludes
     when it plays out reasonably well: the far side of the structure being traversed (an LVN return
     over a distribution concludes at the distribution's opposite side; a rotation off a failed
@@ -26,10 +26,13 @@ Each objective (primary and secondary) carries:
     of the entry→T2 traverse — latitude toward whichever real border sits closest to that midpoint.
     The first obstacle a few points from entry is NOT T1 unless the map genuinely offers nothing
     deeper.
-  Ship a single target ONLY when the engine map offers no distinct structure between entry and T2,
-  and say so in the rationale. Never emit a T3.
+  The two-rung **T1 → T2** ladder is the expected shape whenever the engine map offers distinct
+  structure between entry and T2. When it offers none, ship the **single-target variant**: one
+  rung, labeled **T2** — it IS the conclusion and the R/R gate measures to it; never label a sole
+  target T1 — and say in the rationale that no intermediate rung exists. Never emit a T3.
 - **`rr`** — recomputed and overwritten by the engine after you answer; still populate it honestly
-  from your chosen entry/stop/T1.
+  per the Constraints formula: `(entry→T2 distance) / 25` — the fixed 25-pt operational stop,
+  gating on the conclusion (your LAST listed target), never on your structural stop or T1.
 
 Entries, stops, and T1 must sit on engine-supplied structure — a zone border or a terrain level —
 never in the middle of value.
