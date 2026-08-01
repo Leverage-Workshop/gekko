@@ -369,7 +369,7 @@ function offAnchorEntryWarnings(
   const entry = objective.entries[0]
   if (!anchorPrices.some((price) => samePrice(price, entry.price))) {
     warnings.push(
-      `${name} entry "${entry.label}" @ ${entry.price} matches no engine anchor price — entries must sit on engine structure (a border band member or level verdict)`,
+      `${name} entry "${entry.label}" @ ${entry.price} matches no engine anchor price — entries must sit on engine structure (a border band member, level verdict or detector LVN node)`,
     )
   }
 }

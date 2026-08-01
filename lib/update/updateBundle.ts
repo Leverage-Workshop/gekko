@@ -185,7 +185,7 @@ export async function runUpdate(
   const validated = enforceCodeOwnedFacts(composed, {
     rrMin,
     engineBorders: engineZoneBorders(facts.terrain),
-    anchorPrices: engineAnchorPrices(facts.terrain),
+    anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn),
     meta: {
       createdAt: now.toISOString(),
       currentPrice: facts.currentPrice,
