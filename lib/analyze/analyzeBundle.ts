@@ -159,6 +159,7 @@ export async function runAnalysis(
     rrMin,
     engineBorders: engineZoneBorders(facts.terrain),
     anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn),
+    fakeoutTails: facts.fakeoutTails,
     // Fresh map: entries must stand off current price (the update task, revising a
     // standing plan price is meant to approach, does not set this).
     enforceEntryStandoff: true,

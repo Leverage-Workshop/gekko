@@ -65,24 +65,25 @@ defers the trade instead of defining it (2026-07-27: a briefing's own key inflec
 counter-short at the 28201.43 trench at the near edge of a single-print scar, then shipped the short
 436 pts overhead at the far-side structure — unactionable).
 
-The same near-edge principle governs fakeout-formed extremes. Before anchoring at any High/Low
-MGI level (an IB boundary, a session or overnight high/low, a prior-day extreme), ask how that
-print was FORMED: a pre-reversal fakeout — a thin spike through structure that immediately
-reversed — leaves the extreme at the far end of a thin low-volume tail, with the profile showing
-acceptance collapsing well before the print. An extreme formed that way rarely re-trades: the
-rebid/reoffer forms where the actual action ended — the tail's near-edge acceptance boundary, a
-taper-edge or valley LVN node (or the last well-traded shelf) — not at the extreme print. When
-you judge an extreme fakeout-formed, you MAY anchor the fade at that LVN node even though it
-carries no MGI name — name the node in the label (e.g. "28112 (taper-edge LVN)") — and let the
-MGI extreme at the tail's end serve as the stop-side reference. An entry at the extreme demands
-price traverse the whole tail again and usually goes unfilled (2026-07-31: fade shipped at the
-IBL 28079.75 print at the far end of a ~30-pt tail; the retest reversed at the ~28112 acceptance
-edge and never came within 40 pts of the entry). This is judgment, not a mechanical rule: when
-the flush to the extreme is the trade you actually want — a campaign border or major HTF cluster
-sits AT the extreme, or initiative shows the tail being actively repaired — anchoring at the
-extreme is legitimate; say why in the rationale. Check the tail on the profile whose timeframe
-matches the trade: a multi-day composite can show fat acceptance where the session profile shows
-near-zero trade — the session lens governs where a retest stalls.
+The same near-edge principle governs fakeout-formed extremes. A High/Low MGI level (an IB
+boundary, a session or overnight high/low, a prior-day/week/month extreme) is the PRINT of the
+move that created it, and that move may have been a pre-reversal fakeout — a thin spike through
+structure that immediately reversed, leaving the extreme at the far end of a thin low-volume
+tail. An extreme formed that way rarely re-trades: the rebid/reoffer forms where the actual
+action ended — the tail's near-edge acceptance boundary — not at the extreme print. The engine
+runs this formation test FOR you: `fakeoutTails` in the engine facts lists every flagged
+extreme with its `acceptanceEdge` LVN node and the tail evidence. A listed extreme IS
+fakeout-formed — treat the finding as data, never re-derive or dispute it, and never counter it
+with composite/balance-area acceptance (the trade-horizon profile governs where retests stall).
+Anchor the fade at the listed acceptance edge, naming the node in the label (e.g. "28112
+(taper-edge LVN)"), with the MGI extreme at the tail's end as the stop-side reference. An entry
+at the extreme demands price traverse the whole tail again and usually goes unfilled
+(2026-07-31: fade shipped at the IBL 28079.75 print at the far end of a ~30-pt tail; the retest
+reversed at the ~28112 acceptance edge and never came within 40 pts of the entry). What stays
+your judgment is only the exception: when the flush to the extreme is the trade you actually
+want — a campaign border or major HTF cluster sits AT the extreme, or initiative shows the tail
+being actively repaired — anchoring at the flagged extreme is legitimate, but the rationale
+must say so explicitly; an entry at a flagged extreme without that justification is a defect.
 
 ## Stop placement
 

@@ -7,6 +7,7 @@ import type {
 } from '@/knowledge/schema/briefing.schema'
 import { DEFAULT_RR_MIN, objectiveRiskReward } from '@/lib/engine/riskReward'
 import type { RiskReward } from '@/lib/engine/riskReward'
+import type { FakeoutTailFact } from '@/lib/engine/fakeoutTails'
 
 /**
  * Post-LLM enforcement of the code-owned facts (mirroring the eval-task's
@@ -116,6 +117,12 @@ export interface ValidateOptions {
    * entry matching none of them draws an advisory warning.
    */
   anchorPrices?: readonly number[]
+  /**
+   * Code-owned fakeout-formed extremes (feat-075). When present, an entry
+   * anchored at a flagged extreme draws an advisory warning naming the
+   * engine's acceptance edge — the rationale must justify the extreme anchor.
+   */
+  fakeoutTails?: readonly FakeoutTailFact[]
   /**
    * Hard-enforce the fresh-map entry placement gates against `meta.currentPrice`:
    * {@link MIN_ENTRY_STANDOFF_PTS} (not pinned at price) and
@@ -375,6 +382,36 @@ function offAnchorEntryWarnings(
 }
 
 /**
+ * An entry within this many points of a fakeout-formed extreme counts as
+ * anchored AT the extreme for the feat-075 advisory (a tick or two of drift
+ * off the print is still the print, not the acceptance edge).
+ */
+const FAKEOUT_EXTREME_TOLERANCE_PTS = 2
+
+/**
+ * Advisory (feat-075): the engine's formation test flagged this extreme as
+ * fakeout-formed — retests stall at the acceptance edge, not the print — so an
+ * entry anchored there must carry an explicit justification in its rationale.
+ * The warning surfaces the finding to the operator either way.
+ */
+function fakeoutExtremeEntryWarnings(
+  name: 'primary' | 'secondary',
+  objective: Objective,
+  fakeoutTails: readonly FakeoutTailFact[],
+  warnings: string[],
+): void {
+  const entry = objective.entries[0]
+  const tail = fakeoutTails.find(
+    (t) => Math.abs(t.price - entry.price) <= FAKEOUT_EXTREME_TOLERANCE_PTS,
+  )
+  if (tail) {
+    warnings.push(
+      `${name} entry "${entry.label}" @ ${entry.price} anchors at ${tail.label} ${tail.price} — the engine flags this extreme as fakeout-formed (thin ${tail.tailSpanPts}-pt tail, acceptance edge at ${tail.acceptanceEdge.price}); retests stall at the edge, and the rationale must say why the extreme anchor beats it`,
+    )
+  }
+}
+
+/**
  * Target-ladder advisories (feat-041, gem-comparison-2026-07-18 G3; two-target doctrine
  * 2026-07-26): the two-target T1→T2 ladder is expected whenever engine structure offers a
  * rung between entry and the far target, and T1 must sit between entry and T2 (nearest
@@ -487,6 +524,10 @@ export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
   if (options.anchorPrices && options.anchorPrices.length > 0) {
     offAnchorEntryWarnings('primary', primarySingle, options.anchorPrices, warnings)
     offAnchorEntryWarnings('secondary', secondarySingle, options.anchorPrices, warnings)
+  }
+  if (options.fakeoutTails && options.fakeoutTails.length > 0) {
+    fakeoutExtremeEntryWarnings('primary', primarySingle, options.fakeoutTails, warnings)
+    fakeoutExtremeEntryWarnings('secondary', secondarySingle, options.fakeoutTails, warnings)
   }
 
   const primary = recomputeObjective('primary', primarySingle, rrMin, warnings)
