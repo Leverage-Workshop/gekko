@@ -4,6 +4,8 @@ import type { ConfirmedAbsorptionScanResult } from '@/lib/engine/stallConfirmati
 import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { detectLvnHvn } from '@/lib/engine/lvnDetection'
+import { detectFakeoutTails } from '@/lib/engine/fakeoutTails'
+import type { FakeoutTailFact } from '@/lib/engine/fakeoutTails'
 import { annotateNodeBuilds, withBuild } from '@/lib/engine/nodeBuild'
 import type { BuiltLvnDetectionResult } from '@/lib/engine/nodeBuild'
 import { collectMagnets, evaluateMagnetCheck } from '@/lib/engine/magnetCheck'
@@ -99,6 +101,14 @@ export interface EngineFacts {
    * the profile's delta split; null when the export has no Delta column.
    */
   lvn: { rotation: BuiltLvnDetectionResult; balanceArea: BuiltLvnDetectionResult }
+  /**
+   * Code-owned formation test (feat-075): High/Low-type MGI extremes whose
+   * print sits at the far end of a thin low-volume tail on the rotation
+   * profile — the geometry a pre-reversal fakeout leaves behind — each with
+   * the LVN acceptance edge where retests actually stall. The finding is
+   * engine fact; the model owns only the judgment of where to anchor.
+   */
+  fakeoutTails: FakeoutTailFact[]
   /**
    * Absorption-candidate stacks from the half/full-rotation delta exports,
    * each annotated with a code-owned stall confirmation computed from the
@@ -418,6 +428,11 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   if (!terrain.contiguityValid) {
     warnings.push(`terrain contiguity invalid: ${terrain.issues.join('; ')}`)
   }
+  // Formation test on the rotation profile only (feat-075): the session-lens
+  // doctrine says the trade-horizon profile governs where retests stall; the
+  // balance-area composite is the lens that launders fakeout tails under
+  // multi-day acceptance.
+  const fakeoutTails = detectFakeoutTails(mgi.levels, rotationVbp.rows, lvnRaw.rotation)
   if (staleness.isStale) {
     warnings.push(staleness.warning ?? 'bundle is stale')
   }
@@ -429,6 +444,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     mgi,
     ripStatus,
     lvn,
+    fakeoutTails,
     absorption,
     magnetCheck,
     terrain,

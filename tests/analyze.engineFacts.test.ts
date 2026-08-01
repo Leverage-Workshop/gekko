@@ -40,6 +40,19 @@ describe('computeEngineFacts', () => {
     expect(result.terrain.zones.length).toBeGreaterThan(0)
   })
 
+  it('runs the fakeout-tail formation test against the rotation profile (feat-075)', () => {
+    const result = facts()
+    expect(Array.isArray(result.fakeoutTails)).toBe(true)
+    // Any flagged extreme must name a real rotation-profile LVN node as its edge
+    // and carry thin-tail evidence — the fixture itself may legitimately flag none.
+    const rotationLvnPrices = result.lvn.rotation.lvn.map((n) => n.price)
+    for (const tail of result.fakeoutTails) {
+      expect(rotationLvnPrices).toContain(tail.acceptanceEdge.price)
+      expect(tail.tailSpanPts).toBeGreaterThan(0)
+      expect(tail.maxTailBinFrac).toBeLessThan(1)
+    }
+  })
+
   it('detects LVN/HVN nodes independently on both volume profiles', () => {
     const result = facts()
     for (const source of ['rotation', 'balanceArea'] as const) {

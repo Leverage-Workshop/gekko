@@ -4,7 +4,17 @@
 
 **Last Updated:** 2026-08-01
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Latest: **Fakeout-formed-extreme fade anchor — detector LVN nodes join the legal
+Latest: **Code-owned fakeout-tail formation test** (feat-075 — the first briefing
+after feat-074 STILL shipped the IBL fade with a verified-current serving stack:
+the model never spontaneously engages the "reserved" formation exception, so the
+finding is now an engine fact: `lib/engine/fakeoutTails.ts` flags every
+trading-formed High/Low MGI extreme sitting at the far end of a thin tail
+(rotation profile, session-lens rationale) with its LVN `acceptanceEdge`;
+prompt bullets make the flag non-disputable and require explicit rationale for
+an entry AT a flagged extreme; validateBriefing warns (2-pt tolerance) naming
+the edge; live replay flags IBL 28079.75 → edge 28112, span 32.25 pts,
+maxTailBinFrac 0.14), on top of
+**Fakeout-formed-extreme fade anchor — detector LVN nodes join the legal
 entry-anchor set** (feat-074 — the 2026-08-01 morning briefing anchored the fade
 at IBL again despite feat-073: the detector emitted the 28112/28126 acceptance-edge
 nodes but the Output Contract and `engineAnchorPrices` restricted entries to
@@ -65,6 +75,42 @@ campaign-scale terrain zones (PR #79), contested-border entry doctrine (PR #77) 
 standoff relaxed to 1 pt (PR #76), eval warnings persistence (PR #75), the area-exit
 absorption exception (PR #74), the count-only initiative gate (PR #73), the briefing
 entry anchoring fix (PR #72) and the sign-gate count fix (PR #71).
+
+**Code-owned fakeout-tail formation test (2026-08-01, feat-075).** The first
+briefing after feat-074 merged (12:01 PM, bundle `69bde751`, dev worker
+`v20260801.9`) STILL anchored the secondary fade at IBL 28079.75. This time the
+serving stack was verified current end-to-end: the dev server runs from this
+checkout (started 11:59, post-merge), the built worker bundle carried the new
+anchor sentence, the build's `knowledge/output-objective.md` carried the
+formation test, and the engine offered 28163/28126/28112 as legal anchors. The
+exec bars (Friday's session) showed the textbook geometry — IBL printed as a
+single 09:16 spike, every later retest reversing at 28112–28130. The model
+simply never engaged: zero mention of tail/fakeout/28112, ~1.5k reasoning
+tokens, same laundered "composite HVN shelf" attribution. Conclusion: a
+doctrine that asks the model to spontaneously spot a pattern and invoke a
+"reserved" exception under-triggers — three consecutive briefings prove it.
+Fix: the FINDING is now code-owned, the model keeps only the anchor judgment
+(the same engine-owns-facts / model-owns-judgment split as ripStatus,
+absorption, magnetCheck). (1) `lib/engine/fakeoutTails.ts`: for each
+trading-formed High/Low MGI extreme (on/pd/ib/or highs+lows, pwHigh/pwLow,
+pmHigh/pmLow — projections, VWAPs, opens, mids, VRange, ATR excluded), flag
+when the nearest interior LVN node sits 12–120 pts away and every raw bin
+inside the tail plus beyond the extreme stays under 0.35 × raw peak. Runs on
+the ROTATION profile only — the session-lens doctrine says the trade-horizon
+profile governs where retests stall, and the balance-area composite is exactly
+the laundering lens (it flags nothing on the live bundles, correctly). (2)
+`EngineFacts.fakeoutTails` + `factsPayload` key + `rotation_vbp` registry row.
+(3) Prompt bullets (analyze + update): a listed extreme IS fakeout-formed —
+never re-derive, dispute, or counter with composite acceptance; an entry AT a
+listed extreme is allowed ONLY with explicit rationale (campaign border at the
+extreme / tail actively repaired), else anchor at `acceptanceEdge.price`
+naming the node. (4) `validateBriefing`: advisory warning when an entry sits
+within 2 pts of a flagged extreme, naming the edge. (5) Doctrine paragraph
+rewritten around the fact: the finding is data; the judgment is only the
+exception; an unjustified extreme anchor is a defect. Live replay (both 08-01
+bundles): `fakeoutTails = [IBL 28079.75 → edge 28112 taper-edge, span 32.25,
+maxTailBinFrac 0.14]`. Reaches live runs on the next dev-server restart (it
+rebuilds from this checkout).
 
 **Fakeout-formed-extreme fade anchor — detector LVN nodes join the legal
 entry-anchor set (2026-08-01, feat-074).** The first post-feat-073 briefing

@@ -587,3 +587,40 @@ describe('entry anchor advisory', () => {
     expect(result.warnings.filter((w) => w.includes('engine anchor'))).toEqual([])
   })
 })
+
+describe('fakeout-formed extreme advisory (feat-075)', () => {
+  const ibhTail = {
+    code: 'ibh',
+    label: 'IBH',
+    price: 30290,
+    side: 'high' as const,
+    acceptanceEdge: { price: 30262, type: 'taper-edge' as const, volume: 480 },
+    tailSpanPts: 28,
+    maxTailBinFrac: 0.14,
+  }
+
+  it('warns when an entry anchors at a flagged extreme, naming the acceptance edge', () => {
+    const result = enforceCodeOwnedFacts(briefing(), { rrMin: 3, fakeoutTails: [ibhTail] })
+    const tailWarnings = result.warnings.filter((w) => w.includes('fakeout-formed'))
+    expect(tailWarnings).toHaveLength(1)
+    expect(tailWarnings[0]).toContain('secondary')
+    expect(tailWarnings[0]).toContain('IBH 30290')
+    expect(tailWarnings[0]).toContain('30262')
+  })
+
+  it('treats an entry within the tolerance of the extreme as anchored at it', () => {
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      fakeoutTails: [{ ...ibhTail, price: 30291.5 }],
+    })
+    expect(result.warnings.filter((w) => w.includes('fakeout-formed'))).toHaveLength(1)
+  })
+
+  it('stays silent when no entry sits at a flagged extreme', () => {
+    const result = enforceCodeOwnedFacts(briefing(), {
+      rrMin: 3,
+      fakeoutTails: [{ ...ibhTail, price: 30350 }],
+    })
+    expect(result.warnings.filter((w) => w.includes('fakeout-formed'))).toEqual([])
+  })
+})
