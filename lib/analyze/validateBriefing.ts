@@ -261,25 +261,38 @@ function enforceSingleEntry(
 }
 
 /**
- * Two-target doctrine (2026-07-26): an objective carries at most T1 → T2 — T2 the move's
- * realistic conclusion, T1 a structure rung between entry and T2. The old T1→T2→T3 ladder
- * demanded a homerun to run its course; any rung past the second is trimmed here (schema
- * `.max(2)` would break re-parsing historical three-rung briefings, so like the single-entry
- * ceiling this binds as a trim, not a generation-time schema failure).
+ * Target-ladder doctrine (2026-07-26; one-or-two-rung contract 2026-08-01, feat-076): an
+ * objective carries at most T1 → T2 — T2 the move's realistic conclusion, T1 a structure rung
+ * between entry and T2. The old T1→T2→T3 ladder demanded a homerun to run its course; any rung
+ * past the second is trimmed here (schema `.max(2)` would break re-parsing historical
+ * three-rung briefings, so like the single-entry ceiling this binds as a trim, not a
+ * generation-time schema failure). The single-target variant is first-class: a sole target IS
+ * the conclusion, so it is relabeled T2 when the model shipped it as T1 — riskReward gates on
+ * the LAST listed target, and a sole "T1" would silently gate a mid-traverse rung.
  */
 function enforceTargetCeiling(
   name: 'primary' | 'secondary',
   objective: Objective,
   warnings: string[],
 ): Objective {
-  if (objective.targets.length <= 2) return objective
-  const kept = objective.targets.slice(0, 2)
-  warnings.push(
-    `${name} objective emitted ${objective.targets.length} targets — two-target doctrine keeps ${kept
-      .map((target) => `"${target.label}" @ ${target.price}`)
-      .join(' and ')} and drops the rest`,
-  )
-  return { ...objective, targets: kept }
+  let targets = objective.targets
+  if (targets.length > 2) {
+    const kept = targets.slice(0, 2)
+    warnings.push(
+      `${name} objective emitted ${targets.length} targets — two-target doctrine keeps ${kept
+        .map((target) => `"${target.label}" @ ${target.price}`)
+        .join(' and ')} and drops the rest`,
+    )
+    targets = kept
+  }
+  if (targets.length === 1 && targets[0].label !== 'T2') {
+    warnings.push(
+      `${name} objective's sole target "${targets[0].label}" @ ${targets[0].price} relabeled T2 — the single-target variant's rung is the conclusion the R/R gate measures to`,
+    )
+    targets = [{ ...targets[0], label: 'T2' }]
+  }
+  if (targets === objective.targets) return objective
+  return { ...objective, targets }
 }
 
 /**

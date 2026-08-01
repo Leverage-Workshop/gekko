@@ -434,7 +434,8 @@ describe('loadDoctrine', () => {
       expect(prefix).toContain('## Entry priority (trend direction)')
       expect(prefix).toContain('## Stop placement')
       expect(prefix).toContain('NEVER emit an Entry B')
-      expect(prefix).toContain('exactly **TWO** rungs, **T1 → T2**')
+      expect(prefix).toContain('**ONE or TWO** rungs, nearest first, the conclusion LAST')
+      expect(prefix).toContain('single-target variant')
       expect(prefix).toContain('Never emit a T3')
     }
 

@@ -14,7 +14,7 @@ function longObjective(overrides: Partial<Objective> = {}): Objective {
     direction: 'long',
     entries: [{ label: 'Entry A', price: 30250, trigger: 'absorption' }],
     stops: [{ label: 'Stop', price: 30240, invalidation: 'lost the shelf' }],
-    targets: [{ label: 'T1', price: 30325, description: 'next trench' }],
+    targets: [{ label: 'T2', price: 30325, description: 'next trench' }],
     rr: 99, // deliberately wrong — the engine must overwrite it
     ...overrides,
   }
@@ -55,7 +55,7 @@ function briefing(overrides: Partial<Briefing> = {}): Briefing {
       direction: 'short',
       entries: [{ label: 'Entry A', price: 30290, trigger: 'exhaustion' }],
       stops: [{ label: 'Stop', price: 30300, invalidation: 'acceptance above' }],
-      targets: [{ label: 'T1', price: 30215, description: 'value mid' }],
+      targets: [{ label: 'T2', price: 30215, description: 'value mid' }],
     }),
     dangerZones: [],
     ...overrides,
@@ -300,6 +300,29 @@ describe('enforceCodeOwnedFacts', () => {
     ).toBe(true)
     // The engine R/R still measures to the nearest kept rung.
     expect(result.riskReward.primary.targets.map((t) => t.price)).toEqual([30280, 30320])
+  })
+
+  it('relabels a sole T1 target to T2 (single-target variant), warning once', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: longObjective({
+          targets: [{ label: 'T1', price: 30325, description: 'next trench' }],
+        }),
+      }),
+      { rrMin: 3 },
+    )
+    expect(result.briefing.primary.targets).toEqual([
+      { label: 'T2', price: 30325, description: 'next trench' },
+    ])
+    expect(result.warnings.filter((w) => w.includes('relabeled T2'))).toHaveLength(1)
+    // The gate still measures to the sole rung — now correctly named the conclusion.
+    expect(result.briefing.primary.rr).toBe(3)
+  })
+
+  it('leaves a sole T2 target untouched with no relabel warning', () => {
+    const result = enforceCodeOwnedFacts(briefing(), { rrMin: 3 })
+    expect(result.briefing.primary.targets[0].label).toBe('T2')
+    expect(result.warnings.some((w) => w.includes('relabeled'))).toBe(false)
   })
 
   it('warns when T1 does not sit between entry and T2', () => {

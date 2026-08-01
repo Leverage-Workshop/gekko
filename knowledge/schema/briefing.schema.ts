@@ -167,6 +167,11 @@ export type Target = z.infer<typeof Target>
 // ceiling follows the same pattern (prompt + validateBriefing's
 // enforceTargetCeiling trim, no schema `.max(2)`): historical briefings with
 // the old T1→T2→T3 ladder must keep parsing on the dashboard/update read path.
+// NOTE (2026-08-01, feat-076): one-or-two-rung contract — the single-target
+// variant is first-class: when the map offers no rung between entry and the
+// conclusion, `targets` carries one rung labeled T2 (the conclusion the R/R
+// gate measures to). enforceTargetCeiling relabels a sole T1 to T2 so
+// riskReward's "last listed target" gate always measures the conclusion.
 export const Objective = z.object({
   macroGoal: z.string(),
   rationale: z.string(),

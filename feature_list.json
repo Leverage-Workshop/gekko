@@ -789,6 +789,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-075-fakeout-tail-fact (typecheck, lint 0 errors, 1060 tests, build). New lib/engine/fakeoutTails.test.ts (12 tests: low/high geometry, minTail/loud-bin/beyond-extreme/out-of-range/no-node disqualifiers, nearest-node choice, print-vs-projection code filter, degenerate inputs, param invariants) + engineFacts fakeout-tail wiring test + 3 validateBriefing advisory tests. Live-bundle replay (both 2026-08-01 bundles a32050bd + 69bde751): fakeoutTails = [IBL 28079.75, side low, acceptanceEdge 28112 taper-edge, tailSpanPts 32.25, maxTailBinFrac 0.14]; balance-area profile correctly flags nothing. Fixture bundle (June) legitimately flags none."
+    },
+    {
+      "id": "feat-076",
+      "name": "One-or-two-rung target contract (single-target variant first-class) + rr doctrine fix",
+      "description": "Codex adversarial review of the recorded LangSmith briefing prompt (2026-08-01) found the target-cardinality requirements mutually exclusive (output-objective.md demanded 'exactly TWO rungs' then authorized a single target 14 lines later; the user preamble demanded 'at least T1') and the rr bullet contradictory (output-objective.md said populate rr from entry/stop/T1 while constraints.md and the schema JSDoc define it as entry->T2 distance / fixed 25-pt stop). Operator decision: the one-target variant is the way to go. (1) output-objective.md targets bullet rewritten: ONE or TWO rungs, nearest first, conclusion LAST; the two-rung T1->T2 ladder is the expected shape when the map offers an intermediate rung; the single-target variant ships one rung LABELED T2 (it IS the conclusion the R/R gate measures to; never label a sole target T1) with the rationale saying no intermediate rung exists. (2) output-objective.md rr bullet now states the authoritative Constraints formula ((entry->T2)/25, gating on the LAST listed target) instead of 'entry/stop/T1'. (3) analyze + update prompt bullets aligned (single-target clause in the rr bullet; 'one-or-two-rung target ladder' replaces 'two-target ladder'; 'at least T1' replaced with the ladder-per-contract wording). (4) validateBriefing enforceTargetCeiling now also relabels a sole T1 target to T2 with an advisory warning, because riskReward.ts gates on the LAST listed target and a sole 'T1' would silently gate a mid-traverse rung. (5) briefing.schema.ts NOTE documents the one-or-two-rung contract; schema stays .min(1)/no-max (backcompat: historical T3 rows must keep parsing). No schema shape change; no .describe() introduced (none exist in the schema).",
+      "dependencies": [
+        "feat-075"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-076-one-target-variant (typecheck, lint 0 errors, 1062 tests, build). New validateBriefing tests: sole-T1 relabeled to T2 with one warning and rr still gates the sole rung; sole-T2 untouched with no relabel warning. Base test fixture updated to doctrine-compliant sole-T2 targets. runAnalysis doctrine-content assertion updated to the new contract wording."
     }
   ]
 }
