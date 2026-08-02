@@ -71,7 +71,9 @@ A retest, reclaim or pullback of the border strengthens conviction but is NEVER 
 withhold ENTER — or mark a check fail/pending — solely because one has not yet printed when
 structure and initiative already confirm.
 
-NOT_VALID conditions (judge what IS, from this run's evidence — not a guessed history):
+NOT_VALID conditions (when the user message carries a prior-briefing baseline, judge "no longer"
+claims against what that plan expected; without one, judge present-tense only — never a guessed
+history):
 - Current structure no longer supports the level as an acceptance border → NOT_VALID
 - Current initiative is one-sided against the setup with price accepted on the wrong side of the
   level → NOT_VALID

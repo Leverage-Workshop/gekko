@@ -1,4 +1,4 @@
-import { EvalResult } from '@/knowledge/schema/briefing.schema'
+import { EvalResult, ObjectiveSlot, isNoTrade } from '@/knowledge/schema/briefing.schema'
 import type { Direction } from '@/knowledge/schema/briefing.schema'
 import { loadDoctrine } from '@/lib/analyze/doctrine'
 import type { DoctrineTask } from '@/lib/analyze/doctrine'
@@ -28,6 +28,7 @@ import type { GenerateStructuredResult, ReasoningEffort } from '@/lib/llm'
 import type { PersistEvalDeps } from './persistEval'
 import { persistEvalResult } from './persistEval'
 import { buildEvalPrompt } from './prompt'
+import type { PriorBaseline } from './prompt'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
 import {
   DEFAULT_NEAR_ENTRY_POINTS,
@@ -159,11 +160,28 @@ export interface EvalConfig {
   execution_bar_volume?: number | null
 }
 
+/**
+ * The source-briefing columns feeding the evaluated level's creation-time
+ * baseline (feat-084). The objective slots are raw jsonb — parsed defensively
+ * by {@link buildPriorBaseline}.
+ */
+export interface BriefingBaselineRow {
+  id: string
+  created_at: string
+  kind: string | null
+  htf_trend: string | null
+  rip_status: string | null
+  primary_obj: unknown
+  secondary_obj: unknown
+}
+
 export interface EvalDeps extends LoadBundleDeps, PersistEvalDeps {
   /** The `config` row (id=1), or null when unseeded. */
   fetchConfig(): Promise<EvalConfig | null>
   /** ONLY `entry_levels` rows with `active = true` (feat-024 contract). */
   fetchActiveEntryLevels(): Promise<EntryLevelRow[]>
+  /** The evaluated level's source briefing (feat-084), or null when missing. */
+  fetchBriefingBaseline(briefingId: string): Promise<BriefingBaselineRow | null>
   /** LLM call; injectable for tests. Defaults to {@link generateStructured}. */
   generate?: (params: {
     model: string
@@ -241,6 +259,57 @@ function positionProximity(
     },
     thresholdPoints: DEFAULT_NEAR_ENTRY_POINTS,
     barRange,
+  }
+}
+
+/**
+ * Project the evaluated level's creation-time thesis out of its source
+ * briefing row (feat-084, adversarial review finding #5: the model was asked
+ * what "changed since the prior briefing" with no prior evidence in the
+ * prompt, biasing invented historical comparisons). Defensive throughout: an
+ * unparsable or abstaining slot degrades to briefing-level facts only.
+ */
+export function buildPriorBaseline(
+  briefing: BriefingBaselineRow,
+  level: EntryLevelRow,
+): PriorBaseline {
+  const baseline: PriorBaseline = {
+    briefingCreatedAt: briefing.created_at,
+    briefingKind: briefing.kind,
+    objective: level.objective,
+    macroGoal: null,
+    rationale: null,
+    entryTrigger: null,
+    stopInvalidation: null,
+    rr: null,
+    htfTrend: briefing.htf_trend,
+    ripStatus: briefing.rip_status,
+  }
+  const rawSlot =
+    level.objective === 'primary'
+      ? briefing.primary_obj
+      : level.objective === 'secondary'
+        ? briefing.secondary_obj
+        : null
+  const parsed = rawSlot === null ? null : ObjectiveSlot.safeParse(rawSlot)
+  if (!parsed?.success || isNoTrade(parsed.data)) {
+    return baseline
+  }
+  const objective = parsed.data
+  // Single-entry doctrine arms one entry per objective; match by price when
+  // several exist so the thesis quoted is the evaluated level's own.
+  const entry =
+    objective.entries.find(
+      (candidate) =>
+        typeof level.price === 'number' && Math.abs(candidate.price - level.price) <= 0.25,
+    ) ?? objective.entries[0]
+  return {
+    ...baseline,
+    macroGoal: objective.macroGoal,
+    rationale: objective.rationale,
+    entryTrigger: entry?.trigger ?? null,
+    stopInvalidation: objective.stops[0]?.invalidation ?? null,
+    rr: objective.rr,
   }
 }
 
@@ -370,6 +439,28 @@ export async function runEval(
     }
   }
 
+  // Creation-time baseline for the evaluated level (feat-084) — entry checks
+  // only, best-effort: a missing/unreadable briefing row degrades to a
+  // baseline-less prompt with a warning, never blocks the check.
+  let priorBaseline: PriorBaseline | null = null
+  if (!position && proximity.nearEntry && proximity.nearest) {
+    const level = proximity.nearest.level
+    try {
+      const briefing = await deps.fetchBriefingBaseline(level.briefing_id)
+      if (briefing) {
+        priorBaseline = buildPriorBaseline(briefing, level)
+      } else {
+        warnings.push(
+          `source briefing ${level.briefing_id} for the evaluated level was not found — no creation-time baseline`,
+        )
+      }
+    } catch (error) {
+      warnings.push(
+        `failed to load the prior-briefing baseline: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
+  }
+
   const generate = deps.generate ?? generateStructured
   const generated = await generate({
     model: modelId,
@@ -391,6 +482,7 @@ export async function runEval(
       htfStructure,
       intradayTrend,
       position,
+      priorBaseline,
     }),
     images: bundle.images,
     schema: EvalResult,
