@@ -71,6 +71,11 @@ const validBriefing = {
       { price: 24000, label: 'VAL', kind: 'trench' as const },
     ],
   },
+  patternScan: {
+    verdict: 'absent' as const,
+    pattern: null,
+    evidence: 'No playbook pattern on the execution chart',
+  },
   primary: validObjective,
   secondary: { ...validObjective, direction: 'short' as const, rr: 3.0 },
   dangerZones: [{ area: 'Mid-range chop', why: 'No edge between magnets' }],
@@ -192,6 +197,50 @@ describe('Briefing', () => {
         secondary: { ...validNoTrade, noTrade: false },
       }).success,
     ).toBe(false)
+  })
+
+  // feat-078: the Active Pattern Scan is a structured tristate, not a binary
+  // keyPoint — 'indeterminate' is a first-class verdict.
+  it('accepts all three patternScan verdicts', () => {
+    const present = Briefing.parse({
+      ...validBriefing,
+      patternScan: {
+        verdict: 'present',
+        pattern: 'Failed Breakout Trap',
+        evidence: 'Failed push above the ON high, reclaimed on the next bar',
+      },
+    })
+    expect(present.patternScan.verdict).toBe('present')
+    const indeterminate = Briefing.parse({
+      ...validBriefing,
+      patternScan: {
+        verdict: 'indeterminate',
+        pattern: null,
+        evidence: 'Mid-formation shape at the border — no confident call',
+      },
+    })
+    expect(indeterminate.patternScan.pattern).toBeNull()
+  })
+
+  it('rejects an unknown patternScan verdict and a missing evidence', () => {
+    expect(
+      Briefing.safeParse({
+        ...validBriefing,
+        patternScan: { verdict: 'maybe', pattern: null, evidence: 'x' },
+      }).success,
+    ).toBe(false)
+    expect(
+      Briefing.safeParse({
+        ...validBriefing,
+        patternScan: { verdict: 'absent', pattern: null },
+      }).success,
+    ).toBe(false)
+  })
+
+  it('requires patternScan on the generation contract but not on persisted rows', () => {
+    const { patternScan: _p, ...withoutScan } = validBriefing
+    expect(Briefing.safeParse(withoutScan).success).toBe(false)
+    expect(PersistedBriefing.safeParse(withoutScan).success).toBe(true)
   })
 
   // Live failure 2026-07-17: terra emitted `entries: []` on the secondary
@@ -327,6 +376,7 @@ describe('BriefingUpdate', () => {
       ripStatus: 'Holding as support',
       initiative: 'Blue in control on sustained positive delta',
     },
+    patternScan: validBriefing.patternScan,
     primary: validObjective,
     secondary: { ...validObjective, direction: 'short' as const },
     dangerZones: [{ area: 'Mid-range chop', why: 'No edge between magnets' }],

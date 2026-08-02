@@ -50,6 +50,11 @@ function modelBriefing(): Briefing {
       htfTrend: 'up — higher highs on the planning chart',
       ripStatus: facts.ripStatus?.condition ?? 'unknown',
     },
+    patternScan: {
+      verdict: 'absent' as const,
+      pattern: null,
+      evidence: 'No playbook pattern on the execution chart',
+    },
     overview: {
       htfView: {
         narrative: 'Value migrated higher across the week while ranges contracted.',

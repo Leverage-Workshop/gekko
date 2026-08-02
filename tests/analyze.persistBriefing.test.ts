@@ -34,6 +34,11 @@ const briefing: Briefing = {
     zones: [{ color: 'green', top: 30300, bottom: 30200, label: 'Killbox' }],
     levels: [],
   },
+  patternScan: {
+    verdict: 'absent' as const,
+    pattern: null,
+    evidence: 'No playbook pattern on the execution chart',
+  },
   primary: {
     macroGoal: 'Long the shelf',
     rationale: 'Absorption at the wall',

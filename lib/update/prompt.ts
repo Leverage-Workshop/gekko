@@ -98,6 +98,7 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     'Produce one `BriefingUpdate` object for the NQ futures session — the doctrine "Update" prompt:',
     '1. `tacticalRead` — three 1-line reads: `location` (current zone + immediate borders above/below), `ripStatus` (e.g. "Holding as support" / "Breached" / "Flipped to resistance"), `initiative` (who has control based on current delta/telemetry).',
     '2. A fresh Strategic Alignment — the exact `primary`, `secondary` and `dangerZones` sections from the Morning Brief format, updated for current realities.',
+    '3. `patternScan` — the Active Pattern Scan re-run against the CURRENT execution chart: verdict `present` (name the playbook pattern in `pattern`, where it fired in `evidence`), `absent` (readable chart, no pattern), or `indeterminate` (the chart does not support a confident call — say why). Never guess: an indeterminate scan cannot serve as the visual evidence for an entry trigger.',
     'You do NOT output `overview` or `terrain` — they carry forward from the previous briefing below. Keep your objectives consistent with its terrain zone stack unless the fresh engine facts contradict it, and say so in the rationale when they do.',
     '',
     ...(input.directive

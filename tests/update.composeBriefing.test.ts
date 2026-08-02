@@ -52,6 +52,11 @@ const update: BriefingUpdate = {
     htfTrend: 'up, extended',
     ripStatus: 'Green',
   },
+  patternScan: {
+    verdict: 'absent' as const,
+    pattern: null,
+    evidence: 'No playbook pattern on the execution chart',
+  },
   tacticalRead: {
     location: 'Parent Zone upper third',
     ripStatus: 'Holding as support',
@@ -72,6 +77,9 @@ describe('composeUpdateBriefing', () => {
     expect(composed.dangerZones).toEqual(update.dangerZones)
     expect(composed.overview).toEqual(parent.overview)
     expect(composed.terrain).toEqual(parent.terrain)
+    // feat-078: the pattern scan reads the CURRENT chart — always the
+    // update's fresh verdict, never inherited from the parent.
+    expect(composed.patternScan).toEqual(update.patternScan)
   })
 
   it('produces a parseable PersistedBriefing (the dashboard contract) even from a legacy parent', () => {

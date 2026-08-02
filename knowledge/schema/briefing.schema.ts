@@ -247,6 +247,30 @@ export const DangerZone = z.object({
 })
 export type DangerZone = z.infer<typeof DangerZone>
 
+/**
+ * Active Pattern Scan verdict (feat-078, Codex adversarial-review finding #3):
+ * the doctrine playbook scan of the execution chart. Formerly a mandatory
+ * BINARY present/absent keyPoint — with no honest middle state, an ambiguous
+ * or low-quality chart pressured hallucinated visual evidence that bypassed
+ * every validation gate. `indeterminate` is the correct verdict whenever the
+ * screenshot does not support a confident call either way.
+ */
+export const PatternVerdict = z.enum(['present', 'absent', 'indeterminate'])
+export type PatternVerdict = z.infer<typeof PatternVerdict>
+
+export const PatternScan = z.object({
+  verdict: PatternVerdict,
+  /**
+   * The doctrine playbook pattern when `verdict` is 'present' (e.g.
+   * "Failed Breakout Trap"); null on 'absent'/'indeterminate' — enforced by
+   * validateBriefing (present without a name is a hard, retryable failure).
+   */
+  pattern: z.string().nullable(),
+  /** Where it fired and what confirms it — or why the read is absent/indeterminate. */
+  evidence: z.string(),
+})
+export type PatternScan = z.infer<typeof PatternScan>
+
 export const BriefingMeta = z.object({
   createdAt: z.string(),
   triggerReason: z.string(),
@@ -273,6 +297,8 @@ export const Briefing = z.object({
   meta: BriefingMeta,
   overview: Overview,
   terrain: Terrain,
+  /** feat-078: the structured Active Pattern Scan (tristate + evidence). */
+  patternScan: PatternScan,
   primary: ObjectiveSlot,
   secondary: ObjectiveSlot,
   dangerZones: z.array(DangerZone),
@@ -290,6 +316,12 @@ export type Briefing = z.infer<typeof Briefing>
 export const PersistedBriefing = Briefing.extend({
   overview: PersistedOverview,
   meta: PersistedBriefingMeta,
+  /**
+   * `.optional()` only because pre-feat-078 rows lack the key (read-path-only
+   * schemas are exempt from the strict-structured-outputs "no optionals" rule
+   * — see {@link PersistedBriefingMeta}).
+   */
+  patternScan: PatternScan.optional(),
 })
 export type PersistedBriefing = z.infer<typeof PersistedBriefing>
 
@@ -320,6 +352,8 @@ export type TacticalRead = z.infer<typeof TacticalRead>
 export const BriefingUpdate = z.object({
   meta: BriefingMeta,
   tacticalRead: TacticalRead,
+  /** feat-078: re-run against the CURRENT execution chart, never inherited. */
+  patternScan: PatternScan,
   primary: ObjectiveSlot,
   secondary: ObjectiveSlot,
   dangerZones: z.array(DangerZone),

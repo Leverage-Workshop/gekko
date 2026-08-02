@@ -331,12 +331,15 @@ describe('prompt-data sync gate (feat-054)', () => {
       // Raised 87k → 91k 2026-07-30 (feat-071): the multiDayTpo composite
       // (composite POC/VA/range, ≤3 HVNs, ≤3 LVNs, 5-session walk) plus its
       // ownership bullet added ~2.8k of already-projected data (measured 88_613).
+      // Raised 91k → 92k 2026-08-01 (feat-077/078): the noTrade-abstention slot
+      // bullet and the structured patternScan instructions added ~1.1k of rule
+      // text (measured 91_394). The feat-080 preamble dedup takes it back down.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 91k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 92k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(91_000)
+      ).toBeLessThan(92_000)
     })
   })
 })

@@ -4,11 +4,21 @@
 
 **Last Updated:** 2026-08-01
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Queued (Codex adversarial prompt review, 2026-08-01): present/absent/indeterminate
-pattern verdict (feat-078), execution bar size as a /settings-editable config value
-(operator: candles are 750-volume, the doctrine's "500 volume" line is stale;
-feat-079), and per-run-preamble dedup vs system doctrine (feat-080).
-Latest: **noTrade/abstention objective state** (feat-077 — Codex finding #1: no
+Queued (Codex adversarial prompt review, 2026-08-01): execution bar size as a
+/settings-editable config value (operator: candles are 750-volume, the doctrine's
+"500 volume" line is stale; feat-079), and per-run-preamble dedup vs system
+doctrine (feat-080).
+Latest: **Structured Active Pattern Scan** (feat-078 — Codex finding #3: the
+binary present/absent keyPoint mandate had no honest middle state, pressuring
+hallucinated visual evidence; `patternScan` is now a structured Briefing +
+BriefingUpdate field (verdict present/absent/indeterminate, pattern nullable,
+evidence), enforcePatternScan throws on present-without-a-name and nulls stray
+names on absent/indeterminate, updates re-scan the current chart (compose never
+inherits the parent's), an indeterminate scan cannot justify a pattern-based
+entry trigger (ground in engine facts or abstain), and the dashboard meta strip
+shows the verdict with evidence tooltip; analyze user-prompt budget consciously
+bumped 91k→92k, to come back down with feat-080), on top of
+**noTrade/abstention objective state** (feat-077 — Codex finding #1: no
 abstention path forced the model to fabricate complete objectives when evidence
 was absent; an objective slot may now ship `{noTrade: true, reasonCode,
 macroGoal, rationale}` — its own ObjectiveSlot union branch (Objective listed
