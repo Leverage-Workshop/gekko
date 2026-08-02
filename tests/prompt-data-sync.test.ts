@@ -326,6 +326,65 @@ describe('prompt-data sync gate (feat-054)', () => {
     )
   })
 
+  describe('the eval prefix carries no briefing-only doctrine (feat-081)', () => {
+    // Codex adversarial eval-prompt review (2026-08-02) finding #1: the shared
+    // system prefix mandated pre-ENTER checks (R/R gate to T2, Rip consult,
+    // primary/secondary assignment, patternScan) whose inputs and output
+    // fields the eval task does not have — an honest model had to ignore
+    // "hard constraints" or fabricate the missing evidence. Each phrase below
+    // is an objective-construction mandate: it must stay in the briefing
+    // prefixes and must never re-enter the eval prefix.
+    const evalPrefix = loadDoctrine('eval', ROOT)
+    const briefingPrefixes = [loadDoctrine('analyze', ROOT), loadDoctrine('update', ROOT)]
+
+    const BRIEFING_ONLY_MANDATES = [
+      'Primary Objective', // the Law of Asymmetric Initiative
+      'R/R', // the engine-computed risk/reward gate
+      'T2', // final-target classification
+      'Vanguard Protocol', // the always-consult-the-Rip mandate
+      'Stops never widen', // position management
+      'patternScan', // the Active Pattern Scan output obligation
+    ] as const
+
+    it.each(BRIEFING_ONLY_MANDATES)(
+      'briefing prefixes keep "%s"; the eval prefix does not carry it',
+      (phrase) => {
+        for (const prefix of briefingPrefixes) {
+          expect(prefix, `the briefing prefixes lost "${phrase}"`).toContain(phrase)
+        }
+        expect(
+          evalPrefix,
+          `"${phrase}" is an objective-construction mandate the eval task cannot satisfy — ` +
+            'it re-entered the eval prefix',
+        ).not.toContain(phrase)
+      },
+    )
+
+    it('the eval prefix states the geometry-inheritance contract instead', () => {
+      expect(evalPrefix).toContain('You never recompute risk/reward')
+    })
+
+    it('the eval user-message builder does not restate the absorption stall doctrine', () => {
+      // The stall-confirmation semantics live in the Chart Reading prefix
+      // (step 4); the user message carries candidate facts + a pointer. These
+      // phrases are the restatement the pre-dedup builder carried.
+      const builderSource = read('lib/eval/prompt.ts')
+      expect(loadDoctrine('eval', ROOT)).toContain('A stall-confirmed candidate IS absorption')
+      expect(builderSource).not.toContain('failed to keep price down')
+      expect(builderSource).not.toContain('possibly aged out, not refuted')
+    })
+
+    it('the eval prompt states the configured execution-bar volume per run', () => {
+      // The bar size is exporter metadata (config.execution_bar_volume) — the
+      // cached prefixes must never hardcode it (the 2026-08-01 500-vs-750
+      // drift, refound at a fixed "750" in the eval prefix on 2026-08-02).
+      for (const prefix of [evalPrefix, ...briefingPrefixes]) {
+        expect(prefix).not.toMatch(/750-volume/)
+      }
+      expect(read('lib/eval/prompt.ts')).toContain('${input.executionBarVolume}-volume bars')
+    })
+  })
+
   describe('prompt size budgets (chars; bump consciously, in this diff)', () => {
     // Measured 2026-07-24: analyze 29_141 / update 28_881 / eval 29_302.
     // Raised 2026-07-29 (feat-068): the narrative-overview contract grew

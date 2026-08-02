@@ -44,9 +44,6 @@ Middle push trapped longs; blue delta stacking shows exhaustion not absorption. 
 confirmation via liquidation candle. Entry on retest of breakdown, target edge of structure /
 opposite side of chop zone."
 
-This is the canonical trigger for the **Campaign Boundary Override** (see Constraints) when it
-fires at a Tier-1 border.
-
 ## Pattern 2 — Controlled Flush & Reload
 
 **Recognition triggers:**
@@ -72,19 +69,3 @@ from the recent bar SEQUENCE, not the window-mean delta. An absorbed flush leave
 the aggressor's color exactly when the entry confirms (a red flush into a long border reads
 mean-negative while the tape is bullish); the mean only argues against the entry when the recent
 bars agree with it and price is still on the wrong side of the level.
-
-## Active Pattern Scan
-
-Every briefing and update carries a structured `patternScan`: scan the execution chart for the
-playbook setups above (Failed Breakout Trap, Controlled Flush & Reload, Three-Push Exhaustion,
-absorption or exhaustion at a border) and return a verdict:
-
-- **`present`** — name the playbook pattern in `pattern` and say where it fired in `evidence`.
-- **`absent`** — a readable chart with no playbook pattern on it; `pattern` is null.
-- **`indeterminate`** — the chart does not support a confident call either way (ambiguous shape,
-  mid-formation, degraded image); `pattern` is null and `evidence` says why.
-
-NEVER guess a pattern into existence: `indeterminate` is the honest verdict when the read is not
-clean, and an indeterminate scan cannot serve as the visual evidence for an entry trigger — a
-pattern-justified trigger requires verdict `present`; otherwise ground the trigger in engine facts
-or abstain per the Objective contract.

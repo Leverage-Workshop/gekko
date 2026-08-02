@@ -839,6 +839,17 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-080-preamble-dedup (typecheck, lint 0 errors, 1087 tests passing \u2014 4 new canary-guard cases; build OK). Measured: user prompt 88,441 (was 91,394), analyze prefix 41,858, update prefix 36,797."
+    },
+    {
+      "id": "feat-081",
+      "name": "Eval-only system prefix + absorption dedup + per-run bar volume (Codex eval findings #1/#9/#10)",
+      "description": "Codex adversarial eval-prompt review (2026-08-02, LangSmith run 019fc3c5-c241) findings #1 (CRITICAL), #9 and #10 (MEDIUM): the eval task's cached prefix shipped briefing-only doctrine it can neither verify nor express (R/R gate to T2, target classification, primary/secondary assignment via the Law of Asymmetric Initiative, the Vanguard/Rip consult mandate, position management, the patternScan obligation), hardcoded '750-volume bars' forty lines after declaring the bar size per-run metadata, and duplicated the absorption stall-confirmation semantics between the prefix and the volatile user message. Changes: (1) constraints.md split \u2014 briefing-only guardrails (Magnet Prohibition, Asymmetric Initiative, R/R, stops-never-widen, tiering, Rip/Vanguard) moved to new knowledge/system/constraints-objective.md, shipped to analyze+update only; (2) chart-reading.md split \u2014 Synthesize step, vertical campaign map, structural target selection, Vanguard Protocol, entry validation checklist and position management moved to new knowledge/doctrine/campaign-strategy.md (briefing-shaped tasks only), which also absorbs the Active Pattern Scan contract from patterns.md; (3) output-eval.md states the geometry-inheritance contract (entry/stop/targets validated at briefing time; eval judges only whether CURRENT structure and initiative still authorize the level); (4) the fixed 750 is gone from doctrine \u2014 the eval user message now states config.execution_bar_volume per run (4-tier degradation via DEFAULT_EXECUTION_BAR_VOLUME) like analyze/update already did; (5) the eval prompt builder's absorption-candidate section is a facts+pointer, stall semantics live only in the Chart Reading prefix. Guarded by a new feat-081 describe in prompt-data-sync.test.ts (briefing-only mandate phrases must stay out of the eval prefix, bar-volume literal must stay out of every prefix, builder must not restate stall doctrine) and the knowledge-restructure layout list.",
+      "dependencies": [
+        "feat-079",
+        "feat-080"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-081-eval-only-prefix (typecheck clean, lint 0 errors, 1113 tests passing incl. 9 new feat-081 guard cases; build OK). Measured prefixes: eval 25,069 (was ~32,000 \u2014 ~7k of briefing-only doctrine removed per eval run), analyze 42,517, update 37,456."
     }
   ]
 }

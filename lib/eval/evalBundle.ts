@@ -20,6 +20,7 @@ import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { parseHtfBars } from '@/lib/engine/parseHtfBars'
 import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import { DEFAULT_EXECUTION_BAR_VOLUME } from '@/lib/config/fetchConfig'
 import { computeIntradayTrend } from '@/lib/engine/intradayTrend'
 import { computeSessionIntraday } from '@/lib/engine/sessionIntraday'
 import { generateStructured } from '@/lib/llm'
@@ -151,6 +152,11 @@ export interface EvalConfig {
   triage_model_effort?: ReasoningEffort | null
   /** Recency window (seconds) for the proximity bar-range gate; null → code default. */
   proximity_window_seconds?: number | null
+  /**
+   * Per-bar volume of the execution-chart bars (feat-079). Absent/null (live
+   * DB predates the migration) reads as {@link DEFAULT_EXECUTION_BAR_VOLUME}.
+   */
+  execution_bar_volume?: number | null
 }
 
 export interface EvalDeps extends LoadBundleDeps, PersistEvalDeps {
@@ -253,6 +259,7 @@ export async function runEval(
   }
   const modelId = config?.triage_model_id ?? DEFAULT_TRIAGE_MODEL_ID
   const effort = config?.triage_model_effort ?? null
+  const executionBarVolume = config?.execution_bar_volume ?? DEFAULT_EXECUTION_BAR_VOLUME
 
   // exec-plus-delta: the exec CSV is required; the two execution delta
   // exports feed the code-owned absorption scan but are best-effort — a
@@ -371,6 +378,7 @@ export async function runEval(
     prompt: buildEvalPrompt({
       now: nowIso,
       currentPrice,
+      executionBarVolume,
       staleness,
       deltaTelemetry,
       levels,
