@@ -58,6 +58,7 @@ describe('supabase migrations', () => {
       'reason',
       'raw_model_json',
       'current_price',
+      'revalidation_action',
     ]) {
       expect(sql.combined).toContain(col)
     }

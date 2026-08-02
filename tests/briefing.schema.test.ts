@@ -92,8 +92,10 @@ const validEvalResult = {
   checks: [
     { name: 'Structure', verdict: 'pass' as const, note: 'Border is a proven acceptance edge' },
     { name: 'Delta', verdict: 'pass' as const, note: 'Positive mean, blue sign' },
+    { name: 'Absorption', verdict: 'pass' as const, note: 'Red flush stalled at the border' },
   ],
   nextSignal: null,
+  revalidationAction: null,
   caution: 'No adds above T1',
   reason: 'Absorption confirmed at the border with blue continuation',
 }
@@ -430,6 +432,7 @@ describe('EvalResult', () => {
       targets: null,
       checks: null,
       nextSignal: null,
+      revalidationAction: null,
       caution: null,
       reason: 'No active level within range',
     }
@@ -467,9 +470,10 @@ describe('EvalResult', () => {
     const parsed = EvalResult.parse({
       ...validEvalResult,
       status: 'WAIT',
+      trigger: null,
       nextSignal: 'Blue delta emergence on the border retest',
     })
-    expect(parsed.checks).toHaveLength(2)
+    expect(parsed.checks).toHaveLength(3)
     expect(parsed.checks?.[0]).toEqual({
       name: 'Structure',
       verdict: 'pass',
@@ -477,6 +481,87 @@ describe('EvalResult', () => {
     })
     expect(parsed.nextSignal).toBe('Blue delta emergence on the border retest')
     expect(parsed.caution).toBe('No adds above T1')
+  })
+
+  describe('the per-status verdict contract (feat-082)', () => {
+    it('rejects an ENTER without a trigger', () => {
+      expect(EvalResult.safeParse({ ...validEvalResult, trigger: null }).success).toBe(false)
+    })
+
+    it('rejects an ENTER carrying a nextSignal or revalidationAction', () => {
+      expect(
+        EvalResult.safeParse({ ...validEvalResult, nextSignal: 'stray signal' }).success,
+      ).toBe(false)
+      expect(
+        EvalResult.safeParse({ ...validEvalResult, revalidationAction: 'stray step' }).success,
+      ).toBe(false)
+    })
+
+    it('rejects a WAIT without a nextSignal or with a trigger', () => {
+      const wait = { ...validEvalResult, status: 'WAIT' as const, trigger: null }
+      expect(EvalResult.safeParse({ ...wait, nextSignal: null }).success).toBe(false)
+      expect(
+        EvalResult.safeParse({
+          ...wait,
+          trigger: 'stray trigger',
+          nextSignal: 'blue emergence',
+        }).success,
+      ).toBe(false)
+      expect(
+        EvalResult.safeParse({ ...wait, nextSignal: 'blue emergence' }).success,
+      ).toBe(true)
+    })
+
+    it('NOT_VALID carries no entry geometry and states the revalidation step', () => {
+      const notValid = {
+        ...validEvalResult,
+        status: 'NOT_VALID' as const,
+        trigger: null,
+        stop: null,
+        targets: null,
+        nextSignal: null,
+        revalidationAction: 'Run an Update after new structure forms below the flush low',
+      }
+      expect(EvalResult.safeParse(notValid).success).toBe(true)
+      expect(
+        EvalResult.safeParse({ ...notValid, revalidationAction: null }).success,
+      ).toBe(false)
+      expect(EvalResult.safeParse({ ...notValid, stop: 23950 }).success).toBe(false)
+      expect(EvalResult.safeParse({ ...notValid, targets: [24100] }).success).toBe(false)
+      expect(
+        EvalResult.safeParse({ ...notValid, trigger: 'fabricated future trigger' }).success,
+      ).toBe(false)
+    })
+
+    it('rejects a NO_ENTRY_NEAR that still carries level fields', () => {
+      const noEntry = {
+        ...validEvalResult,
+        status: 'NO_ENTRY_NEAR' as const,
+      }
+      expect(EvalResult.safeParse(noEntry).success).toBe(false)
+    })
+
+    it('level verdicts carry 3–6 uniquely-named checks including exactly "Absorption"', () => {
+      const twoChecks = validEvalResult.checks.slice(0, 2)
+      expect(EvalResult.safeParse({ ...validEvalResult, checks: twoChecks }).success).toBe(false)
+      expect(EvalResult.safeParse({ ...validEvalResult, checks: null }).success).toBe(false)
+      const sevenChecks = Array.from({ length: 7 }, (_, i) => ({
+        name: `C${i}`,
+        verdict: 'pass' as const,
+        note: 'n',
+      }))
+      expect(EvalResult.safeParse({ ...validEvalResult, checks: sevenChecks }).success).toBe(false)
+      const duplicate = [
+        ...validEvalResult.checks.slice(0, 2),
+        { name: 'Structure', verdict: 'fail' as const, note: 'dup' },
+      ]
+      expect(EvalResult.safeParse({ ...validEvalResult, checks: duplicate }).success).toBe(false)
+      const lookalike = [
+        ...validEvalResult.checks.slice(0, 2),
+        { name: 'No Absorption Data', verdict: 'pending' as const, note: 'lookalike' },
+      ]
+      expect(EvalResult.safeParse({ ...validEvalResult, checks: lookalike }).success).toBe(false)
+    })
   })
 
   it('constrains check verdicts to pass/fail/pending', () => {

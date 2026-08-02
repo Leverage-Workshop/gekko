@@ -395,11 +395,39 @@ export const EvalCheck = z.object({
 })
 export type EvalCheck = z.infer<typeof EvalCheck>
 
-export const EvalResult = z.object({
+/** Bounds for the per-verdict condition checks (also enforced in the refinement). */
+export const EVAL_CHECKS_MIN = 3
+export const EVAL_CHECKS_MAX = 6
+
+/**
+ * The status-discriminated verdict contract (2026-08-02 adversarial eval
+ * review findings #2/#4/#6). The object stays FLAT for the provider — OpenAI
+ * strict structured outputs reject a root-level union — and the per-status
+ * field matrix is enforced by the refinement below, so a contract-violating
+ * output fails `schema.parse` in the generate step and the run retries
+ * instead of persisting an incoherent verdict:
+ *
+ * - `ENTER`       — evaluatedLevel/direction/trigger + checks; nextSignal and
+ *                   revalidationAction null. The trigger names the confirming
+ *                   pattern visible NOW, never a hypothetical.
+ * - `WAIT`        — evaluatedLevel/direction + checks + nextSignal (the one
+ *                   observable that authorizes the level); trigger and
+ *                   revalidationAction null. The level stays armed.
+ * - `NOT_VALID`   — evaluatedLevel/direction + checks + revalidationAction
+ *                   (what to do instead — the level is dead and cannot flip
+ *                   to ENTER on one print); trigger/stop/targets/nextSignal
+ *                   null.
+ * - `NO_ENTRY_NEAR` — every level field null.
+ *
+ * Every level verdict carries 3–6 uniquely-named checks, one named exactly
+ * "Absorption".
+ */
+const EvalResultShape = z.object({
   meta: EvalMeta,
   status: EvalStatus,
   evaluatedLevel: EvaluatedLevel.nullable(),
   direction: Direction.nullable(),
+  /** ENTER only: the presently-visible confirming pattern. Null otherwise. */
   trigger: z.string().nullable(),
   stop: z.number().nullable(),
   targets: z.array(z.number()).nullable(),
@@ -408,10 +436,85 @@ export const EvalResult = z.object({
    * Absorption, …). Null on level-less NO_ENTRY_NEAR verdicts.
    */
   checks: z.array(EvalCheck).nullable(),
-  /** The single concrete signal that would flip a WAIT/NOT_VALID to ENTER. */
+  /** WAIT only: the single concrete signal that authorizes the level. */
   nextSignal: z.string().nullable(),
+  /**
+   * NOT_VALID only: the advisory next step now that the level is dead
+   * (e.g. "Run an Update after new structure forms below 28100").
+   */
+  revalidationAction: z.string().nullable(),
   /** One line of what NOT to do right now (e.g. "do not chase into the void"). */
   caution: z.string().nullable(),
   reason: z.string(),
 })
+
+type EvalResultRaw = z.infer<typeof EvalResultShape>
+
+/** The exact required check name — substring lookalikes do not satisfy it. */
+export const ABSORPTION_CHECK_NAME = 'Absorption'
+
+function checkEvalVerdictContract(result: EvalResultRaw, ctx: z.RefinementCtx): void {
+  const issue = (path: string, message: string) =>
+    ctx.addIssue({ code: 'custom', path: [path], message })
+  const mustBeNull = (path: keyof EvalResultRaw & string) => {
+    if (result[path] !== null) issue(path, `${path} must be null on a ${result.status} verdict`)
+  }
+
+  if (result.status === 'NO_ENTRY_NEAR') {
+    for (const path of [
+      'evaluatedLevel',
+      'direction',
+      'trigger',
+      'stop',
+      'targets',
+      'checks',
+      'nextSignal',
+      'revalidationAction',
+    ] as const) {
+      mustBeNull(path)
+    }
+    return
+  }
+
+  // Level verdicts (ENTER / WAIT / NOT_VALID): the level identity and the
+  // structured justification are mandatory.
+  if (result.evaluatedLevel === null) issue('evaluatedLevel', 'level verdicts must name the evaluated level')
+  if (result.direction === null) issue('direction', 'level verdicts must carry a direction')
+  const checks = result.checks
+  if (checks === null || checks.length < EVAL_CHECKS_MIN || checks.length > EVAL_CHECKS_MAX) {
+    issue(
+      'checks',
+      `level verdicts carry ${EVAL_CHECKS_MIN}–${EVAL_CHECKS_MAX} named checks (got ${checks?.length ?? 'null'})`,
+    )
+  }
+  if (checks !== null) {
+    if (new Set(checks.map((check) => check.name)).size !== checks.length) {
+      issue('checks', 'check names must be unique')
+    }
+    if (!checks.some((check) => check.name === ABSORPTION_CHECK_NAME)) {
+      issue('checks', `one check must be named exactly "${ABSORPTION_CHECK_NAME}"`)
+    }
+  }
+
+  if (result.status === 'ENTER') {
+    if (result.trigger === null) issue('trigger', 'ENTER must name the presently-visible confirming trigger')
+    mustBeNull('nextSignal')
+    mustBeNull('revalidationAction')
+  } else if (result.status === 'WAIT') {
+    if (result.nextSignal === null) issue('nextSignal', 'WAIT must name the authorizing signal')
+    mustBeNull('trigger')
+    mustBeNull('revalidationAction')
+  } else {
+    // NOT_VALID: the plan is dead — no actionable entry geometry survives.
+    if (result.revalidationAction === null) {
+      issue('revalidationAction', 'NOT_VALID must state the advisory next step')
+    }
+    mustBeNull('trigger')
+    mustBeNull('stop')
+    mustBeNull('targets')
+    mustBeNull('nextSignal')
+  }
+}
+
+export const EvalResult = EvalResultShape.superRefine(checkEvalVerdictContract)
 export type EvalResult = z.infer<typeof EvalResult>

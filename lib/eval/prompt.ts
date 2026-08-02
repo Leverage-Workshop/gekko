@@ -221,9 +221,11 @@ function positionVerdict(input: EvalPromptInput, position: Direction): string {
     `initiative at the current price still support the ${position} — holding is justified (a fresh ` +
     `${position} here would still be valid); WAIT = mixed or unclear — name the single observable that ` +
     `decides it in nextSignal; NOT_VALID = structure or initiative has turned against the ${position} — ` +
-    `exiting at the current price is the advisory call. Your evaluatedLevel MUST be ` +
+    `exiting at the current price is the advisory call (put the exit directive in ` +
+    `revalidationAction). Your evaluatedLevel MUST be ` +
     `${JSON.stringify({ label, price: input.currentPrice, direction: position })} and direction MUST be ` +
-    `"${position}". Populate stop/targets from current structure when the charts justify them, else null.`
+    `"${position}". Populate stop/targets from current structure when the charts justify them, else ` +
+    `null, and the status-dependent fields per the per-status contract in the system prompt.`
   )
 }
 
@@ -244,12 +246,12 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
   const proximityVerdict = proximity.nearEntry
     ? `Price IS near an active entry (code-computed): the nearest level is ${JSON.stringify(
         nearest ? levelPayload(nearest.level) : null,
-      )} at ${nearest ? distanceNote(nearest) : 'an unknown distance'} (threshold ${proximity.thresholdPoints}). Evaluate THIS level: your status MUST be ENTER, WAIT or NOT_VALID, your evaluatedLevel MUST echo its label/price/direction verbatim, and direction/trigger/stop/targets MUST be populated from it (stop/targets from the level row unless structure has invalidated them).`
+      )} at ${nearest ? distanceNote(nearest) : 'an unknown distance'} (threshold ${proximity.thresholdPoints}). Evaluate THIS level: your status MUST be ENTER, WAIT or NOT_VALID, your evaluatedLevel MUST echo its label/price/direction verbatim, and direction MUST match the level. Populate the status-dependent fields (trigger / stop / targets / nextSignal / revalidationAction / checks) per the per-status contract in the system prompt.`
     : `Price is NOT near any active entry (code-computed${
         nearest
           ? `: nearest is ${distanceNote(nearest)}, threshold ${proximity.thresholdPoints}`
           : ': there are no usable active levels'
-      }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level. Run an Update for a full tactical read." Set evaluatedLevel/direction/trigger/stop/targets/checks/nextSignal/caution to null.`
+      }). Your status MUST be "NO_ENTRY_NEAR" and your reason must read like: "No entry near. Price is at [zone], not at any entry level. Run an Update for a full tactical read." Set evaluatedLevel/direction/trigger/stop/targets/checks/nextSignal/revalidationAction/caution to null.`
 
   return [
     '# Mission',
