@@ -47,8 +47,9 @@ and judgment; the engine supplies all computed fields.
     reopen (`overnightSession` — overnight high/low/range and where price sits against them),
     then the RTH session so far — did price attempt higher and get rejected, was the overnight
     low/high tested and did it hold, who owns the session per delta initiative, plus the Rip
-    status. The Active Pattern Scan verdict MUST appear as one of `current.keyPoints` (name the
-    pattern and where it fired, or state plainly that none is present). A stale bundle is
+    status. The Active Pattern Scan verdict MUST appear as one of `current.keyPoints`, mirroring
+    your structured `patternScan` (name the pattern and where it fired, state plainly that
+    none is present, or say the read is indeterminate and why). A stale bundle is
     flagged as its own keyPoint here.
   - Overview vocabulary (hard rules, all three sections, narrative and keyPoints alike):
     - Speak ONLY in MGI levels and volume/TPO structure: POC/VAH/VAL, HVN/LVN, single prints,

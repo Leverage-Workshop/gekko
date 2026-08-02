@@ -49,6 +49,11 @@ function parentBriefing(): Briefing {
       htfTrend: 'up — higher highs on the planning chart',
       ripStatus: facts.ripStatus?.condition ?? 'unknown',
     },
+    patternScan: {
+      verdict: 'absent' as const,
+      pattern: null,
+      evidence: 'No playbook pattern on the execution chart',
+    },
     overview: {
       htfView: {
         narrative: 'PARENT: value migrated higher across the week.',
@@ -107,6 +112,11 @@ function modelUpdate(): BriefingUpdate {
       currentPrice: facts.currentPrice,
       htfTrend: 'up — still trending',
       ripStatus: facts.ripStatus?.condition ?? 'unknown',
+    },
+    patternScan: {
+      verdict: 'absent' as const,
+      pattern: null,
+      evidence: 'No playbook pattern on the execution chart',
     },
     tacticalRead: {
       location: 'Upper value, wall overhead',

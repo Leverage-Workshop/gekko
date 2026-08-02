@@ -4,6 +4,7 @@ import type {
   NoTradeObjective,
   NoTradeReasonCode,
   ObjectiveSlot,
+  PatternVerdict,
   Overview,
   PersistedOverview,
   TacticalRead,
@@ -85,6 +86,17 @@ function intradayTrendTone(summary: string): string {
   const value = summary.toLowerCase()
   if (value.startsWith('up')) return 'text-success'
   if (value.startsWith('down')) return 'text-m-red'
+  return 'text-ink'
+}
+
+/**
+ * Pattern-scan tone (feat-078): a present playbook pattern is a key callout
+ * (bmw-blue voltage), indeterminate is an honest caution (warning), absent
+ * stays plain ink.
+ */
+function patternScanTone(verdict: PatternVerdict): string {
+  if (verdict === 'present') return 'text-bmw-blue'
+  if (verdict === 'indeterminate') return 'text-warning'
   return 'text-ink'
 }
 
@@ -190,7 +202,7 @@ function MetaColumn({
 
   return (
     <div>
-      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_auto_1fr_auto]">
+      <div className="grid gap-px border border-hairline bg-hairline md:grid-cols-[auto_auto_auto_auto_1fr_auto]">
         <div className="bg-surface-soft px-5 py-3">
           <p className="text-2xl font-bold tracking-tight text-bmw-blue">
             {formatPrice(payload.meta.currentPrice)}
@@ -220,6 +232,27 @@ function MetaColumn({
               )}`}
             >
               {payload.meta.intradayTrend}
+            </p>
+          ) : (
+            <p className="mt-1 text-sm font-light text-muted">—</p>
+          )}
+        </div>
+        <div className="bg-surface-soft px-5 py-3">
+          <p className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
+            Pattern Scan
+          </p>
+          {payload.patternScan ? (
+            <p
+              className={`mt-1 text-sm font-bold uppercase tracking-wide ${patternScanTone(
+                payload.patternScan.verdict
+              )}`}
+              title={payload.patternScan.evidence}
+            >
+              {payload.patternScan.verdict === 'present'
+                ? payload.patternScan.pattern
+                : payload.patternScan.verdict === 'absent'
+                  ? 'None'
+                  : 'Indeterminate'}
             </p>
           ) : (
             <p className="mt-1 text-sm font-light text-muted">—</p>

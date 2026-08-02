@@ -2,6 +2,7 @@ import type {
   Briefing,
   BriefingMeta,
   Objective,
+  PatternScan,
   PersistedBriefing,
   PersistedBriefingMeta,
 } from '@/knowledge/schema/briefing.schema'
@@ -467,6 +468,33 @@ function ladderWarnings(
   }
 }
 
+/**
+ * Pattern-scan consistency (feat-078): a 'present' verdict without a named
+ * pattern is a contract violation the model can fix on retry (hard throw); a
+ * named pattern on an 'absent'/'indeterminate' verdict is trimmed to null with
+ * a warning — the verdict is the authoritative read, the stray name is noise.
+ * Undefined (pre-feat-078 persisted rows replayed through the update path)
+ * passes through untouched.
+ */
+function enforcePatternScan(
+  scan: PatternScan | undefined,
+  warnings: string[],
+): PatternScan | undefined {
+  if (!scan) return scan
+  if (scan.verdict === 'present' && scan.pattern === null) {
+    throw new BriefingValidationError(
+      "patternScan verdict is 'present' but names no pattern — a present verdict must name the doctrine playbook pattern it saw",
+    )
+  }
+  if (scan.verdict !== 'present' && scan.pattern !== null) {
+    warnings.push(
+      `patternScan verdict is '${scan.verdict}' but names "${scan.pattern}" — pattern nulled; the verdict is the authoritative read`,
+    )
+    return { ...scan, pattern: null }
+  }
+  return scan
+}
+
 function recomputeObjective(
   name: 'primary' | 'secondary',
   objective: Objective,
@@ -587,6 +615,7 @@ export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
     briefing: {
       ...briefing,
       meta: options.meta ? enforceMeta(briefing.meta, options.meta, warnings) : briefing.meta,
+      patternScan: enforcePatternScan(briefing.patternScan, warnings),
       primary: primary ? primary.objective : briefing.primary,
       secondary: secondary ? secondary.objective : briefing.secondary,
     },

@@ -809,6 +809,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-077-notrade-objective (typecheck, lint 0 errors, 1072 tests passing \u2014 10 new: schema union parse/reject/literal-discriminator, validateBriefing noTrade gate-skip/null-rr/both-abstain/primary-abstain warnings/distinct-anchor skip, persistBriefing no-rows-for-abstaining-slot/zero-rows-both/throw-on-missing-verdict, build OK). Prompt prefix budget still under the 41k ceiling (prompt-data-sync suite green)."
+    },
+    {
+      "id": "feat-078",
+      "name": "Structured Active Pattern Scan: present/absent/indeterminate verdict",
+      "description": "Codex adversarial review finding #3 (2026-08-01): the Active Pattern Scan was a mandatory BINARY keyPoint (name the pattern or state none is present) with no schema field \u2014 an ambiguous or degraded execution chart pressured hallucinated visual evidence that bypassed every validation gate. (1) briefing.schema.ts: PatternVerdict enum (present/absent/indeterminate) + PatternScan object (verdict, pattern nullable, evidence); Briefing and BriefingUpdate gain a required patternScan (the update re-scans the CURRENT chart, never inherits); PersistedBriefing carries it .optional() (pre-feat-078 rows lack the key; read-path-only optional exemption). (2) validateBriefing enforcePatternScan: verdict 'present' without a named pattern throws (retryable contract violation); a stray pattern name on absent/indeterminate is nulled with a warning; undefined (replayed old rows) passes through. (3) composeUpdateBriefing stamps the update's fresh patternScan into the composed briefing. (4) Prompts: analyze ACTIVE PATTERN SCAN bullet rewritten (fill patternScan; indeterminate is the honest verdict when the chart doesn't support a confident call; an indeterminate scan cannot serve as visual evidence for an entry trigger \u2014 pattern-justified triggers require verdict present, otherwise ground in engine facts or abstain); update prompt mission gains item 3 (re-run the scan); output-briefing.md keyPoint rule now mirrors the structured field and names the indeterminate case. (5) UI: Pattern Scan cell in the dashboard meta strip (present = pattern name in bmw-blue, absent = None in ink, indeterminate = warning tone; evidence as title tooltip; dash for pre-feat-078 rows). Analyze user-prompt budget consciously bumped 91k -> 92k (measured 91,394 after the feat-077+078 rule text; the feat-080 preamble dedup takes it back down).",
+      "dependencies": [
+        "feat-077"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-078-pattern-verdict (typecheck, lint 0 errors, 1078 tests passing \u2014 6 new: schema tristate accept/reject/persisted-optional, validate throw-on-unnamed-present/null-stray-name/indeterminate-untouched, compose fresh-scan assertion; build OK)."
     }
   ]
 }

@@ -25,6 +25,9 @@ export function composeUpdateBriefing(
     meta: update.meta,
     overview: parent.overview,
     terrain: parent.terrain,
+    // feat-078: the pattern scan reads the CURRENT execution chart — always
+    // the update's fresh verdict, never the parent's stale one.
+    patternScan: update.patternScan,
     primary: directive?.objective === 'secondary' ? parent.primary : update.primary,
     secondary: directive?.objective === 'primary' ? parent.secondary : update.secondary,
     dangerZones: update.dangerZones,

@@ -73,6 +73,11 @@ function briefing(overrides: Partial<Briefing> = {}): Briefing {
       ],
       levels: [{ price: 30250, label: 'POC shelf', kind: 'wall' }],
     },
+    patternScan: {
+      verdict: 'absent' as const,
+      pattern: null,
+      evidence: 'No playbook pattern on the execution chart',
+    },
     primary: longObjective(),
     secondary: longObjective({
       direction: 'short',
@@ -417,6 +422,45 @@ describe('enforceCodeOwnedFacts', () => {
     expect(
       result.warnings.some((w) => w.includes('both objectives abstain')),
     ).toBe(true)
+  })
+
+  // --- feat-078: pattern-scan consistency -----------------------------------
+
+  it("throws when patternScan is 'present' without a named pattern", () => {
+    expect(() =>
+      enforceCodeOwnedFacts(
+        briefing({
+          patternScan: { verdict: 'present', pattern: null, evidence: 'looks like a trap' },
+        }),
+        { rrMin: 3 },
+      ),
+    ).toThrow(/present.*names no pattern/)
+  })
+
+  it("nulls a stray pattern name on an 'absent' verdict with a warning", () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        patternScan: {
+          verdict: 'absent',
+          pattern: 'Failed Breakout Trap',
+          evidence: 'nothing actually fired',
+        },
+      }),
+      { rrMin: 3 },
+    )
+    expect(result.briefing.patternScan?.pattern).toBeNull()
+    expect(result.warnings.some((w) => w.includes('pattern nulled'))).toBe(true)
+  })
+
+  it("passes an 'indeterminate' scan through untouched", () => {
+    const scan = {
+      verdict: 'indeterminate' as const,
+      pattern: null,
+      evidence: 'Mid-formation shape — no confident call',
+    }
+    const result = enforceCodeOwnedFacts(briefing({ patternScan: scan }), { rrMin: 3 })
+    expect(result.briefing.patternScan).toEqual(scan)
+    expect(result.warnings.some((w) => w.includes('patternScan'))).toBe(false)
   })
 
   it('warns when the primary abstains while the secondary carries a trade', () => {
