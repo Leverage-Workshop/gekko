@@ -61,6 +61,20 @@ export function realEvalDeps(): EvalDeps {
       return (data ?? []) as EntryLevelRow[]
     },
 
+    // feat-084: the evaluated level's source briefing — creation-time thesis
+    // for the prompt's prior-baseline section.
+    fetchBriefingBaseline: async (briefingId) => {
+      const { data, error } = await supabase
+        .from('briefings')
+        .select('id, created_at, kind, htf_trend, rip_status, primary_obj, secondary_obj')
+        .eq('id', briefingId)
+        .maybeSingle()
+      if (error) {
+        throw error
+      }
+      return data ?? null
+    },
+
     insertEvalResult: async (row) => {
       const { data, error } = await supabase
         .from('eval_results')

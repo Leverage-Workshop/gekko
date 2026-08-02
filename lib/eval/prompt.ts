@@ -78,6 +78,71 @@ export interface EvalPromptInput {
    * check against the active levels. Null/absent for the standard entry check.
    */
   position?: Direction | null
+  /**
+   * Creation-time context for the evaluated level from its source briefing
+   * (feat-084) — the baseline "changed since the prior briefing" judgments
+   * are made against. Null when unavailable (briefing row missing, slot
+   * mismatch, load failure); absent/ignored in position mode.
+   */
+  priorBaseline?: PriorBaseline | null
+}
+
+/**
+ * The evaluated level's creation-time thesis, projected from the source
+ * briefing row. Every field is best-effort nullable — a partial baseline is
+ * still better than none, and rendering says what is missing.
+ */
+export interface PriorBaseline {
+  /** `briefings.created_at` of the source briefing. */
+  briefingCreatedAt: string
+  /** `briefings.kind` ('morning' | 'update'), when present. */
+  briefingKind: string | null
+  /** Which slot armed the level ('primary' | 'secondary'), when known. */
+  objective: string | null
+  macroGoal: string | null
+  rationale: string | null
+  /** The original entry trigger the briefing armed the level with. */
+  entryTrigger: string | null
+  /** The stop's invalidation thesis. */
+  stopInvalidation: string | null
+  /** Engine-validated R/R at creation (never recomputed by the eval). */
+  rr: number | null
+  htfTrend: string | null
+  ripStatus: string | null
+}
+
+/**
+ * The baseline section (feat-084, adversarial review finding #5): without a
+ * creation-time thesis the model was asked to judge what "changed since the
+ * prior briefing" against a history it never saw — biasing invented
+ * comparisons. Entry checks get the thesis; evidence for CURRENT structure
+ * and initiative still comes from this run's data alone.
+ */
+function priorBaselineSection(baseline: PriorBaseline | null | undefined): string {
+  if (!baseline) {
+    return 'No creation-time baseline is available for the evaluated level — judge present-tense only: whether CURRENT structure and initiative authorize acting at it.'
+  }
+  const field = (label: string, value: string | null) =>
+    value === null ? null : `- ${label}: ${value}`
+  const armed = [
+    `The evaluated level was armed by the ${baseline.briefingKind ?? 'prior'} briefing at ${baseline.briefingCreatedAt}`,
+    baseline.objective ? ` as its ${baseline.objective} objective.` : '.',
+  ].join('')
+  const lines = [
+    armed,
+    field('Original macro goal', baseline.macroGoal),
+    field('Original rationale', baseline.rationale),
+    field('Original entry trigger', baseline.entryTrigger),
+    field('Stop invalidation thesis', baseline.stopInvalidation),
+    field(
+      'Engine R/R at creation',
+      baseline.rr === null ? null : `${baseline.rr} (validated then — never recompute it here)`,
+    ),
+    field('Creation-time HTF trend', baseline.htfTrend),
+    field('Creation-time Rip status', baseline.ripStatus),
+    'Judge change against this baseline (what the plan expected vs what printed since); your evidence for current structure and initiative still comes from THIS run\'s data only.',
+  ].filter((line): line is string => line !== null)
+  return lines.join('\n')
 }
 
 function chartManifest(charts: readonly ChartAttachment[]): string {
@@ -287,6 +352,13 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '```json',
     JSON.stringify(input.levels.map(levelPayload), null, 1),
     '```',
+    ...(position || !proximity.nearEntry
+      ? []
+      : [
+          '',
+          '# Prior briefing baseline (creation-time context for the evaluated level)',
+          priorBaselineSection(input.priorBaseline),
+        ]),
     '',
     '# Delta telemetry (engine-computed from the execution-bar CSV)',
     '```json',

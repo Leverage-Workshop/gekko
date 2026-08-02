@@ -10,8 +10,10 @@ feat-081 (eval-only prefix, DONE) → feat-082 (status-discriminated EvalResult,
 DONE — per-status field matrix via superRefine, revalidationAction column live)
 → feat-083 (coherent coercion, DONE — demotion rebuilds a contract-coherent
 WAIT, fail-closed re-parse, near-gate NO_ENTRY_NEAR rejected for retry via
-EvalContractViolationError) → feat-084 (prior-baseline context) → feat-085
-(level-aware absorbed-flush exception). Remaining `not-started` besides these:
+EvalContractViolationError) → feat-084 (prior-baseline context, DONE — the
+evaluated level's creation-time thesis from its source briefing renders in the
+eval prompt; best-effort with degradation) → feat-085 (level-aware
+absorbed-flush exception). Remaining `not-started` besides these:
 feat-051..053 (data exports).
 Latest: **Eval-only system prefix + absorption dedup + per-run bar volume**
 (feat-081 — Codex eval findings #1/#9/#10: the eval's cached prefix shipped

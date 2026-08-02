@@ -870,6 +870,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-083-coherent-coercion (typecheck clean, lint 0 errors, 1120 tests passing incl. the extended demotion-coherence assertions and the new near-gate rejection case; build OK)."
+    },
+    {
+      "id": "feat-084",
+      "name": "Prior-briefing baseline in the eval prompt (Codex eval finding #5)",
+      "description": "Codex adversarial eval-prompt review (2026-08-02) finding #5 (HIGH): the eval was asked to judge what 'changed since the prior briefing' (structure changed, initiative flipped) while receiving only bare level rows \u2014 no prior rationale, trigger, structure snapshot or initiative state \u2014 biasing invented historical comparisons and arbitrary WAIT/NOT_VALID distinctions. Changes: (1) EvalDeps gains fetchBriefingBaseline(briefingId) (briefings row: created_at, kind, htf_trend, rip_status, primary_obj, secondary_obj); (2) buildPriorBaseline projects the evaluated level's creation-time thesis out of its source briefing's objective slot \u2014 macro goal, rationale, ORIGINAL entry trigger (matched by price under the single-entry doctrine), stop invalidation thesis, engine R/R at creation (never recomputed), creation-time HTF trend + Rip status \u2014 parsing the jsonb slot defensively (unparsable or noTrade slots degrade to briefing-level facts); (3) the eval user message renders a '# Prior briefing baseline' section on near-entry checks (absent in position mode and NO_ENTRY_NEAR runs), with the absence line instructing present-tense-only judgment; (4) output-eval.md's NOT_VALID conditions now say 'no longer' claims are judged against the baseline when present, present-tense only when not; (5) baseline load is best-effort \u2014 a missing/unreadable briefing degrades to the baseline-less prompt with a warning, never blocks the check. Complements feat-082's present-tense verdict rewrite (the other half of the Codex recommendation).",
+      "dependencies": [
+        "feat-082"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-084-prior-baseline (typecheck clean, lint 0 errors, 1124 tests passing incl. 4 new baseline cases: rendering, load-failure degradation, noTrade-slot degradation, position-mode skip; build OK)."
     }
   ]
 }

@@ -149,6 +149,28 @@ function makeDeps(overrides: Partial<EvalDeps> = {}) {
       calls.push('fetchActiveEntryLevels')
       return activeLevels()
     },
+    fetchBriefingBaseline: async (briefingId) => {
+      calls.push('fetchBriefingBaseline')
+      return {
+        id: briefingId,
+        created_at: '2026-06-16T13:30:00Z',
+        kind: 'morning',
+        htf_trend: 'Up swing sequence, intact',
+        rip_status: 'Green — price above the Rip',
+        primary_obj: {
+          macroGoal: 'Rotate from the LVN floor to the value ceiling',
+          rationale: 'Balance-area floor with a defended LVN under it',
+          direction: 'long',
+          entries: [
+            { label: 'Entry A (Ideal)', price: 30245, trigger: 'Red flush absorbed at the border' },
+          ],
+          stops: [{ label: 'Structural', price: 30235, invalidation: 'Acceptance below the LVN' }],
+          targets: [{ label: 'T2', price: 30310, description: 'Value ceiling shelf' }],
+          rr: 3.2,
+        },
+        secondary_obj: null,
+      }
+    },
     generate: async (params) => {
       calls.push('generate')
       captured = params
@@ -190,6 +212,7 @@ describe('runEval', () => {
 
     expect(harness.calls).toEqual([
       'fetchActiveEntryLevels',
+      'fetchBriefingBaseline',
       'generate',
       'insertEvalResult',
     ])
@@ -529,6 +552,69 @@ describe('runEval', () => {
         reason: persisted.reason,
       }
     }
+  })
+
+  it('renders the prior-briefing baseline for the evaluated level (feat-084)', async () => {
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('# Prior briefing baseline')
+    expect(prompt).toContain('armed by the morning briefing at 2026-06-16T13:30:00Z')
+    expect(prompt).toContain('as its primary objective')
+    expect(prompt).toContain('Original entry trigger: Red flush absorbed at the border')
+    expect(prompt).toContain('Stop invalidation thesis: Acceptance below the LVN')
+    expect(prompt).toContain('Engine R/R at creation: 3.2')
+    expect(prompt).toContain('Creation-time HTF trend: Up swing sequence, intact')
+  })
+
+  it('degrades to a baseline-less prompt when the briefing load fails (feat-084)', async () => {
+    const harness = makeDeps({
+      fetchBriefingBaseline: async () => {
+        throw new Error('briefings table unreachable')
+      },
+    })
+    const result = await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('No creation-time baseline is available')
+    expect(
+      result.warnings.some((w) => w.includes('failed to load the prior-briefing baseline')),
+    ).toBe(true)
+  })
+
+  it('degrades to briefing-level facts when the armed slot is a noTrade abstention (feat-084)', async () => {
+    const harness = makeDeps({
+      fetchBriefingBaseline: async (briefingId) => ({
+        id: briefingId,
+        created_at: '2026-06-16T13:30:00Z',
+        kind: 'morning',
+        htf_trend: 'Up swing sequence, intact',
+        rip_status: null,
+        primary_obj: {
+          noTrade: true,
+          reasonCode: 'insufficient-evidence',
+          macroGoal: 'Stand aside',
+          rationale: 'thin evidence',
+        },
+        secondary_obj: null,
+      }),
+    })
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('armed by the morning briefing')
+    expect(prompt).toContain('Creation-time HTF trend: Up swing sequence, intact')
+    expect(prompt).not.toContain('Original entry trigger')
+  })
+
+  it('skips the baseline entirely in position mode (feat-084)', async () => {
+    const harness = makeDeps()
+    await runEval(harness.deps, { position: 'long' })
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(harness.calls).not.toContain('fetchBriefingBaseline')
+    expect(prompt).not.toContain('# Prior briefing baseline')
   })
 
   it('rejects a NO_ENTRY_NEAR returned against the code-owned near gate (feat-083)', async () => {

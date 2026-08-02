@@ -3,9 +3,11 @@ export { selectAbsorptionStack } from './absorptionStack'
 export {
   DEFAULT_TRIAGE_MODEL_ID,
   EvalInputError,
+  buildPriorBaseline,
   runEval,
 } from './evalBundle'
 export type {
+  BriefingBaselineRow,
   EvalConfig,
   EvalDeps,
   EvalRunResult,
@@ -18,7 +20,7 @@ export type {
   PersistEvalInput,
 } from './persistEval'
 export { buildEvalPrompt } from './prompt'
-export type { EvalPromptInput } from './prompt'
+export type { EvalPromptInput, PriorBaseline } from './prompt'
 export {
   DEFAULT_NEAR_ENTRY_POINTS,
   DEFAULT_PROXIMITY_WINDOW_SECONDS,
