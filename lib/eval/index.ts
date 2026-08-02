@@ -37,10 +37,12 @@ export type {
 export {
   AREA_EXIT_TOLERANCE_PTS,
   EvalContractViolationError,
+  LEVEL_CONTACT_TOLERANCE_PTS,
   absorbedFlushException,
   enforceEvalFacts,
 } from './validateEval'
 export type {
+  AbsorbedFlushContext,
   EnforceEvalOptions,
   SignGateTelemetry,
   ValidatedEval,

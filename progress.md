@@ -3,18 +3,21 @@
 ## Current State
 
 **Last Updated:** 2026-08-02
-**Active Feature:** the 2026-08-02 Codex adversarial EVAL-prompt review
-(LangSmith run 019fc3c5-c241, extracted to langsmith-prompt-review/) found
-3 CRITICAL / 4 HIGH / 3 MEDIUM issues, being shipped as feat-081..085:
-feat-081 (eval-only prefix, DONE) → feat-082 (status-discriminated EvalResult,
-DONE — per-status field matrix via superRefine, revalidationAction column live)
-→ feat-083 (coherent coercion, DONE — demotion rebuilds a contract-coherent
-WAIT, fail-closed re-parse, near-gate NO_ENTRY_NEAR rejected for retry via
-EvalContractViolationError) → feat-084 (prior-baseline context, DONE — the
-evaluated level's creation-time thesis from its source briefing renders in the
-eval prompt; best-effort with degradation) → feat-085 (level-aware
-absorbed-flush exception). Remaining `not-started` besides these:
-feat-051..053 (data exports).
+**Active Feature:** none — the 2026-08-02 Codex adversarial EVAL-prompt review
+(LangSmith run 019fc3c5-c241, extracted to langsmith-prompt-review/, 3 CRITICAL
+/ 4 HIGH / 3 MEDIUM) is FULLY CLOSED as feat-081..085, all merged to main:
+feat-081 (eval-only prefix — briefing-only doctrine split out of the eval's
+cached prefix into constraints-objective.md + campaign-strategy.md; eval
+prefix 32k → 25k) → feat-082 (status-discriminated EvalResult — per-status
+field matrix via superRefine, WAIT=armed vs NOT_VALID=dead semantics,
+revalidationAction column live in prod) → feat-083 (coherent coercion —
+gate demotions rebuild a contract-coherent WAIT, fail-closed re-parse,
+near-gate NO_ENTRY_NEAR rejected for retry via EvalContractViolationError) →
+feat-084 (prior-baseline context — the evaluated level's creation-time thesis
+from its source briefing renders in the eval prompt) → feat-085 (level-aware
+absorbed-flush exception — stall-confirmed stack at the level or bar contact
+required; far counter-extremes no longer bypass the demotion). Remaining
+`not-started`: feat-051..053 (data exports).
 Latest: **Eval-only system prefix + absorption dedup + per-run bar volume**
 (feat-081 — Codex eval findings #1/#9/#10: the eval's cached prefix shipped
 briefing-only mandates it cannot satisfy (R/R-to-T2 gate, target

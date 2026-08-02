@@ -6,9 +6,16 @@ import type {
   EntryLevelRow,
   EvalDeps,
   EvalResultInsert,
+  SignGateTelemetry,
 } from '@/lib/eval'
-import { EvalContractViolationError, EvalInputError, runEval } from '@/lib/eval'
+import {
+  EvalContractViolationError,
+  EvalInputError,
+  absorbedFlushException,
+  runEval,
+} from '@/lib/eval'
 import { loadDoctrine } from '@/lib/analyze'
+import type { ExecBar } from '@/lib/engine/parseExecBars'
 import type { GenerateStructuredResult } from '@/lib/llm'
 
 const execCsvContent = readFileSync(
@@ -615,6 +622,128 @@ describe('runEval', () => {
 
     expect(harness.calls).not.toContain('fetchBriefingBaseline')
     expect(prompt).not.toContain('# Prior briefing baseline')
+  })
+
+  describe('absorbedFlushException is level- and sequence-aware (feat-085)', () => {
+    // 2026-08-02 adversarial review finding #7: the exception passed on ANY
+    // counter-extreme anywhere in the window plus a held close — reclassifying
+    // unrelated prints a rotation away as "absorption" at the entry level.
+    const LEVEL = 30245
+
+    const bar = (low: number, high: number, close: number): ExecBar => ({
+      dateTime: new Date('2026-06-16T15:59:00Z'),
+      open: close,
+      high,
+      low,
+      close,
+      legVWAP: 0,
+      deltaIntensity: -3,
+      volume: 750,
+      bidVolume: 500,
+      askVolume: 250,
+      numberOfTrades: 300,
+      delta: -250,
+    })
+
+    const heldTelemetry: SignGateTelemetry = {
+      recentRedExtremeCount: 4,
+      recentBlueExtremeCount: 0,
+      // Last close holds the area (>= prior min close - 0.5).
+      recentRange: { high: 30310, low: 30285, lastClose: 30291, position: 0.2, priorMinClose: 30290, priorMaxClose: 30300 },
+    }
+
+    const confirmedStack = (side: 'buy' | 'sell', top: number, bottom: number) => ({
+      source: 'halfRotation',
+      side,
+      top,
+      bottom,
+      binCount: 8,
+      qualifyingCount: 6,
+      peakAbsDelta: 400,
+      netDelta: side === 'sell' ? -900 : 900,
+      stall: { confirmed: true, barsAtStack: 5, volumeAtStack: 3750, tradesAtStack: 1500, netProgressPts: 1 },
+    })
+
+    it('no longer passes on counter-extremes printed far from the level', () => {
+      const farBars = [bar(30288, 30298, 30295), bar(30285, 30295, 30291)]
+      expect(
+        absorbedFlushException('long', heldTelemetry, {
+          levelPrice: LEVEL,
+          recentBars: farBars,
+          absorption: null,
+        }),
+      ).toBe(false)
+    })
+
+    it('passes when the flush contacted the level within tolerance', () => {
+      const contactBars = [bar(30288, 30298, 30295), bar(30242, 30295, 30291)]
+      expect(
+        absorbedFlushException('long', heldTelemetry, {
+          levelPrice: LEVEL,
+          recentBars: contactBars,
+          absorption: null,
+        }),
+      ).toBe(true)
+    })
+
+    it('passes on a stall-confirmed flush-color stack at the level even without recent-bar contact', () => {
+      // The flush was absorbed earlier in the session; recent bars consolidate
+      // above. The code-owned scan (full-session bars) still carries the
+      // confirmed stack at the border.
+      const farBars = [bar(30288, 30298, 30295), bar(30285, 30295, 30291)]
+      const scan = { candidates: [confirmedStack('sell', 30247, 30241)] }
+      expect(
+        absorbedFlushException('long', heldTelemetry, {
+          levelPrice: LEVEL,
+          recentBars: farBars,
+          absorption: scan as never,
+        }),
+      ).toBe(true)
+    })
+
+    it('ignores confirmed stacks of the entry color and unconfirmed stacks at the level', () => {
+      const farBars = [bar(30285, 30295, 30291)]
+      const wrongColor = { candidates: [confirmedStack('buy', 30247, 30241)] }
+      const unconfirmed = {
+        candidates: [
+          { ...confirmedStack('sell', 30247, 30241), stall: { confirmed: false, barsAtStack: 0, volumeAtStack: 0, tradesAtStack: 0, netProgressPts: null } },
+        ],
+      }
+      for (const scan of [wrongColor, unconfirmed]) {
+        expect(
+          absorbedFlushException('long', heldTelemetry, {
+            levelPrice: LEVEL,
+            recentBars: farBars,
+            absorption: scan as never,
+          }),
+        ).toBe(false)
+      }
+    })
+
+    it('never passes once price has closed out of the area, regardless of contact', () => {
+      const contactBars = [bar(30242, 30295, 30236)]
+      expect(
+        absorbedFlushException(
+          'long',
+          {
+            ...heldTelemetry,
+            recentRange: { high: 30310, low: 30236, lastClose: 30236, position: 0, priorMinClose: 30290, priorMaxClose: 30300 },
+          },
+          { levelPrice: LEVEL, recentBars: contactBars, absorption: null },
+        ),
+      ).toBe(false)
+    })
+
+    it('degrades to no exception when the level price is unknown', () => {
+      const contactBars = [bar(30242, 30295, 30291)]
+      expect(
+        absorbedFlushException('long', heldTelemetry, {
+          levelPrice: null,
+          recentBars: contactBars,
+          absorption: null,
+        }),
+      ).toBe(false)
+    })
   })
 
   it('rejects a NO_ENTRY_NEAR returned against the code-owned near gate (feat-083)', async () => {

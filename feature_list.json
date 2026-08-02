@@ -880,6 +880,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-084-prior-baseline (typecheck clean, lint 0 errors, 1124 tests passing incl. 4 new baseline cases: rendering, load-failure degradation, noTrade-slot degradation, position-mode skip; build OK)."
+    },
+    {
+      "id": "feat-085",
+      "name": "Level-aware absorbed-flush exception (Codex eval finding #7)",
+      "description": "Codex adversarial eval-prompt review (2026-08-02) finding #7 (HIGH): the initiative gate's absorbed-flush exception passed on ANY counter-color extreme anywhere in the 20-bar window plus a held close \u2014 reclassifying unrelated prints a rotation away as 'absorption' at the entry level and bypassing the code-owned counter-initiative demotion when no level-specific stall occurred. absorbedFlushException is now level- and sequence-aware via a new AbsorbedFlushContext (evaluated level price, recent exec-bar window, code-owned absorption scan): (1) the area-exit veto is unchanged and checked first (closes define the area, wicks never exit); (2) a stall-CONFIRMED stack in the flush color (sell for a long border, buy for a short) within LEVEL_CONTACT_TOLERANCE_PTS (5 pts) of the level is the strongest evidence \u2014 consumed directly from the ConfirmedAbsorptionCandidate scan (full-session bars, so absorption that recent bars have rotated away from still counts) instead of re-inferred from aggregate counts; (3) otherwise the flush must at least have CONTACTED the level (some recent bar within tolerance, judged per-bar); counter-extremes printed elsewhere no longer qualify; (4) a null level price degrades to no exception (conservative). The demotion warning now distinguishes area-exit demotions from no-absorption-at-level demotions so persisted rows say which leg failed.",
+      "dependencies": [
+        "feat-083"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-085-level-aware-absorption-gate (typecheck clean, lint 0 errors, 1130 tests passing incl. 6 new absorbedFlushException unit cases: far-flush rejection, contact pass, confirmed-stack pass without recent contact, wrong-color/unconfirmed-stack rejection, area-exit veto, null-level degradation; build OK)."
     }
   ]
 }
