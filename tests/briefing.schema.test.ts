@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
 import {
+  isNoTrade,
   Briefing,
   BriefingUpdate,
   EvalResult,
@@ -9,8 +10,15 @@ import {
   LevelKind,
   PersistedBriefing,
   TargetLabel,
+  type ObjectiveSlot,
   EvalStatus,
 } from '@/knowledge/schema/briefing.schema'
+
+/** Narrow an ObjectiveSlot back to the trade Objective these fixtures supply (feat-077). */
+function trade(slot: ObjectiveSlot): Objective {
+  if (isNoTrade(slot)) throw new Error('expected a trade objective')
+  return slot
+}
 
 // A minimal-but-complete Objective used across Briefing fixtures. Deliberately
 // carries the legacy three-rung T1→T2→T3 ladder: persisted briefings from before
@@ -111,8 +119,8 @@ describe('enums', () => {
 describe('Briefing', () => {
   it('accepts a complete, valid briefing', () => {
     const parsed = Briefing.parse(validBriefing)
-    expect(parsed.primary.direction).toBe('long')
-    expect(parsed.secondary.direction).toBe('short')
+    expect(trade(parsed.primary).direction).toBe('long')
+    expect(trade(parsed.secondary).direction).toBe('short')
     expect(parsed.terrain.zones).toHaveLength(3)
     expect(parsed.terrain.levels[0].kind).toBe('magnet')
   })
@@ -141,6 +149,49 @@ describe('Briefing', () => {
   it('strips unknown keys by default (non-strict object)', () => {
     const parsed = Briefing.parse({ ...validBriefing, extra: 'ignored' })
     expect('extra' in parsed).toBe(false)
+  })
+
+  // feat-077: an objective slot may carry an explicit abstention instead of a
+  // trade — its own union branch, never an Objective with hollowed-out arrays.
+  const validNoTrade = {
+    noTrade: true as const,
+    reasonCode: 'no-qualifying-structure' as const,
+    macroGoal: 'Stand aside — no counter-scenario clears the gate',
+    rationale: 'No short structure yields an entry→T2 that clears 3:1',
+  }
+
+  it('accepts a noTrade abstention in either objective slot', () => {
+    const parsed = Briefing.parse({ ...validBriefing, secondary: validNoTrade })
+    expect(isNoTrade(parsed.secondary)).toBe(true)
+    expect(isNoTrade(parsed.primary)).toBe(false)
+    const bothParsed = Briefing.parse({
+      ...validBriefing,
+      primary: validNoTrade,
+      secondary: validNoTrade,
+    })
+    expect(isNoTrade(bothParsed.primary)).toBe(true)
+  })
+
+  it('rejects a noTrade slot with an unknown reasonCode or missing rationale', () => {
+    expect(
+      Briefing.safeParse({
+        ...validBriefing,
+        secondary: { ...validNoTrade, reasonCode: 'bored' },
+      }).success,
+    ).toBe(false)
+    const { rationale: _r, ...noRationale } = validNoTrade
+    expect(
+      Briefing.safeParse({ ...validBriefing, secondary: noRationale }).success,
+    ).toBe(false)
+  })
+
+  it('rejects a noTrade:false slot (the discriminator is a literal)', () => {
+    expect(
+      Briefing.safeParse({
+        ...validBriefing,
+        secondary: { ...validNoTrade, noTrade: false },
+      }).success,
+    ).toBe(false)
   })
 
   // Live failure 2026-07-17: terra emitted `entries: []` on the secondary
@@ -284,7 +335,7 @@ describe('BriefingUpdate', () => {
   it('accepts a complete, valid update', () => {
     const parsed = BriefingUpdate.parse(validUpdate)
     expect(parsed.tacticalRead.ripStatus).toBe('Holding as support')
-    expect(parsed.primary.direction).toBe('long')
+    expect(trade(parsed.primary).direction).toBe('long')
   })
 
   it('has no overview or terrain — they carry forward from the parent', () => {

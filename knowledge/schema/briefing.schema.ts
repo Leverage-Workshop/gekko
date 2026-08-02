@@ -172,6 +172,9 @@ export type Target = z.infer<typeof Target>
 // conclusion, `targets` carries one rung labeled T2 (the conclusion the R/R
 // gate measures to). enforceTargetCeiling relabels a sole T1 to T2 so
 // riskReward's "last listed target" gate always measures the conclusion.
+// NOTE (2026-08-01, feat-077): these `.min(1)` floors bind the TRADE variant
+// only — explicit abstention is its own union branch ({@link NoTradeObjective}
+// via {@link ObjectiveSlot}), never an Objective with hollowed-out arrays.
 export const Objective = z.object({
   macroGoal: z.string(),
   rationale: z.string(),
@@ -183,6 +186,60 @@ export const Objective = z.object({
   rr: z.number(),
 })
 export type Objective = z.infer<typeof Objective>
+
+/**
+ * Why an objective slot ships no trade (feat-077, Codex adversarial-review
+ * finding #1: with no abstention path the model fabricated complete objectives
+ * — distant qualifying targets, disguised missing evidence — under the
+ * "both objectives must carry entries/stops/targets" contract).
+ */
+export const NoTradeReasonCode = z.enum([
+  /** No entry→T2 geometry on the engine map clears the R/R gate. */
+  'no-qualifying-structure',
+  /** The evidence for any setup is absent or too thin to commit. */
+  'insufficient-evidence',
+  /** A real setup exists but its activating condition has not occurred and cannot be expressed as a concrete entry trigger yet. */
+  'not-yet-actionable',
+  /** Signals materially conflict (e.g. structure vs initiative) with no resolution. */
+  'conflicting-signals',
+])
+export type NoTradeReasonCode = z.infer<typeof NoTradeReasonCode>
+
+/**
+ * Explicit abstention for an objective slot (feat-077): the model declares
+ * there is no trade instead of fabricating entries/stops/targets. `noTrade` is
+ * the discriminator (a literal, so a trade objective can never half-morph into
+ * an abstention); `macroGoal` stays the 1-line headline ("Stand aside — …")
+ * and `rationale` must say what evidence is missing and what would change the
+ * verdict. No entries, stops, targets or rr — validation skips every
+ * per-objective gate for an abstaining slot, and persistence arms no
+ * entry_levels rows for it.
+ */
+export const NoTradeObjective = z.object({
+  noTrade: z.literal(true),
+  reasonCode: NoTradeReasonCode,
+  macroGoal: z.string(),
+  rationale: z.string(),
+})
+export type NoTradeObjective = z.infer<typeof NoTradeObjective>
+
+/**
+ * What a briefing's `primary`/`secondary` slot may hold: a full trade
+ * {@link Objective} or an explicit {@link NoTradeObjective} abstention.
+ * {@link Objective} is listed first so every historical row keeps parsing
+ * exactly as before; the branches cannot collide ({@link Objective} requires
+ * `entries`, {@link NoTradeObjective} requires the `noTrade` literal).
+ * Strict-structured-outputs safe: unions emit `anyOf` with every branch
+ * object fully required (guarded by the walker in
+ * tests/briefing.schema.test.ts).
+ */
+export const ObjectiveSlot = z.union([Objective, NoTradeObjective])
+export type ObjectiveSlot = z.infer<typeof ObjectiveSlot>
+
+/** Narrowing guard for an abstaining slot — the discriminator is the `noTrade` literal. */
+export function isNoTrade(slot: ObjectiveSlot): slot is NoTradeObjective {
+  return 'noTrade' in slot && slot.noTrade === true
+}
 
 export const DangerZone = z.object({
   area: z.string(),
@@ -216,8 +273,8 @@ export const Briefing = z.object({
   meta: BriefingMeta,
   overview: Overview,
   terrain: Terrain,
-  primary: Objective,
-  secondary: Objective,
+  primary: ObjectiveSlot,
+  secondary: ObjectiveSlot,
   dangerZones: z.array(DangerZone),
 })
 export type Briefing = z.infer<typeof Briefing>
@@ -263,8 +320,8 @@ export type TacticalRead = z.infer<typeof TacticalRead>
 export const BriefingUpdate = z.object({
   meta: BriefingMeta,
   tacticalRead: TacticalRead,
-  primary: Objective,
-  secondary: Objective,
+  primary: ObjectiveSlot,
+  secondary: ObjectiveSlot,
   dangerZones: z.array(DangerZone),
 })
 export type BriefingUpdate = z.infer<typeof BriefingUpdate>

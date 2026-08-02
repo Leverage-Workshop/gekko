@@ -1,13 +1,20 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type { Briefing, BriefingUpdate } from '@/knowledge/schema/briefing.schema'
+import type { Briefing, BriefingUpdate, Objective, ObjectiveSlot } from '@/knowledge/schema/briefing.schema'
+import { isNoTrade } from '@/knowledge/schema/briefing.schema'
 import { computeEngineFacts } from '@/lib/analyze'
 import type { BriefingInsert, EntryLevelInsert } from '@/lib/analyze'
 import { UpdateInputError, runUpdate } from '@/lib/update'
 import type { UpdateDeps } from '@/lib/update'
 import type { GenerateStructuredResult } from '@/lib/llm'
 import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
+
+/** Narrow an ObjectiveSlot back to the trade Objective these fixtures supply (feat-077). */
+function trade(slot: ObjectiveSlot): Objective {
+  if (isNoTrade(slot)) throw new Error('expected a trade objective')
+  return slot
+}
 
 const read = (name: string) => readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')
 
@@ -253,8 +260,8 @@ describe('runUpdate', () => {
     // Fresh from the update, with engine-recomputed rr:
     expect(row.primary_obj.macroGoal).toBe('FRESH long the shelf reclaim')
     expect(row.danger_zones).toEqual([{ area: 'FRESH mid-value', why: 'no edge in the middle' }])
-    expect(row.primary_obj.rr).toBe(3)
-    expect(row.raw_model_json.primary.rr).toBe(3)
+    expect(trade(row.primary_obj).rr).toBe(3)
+    expect(trade(row.raw_model_json.primary).rr).toBe(3)
     // The stored raw_model_json is the composed full Briefing:
     expect(row.raw_model_json.overview).toEqual(row.overview)
     expect(row.raw_model_json.terrain).toEqual(row.terrain)
@@ -331,7 +338,7 @@ describe('runUpdate', () => {
     // verbatim, regardless of what the model output for it.
     expect(row.primary_obj.macroGoal).toBe('FRESH long the shelf reclaim')
     expect(row.secondary_obj.macroGoal).toBe('PARENT secondary')
-    expect(row.secondary_obj.entries).toEqual([{ label: 'E1', price: 30295, trigger: 'old' }])
+    expect(trade(row.secondary_obj).entries).toEqual([{ label: 'E1', price: 30295, trigger: 'old' }])
     expect(row.raw_model_json.secondary.macroGoal).toBe('PARENT secondary')
     // Audit column + code-owned meta:
     expect(row.operator_directive).toEqual({ objective: 'primary', text: 'ONL' })

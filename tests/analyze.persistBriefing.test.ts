@@ -177,6 +177,50 @@ describe('buildEntryLevelRows', () => {
     expect(rows[2].stop).toBe(riskReward.secondary.stop)
     expect(rows.every((r) => r.active)).toBe(true)
   })
+
+  // feat-077: an abstaining slot arms no rows — and with both slots abstaining
+  // persistBriefing still deactivates the prior set, so the eval-task reads
+  // NO_ENTRY_NEAR instead of a superseded plan.
+  it('arms no rows for a noTrade slot', () => {
+    const abstaining: Briefing = {
+      ...briefing,
+      secondary: {
+        noTrade: true,
+        reasonCode: 'no-qualifying-structure',
+        macroGoal: 'Stand aside — no counter-scenario clears the gate',
+        rationale: 'No short structure yields an entry→T2 that clears 3:1',
+      },
+    }
+    const rows = buildEntryLevelRows('briefing-1', abstaining, {
+      primary: riskReward.primary,
+      secondary: null,
+    })
+    expect(rows.map((r) => r.objective)).toEqual(['primary', 'primary'])
+  })
+
+  it('arms zero rows when both slots abstain', () => {
+    const noTrade = {
+      noTrade: true as const,
+      reasonCode: 'insufficient-evidence' as const,
+      macroGoal: 'Stand aside',
+      rationale: 'No setup on either side',
+    }
+    const abstaining: Briefing = { ...briefing, primary: noTrade, secondary: noTrade }
+    const rows = buildEntryLevelRows('briefing-1', abstaining, {
+      primary: null,
+      secondary: null,
+    })
+    expect(rows).toEqual([])
+  })
+
+  it('throws when a trade slot arrives without an R/R verdict', () => {
+    expect(() =>
+      buildEntryLevelRows('briefing-1', briefing, {
+        primary: riskReward.primary,
+        secondary: null,
+      }),
+    ).toThrow(/secondary objective carries a trade but no R\/R verdict/)
+  })
 })
 
 describe('persistBriefing', () => {

@@ -4,11 +4,24 @@
 
 **Last Updated:** 2026-08-01
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Queued (Codex adversarial prompt review, 2026-08-01): noTrade/abstention objective
-state, present/absent/indeterminate pattern verdict, execution bar size as a
-/settings-editable config value (operator: candles are 750-volume, the doctrine's
-"500 volume" line is stale), and per-run-preamble dedup vs system doctrine.
-Latest: **One-or-two-rung target contract + rr doctrine fix** (feat-076 — Codex
+Queued (Codex adversarial prompt review, 2026-08-01): present/absent/indeterminate
+pattern verdict (feat-078), execution bar size as a /settings-editable config value
+(operator: candles are 750-volume, the doctrine's "500 volume" line is stale;
+feat-079), and per-run-preamble dedup vs system doctrine (feat-080).
+Latest: **noTrade/abstention objective state** (feat-077 — Codex finding #1: no
+abstention path forced the model to fabricate complete objectives when evidence
+was absent; an objective slot may now ship `{noTrade: true, reasonCode,
+macroGoal, rationale}` — its own ObjectiveSlot union branch (Objective listed
+first, every historical row parses unchanged; strict-mode anyOf with all keys
+required). validateBriefing runs per-objective gates on trade slots only, the
+distinct-anchor invariant needs BOTH slots trading, R/R verdicts are per-slot
+nullable, and both-abstain / primary-abstains advisories surface to the
+operator; persistBriefing arms no entry_levels rows for an abstaining slot
+(prior set still deactivated → eval reads NO_ENTRY_NEAR); doctrine gains a
+"No-trade abstention" section (abstain rather than inventing a distant rung;
+not-yet-actionable belongs in a trigger unless no concrete trigger can be
+written); dashboard renders a neutral NoTradeCard), on top of
+**One-or-two-rung target contract + rr doctrine fix** (feat-076 — Codex
 adversarial review of the recorded LangSmith briefing prompt found the target
 cardinality mutually exclusive ("exactly TWO rungs" vs the single-target
 carve-out 14 lines later vs the preamble's "at least T1") and the

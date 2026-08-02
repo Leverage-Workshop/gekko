@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type { Briefing } from '@/knowledge/schema/briefing.schema'
+import type { Briefing, Objective, ObjectiveSlot } from '@/knowledge/schema/briefing.schema'
+import { isNoTrade } from '@/knowledge/schema/briefing.schema'
 import {
   computeEngineFacts,
   loadDoctrine,
@@ -10,6 +11,12 @@ import {
 import type { AnalyzeDeps, BriefingInsert, EntryLevelInsert } from '@/lib/analyze'
 import type { GenerateStructuredResult } from '@/lib/llm'
 import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
+
+/** Narrow an ObjectiveSlot back to the trade Objective these fixtures supply (feat-077). */
+function trade(slot: ObjectiveSlot): Objective {
+  if (isNoTrade(slot)) throw new Error('expected a trade objective')
+  return slot
+}
 
 const read = (name: string) => readFileSync(join(process.cwd(), 'chart-data', name), 'utf-8')
 
@@ -226,8 +233,8 @@ describe('runAnalysis', () => {
     const row = harness.getBriefingRow()!
 
     expect(row.model_id).toBe('test/model-x')
-    expect(row.primary_obj.rr).toBe(3)
-    expect(row.raw_model_json.primary.rr).toBe(3)
+    expect(trade(row.primary_obj).rr).toBe(3)
+    expect(trade(row.raw_model_json.primary).rr).toBe(3)
     expect(harness.getEntryRows().map((r) => r.label)).toEqual([
       'Entry A (Ideal)',
       'Entry A',

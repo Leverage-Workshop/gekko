@@ -799,6 +799,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-076-one-target-variant (typecheck, lint 0 errors, 1062 tests, build). New validateBriefing tests: sole-T1 relabeled to T2 with one warning and rr still gates the sole rung; sole-T2 untouched with no relabel warning. Base test fixture updated to doctrine-compliant sole-T2 targets. runAnalysis doctrine-content assertion updated to the new contract wording."
+    },
+    {
+      "id": "feat-077",
+      "name": "noTrade/abstention objective state (schema-supported stand-aside)",
+      "description": "Codex adversarial review finding #1 (2026-08-01): the briefing prompt had no abstention path \u2014 'BOTH objectives must carry entries/stops/targets ... never by omitting them' plus the mandatory R/R gate pressured the model to fabricate distant qualifying targets and disguise missing evidence as hypothetical triggers. (1) briefing.schema.ts: NoTradeObjective union branch ({noTrade: true literal discriminator, reasonCode enum [no-qualifying-structure, insufficient-evidence, not-yet-actionable, conflicting-signals], macroGoal, rationale}); ObjectiveSlot = union(Objective, NoTradeObjective) with Objective listed first so every historical row parses unchanged; Briefing + BriefingUpdate primary/secondary are ObjectiveSlot; isNoTrade() guard exported. Strict-mode safe: union emits anyOf with every branch fully required (walker test passes). (2) validateBriefing: per-objective gates (single-entry, target ceiling, standoff, chase, anchor, fakeout, R/R recompute, ladder) run only on trade slots; distinct-anchor invariant requires BOTH slots trading; riskReward verdicts are per-slot nullable; advisory warnings for both-abstain and primary-abstains-while-secondary-trades. (3) persistBriefing: an abstaining slot arms no entry_levels rows (prior set still deactivated -> eval reads NO_ENTRY_NEAR); trade slot without an R/R verdict throws. (4) executionChart skips abstaining slots; update-prompt directive freeze drops the anchor-floor clause when the frozen slot abstains. (5) Doctrine: output-objective.md 'No-trade abstention' section (correct output when nothing clears the gate; NEVER fabricate; not-yet-actionable only when no concrete trigger can be written); analyze prompt slot bullet rewritten (trade OR abstention), rr bullets in both prompts say 'abstain rather than inventing a distant rung'; update prompt gets a slot bullet. (6) UI: NoTradeCard \u2014 neutral hairline chrome, reason-code badge, no direction voltage, 'no entry levels armed' footer.",
+      "dependencies": [
+        "feat-076"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-077-notrade-objective (typecheck, lint 0 errors, 1072 tests passing \u2014 10 new: schema union parse/reject/literal-discriminator, validateBriefing noTrade gate-skip/null-rr/both-abstain/primary-abstain warnings/distinct-anchor skip, persistBriefing no-rows-for-abstaining-slot/zero-rows-both/throw-on-missing-verdict, build OK). Prompt prefix budget still under the 41k ceiling (prompt-data-sync suite green)."
     }
   ]
 }

@@ -1,4 +1,5 @@
-import type { Objective } from '@/knowledge/schema/briefing.schema'
+import type { ObjectiveSlot } from '@/knowledge/schema/briefing.schema'
+import { isNoTrade } from '@/knowledge/schema/briefing.schema'
 import type { ExecBar } from '@/lib/engine/parseExecBars'
 
 /**
@@ -71,7 +72,7 @@ function validPrice(price: number | undefined | null): price is number {
 
 export function buildExecutionChart(
   bars: ExecBar[],
-  objectives: Objective[],
+  objectives: ObjectiveSlot[],
 ): ExecutionChartModel | null {
   if (bars.length === 0) return null
 
@@ -99,6 +100,8 @@ export function buildExecutionChart(
 
   const zones: ChartEntryZone[] = []
   for (const objective of objectives) {
+    // feat-077: an abstaining slot has no entry/stop geometry to paint.
+    if (isNoTrade(objective)) continue
     const stop = objective.stops.map((s) => s.price).find(validPrice)
     for (const entry of objective.entries) {
       if (!validPrice(entry.price)) continue
