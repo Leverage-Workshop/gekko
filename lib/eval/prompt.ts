@@ -26,6 +26,12 @@ export interface EvalPromptInput {
   now: string
   /** `raw_bundles.current_price` of the latest bundle. */
   currentPrice: number
+  /**
+   * Per-bar volume of the execution-chart bars (`config.execution_bar_volume`,
+   * feat-079) — exporter metadata stated per run so the cached prefix never
+   * hardcodes a bar size the operator can reconfigure.
+   */
+  executionBarVolume: number
   staleness: StalenessAssessment
   deltaTelemetry: DeltaTelemetry
   /** The active (`active=true`) entry levels from the prior briefing. */
@@ -84,9 +90,10 @@ function chartManifest(charts: readonly ChartAttachment[]): string {
 /**
  * Render the recent bars as a compact CSV block (Leg VWAP deliberately
  * excluded — Tier-3 micro-timing the eval must never see). The raw flow
- * columns (feat-047): delta = AskVolume − BidVolume per bar, volume (750
- * except the in-progress partial bar), trades. Magnitude lives in delta —
- * deltaIntensity is only the −4…+4 bucket.
+ * columns (feat-047): delta = AskVolume − BidVolume per bar, volume (the
+ * configured `config.execution_bar_volume` except the in-progress partial
+ * bar), trades. Magnitude lives in delta — deltaIntensity is only the −4…+4
+ * bucket.
  */
 function renderRecentBars(bars: readonly ExecBar[]): string {
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -183,7 +190,7 @@ function absorptionSection(absorption: ConfirmedAbsorptionScanResult | null): st
     '```json',
     JSON.stringify(absorption.candidates, null, 1),
     '```',
-    'Each candidate carries a code-owned `stall` block computed from the execution bars: `stall.confirmed` means price stalled at the stack with heavy participation (bars/volume/trades at the stack, no meaningful net progress) — treat that candidate as absorption. An UNconfirmed candidate is a stack with no stall visible in the rolling bar window (possibly aged out, not refuted) — weigh it by the recent bar sequence instead. A sell-side (red) stack at/below a long border where the flush failed to keep price down is red absorption FOR the long; a buy-side (blue) stack at/above a short border is blue absorption FOR the short.',
+    'Each candidate carries a code-owned `stall` block — interpret confirmed/unconfirmed and the direction of each stack per the absorption doctrine in the system prompt.',
   ].join('\n')
 }
 
@@ -285,6 +292,7 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '```',
     '',
     '# Recent execution bars (oldest first — judge the SEQUENCE: flush, stall, response)',
+    `These are ${input.executionBarVolume}-volume bars (the in-progress last bar may show less) — weigh participation by bar count at a price, trade count and delta magnitude, never by the flat volume column.`,
     renderRecentBars(input.recentBars),
     '',
     '# Prior-day value context (code-owned, from the daily value-area history)',

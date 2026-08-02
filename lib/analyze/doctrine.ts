@@ -21,10 +21,26 @@ export type DoctrineTask = 'analyze' | 'update' | 'eval'
 
 const SHARED_PREFIX = ['knowledge/system/role.md', 'knowledge/system/constraints.md'] as const
 
-/** The Objective contract is shared by the two briefing-shaped tasks only. */
+/**
+ * The Objective contract and constraints are shared by the two briefing-shaped
+ * tasks only. The eval prefix deliberately carries NONE of the objective
+ * doctrine (target selection, R/R gate, primary/secondary assignment,
+ * Rip/Vanguard, pattern-scan obligations): those mandates reference facts and
+ * output fields the eval task does not receive or express, so shipping them
+ * forced the model to ignore "hard constraints" or fabricate the missing
+ * evidence (Codex adversarial eval-prompt review, 2026-08-02, finding #1).
+ */
 const OUTPUT_FILES: Record<DoctrineTask, readonly string[]> = {
-  analyze: ['knowledge/system/output-briefing.md', 'knowledge/system/output-objective.md'],
-  update: ['knowledge/system/output-update.md', 'knowledge/system/output-objective.md'],
+  analyze: [
+    'knowledge/system/constraints-objective.md',
+    'knowledge/system/output-briefing.md',
+    'knowledge/system/output-objective.md',
+  ],
+  update: [
+    'knowledge/system/constraints-objective.md',
+    'knowledge/system/output-update.md',
+    'knowledge/system/output-objective.md',
+  ],
   eval: ['knowledge/system/output-eval.md'],
 }
 
@@ -34,6 +50,13 @@ const SHARED_DOCTRINE = [
   'knowledge/doctrine/patterns.md',
 ] as const
 
+/** Objective-construction doctrine — briefing-shaped tasks only (see OUTPUT_FILES). */
+const TASK_DOCTRINE: Record<DoctrineTask, readonly string[]> = {
+  analyze: ['knowledge/doctrine/campaign-strategy.md'],
+  update: ['knowledge/doctrine/campaign-strategy.md'],
+  eval: [],
+}
+
 /**
  * Concatenate the doctrine files for one task into its system-prompt prefix.
  *
@@ -41,7 +64,12 @@ const SHARED_DOCTRINE = [
  *   fail loudly rather than brief without guardrails.
  */
 export function loadDoctrine(task: DoctrineTask, baseDir: string = process.cwd()): string {
-  const files = [...SHARED_PREFIX, ...OUTPUT_FILES[task], ...SHARED_DOCTRINE]
+  const files = [
+    ...SHARED_PREFIX,
+    ...OUTPUT_FILES[task],
+    ...SHARED_DOCTRINE,
+    ...TASK_DOCTRINE[task],
+  ]
   return files
     .map((file) => readFileSync(join(baseDir, file), 'utf-8').trim())
     .join('\n\n---\n\n')

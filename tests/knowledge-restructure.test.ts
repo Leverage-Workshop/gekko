@@ -16,12 +16,14 @@ const KNOWLEDGE = join(ROOT, 'knowledge')
 const KNOWLEDGE_FILES = [
   'system/role.md',
   'system/constraints.md',
+  'system/constraints-objective.md',
   'system/output-briefing.md',
   'system/output-objective.md',
   'system/output-update.md',
   'system/output-eval.md',
   'doctrine/patterns.md',
   'doctrine/chart-reading.md',
+  'doctrine/campaign-strategy.md',
   'doctrine/glossary.md',
   'schema/briefing.schema.ts',
 ]
@@ -43,7 +45,7 @@ describe('knowledge restructure', () => {
 
   // Computable doctrine removed from prose: the R/R ratio is owned by
   // riskReward.ts, so the literal ratio must not be restated in the doctrine.
-  it.each(['doctrine/patterns.md', 'doctrine/chart-reading.md'])(
+  it.each(['doctrine/patterns.md', 'doctrine/chart-reading.md', 'doctrine/campaign-strategy.md'])(
     'does not restate the computed R/R ratio in %s',
     (rel) => {
       expect(read(rel)).not.toMatch(/3:1/)

@@ -3,6 +3,13 @@
 You output **one structured `EvalResult` JSON object** — never markdown. An on-demand entry check
 at the current price against the active entry levels from the prior briefing.
 
+The active levels inherit their geometry from the briefing that created them: the entry border,
+stop and targets were validated — structure, target classification and risk/reward — when the
+briefing authored them. You never recompute risk/reward, reclassify targets, or re-assign
+objective priority here; those checks belong to the briefing. Your job is narrower: judge whether
+CURRENT structure and initiative still authorize acting at this level, from the evidence in this
+run's user message alone.
+
 ## `status`
 
 - `NO_ENTRY_NEAR`: price is not near any active entry. The near/not-near gate is code-owned and

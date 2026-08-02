@@ -2,11 +2,28 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-01
-**Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-The 2026-08-01 Codex adversarial prompt review is fully closed: feat-076..080
-shipped all five findings.
-Latest: **Per-run preamble dedup** (feat-080 — Codex finding #5: the user
+**Last Updated:** 2026-08-02
+**Active Feature:** the 2026-08-02 Codex adversarial EVAL-prompt review
+(LangSmith run 019fc3c5-c241, extracted to langsmith-prompt-review/) found
+3 CRITICAL / 4 HIGH / 3 MEDIUM issues, being shipped as feat-081..085:
+feat-081 (eval-only prefix, DONE) → feat-082 (status-discriminated EvalResult)
+→ feat-083 (coherent coercion) → feat-084 (prior-baseline context) → feat-085
+(level-aware absorbed-flush exception). Remaining `not-started` besides these:
+feat-051..053 (data exports).
+Latest: **Eval-only system prefix + absorption dedup + per-run bar volume**
+(feat-081 — Codex eval findings #1/#9/#10: the eval's cached prefix shipped
+briefing-only mandates it cannot satisfy (R/R-to-T2 gate, target
+classification, primary/secondary award, Vanguard consult, patternScan),
+hardcoded "750-volume bars" against the per-run metadata contract, and
+duplicated absorption stall semantics into the user message; constraints.md
+and chart-reading.md each split briefing-only content into new
+constraints-objective.md + campaign-strategy.md files shipped to
+analyze/update only, output-eval.md states the geometry-inheritance contract,
+the eval user message states config.execution_bar_volume per run, and the
+absorption-candidate section became facts+pointer; eval prefix 32k → 25,069
+chars; guarded by a feat-081 canary describe in prompt-data-sync.test.ts), on
+top of the closed 2026-08-01 briefing-prompt review (feat-076..080).
+Earlier: **Per-run preamble dedup** (feat-080 — Codex finding #5: the user
 message restated 4–31 lines of system doctrine and the copies drifted twice;
 every rule now has ONE home — the Active Pattern Scan contract moved into
 patterns.md (shared by both briefing prefixes), detector-LVN-node anchor

@@ -28,3 +28,4 @@ chart-data/lvn-fixtures/fixture-x.vbp.md
 
 # Local Claude Code settings (contains secrets)
 .claude/settings.local.json
+langsmith-prompt-review/
