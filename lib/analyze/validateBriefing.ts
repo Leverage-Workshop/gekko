@@ -5,6 +5,7 @@ import type {
   PersistedBriefing,
   PersistedBriefingMeta,
 } from '@/knowledge/schema/briefing.schema'
+import { isNoTrade } from '@/knowledge/schema/briefing.schema'
 import { DEFAULT_RR_MIN, objectiveRiskReward } from '@/lib/engine/riskReward'
 import type { RiskReward } from '@/lib/engine/riskReward'
 import type { FakeoutTailFact } from '@/lib/engine/fakeoutTails'
@@ -76,10 +77,14 @@ export const MIN_ENTRY_STANDOFF_PTS = 1
 export const MAX_ENTRY_CHASE_PTS = 5
 
 export interface ValidatedBriefing<B extends PersistedBriefing = Briefing> {
-  /** The briefing with engine-recomputed `rr` on both objectives. */
+  /** The briefing with engine-recomputed `rr` on both trade objectives. */
   briefing: B
-  /** Engine R/R verdicts (protective stop, gate, reasons) per objective. */
-  riskReward: { primary: RiskReward; secondary: RiskReward }
+  /**
+   * Engine R/R verdicts (protective stop, gate, reasons) per objective.
+   * Null for a slot that abstains (feat-077 noTrade) — there is no geometry
+   * to gate, and persistence arms no entry_levels rows for it.
+   */
+  riskReward: { primary: RiskReward | null; secondary: RiskReward | null }
   /** Advisory findings (gate misses, off-engine borders, widened stops). */
   warnings: string[]
 }
@@ -513,50 +518,82 @@ export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
     }
   }
 
-  const primarySingle = enforceTargetCeiling(
-    'primary',
-    enforceSingleEntry('primary', briefing.primary, warnings),
-    warnings,
+  // feat-077: an abstaining slot (noTrade) carries no geometry — every
+  // per-objective gate below applies only to trade slots. Cross-objective
+  // invariants (distinct anchors) require BOTH slots to trade.
+  const primarySingle = isNoTrade(briefing.primary)
+    ? null
+    : enforceTargetCeiling(
+        'primary',
+        enforceSingleEntry('primary', briefing.primary, warnings),
+        warnings,
+      )
+  const secondarySingle = isNoTrade(briefing.secondary)
+    ? null
+    : enforceTargetCeiling(
+        'secondary',
+        enforceSingleEntry('secondary', briefing.secondary, warnings),
+        warnings,
+      )
+
+  if (primarySingle === null && secondarySingle === null) {
+    warnings.push(
+      'both objectives abstain (noTrade) — no entry levels will be armed until the next briefing ships a trade',
+    )
+  } else if (primarySingle === null) {
+    warnings.push(
+      'primary objective abstains (noTrade) while the secondary carries a trade — the actionable scenario is normally the primary',
+    )
+  }
+
+  const tradeSlots = [
+    { name: 'primary' as const, objective: primarySingle },
+    { name: 'secondary' as const, objective: secondarySingle },
+  ].filter((slot): slot is { name: 'primary' | 'secondary'; objective: Objective } =>
+    slot.objective !== null,
   )
-  const secondarySingle = enforceTargetCeiling(
-    'secondary',
-    enforceSingleEntry('secondary', briefing.secondary, warnings),
-    warnings,
-  )
 
-  assertDistinctObjectiveAnchors(primarySingle, secondarySingle)
-  if (options.enforceEntryStandoff && options.meta) {
-    assertEntryStandoff('primary', primarySingle, options.meta.currentPrice)
-    assertEntryStandoff('secondary', secondarySingle, options.meta.currentPrice)
+  if (primarySingle && secondarySingle) {
+    assertDistinctObjectiveAnchors(primarySingle, secondarySingle)
   }
-  if (options.meta) {
-    const hard = options.enforceEntryStandoff === true
-    enforceEntryChaseSide('primary', primarySingle, options.meta.currentPrice, hard, warnings)
-    enforceEntryChaseSide('secondary', secondarySingle, options.meta.currentPrice, hard, warnings)
-  }
-  if (options.anchorPrices && options.anchorPrices.length > 0) {
-    offAnchorEntryWarnings('primary', primarySingle, options.anchorPrices, warnings)
-    offAnchorEntryWarnings('secondary', secondarySingle, options.anchorPrices, warnings)
-  }
-  if (options.fakeoutTails && options.fakeoutTails.length > 0) {
-    fakeoutExtremeEntryWarnings('primary', primarySingle, options.fakeoutTails, warnings)
-    fakeoutExtremeEntryWarnings('secondary', secondarySingle, options.fakeoutTails, warnings)
+  for (const { name, objective } of tradeSlots) {
+    if (options.enforceEntryStandoff && options.meta) {
+      assertEntryStandoff(name, objective, options.meta.currentPrice)
+    }
+    if (options.meta) {
+      const hard = options.enforceEntryStandoff === true
+      enforceEntryChaseSide(name, objective, options.meta.currentPrice, hard, warnings)
+    }
+    if (options.anchorPrices && options.anchorPrices.length > 0) {
+      offAnchorEntryWarnings(name, objective, options.anchorPrices, warnings)
+    }
+    if (options.fakeoutTails && options.fakeoutTails.length > 0) {
+      fakeoutExtremeEntryWarnings(name, objective, options.fakeoutTails, warnings)
+    }
   }
 
-  const primary = recomputeObjective('primary', primarySingle, rrMin, warnings)
-  const secondary = recomputeObjective('secondary', secondarySingle, rrMin, warnings)
+  const primary = primarySingle
+    ? recomputeObjective('primary', primarySingle, rrMin, warnings)
+    : null
+  const secondary = secondarySingle
+    ? recomputeObjective('secondary', secondarySingle, rrMin, warnings)
+    : null
 
-  ladderWarnings('primary', primarySingle, options.engineBorders ?? [], warnings)
-  ladderWarnings('secondary', secondarySingle, options.engineBorders ?? [], warnings)
+  for (const { name, objective } of tradeSlots) {
+    ladderWarnings(name, objective, options.engineBorders ?? [], warnings)
+  }
 
   return {
     briefing: {
       ...briefing,
       meta: options.meta ? enforceMeta(briefing.meta, options.meta, warnings) : briefing.meta,
-      primary: primary.objective,
-      secondary: secondary.objective,
+      primary: primary ? primary.objective : briefing.primary,
+      secondary: secondary ? secondary.objective : briefing.secondary,
     },
-    riskReward: { primary: primary.riskReward, secondary: secondary.riskReward },
+    riskReward: {
+      primary: primary?.riskReward ?? null,
+      secondary: secondary?.riskReward ?? null,
+    },
     warnings,
   }
 }

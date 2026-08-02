@@ -1,11 +1,14 @@
 import type {
   BulletOverview,
   DangerZone,
-  Objective,
+  NoTradeObjective,
+  NoTradeReasonCode,
+  ObjectiveSlot,
   Overview,
   PersistedOverview,
   TacticalRead,
 } from '@/knowledge/schema/briefing.schema'
+import { isNoTrade } from '@/knowledge/schema/briefing.schema'
 import {
   buildHighlightTerms,
   formatPrice,
@@ -285,6 +288,63 @@ function MetaColumn({
   )
 }
 
+/** Operator-facing wording for the feat-077 abstention reason codes. */
+const NO_TRADE_REASON_LABELS: Record<NoTradeReasonCode, string> = {
+  'no-qualifying-structure': 'No qualifying structure',
+  'insufficient-evidence': 'Insufficient evidence',
+  'not-yet-actionable': 'Not yet actionable',
+  'conflicting-signals': 'Conflicting signals',
+}
+
+/**
+ * Abstaining objective slot (feat-077): a neutral stand-aside card — hairline
+ * chrome, no direction voltage (blue/red are reserved for live campaigns), the
+ * reason code as the badge where a trade card carries its direction.
+ */
+function NoTradeCard({
+  heading,
+  objective,
+  terms,
+  directiveSlot,
+  appliedDirective,
+}: {
+  heading: string
+  objective: NoTradeObjective
+  terms: string[]
+  directiveSlot: 'primary' | 'secondary'
+  appliedDirective: string | null
+}) {
+  return (
+    <article className="border border-hairline border-t-2 border-t-hairline bg-surface-card p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-4">
+        <span className="flex flex-wrap items-center gap-3">
+          <span className="text-xs font-bold uppercase tracking-[1.5px] text-ink">{heading}</span>
+          <ObjectiveDirectiveInput slot={directiveSlot} />
+        </span>
+        <span className="flex items-center gap-4">
+          <span className="border border-hairline px-2.5 py-1 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+            No Trade · {NO_TRADE_REASON_LABELS[objective.reasonCode]}
+          </span>
+        </span>
+      </div>
+
+      <h3 className="mt-4 text-xl font-bold tracking-tight text-ink">{objective.macroGoal}</h3>
+      {appliedDirective && (
+        <p className="mt-2 text-xs font-light uppercase tracking-wide text-muted">
+          Operator directive:{' '}
+          <span className="normal-case text-body-strong">{appliedDirective}</span>
+        </p>
+      )}
+      <p className="mt-2 text-sm font-light leading-relaxed text-body">
+        <HighlightedText text={objective.rationale} terms={terms} />
+      </p>
+      <p className="mt-3 text-xs font-light uppercase tracking-wide text-muted">
+        No entry levels armed for this slot.
+      </p>
+    </article>
+  )
+}
+
 function ObjectiveCard({
   heading,
   objective,
@@ -293,13 +353,24 @@ function ObjectiveCard({
   appliedDirective,
 }: {
   heading: string
-  objective: Objective
+  objective: ObjectiveSlot
   terms: string[]
   /** Which briefing slot this card renders — targets the directive input (feat-061). */
   directiveSlot: 'primary' | 'secondary'
   /** The operator directive this briefing was generated from, when it targeted this card. */
   appliedDirective: string | null
 }) {
+  if (isNoTrade(objective)) {
+    return (
+      <NoTradeCard
+        heading={heading}
+        objective={objective}
+        terms={terms}
+        directiveSlot={directiveSlot}
+        appliedDirective={appliedDirective}
+      />
+    )
+  }
   const rows: { point: string; price: number; description: string; isStop: boolean }[] = [
     ...objective.entries.map((entry) => ({
       point: entry.label,

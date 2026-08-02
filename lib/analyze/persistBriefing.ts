@@ -1,4 +1,5 @@
 import type { PersistedBriefing, TacticalRead } from '@/knowledge/schema/briefing.schema'
+import { isNoTrade } from '@/knowledge/schema/briefing.schema'
 import type { RiskReward } from '@/lib/engine/riskReward'
 // Type-only, from the module file (not the lib/update barrel, which imports
 // lib/analyze back) — directive.ts depends only on zod, so no import cycle.
@@ -70,8 +71,11 @@ export interface PersistInput {
   model: string
   /** Engine-validated briefing (rr already recomputed). */
   briefing: PersistedBriefing
-  /** Engine R/R verdicts — the protective stop per objective. */
-  riskReward: { primary: RiskReward; secondary: RiskReward }
+  /**
+   * Engine R/R verdicts — the protective stop per objective. Null for a slot
+   * that abstains (feat-077 noTrade): no entry_levels rows are armed for it.
+   */
+  riskReward: { primary: RiskReward | null; secondary: RiskReward | null }
   /** feat-038: present only for update-task runs. */
   update?: {
     kind: 'update'
@@ -110,8 +114,11 @@ export function buildBriefingRow(
 }
 
 /**
- * One `entry_levels` row per objective entry rung, all sharing the
- * objective's engine-chosen protective stop and target ladder.
+ * One `entry_levels` row per trade-objective entry rung, all sharing the
+ * objective's engine-chosen protective stop and target ladder. An abstaining
+ * slot (feat-077 noTrade) arms no rows — with both slots abstaining the prior
+ * active set is still deactivated, so the eval-task correctly reads
+ * NO_ENTRY_NEAR instead of evaluating a superseded plan.
  */
 export function buildEntryLevelRows(
   briefingId: string,
@@ -122,8 +129,14 @@ export function buildEntryLevelRows(
     { objective: 'primary' as const, spec: briefing.primary, rr: riskReward.primary },
     { objective: 'secondary' as const, spec: briefing.secondary, rr: riskReward.secondary },
   ]
-  return objectives.flatMap(({ objective, spec, rr }) =>
-    spec.entries.map((entry) => ({
+  return objectives.flatMap(({ objective, spec, rr }) => {
+    if (isNoTrade(spec)) return []
+    if (!rr) {
+      throw new Error(
+        `persistBriefing: ${objective} objective carries a trade but no R/R verdict — validation must supply one for every trade slot`,
+      )
+    }
+    return spec.entries.map((entry) => ({
       briefing_id: briefingId,
       objective,
       label: entry.label,
@@ -132,8 +145,8 @@ export function buildEntryLevelRows(
       stop: rr.stop,
       targets: spec.targets.map((target) => target.price),
       active: true as const,
-    })),
-  )
+    }))
+  })
 }
 
 export interface PersistResult {

@@ -37,6 +37,20 @@ Each objective (primary and secondary) carries:
 Entries, stops, and T1 must sit on engine-supplied structure — a zone border or a terrain level —
 never in the middle of value.
 
+## No-trade abstention
+
+An objective slot may ship an explicit abstention instead of a trade: `{ "noTrade": true,
+"reasonCode": ..., "macroGoal": ..., "rationale": ... }` with `reasonCode` one of
+`no-qualifying-structure`, `insufficient-evidence`, `not-yet-actionable`, `conflicting-signals`.
+Abstaining is the CORRECT output when no engine structure yields an entry→T2 that clears the R/R
+gate, or the evidence for any setup on that side is absent — NEVER fabricate a distant target, a
+hypothetical trigger, or a filler counter-scenario to satisfy the contract. `macroGoal` states the
+stand-aside in one line; `rationale` says what is missing and what would change the verdict.
+Abstention is a last resort, not a hedge: a real setup whose activating condition simply hasn't
+fired yet belongs in a trade objective with the condition expressed in its entry `trigger`; use
+`not-yet-actionable` only when no concrete trigger can be written. An abstaining slot arms no
+entry levels.
+
 ## Level attribution
 
 Every price you state anywhere in an objective — `macroGoal`, `rationale`, entry `label` and

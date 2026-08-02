@@ -1,10 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import type { Briefing, Objective } from '@/knowledge/schema/briefing.schema'
+import type {
+  Briefing,
+  NoTradeObjective,
+  Objective,
+  ObjectiveSlot,
+} from '@/knowledge/schema/briefing.schema'
+import { isNoTrade } from '@/knowledge/schema/briefing.schema'
 import {
   BriefingValidationError,
   assertZoneContiguity,
   enforceCodeOwnedFacts,
 } from '@/lib/analyze'
+
+/** Narrow a slot back to the trade Objective these fixtures supply. */
+function trade(slot: ObjectiveSlot): Objective {
+  if (isNoTrade(slot)) throw new Error('expected a trade objective')
+  return slot
+}
+
+/** A doctrine-compliant abstaining slot (feat-077). */
+function noTradeObjective(overrides: Partial<NoTradeObjective> = {}): NoTradeObjective {
+  return {
+    noTrade: true,
+    reasonCode: 'no-qualifying-structure',
+    macroGoal: 'Stand aside — no long structure clears the gate',
+    rationale: 'No entry→T2 geometry on the engine map clears 3:1 against the fixed stop',
+    ...overrides,
+  }
+}
 
 /** A geometrically-sound long: conclusion 75 pts out / fixed 25-pt stop → rr 3. */
 function longObjective(overrides: Partial<Objective> = {}): Objective {
@@ -101,10 +124,10 @@ describe('enforceCodeOwnedFacts', () => {
   it('overwrites the model rr with the engine-computed ratio', () => {
     const result = enforceCodeOwnedFacts(briefing(), { rrMin: 3 })
 
-    expect(result.briefing.primary.rr).toBe(3)
-    expect(result.briefing.primary.rr).not.toBe(99)
-    expect(result.riskReward.primary.stop).toBe(30240)
-    expect(result.riskReward.primary.meetsGate).toBe(true)
+    expect(trade(result.briefing.primary).rr).toBe(3)
+    expect(trade(result.briefing.primary).rr).not.toBe(99)
+    expect(result.riskReward.primary?.stop).toBe(30240)
+    expect(result.riskReward.primary?.meetsGate).toBe(true)
   })
 
   it('warns (not throws) when an objective misses the R/R gate', () => {
@@ -115,7 +138,7 @@ describe('enforceCodeOwnedFacts', () => {
     })
     const result = enforceCodeOwnedFacts(weak, { rrMin: 3 })
 
-    expect(result.briefing.primary.rr).toBeLessThan(3)
+    expect(trade(result.briefing.primary).rr).toBeLessThan(3)
     expect(result.warnings.some((w) => w.includes('primary'))).toBe(true)
   })
 
@@ -184,7 +207,7 @@ describe('enforceCodeOwnedFacts', () => {
       }),
       { rrMin: 3 },
     )
-    expect(result.briefing.primary.entries).toEqual([
+    expect(trade(result.briefing.primary).entries).toEqual([
       { label: 'Entry A (Ideal)', price: 30250, trigger: 'absorption' },
     ])
     expect(
@@ -206,7 +229,7 @@ describe('enforceCodeOwnedFacts', () => {
       }),
       { rrMin: 3 },
     )
-    expect(result.briefing.primary.entries).toEqual([
+    expect(trade(result.briefing.primary).entries).toEqual([
       { label: 'Ideal', price: 30250, trigger: 'absorption' },
     ])
   })
@@ -224,7 +247,7 @@ describe('enforceCodeOwnedFacts', () => {
       { rrMin: 3 },
     )
     // The long protects below entry 30250: 30240 is the worst-case (farthest) stop.
-    expect(result.briefing.primary.stops).toEqual([
+    expect(trade(result.briefing.primary).stops).toEqual([
       { label: 'Stop (Entry A)', price: 30240, invalidation: 'lost the shelf' },
     ])
     expect(
@@ -233,7 +256,7 @@ describe('enforceCodeOwnedFacts', () => {
       ),
     ).toBe(true)
     // R/R still computes from the kept stop: risk 10, T1 reward 30 → rr 3.
-    expect(result.riskReward.primary.stop).toBe(30240)
+    expect(result.riskReward.primary?.stop).toBe(30240)
   })
 
   it('warns when a single-target objective ignores available ladder rungs', () => {
@@ -292,14 +315,14 @@ describe('enforceCodeOwnedFacts', () => {
       }),
       { rrMin: 3, engineBorders: [30400, 30360, 30320, 30280, 30250, 30200] },
     )
-    expect(result.briefing.primary.targets.map((t) => t.label)).toEqual(['T1', 'T2'])
+    expect(trade(result.briefing.primary).targets.map((t) => t.label)).toEqual(['T1', 'T2'])
     expect(
       result.warnings.some(
         (w) => w.includes('primary objective emitted 3 targets') && w.includes('30320'),
       ),
     ).toBe(true)
     // The engine R/R still measures to the nearest kept rung.
-    expect(result.riskReward.primary.targets.map((t) => t.price)).toEqual([30280, 30320])
+    expect(result.riskReward.primary?.targets.map((t) => t.price)).toEqual([30280, 30320])
   })
 
   it('relabels a sole T1 target to T2 (single-target variant), warning once', () => {
@@ -311,17 +334,17 @@ describe('enforceCodeOwnedFacts', () => {
       }),
       { rrMin: 3 },
     )
-    expect(result.briefing.primary.targets).toEqual([
+    expect(trade(result.briefing.primary).targets).toEqual([
       { label: 'T2', price: 30325, description: 'next trench' },
     ])
     expect(result.warnings.filter((w) => w.includes('relabeled T2'))).toHaveLength(1)
     // The gate still measures to the sole rung — now correctly named the conclusion.
-    expect(result.briefing.primary.rr).toBe(3)
+    expect(trade(result.briefing.primary).rr).toBe(3)
   })
 
   it('leaves a sole T2 target untouched with no relabel warning', () => {
     const result = enforceCodeOwnedFacts(briefing(), { rrMin: 3 })
-    expect(result.briefing.primary.targets[0].label).toBe('T2')
+    expect(trade(result.briefing.primary).targets[0].label).toBe('T2')
     expect(result.warnings.some((w) => w.includes('relabeled'))).toBe(false)
   })
 
@@ -345,7 +368,69 @@ describe('enforceCodeOwnedFacts', () => {
   it('does not mutate the input briefing', () => {
     const input = briefing()
     enforceCodeOwnedFacts(input, { rrMin: 3 })
-    expect(input.primary.rr).toBe(99)
+    expect(trade(input.primary).rr).toBe(99)
+  })
+
+  // --- feat-077: noTrade abstention -----------------------------------------
+
+  it('passes a noTrade secondary through untouched with a null R/R verdict', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({ secondary: noTradeObjective() }),
+      {
+        rrMin: 3,
+        anchorPrices: [30250],
+        enforceEntryStandoff: true,
+        meta: {
+          createdAt: '2026-07-06T12:00:00Z',
+          currentPrice: 30255,
+          triggerReason: 'manual',
+          ripStatus: 'green',
+          intradayTrend: 'Up (strong) · trending',
+        },
+      },
+    )
+    expect(result.briefing.secondary).toEqual(noTradeObjective())
+    expect(result.riskReward.secondary).toBeNull()
+    // The primary still runs the full gate set.
+    expect(result.riskReward.primary?.meetsGate).toBe(true)
+    expect(result.warnings.some((w) => w.includes('secondary'))).toBe(false)
+  })
+
+  it('skips the distinct-anchor invariant when one slot abstains', () => {
+    // An abstaining slot has no anchor to hold the separation floors against —
+    // the invariant only runs when BOTH slots carry trades.
+    expect(() =>
+      enforceCodeOwnedFacts(briefing({ secondary: noTradeObjective() }), { rrMin: 3 }),
+    ).not.toThrow()
+  })
+
+  it('warns when both objectives abstain', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({
+        primary: noTradeObjective(),
+        secondary: noTradeObjective({ reasonCode: 'insufficient-evidence' }),
+      }),
+      { rrMin: 3 },
+    )
+    expect(result.riskReward.primary).toBeNull()
+    expect(result.riskReward.secondary).toBeNull()
+    expect(
+      result.warnings.some((w) => w.includes('both objectives abstain')),
+    ).toBe(true)
+  })
+
+  it('warns when the primary abstains while the secondary carries a trade', () => {
+    const result = enforceCodeOwnedFacts(
+      briefing({ primary: noTradeObjective() }),
+      { rrMin: 3 },
+    )
+    expect(result.riskReward.primary).toBeNull()
+    expect(result.riskReward.secondary).not.toBeNull()
+    expect(
+      result.warnings.some((w) =>
+        w.includes('primary objective abstains (noTrade) while the secondary carries a trade'),
+      ),
+    ).toBe(true)
   })
 
   it('overwrites drifted code-owned meta fields, warning per field', () => {

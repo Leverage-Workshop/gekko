@@ -1,4 +1,5 @@
 import type { PersistedBriefing } from '@/knowledge/schema/briefing.schema'
+import { isNoTrade } from '@/knowledge/schema/briefing.schema'
 import type { ChartAttachment, EngineFacts } from '@/lib/analyze'
 import {
   MIN_OBJECTIVE_ENTRY_SEPARATION_PTS,
@@ -66,10 +67,12 @@ function operatorDirectiveSection(
   const target = directive.objective
   const other = target === 'primary' ? 'secondary' : 'primary'
   const frozen = parent[other]
-  const frozenEntry = frozen.entries[0]
-  const frozenAnchor = frozenEntry
-    ? `its frozen ${frozen.direction} entry at ${frozenEntry.price}`
-    : `its frozen entry`
+  // feat-077: a frozen abstention has no entry to hold anchor floors against.
+  const frozenEntry = isNoTrade(frozen) ? undefined : frozen.entries[0]
+  const frozenAnchor =
+    frozenEntry && !isNoTrade(frozen)
+      ? `its frozen ${frozen.direction} entry at ${frozenEntry.price}`
+      : `its frozen state`
 
   return [
     '# Operator directive (the reason for this run)',
@@ -78,7 +81,9 @@ function operatorDirectiveSection(
     'Precedence rules:',
     `- Honor the directive when regenerating the ${target} objective. If it names a symbolic level (e.g. "ONL", "VAH"), resolve it against the labeled MGI levels and engine facts below. If it cannot be honored exactly on engine-supplied structure, anchor as close to the directive as structure allows and state the deviation explicitly in that objective's rationale.`,
     '- The directive steers WHERE the objective anchors — every other rule still binds: data ownership, entries/stops/T1 on engine structure, level attribution, and the R/R gate.',
-    `- The ${other} objective is FROZEN: the engine replaces whatever you output for \`${other}\` with the previous briefing's version verbatim, so copy it unchanged. Your ${target} entry must keep the distinct-anchor floors against ${frozenAnchor}: at least ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts away if same direction, ${MIN_OPPOSING_ENTRY_SEPARATION_PTS} pts if opposite.`,
+    frozenEntry
+      ? `- The ${other} objective is FROZEN: the engine replaces whatever you output for \`${other}\` with the previous briefing's version verbatim, so copy it unchanged. Your ${target} entry must keep the distinct-anchor floors against ${frozenAnchor}: at least ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts away if same direction, ${MIN_OPPOSING_ENTRY_SEPARATION_PTS} pts if opposite.`
+      : `- The ${other} objective is FROZEN: the engine replaces whatever you output for \`${other}\` with the previous briefing's version verbatim (a no-trade abstention), so copy it unchanged. No distinct-anchor floor applies against an abstaining slot.`,
     '- `tacticalRead` and `dangerZones`: refresh normally against current data.',
     '',
   ]
@@ -112,9 +117,10 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     '- Each LVN/HVN node and magnet carries a code-owned `build` annotation (feat-050): `buyer-built` / `seller-built` (one-sided initiative) or `balanced` (a two-way fight). One-sided acceptance is weaker structure than a balanced build — weigh a one-sided HVN as a softer magnet/wall. When `build` is null the profile export carried no delta split — do not infer it from the screenshots.',
     '- `absorptionCandidates` are code-detected stacks of one-sided bins on the execution delta profiles, each carrying a code-owned `stall` confirmation from the enriched execution bars. A candidate with `stall.confirmed` IS absorption — price stalled at the stack on heavy participation; an unconfirmed candidate has no stall visible in the rolling bar window (possibly aged out, not refuted).',
     `- The CURRENT engine zone borders are: ${borders.join(', ')}. If these disagree with the previous briefing's terrain, the engine is right — flag the drift in the relevant rationale.`,
-    `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly. R/R is measured against the operator's FIXED 25-pt operational stop, NOT your structural stop, and it gates on T2 (the realistic conclusion): the gate is ${input.rrMin}:1, so T2 must sit at least ${input.rrMin * 25} pts beyond entry. T1 is a mid-traverse rung with no R/R requirement of its own; in the single-target variant the sole target IS T2 and the gate measures to it. Do not propose objectives whose T2 cannot clear the gate. Your structural stop still defines invalidation and must stay on the protective side.`,
+    `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly. R/R is measured against the operator's FIXED 25-pt operational stop, NOT your structural stop, and it gates on T2 (the realistic conclusion): the gate is ${input.rrMin}:1, so T2 must sit at least ${input.rrMin * 25} pts beyond entry. T1 is a mid-traverse rung with no R/R requirement of its own; in the single-target variant the sole target IS T2 and the gate measures to it. Do not propose objectives whose T2 cannot clear the gate — abstain (noTrade) rather than inventing a distant rung. Your structural stop still defines invalidation and must stay on the protective side.`,
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure with REAL long-term acceptance (the senior read), A = rotation structure OR demoted balance-area structure (the member verdict `reason` says "faint acceptance" or "shallow valley" — never call these AAA in prose). `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',
     '- Entries, stops and T1 must sit on engine-supplied structure — a zone border, a `terrain.levels` price, or a `lvnHvnNodes` LVN node price (taper-edge/valley) — never in the middle of value. The LVN-node anchor is reserved for the fakeout-formed-extreme case in the Objective contract: when you judge an MGI High/Low was printed by a pre-reversal fakeout, anchor at the LVN node marking where the actual action ended and name the node in the label. Entry priority, stop placement and the one-or-two-rung target ladder (T2 = the move\'s realistic conclusion, always listed LAST — the sole rung in the single-target variant; T1 = a structure rung near the middle of the entry->T2 traverse, included whenever the map offers one) follow the Objective contract in the system prompt.',
+    '- Each objective slot carries EITHER a full trade OR the explicit no-trade abstention shape from the Objective contract (`noTrade: true` + `reasonCode`) — abstain rather than fabricating a scenario the map does not offer. A standing objective whose structure is gone may be revised to an abstention; say what changed in its `rationale`.',
     DISTINCT_ANCHORS_RULE,
     ...[dataEdgeRule(facts)].filter(Boolean),
     ...[campaignBoundaryRule(facts)].filter(Boolean),
