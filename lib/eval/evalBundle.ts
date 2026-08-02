@@ -495,6 +495,8 @@ export async function runEval(
     proximity,
     levels,
     deltaTelemetry,
+    recentBars,
+    absorption,
     position,
   })
   warnings.push(...validated.warnings)

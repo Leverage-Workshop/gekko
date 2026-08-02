@@ -1,7 +1,12 @@
 import { EvalResult } from '@/knowledge/schema/briefing.schema'
 import type { Direction } from '@/knowledge/schema/briefing.schema'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
+import type { ExecBar } from '@/lib/engine/parseExecBars'
 import { RED_BUILDING_MIN_BARS } from '@/lib/engine/ripStatus'
+import type {
+  ConfirmedAbsorptionCandidate,
+  ConfirmedAbsorptionScanResult,
+} from '@/lib/engine/stallConfirmation'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
 
 /**
@@ -42,6 +47,18 @@ export interface EnforceEvalOptions {
    */
   deltaTelemetry: SignGateTelemetry
   /**
+   * The recent exec-bar window backing the extreme counts (feat-085) — the
+   * absorbed-flush exception requires the flush to have CONTACTED the
+   * evaluated level, judged bar by bar.
+   */
+  recentBars: readonly ExecBar[]
+  /**
+   * Code-owned absorption scan (feat-085): a stall-confirmed stack in the
+   * flush color at the evaluated level is the strongest absorption evidence
+   * the exception consumes. Null when the bundle carried no delta exports.
+   */
+  absorption: ConfirmedAbsorptionScanResult | null
+  /**
    * Position-eval mode (the Long / Short buttons): the operator declared this
    * direction and the evaluated level IS the current price — both are
    * code-owned, and no `entry_levels` row is linked. Null/absent for the
@@ -65,29 +82,92 @@ export type SignGateTelemetry = Pick<
 export const AREA_EXIT_TOLERANCE_PTS = 0.5
 
 /**
+ * How close a recent bar must come to the evaluated level for the flush to
+ * count as contact WITH that border (feat-085). Wide enough for a flush that
+ * front-runs the level by a couple of points, far tighter than the 20-pt
+ * proximity gate — counter-extremes printed a rotation away are just
+ * counter-initiative, not absorption at this level.
+ */
+export const LEVEL_CONTACT_TOLERANCE_PTS = 5
+
+/** The level-and-sequence facts the absorbed-flush exception judges (feat-085). */
+export interface AbsorbedFlushContext {
+  /** Price of the evaluated level; null degrades to no exception (conservative). */
+  levelPrice: number | null
+  /** The recent exec-bar window backing the extreme counts. */
+  recentBars: readonly ExecBar[]
+  /** Code-owned absorption scan (stall-annotated), when the bundle carried delta exports. */
+  absorption: ConfirmedAbsorptionScanResult | null
+}
+
+/** Distance from a price to a bar's [low, high] span; 0 when inside it. */
+function distanceToBar(price: number, bar: ExecBar): number {
+  if (price < bar.low) return bar.low - price
+  if (price > bar.high) return price - bar.high
+  return 0
+}
+
+/** Distance from a price to a stack's [bottom, top] band; 0 when inside it. */
+function distanceToStack(price: number, stack: ConfirmedAbsorptionCandidate): number {
+  if (price < stack.bottom) return stack.bottom - price
+  if (price > stack.top) return price - stack.top
+  return 0
+}
+
+/**
  * Sequence-aware exception to the initiative gate (operator doctrine,
- * 2026-07-18, reworked 2026-07-20): counter-extreme prints are guaranteed to
- * contradict an absorption entry right when it confirms — a red flush into a
- * long border IS the volume the passive buyer eats, and the chop that follows
- * is what builds the delta stack. Absorption fails only when price EXITS the
- * area: the latest bar closing beyond the earlier window's accepted closes in
- * the flush direction (below the prior lowest close for a long, above the
- * prior highest close for a short). While the last close holds inside or
- * beyond-entry-side of that area, the contradicting counts are absorption
- * evidence, not counter-initiative — do not demote. Closes define the area;
- * wicks and tick-sweeps past the extreme never count as an exit.
+ * 2026-07-18, reworked 2026-07-20; made level-aware 2026-08-02, adversarial
+ * review finding #7): counter-extreme prints are guaranteed to contradict an
+ * absorption entry right when it confirms — a red flush into a long border IS
+ * the volume the passive buyer eats, and the chop that follows is what builds
+ * the delta stack.
+ *
+ * The exception lifts the demotion only when the story is actually about the
+ * EVALUATED level, in order of evidence strength:
+ *
+ * 1. Never while price has EXITED the area: the latest bar closing beyond the
+ *    earlier window's accepted closes in the flush direction (below the prior
+ *    lowest close for a long, above the prior highest close for a short).
+ *    Closes define the area; wicks and tick-sweeps never count as an exit.
+ * 2. A stall-CONFIRMED stack in the flush color within
+ *    {@link LEVEL_CONTACT_TOLERANCE_PTS} of the level is absorption at the
+ *    border — the strongest evidence, consumed directly from the code-owned
+ *    scan instead of re-inferred from aggregate counts.
+ * 3. Otherwise the flush must at least have CONTACTED the level: some recent
+ *    bar traded within tolerance of it. Counter-extremes printed elsewhere in
+ *    the window (the pre-feat-085 bypass) no longer qualify.
  */
 export function absorbedFlushException(
   direction: 'long' | 'short',
   telemetry: SignGateTelemetry,
+  context: AbsorbedFlushContext,
 ): boolean {
   const { lastClose, priorMinClose, priorMaxClose } = telemetry.recentRange
   if (direction === 'long') {
     if (telemetry.recentRedExtremeCount === 0 || priorMinClose === null) return false
-    return lastClose >= priorMinClose - AREA_EXIT_TOLERANCE_PTS
+    if (lastClose < priorMinClose - AREA_EXIT_TOLERANCE_PTS) return false
+  } else {
+    if (telemetry.recentBlueExtremeCount === 0 || priorMaxClose === null) return false
+    if (lastClose > priorMaxClose + AREA_EXIT_TOLERANCE_PTS) return false
   }
-  if (telemetry.recentBlueExtremeCount === 0 || priorMaxClose === null) return false
-  return lastClose <= priorMaxClose + AREA_EXIT_TOLERANCE_PTS
+
+  const { levelPrice } = context
+  if (levelPrice === null) return false
+
+  // The flush color is the aggressor being absorbed: red into a long border,
+  // blue into a short border (absorption prints in the aggressor's color).
+  const flushSide = direction === 'long' ? 'sell' : 'buy'
+  const confirmedStackAtLevel = (context.absorption?.candidates ?? []).some(
+    (candidate) =>
+      candidate.stall.confirmed &&
+      candidate.side === flushSide &&
+      distanceToStack(levelPrice, candidate) <= LEVEL_CONTACT_TOLERANCE_PTS,
+  )
+  if (confirmedStackAtLevel) return true
+
+  return context.recentBars.some(
+    (bar) => distanceToBar(levelPrice, bar) <= LEVEL_CONTACT_TOLERANCE_PTS,
+  )
 }
 
 export interface ValidatedEval {
@@ -312,19 +392,34 @@ export function enforceEvalFacts(
             ? telemetry.recentRange.priorMinClose
             : telemetry.recentRange.priorMaxClose
         const edgeName = direction === 'long' ? 'close floor' : 'close ceiling'
-        if (absorbedFlushException(direction, telemetry)) {
+        const flushContext: AbsorbedFlushContext = {
+          levelPrice:
+            result.evaluatedLevel?.price ?? options.proximity.nearest?.level.price ?? null,
+          recentBars: options.recentBars,
+          absorption: options.absorption,
+        }
+        if (absorbedFlushException(direction, telemetry, flushContext)) {
           warnings.push(
             `extreme counts run against the ${direction} ENTER (${counterCount} counter-extreme ` +
-              `vs ${entryCount} entry-extreme bars), but the flush is being absorbed — price has ` +
-              `not closed out of the area (last close ${telemetry.recentRange.lastClose} vs ` +
-              `prior ${edgeName} ${areaEdge}) — ENTER kept`,
+              `vs ${entryCount} entry-extreme bars), but the flush is being absorbed AT the ` +
+              `evaluated level — price has not closed out of the area (last close ` +
+              `${telemetry.recentRange.lastClose} vs prior ${edgeName} ${areaEdge}) — ENTER kept`,
           )
         } else {
+          const exitedArea =
+            areaEdge !== null &&
+            (direction === 'long'
+              ? telemetry.recentRange.lastClose < areaEdge - AREA_EXIT_TOLERANCE_PTS
+              : telemetry.recentRange.lastClose > areaEdge + AREA_EXIT_TOLERANCE_PTS)
           warnings.push(
             `model returned ENTER ${direction} but the extreme counts confirm counter-initiative ` +
-              `(${counterCount} counter-extreme vs ${entryCount} entry-extreme bars) and price has ` +
-              `closed out of the area (last close ${telemetry.recentRange.lastClose} vs ` +
-              `prior ${edgeName} ${areaEdge}) — coerced to WAIT`,
+              `(${counterCount} counter-extreme vs ${entryCount} entry-extreme bars) and ` +
+              (exitedArea
+                ? `price has closed out of the area (last close ` +
+                  `${telemetry.recentRange.lastClose} vs prior ${edgeName} ${areaEdge})`
+                : `no absorption evidence ties the flush to the evaluated level (no ` +
+                  `stall-confirmed stack or bar contact within ${LEVEL_CONTACT_TOLERANCE_PTS} pts)`) +
+              ` — coerced to WAIT`,
           )
           result = coherentWaitDemotion(result, direction, {
             counterCount,
