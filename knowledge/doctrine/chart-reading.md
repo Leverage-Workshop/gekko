@@ -32,7 +32,10 @@ Balance vs imbalance, poor highs/lows (single prints), value-area acceptance/rej
 patterns.
 - TPO blocks (time at price), value-area shading, 5-day rolling VbP.
 
-### 5. Execution Chart (500 volume, 21-day lookback)
+### 5. Execution Chart (volume bars, 21-day lookback)
+
+The per-bar volume is exporter metadata the operator controls in Sierra Chart — the configured
+value is stated in each run's data message, never here.
 Delta clustering (blue vs red), aggression symmetry, tempo of tape (absorption vs exhaustion),
 initiative flips at the exact point of contact.
 - Color-coded candles: blue (buying), red (selling), white (neutral).

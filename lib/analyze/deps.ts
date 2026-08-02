@@ -25,6 +25,7 @@ export function realAnalyzeDeps(): AnalyzeDeps {
         high_conviction_model_id: row.high_conviction_model_id,
         model_effort: row.model_effort,
         high_conviction_model_effort: row.high_conviction_model_effort,
+        execution_bar_volume: row.execution_bar_volume,
       }
     },
 

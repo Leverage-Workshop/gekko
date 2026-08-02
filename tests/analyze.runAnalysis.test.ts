@@ -230,6 +230,8 @@ describe('runAnalysis', () => {
     expect(captured.prompt).toContain('# Raw MGI static levels')
     expect(captured.prompt).toContain(`meta.currentPrice = ${facts.currentPrice}`)
     expect(captured.prompt).toContain('Image 1: HTF planning chart')
+    // feat-079: config carries no execution_bar_volume — the 750 default is injected.
+    expect(captured.prompt).toContain('750-VOLUME bars')
   })
 
   it('persists the engine-recomputed rr, not the model claim', async () => {
@@ -297,6 +299,20 @@ describe('runAnalysis', () => {
 
     expect(harness.getCaptured()!.model).toBe('anthropic/claude-sonnet-5')
     expect(result.warnings.some((w) => w.includes('config row missing'))).toBe(true)
+  })
+
+  it('injects the configured execution bar volume into the prompt (feat-079)', async () => {
+    const harness = makeDeps({
+      fetchConfig: async () => ({
+        model_id: 'test/model-x',
+        rr_min: 3,
+        execution_bar_volume: 1000,
+      }),
+    })
+    await runAnalysis(harness.deps, { triggerReason: 'manual' })
+
+    expect(harness.getCaptured()!.prompt).toContain('1000-VOLUME bars')
+    expect(harness.getCaptured()!.prompt).not.toContain('750-VOLUME')
   })
 
   it('routes to the high-conviction model when the flag is on (feat-031)', async () => {

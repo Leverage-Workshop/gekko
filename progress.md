@@ -4,11 +4,17 @@
 
 **Last Updated:** 2026-08-01
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Queued (Codex adversarial prompt review, 2026-08-01): execution bar size as a
-/settings-editable config value (operator: candles are 750-volume, the doctrine's
-"500 volume" line is stale; feat-079), and per-run-preamble dedup vs system
-doctrine (feat-080).
-Latest: **Structured Active Pattern Scan** (feat-078 — Codex finding #3: the
+Queued (Codex adversarial prompt review, 2026-08-01): per-run-preamble dedup vs
+system doctrine (feat-080).
+Latest: **Execution bar size as config** (feat-079 — Codex finding #4: the
+doctrine's "500 volume" line was stale prose vs the exporter's 750-volume bars;
+`config.execution_bar_volume` (int, default 750, CHECK 50..50000, migration
+applied to the live DB and the gekko-db skill snapshot updated) is now injected
+into the analyze + update prompts ("The execution chart trades N-VOLUME bars"),
+the cached doctrine prefix is number-free (chart-reading.md heading
+de-numbered), fetchConfigRow grew a pre-bar-volume degradation tier, and
+/settings gained an Execution Bar Volume field), on top of
+**Structured Active Pattern Scan** (feat-078 — Codex finding #3: the
 binary present/absent keyPoint mandate had no honest middle state, pressuring
 hallucinated visual evidence; `patternScan` is now a structured Briefing +
 BriefingUpdate field (verdict present/absent/indeterminate, pattern nullable,
