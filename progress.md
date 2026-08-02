@@ -4,9 +4,19 @@
 
 **Last Updated:** 2026-08-01
 **Active Feature:** none — remaining `not-started`: feat-051..053 (data exports).
-Queued (Codex adversarial prompt review, 2026-08-01): per-run-preamble dedup vs
-system doctrine (feat-080).
-Latest: **Execution bar size as config** (feat-079 — Codex finding #4: the
+The 2026-08-01 Codex adversarial prompt review is fully closed: feat-076..080
+shipped all five findings.
+Latest: **Per-run preamble dedup** (feat-080 — Codex finding #5: the user
+message restated 4–31 lines of system doctrine and the copies drifted twice;
+every rule now has ONE home — the Active Pattern Scan contract moved into
+patterns.md (shared by both briefing prefixes), detector-LVN-node anchor
+legality moved into output-objective.md, and the analyze/update user bullets
+(fakeoutTails doctrine, pattern scan, overview register, rr restatement,
+entry/stop/ladder, objective-slot abstention) trimmed to live values +
+contract pointers; user prompt 91.4k → 88.4k chars per run, ceiling lowered
+back to 91k; analyze prefix ceiling consciously 41k → 43k (cached once); four
+prefix-owned canary phrases now guard against restatements creeping back), on
+top of **Execution bar size as config** (feat-079 — Codex finding #4: the
 doctrine's "500 volume" line was stale prose vs the exporter's 750-volume bars;
 `config.execution_bar_volume` (int, default 750, CHECK 50..50000, migration
 applied to the live DB and the gekko-db skill snapshot updated) is now injected
