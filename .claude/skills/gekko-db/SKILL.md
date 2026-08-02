@@ -6,7 +6,7 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-01 (25 applied migrations).
+the project's REST APIs. Schema snapshot updated 2026-08-02 (26 applied migrations).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -144,7 +144,8 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | stop | numeric, nullable; targets numeric[], nullable | |
 | current_price | numeric, nullable | |
 | checks | jsonb, nullable | EvalCheck[]: [{name, verdict: pass\|fail\|pending, note}] |
-| next_signal | text, nullable | observable that flips WAIT/NOT_VALID → ENTER |
+| next_signal | text, nullable | WAIT only (feat-082): observable that authorizes the level |
+| revalidation_action | text, nullable | NOT_VALID only (feat-082): advisory next step for a dead level |
 | caution | text, nullable | one line of what NOT to do |
 | warnings | jsonb, nullable | string[] runtime warnings (feat: eval_result_warnings) |
 | absorption_stack | jsonb, nullable | code-selected stall-confirmed absorption stack (ConfirmedAbsorptionCandidate, feat-072) |
@@ -175,7 +176,9 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Migrations & DDL
 
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (25 rows as of 2026-08-01).
+  `supabase_migrations.schema_migrations` (26 rows as of 2026-08-02; repo
+  `20260802200000_revalidation_action.sql` applied via the claude.ai Supabase
+  MCP, so its live timestamp differs from the filename).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has
   no corresponding repo file — it added the anon RLS policy above. And live version
   timestamps can differ from repo filenames when applied via the claude.ai Supabase

@@ -96,6 +96,7 @@ function modelEval(): EvalResult {
       { name: 'Absorption', verdict: 'pass', note: 'Red flush stalled at the border' },
     ],
     nextSignal: null,
+    revalidationAction: null,
     caution: 'No adds above T1',
     reason: 'Absorption at the border, positive delta confirming the long.',
   }
@@ -333,9 +334,11 @@ describe('runEval', () => {
     )
   })
 
-  it('requires an Absorption condition on every level verdict (feat-072)', async () => {
-    // The doctrine names the required check; enforcement is warning-only —
-    // fabricating a check the model didn't make would put words in its mouth.
+  it('requires an Absorption condition on every level verdict (feat-072/082)', async () => {
+    // The doctrine names the required check; the EvalResult refinement
+    // hard-enforces it at generate time (feat-082), and enforcement keeps a
+    // belt-and-braces warning — with an EXACT name match, not a substring —
+    // for coerced/code-constructed paths that bypass the generate step.
     expect(loadDoctrine('eval')).toContain('MUST be named exactly **"Absorption"**')
 
     const harness = makeDeps({
@@ -345,6 +348,7 @@ describe('runEval', () => {
           checks: [
             { name: 'Structure', verdict: 'pass', note: 'Border holds' },
             { name: 'Delta', verdict: 'pass', note: 'Positive mean' },
+            { name: 'No Absorption Data', verdict: 'pending', note: 'lookalike name' },
           ],
         },
         model: params.model,
@@ -356,7 +360,7 @@ describe('runEval', () => {
     })
     const result = await runEval(harness.deps)
     expect(
-      result.warnings.some((w) => w.includes('omitted the required "Absorption" condition')),
+      result.warnings.some((w) => w.includes('no check named exactly "Absorption"')),
     ).toBe(true)
   })
 
@@ -364,7 +368,7 @@ describe('runEval', () => {
     const harness = makeDeps()
     const result = await runEval(harness.deps)
     expect(
-      result.warnings.some((w) => w.includes('omitted the required "Absorption" condition')),
+      result.warnings.some((w) => w.includes('no check named exactly "Absorption"')),
     ).toBe(false)
   })
 

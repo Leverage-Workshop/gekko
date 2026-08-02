@@ -22,6 +22,8 @@ export interface EvalResultInsert {
   reason: string
   checks: EvalCheck[] | null
   next_signal: string | null
+  /** NOT_VALID only (feat-082): the advisory next step for a dead level. */
+  revalidation_action: string | null
   caution: string | null
   /** The model's full, unmodified output (the enforced copy lives in columns). */
   raw_model_json: EvalResult
@@ -75,6 +77,7 @@ export function buildEvalResultRow(input: PersistEvalInput): EvalResultInsert {
     reason: result.reason,
     checks: result.checks ?? null,
     next_signal: result.nextSignal ?? null,
+    revalidation_action: result.revalidationAction ?? null,
     caution: result.caution ?? null,
     raw_model_json: input.rawModelResult,
     current_price: result.meta.currentPrice,

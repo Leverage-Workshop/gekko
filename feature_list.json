@@ -850,6 +850,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-081-eval-only-prefix (typecheck clean, lint 0 errors, 1113 tests passing incl. 9 new feat-081 guard cases; build OK). Measured prefixes: eval 25,069 (was ~32,000 \u2014 ~7k of briefing-only doctrine removed per eval run), analyze 42,517, update 37,456."
+    },
+    {
+      "id": "feat-082",
+      "name": "Status-discriminated EvalResult verdict contract (Codex eval findings #2/#4/#6)",
+      "description": "Codex adversarial eval-prompt review (2026-08-02) findings #2 (CRITICAL), #4 and #6 (HIGH): every near-level verdict \u2014 including NOT_VALID \u2014 was forced to carry direction/trigger/stop/targets (the production run fabricated a future trigger on a rejected setup), WAIT and NOT_VALID mixed temporary uncertainty with terminal invalidation (every NOT_VALID had to provide a flip-to-ENTER nextSignal, resurrecting dead plans), and the schema/validation enforced none of the level-verdict contract (checks nullable/unbounded, Absorption matched by substring, warning-only). Changes: (1) EvalResult gains a per-status field matrix enforced by a zod superRefine \u2014 the provider-visible JSON schema stays a flat strict-mode object (OpenAI rejects root-level unions) while contract violations fail schema.parse in the generate step and retry instead of persisting: ENTER requires evaluatedLevel/direction/trigger+checks with nextSignal/revalidationAction null (trigger = the presently-visible confirming pattern, never hypothetical); WAIT requires nextSignal with trigger null (level stays armed); NOT_VALID requires new revalidationAction with trigger/stop/targets/nextSignal null (a dead level carries no actionable geometry and cannot flip to ENTER on one print); NO_ENTRY_NEAR requires every level field null; level verdicts carry 3-6 uniquely-named checks, one named exactly Absorption. (2) output-eval.md rewrites the WAIT-vs-NOT_VALID semantics, states the per-status hard contract, and rewrites NOT_VALID conditions in present tense (current structure/initiative, not guessed history). (3) The eval user message no longer mandates trigger population \u2014 it echoes the level identity and points at the contract. (4) eval_results gains revalidation_action (migration 20260802200000, applied live via claude.ai Supabase MCP; gekko-db skill snapshot updated; deps PGRST204 degradation extended). (5) validateEval's Absorption warning upgraded to exact-name (belt-and-braces for coerced paths).",
+      "dependencies": [
+        "feat-081"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-082-eval-verdict-contract (typecheck clean, lint 0 errors, 1119 tests passing incl. 6 new per-status contract cases; build OK). Migration applied to live DB (26 rows in schema_migrations)."
     }
   ]
 }

@@ -340,6 +340,7 @@ export async function runEval(
       targets: null,
       checks: null,
       nextSignal: null,
+      revalidationAction: null,
       caution: null,
       reason:
         'No entry near. There are no active entry levels — run a briefing first to map entries.',
