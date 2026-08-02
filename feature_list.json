@@ -819,6 +819,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-078-pattern-verdict (typecheck, lint 0 errors, 1078 tests passing \u2014 6 new: schema tristate accept/reject/persisted-optional, validate throw-on-unnamed-present/null-stray-name/indeterminate-untouched, compose fresh-scan assertion; build OK)."
+    },
+    {
+      "id": "feat-079",
+      "name": "Execution bar size as /settings-editable config (execution_bar_volume)",
+      "description": "Codex adversarial review finding #4 (2026-08-01): the system message's Chart Reading doctrine said '500 volume' for the execution chart while every code surface and the live Sierra exporter use 750-volume bars \u2014 the number was hardcoded prose (introduced stale in the feat-022 knowledge restructure, commit 579b8bd) and drifted. Per-bar volume is exporter METADATA the operator controls in Sierra, so it now lives in config. (1) Migration 20260801090000_execution_bar_volume.sql: config.execution_bar_volume integer NOT NULL DEFAULT 750 CHECK 50..50000 \u2014 APPLIED to the live DB via the claude.ai Supabase MCP (verified: live row reads 750); gekko-db skill snapshot updated in the same PR (25 applied migrations, four-tier config degradation). (2) lib/config: ConfigRow + FULL_CONFIG_COLUMNS gain the column; fetchConfigRow grows a pre-bar-volume degradation tier (full -> pre-bar-volume -> pre-effort -> legacy) with DEFAULT_EXECUTION_BAR_VOLUME=750 padding and a barVolumeColumnMissing flag; ConfigUpdateSchema validates int 50..50000; MIGRATION_REQUIRED_MESSAGE names the new migration. (3) AnalyzeConfig.execution_bar_volume (optional, pre-migration safe); runAnalysis and runUpdate resolve config -> default and inject executionBarVolume into both prompt builders; the analyze deltaTelemetry bullet now reads 'The execution chart trades ${N}-VOLUME bars', and the update prompt gains the same parity bullet \u2014 the cached doctrine prefix never states the number. (4) chart-reading.md heading de-numbered ('volume bars, 21-day lookback' + note that the configured value arrives in each run's data message) \u2014 the stale '500 volume' line is gone. (5) /settings: Execution Bar Volume number input with bounds, migration-missing warning, wired through /api/config.",
+      "dependencies": [
+        "feat-078"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-079-bar-size-config (typecheck, lint 0 errors, 1083 tests passing \u2014 7 new: config schema bounds/int/missing-field, fetch pre-bar-volume tier + tier cascade updates, prompt injection default-750 and configured-1000 assertions; build OK). Live DB verified: config row id=1 returns execution_bar_volume=750."
     }
   ]
 }

@@ -76,6 +76,7 @@ const analysisPrompt = buildAnalysisPrompt({
     { label: 'Execution chart (short timeframe)' },
   ],
   rrMin: 3,
+  executionBarVolume: 750,
 })
 
 // ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@ import {
   persistBriefing,
 } from '@/lib/analyze'
 import type { DoctrineTask, LoadBundleDeps, PersistDeps } from '@/lib/analyze'
+import { DEFAULT_EXECUTION_BAR_VOLUME } from '@/lib/config/fetchConfig'
 import { summarizeIntradayTrend } from '@/lib/engine/intradayTrend'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
@@ -116,6 +117,7 @@ export async function runUpdate(
     ? (config?.high_conviction_model_effort ?? null)
     : (config?.model_effort ?? null)
   const rrMin = config?.rr_min ?? DEFAULT_RR_MIN
+  const executionBarVolume = config?.execution_bar_volume ?? DEFAULT_EXECUTION_BAR_VOLUME
 
   const parentRow = await deps.fetchLatestBriefing()
   if (!parentRow) {
@@ -164,6 +166,7 @@ export async function runUpdate(
       rawMgi: bundle.row.mgi_json,
       charts: bundle.charts,
       rrMin,
+      executionBarVolume,
       parent: {
         briefing: parent,
         createdAt: parentRow.created_at,

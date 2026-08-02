@@ -6,7 +6,7 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-07-31 (24 applied migrations).
+the project's REST APIs. Schema snapshot updated 2026-08-01 (25 applied migrations).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -90,6 +90,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | model_effort / triage_model_effort / high_conviction_model_effort | text, nullable | CHECK in ('none','minimal','low','medium','high','xhigh'); NULL = provider default (feat-055) |
 | rr_min | numeric | 3.0 |
 | proximity_window_seconds | int | 60 — recency window of exec bars feeding the eval near-entry gate |
+| execution_bar_volume | int | 750 — per-bar volume of the Sierra execution-chart bars (feat-079); CHECK 50–50000; injected into analyze/update prompts, /settings-editable |
 | updated_at | timestamptz | now() |
 
 ### raw_bundles — one row per ingested Sierra export bundle
@@ -174,12 +175,12 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Migrations & DDL
 
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (24 rows as of 2026-07-31).
+  `supabase_migrations.schema_migrations` (25 rows as of 2026-08-01).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has
   no corresponding repo file — it added the anon RLS policy above. And live version
   timestamps can differ from repo filenames when applied via the claude.ai Supabase
   MCP (repo `20260731030000_absorption_stack.sql` is live `20260731033446`). Don't be
-  surprised by count/name mismatches (23 repo files vs 24 live).
+  surprised by count/name mismatches (24 repo files vs 25 live; repo `20260801090000_execution_bar_volume.sql` was applied live via the claude.ai Supabase MCP, so its live timestamp differs).
 - Check applied migrations:
   `curl -s -X POST "$URL/rest/v1/rpc/..."` won't work for this — `schema_migrations`
   isn't exposed via PostgREST. Instead compare repo filenames against the snapshot
@@ -197,7 +198,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Gotchas
 
 - The eval pipeline's config fetch uses `select('*')` + three-tier column degradation
-  (full → pre-effort → legacy), so new config columns need care — see
+  (full → pre-bar-volume → pre-effort → legacy), so new config columns need care — see
   `lib/config` fetch layer before adding columns.
 - Hosted PostgREST has no row cap configured — always pass `limit=` on
   `raw_bundles`/`briefings`/`eval_results` queries; `raw_model_json`/`mgi_json` rows

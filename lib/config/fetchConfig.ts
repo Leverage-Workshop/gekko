@@ -14,7 +14,7 @@ import type { ReasoningEffort } from '@/lib/llm/reasoning'
  * high_conviction_flag (feat-031) and model_reasoning_effort (2026-07-25).
  */
 
-/** The full `config` singleton row (post model_reasoning_effort migration). */
+/** The full `config` singleton row (post execution_bar_volume migration). */
 export interface ConfigRow {
   model_id: string
   triage_model_id: string
@@ -25,6 +25,12 @@ export interface ConfigRow {
   model_effort: ReasoningEffort | null
   triage_model_effort: ReasoningEffort | null
   high_conviction_model_effort: ReasoningEffort | null
+  /**
+   * Per-bar volume of the Sierra execution-chart bars (feat-079) — exporter
+   * metadata the operator controls in Sierra, injected into the analyze/update
+   * prompts. The cached doctrine prefix never states the number.
+   */
+  execution_bar_volume: number
   updated_at: string
 }
 
@@ -41,9 +47,20 @@ export interface ConfigReadResult {
    * the returned row's effort columns are padded with null (provider default).
    */
   effortColumnsMissing: boolean
+  /**
+   * True when the live DB predates the execution_bar_volume migration —
+   * the returned row is padded with {@link DEFAULT_EXECUTION_BAR_VOLUME}.
+   */
+  barVolumeColumnMissing: boolean
 }
 
 export const FULL_CONFIG_COLUMNS =
+  'model_id, triage_model_id, rr_min, high_conviction_enabled, high_conviction_model_id, ' +
+  'model_effort, triage_model_effort, high_conviction_model_effort, execution_bar_volume, ' +
+  'updated_at'
+
+/** Pre-execution_bar_volume column set (post model_reasoning_effort). */
+const PRE_BAR_VOLUME_CONFIG_COLUMNS =
   'model_id, triage_model_id, rr_min, high_conviction_enabled, high_conviction_model_id, ' +
   'model_effort, triage_model_effort, high_conviction_model_effort, updated_at'
 
@@ -68,6 +85,17 @@ export const EFFORT_DEFAULTS = {
   model_effort: null,
   triage_model_effort: null,
   high_conviction_model_effort: null,
+} as const
+
+/**
+ * Mirrors the execution_bar_volume migration default (feat-079) — the live
+ * Sierra exporter's 750-volume bars. Pads the read shape when the live DB is
+ * pre-migration, and backstops the prompt builders when config is unseeded.
+ */
+export const DEFAULT_EXECUTION_BAR_VOLUME = 750
+
+const BAR_VOLUME_DEFAULTS = {
+  execution_bar_volume: DEFAULT_EXECUTION_BAR_VOLUME,
 } as const
 
 /** Postgres "undefined_column" — the column set predates a checked-in migration. */
@@ -97,22 +125,41 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
       row: (full.data as ConfigRow | null) ?? null,
       highConvictionColumnsMissing: false,
       effortColumnsMissing: false,
+      barVolumeColumnMissing: false,
     }
   }
   if (!isMissingColumnError(full.error)) {
     throw full.error
   }
 
-  // Live DB predates the model_reasoning_effort migration: retry with the
+  // Live DB predates the execution_bar_volume migration: retry without it and
+  // pad with the migration default.
+  const preBarVolume = await selectConfig(supabase, PRE_BAR_VOLUME_CONFIG_COLUMNS)
+  if (!preBarVolume.error) {
+    return {
+      row: preBarVolume.data
+        ? ({ ...preBarVolume.data, ...BAR_VOLUME_DEFAULTS } as ConfigRow)
+        : null,
+      highConvictionColumnsMissing: false,
+      effortColumnsMissing: false,
+      barVolumeColumnMissing: true,
+    }
+  }
+  if (!isMissingColumnError(preBarVolume.error)) {
+    throw preBarVolume.error
+  }
+
+  // Predates the model_reasoning_effort migration too: retry with the
   // pre-effort column set and pad the effort columns with null.
   const preEffort = await selectConfig(supabase, PRE_EFFORT_CONFIG_COLUMNS)
   if (!preEffort.error) {
     return {
       row: preEffort.data
-        ? ({ ...preEffort.data, ...EFFORT_DEFAULTS } as ConfigRow)
+        ? ({ ...preEffort.data, ...EFFORT_DEFAULTS, ...BAR_VOLUME_DEFAULTS } as ConfigRow)
         : null,
       highConvictionColumnsMissing: false,
       effortColumnsMissing: true,
+      barVolumeColumnMissing: true,
     }
   }
   if (!isMissingColumnError(preEffort.error)) {
@@ -127,9 +174,15 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
   }
   return {
     row: legacy.data
-      ? ({ ...legacy.data, ...HIGH_CONVICTION_DEFAULTS, ...EFFORT_DEFAULTS } as ConfigRow)
+      ? ({
+          ...legacy.data,
+          ...HIGH_CONVICTION_DEFAULTS,
+          ...EFFORT_DEFAULTS,
+          ...BAR_VOLUME_DEFAULTS,
+        } as ConfigRow)
       : null,
     highConvictionColumnsMissing: true,
     effortColumnsMissing: true,
+    barVolumeColumnMissing: true,
   }
 }

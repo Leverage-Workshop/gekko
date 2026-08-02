@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  const { row, highConvictionColumnsMissing, effortColumnsMissing } =
+  const { row, highConvictionColumnsMissing, effortColumnsMissing, barVolumeColumnMissing } =
     await fetchConfigRow(getServiceClient())
 
   return (
@@ -56,10 +56,12 @@ export default async function SettingsPage() {
                 model_effort: row.model_effort,
                 triage_model_effort: row.triage_model_effort,
                 high_conviction_model_effort: row.high_conviction_model_effort,
+                execution_bar_volume: row.execution_bar_volume,
               }}
               updatedAt={row.updated_at}
               highConvictionColumnsMissing={highConvictionColumnsMissing}
               effortColumnsMissing={effortColumnsMissing}
+              barVolumeColumnMissing={barVolumeColumnMissing}
             />
           </section>
         ) : (

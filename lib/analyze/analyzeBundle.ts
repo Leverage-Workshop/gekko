@@ -1,4 +1,5 @@
 import { Briefing } from '@/knowledge/schema/briefing.schema'
+import { DEFAULT_EXECUTION_BAR_VOLUME } from '@/lib/config/fetchConfig'
 import { summarizeIntradayTrend } from '@/lib/engine/intradayTrend'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
@@ -43,6 +44,12 @@ export interface AnalyzeConfig {
    */
   model_effort?: ReasoningEffort | null
   high_conviction_model_effort?: ReasoningEffort | null
+  /**
+   * feat-079: per-bar volume of the Sierra execution-chart bars (exporter
+   * metadata, /settings-editable). Optional so a pre-migration config read
+   * stays valid — absent reads as {@link DEFAULT_EXECUTION_BAR_VOLUME}.
+   */
+  execution_bar_volume?: number | null
 }
 
 export interface AnalyzeDeps extends LoadBundleDeps, PersistDeps {
@@ -117,6 +124,7 @@ export async function runAnalysis(
     ? (config?.high_conviction_model_effort ?? null)
     : (config?.model_effort ?? null)
   const rrMin = config?.rr_min ?? DEFAULT_RR_MIN
+  const executionBarVolume = config?.execution_bar_volume ?? DEFAULT_EXECUTION_BAR_VOLUME
 
   const bundle = await loadLatestBundle(deps)
   warnings.push(...bundle.warnings)
@@ -149,6 +157,7 @@ export async function runAnalysis(
       rawMgi: bundle.row.mgi_json,
       charts: bundle.charts,
       rrMin,
+      executionBarVolume,
     }),
     images: bundle.images,
     schema: Briefing,

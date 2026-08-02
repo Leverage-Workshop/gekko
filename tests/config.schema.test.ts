@@ -13,6 +13,7 @@ const valid = {
   model_effort: null,
   triage_model_effort: null,
   high_conviction_model_effort: null,
+  execution_bar_volume: 750,
 }
 
 function fieldErrors(payload: unknown): Record<string, unknown> {
@@ -130,6 +131,34 @@ describe('ConfigUpdateSchema', () => {
     expect(
       ConfigUpdateSchema.safeParse({ ...valid, high_conviction_model_effort: 1 }).success,
     ).toBe(false)
+  })
+
+  // feat-079: execution bar volume — a positive integer inside the sane band.
+  it('accepts execution_bar_volume at the 50 and 50000 boundaries', () => {
+    expect(ConfigUpdateSchema.safeParse({ ...valid, execution_bar_volume: 50 }).success).toBe(true)
+    expect(
+      ConfigUpdateSchema.safeParse({ ...valid, execution_bar_volume: 50_000 }).success,
+    ).toBe(true)
+  })
+
+  it('rejects execution_bar_volume outside the band, non-integers and non-numbers', () => {
+    expect(fieldErrors({ ...valid, execution_bar_volume: 49 })).toHaveProperty(
+      'execution_bar_volume',
+    )
+    expect(fieldErrors({ ...valid, execution_bar_volume: 50_001 })).toHaveProperty(
+      'execution_bar_volume',
+    )
+    expect(fieldErrors({ ...valid, execution_bar_volume: 750.5 })).toHaveProperty(
+      'execution_bar_volume',
+    )
+    expect(fieldErrors({ ...valid, execution_bar_volume: '750' })).toHaveProperty(
+      'execution_bar_volume',
+    )
+  })
+
+  it('rejects a payload missing execution_bar_volume (form always sends it)', () => {
+    const { execution_bar_volume: _v, ...missing } = valid
+    expect(fieldErrors(missing)).toHaveProperty('execution_bar_volume')
   })
 
   it('rejects a payload missing the effort fields (form always sends them)', () => {

@@ -33,6 +33,12 @@ export const ConfigUpdateSchema = z.object({
   model_effort: effort,
   triage_model_effort: effort,
   high_conviction_model_effort: effort,
+  // feat-079: Sierra execution-chart per-bar volume (exporter metadata).
+  execution_bar_volume: z
+    .number('Must be a number')
+    .int('Must be a whole number')
+    .min(50, 'Must be at least 50')
+    .max(50_000, 'Must be at most 50000'),
 })
 
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
@@ -44,8 +50,9 @@ export type ConfigUpdateOutcome =
 /** Surfaced (as a 400) when a POST touches columns the live DB doesn't have yet. */
 export const MIGRATION_REQUIRED_MESSAGE =
   'A config column is missing in the live database — apply the pending ' +
-  'supabase/migrations (high_conviction_flag.sql, model_reasoning_effort.sql) ' +
-  '(Supabase MCP server or dashboard SQL editor) first, then save again.'
+  'supabase/migrations (high_conviction_flag.sql, model_reasoning_effort.sql, ' +
+  'execution_bar_volume.sql) (Supabase MCP server or dashboard SQL editor) ' +
+  'first, then save again.'
 
 export async function updateConfigRow(
   supabase: SupabaseClient,

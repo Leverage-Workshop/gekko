@@ -18,6 +18,7 @@ export interface SettingsInitialValues {
   model_effort: ReasoningEffort | null
   triage_model_effort: ReasoningEffort | null
   high_conviction_model_effort: ReasoningEffort | null
+  execution_bar_volume: number
 }
 
 interface SettingsFormProps {
@@ -27,6 +28,8 @@ interface SettingsFormProps {
   highConvictionColumnsMissing: boolean
   /** Live DB predates the model_reasoning_effort migration. */
   effortColumnsMissing: boolean
+  /** Live DB predates the execution_bar_volume migration (feat-079). */
+  barVolumeColumnMissing: boolean
 }
 
 type SaveState =
@@ -121,10 +124,12 @@ export function SettingsForm({
   updatedAt,
   highConvictionColumnsMissing,
   effortColumnsMissing,
+  barVolumeColumnMissing,
 }: SettingsFormProps) {
   const [modelId, setModelId] = useState(initial.model_id)
   const [triageModelId, setTriageModelId] = useState(initial.triage_model_id)
   const [rrMin, setRrMin] = useState(String(initial.rr_min))
+  const [barVolume, setBarVolume] = useState(String(initial.execution_bar_volume))
   const [hcEnabled, setHcEnabled] = useState(initial.high_conviction_enabled)
   const [hcModelId, setHcModelId] = useState(initial.high_conviction_model_id)
   const [modelEffort, setModelEffort] = useState(initial.model_effort)
@@ -145,6 +150,12 @@ export function SettingsForm({
       setState({ phase: 'error', message: 'Validation failed' })
       return
     }
+    const barVol = Number(barVolume)
+    if (barVolume.trim() === '' || Number.isNaN(barVol)) {
+      setFieldErrors({ execution_bar_volume: ['Must be a number'] })
+      setState({ phase: 'error', message: 'Validation failed' })
+      return
+    }
 
     try {
       const res = await fetch('/api/config', {
@@ -159,6 +170,7 @@ export function SettingsForm({
           model_effort: modelEffort,
           triage_model_effort: triageEffort,
           high_conviction_model_effort: hcEffort,
+          execution_bar_volume: barVol,
         }),
       })
       const body = (await res.json().catch(() => null)) as ConfigResponse | null
@@ -242,6 +254,32 @@ export function SettingsForm({
         <p className="mt-1 text-xs font-light text-muted">
           Risk/reward gate applied to objectives (0.5–10).
         </p>
+      </div>
+
+      <div>
+        <FieldLabel htmlFor="execution_bar_volume">Execution Bar Volume</FieldLabel>
+        <input
+          id="execution_bar_volume"
+          name="execution_bar_volume"
+          type="number"
+          step="1"
+          min="50"
+          max="50000"
+          value={barVolume}
+          onChange={(e) => setBarVolume(e.target.value)}
+          className={inputClass}
+        />
+        <FieldError messages={fieldErrors.execution_bar_volume} />
+        <p className="mt-1 text-xs font-light text-muted">
+          Per-bar volume of the Sierra execution-chart bars — must match the
+          exporter&apos;s chart setting; injected into every briefing prompt.
+        </p>
+        {barVolumeColumnMissing && (
+          <p className="mt-2 text-xs font-light tracking-wide text-warning">
+            The execution_bar_volume column is not in the live database yet — apply
+            the execution_bar_volume migration before saving.
+          </p>
+        )}
       </div>
 
       <div className="border-t border-hairline pt-8">
