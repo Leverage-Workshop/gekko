@@ -83,12 +83,15 @@ export const AREA_EXIT_TOLERANCE_PTS = 0.5
 
 /**
  * How close a recent bar must come to the evaluated level for the flush to
- * count as contact WITH that border (feat-085). Wide enough for a flush that
- * front-runs the level by a couple of points, far tighter than the 20-pt
- * proximity gate — counter-extremes printed a rotation away are just
+ * count as contact WITH that border (feat-085). Sized off the measured
+ * 750-volume exec bars (chart-data rolling sample: median high-low span
+ * ~14.75 pts, mean ~17.7): a flush that reverses one bar early naturally
+ * stalls about half a bar short of the border, so tolerance covers that
+ * front-run while staying well inside the 20-pt proximity gate and the
+ * 25-pt rotation scale — counter-extremes printed a rotation away are just
  * counter-initiative, not absorption at this level.
  */
-export const LEVEL_CONTACT_TOLERANCE_PTS = 5
+export const LEVEL_CONTACT_TOLERANCE_PTS = 10
 
 /** The level-and-sequence facts the absorbed-flush exception judges (feat-085). */
 export interface AbsorbedFlushContext {
