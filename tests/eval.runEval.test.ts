@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type { EvalResult } from '@/knowledge/schema/briefing.schema'
+import { EvalResult } from '@/knowledge/schema/briefing.schema'
 import type {
   EntryLevelRow,
   EvalDeps,
   EvalResultInsert,
 } from '@/lib/eval'
-import { EvalInputError, runEval } from '@/lib/eval'
+import { EvalContractViolationError, EvalInputError, runEval } from '@/lib/eval'
 import { loadDoctrine } from '@/lib/analyze'
 import type { GenerateStructuredResult } from '@/lib/llm'
 
@@ -506,6 +506,67 @@ describe('runEval', () => {
     // The demotion explanation is persisted so the dashboard can show why a
     // WAIT verdict sits above all-pass checks.
     expect(row.warnings?.some((w) => w.includes('coerced to WAIT'))).toBe(true)
+
+    // feat-083: the demotion rebuilds a CONTRACT-COHERENT WAIT — not just a
+    // flipped enum. No ENTER-shaped trigger survives; the authorizing signal,
+    // caution and reason all describe the gate that intervened.
+    expect(row.trigger).toBeNull()
+    expect(row.next_signal).toContain('recloses')
+    expect(row.revalidation_action).toBeNull()
+    expect(row.caution).toContain('Do not enter')
+    expect(row.reason).toContain('demoted from ENTER to WAIT')
+    expect(EvalResult.safeParse({ ...row.raw_model_json, ...demotedShape(row) }).success).toBe(
+      true,
+    )
+
+    function demotedShape(persisted: typeof row) {
+      return {
+        status: persisted.status,
+        trigger: persisted.trigger,
+        nextSignal: persisted.next_signal,
+        revalidationAction: persisted.revalidation_action,
+        caution: persisted.caution,
+        reason: persisted.reason,
+      }
+    }
+  })
+
+  it('rejects a NO_ENTRY_NEAR returned against the code-owned near gate (feat-083)', async () => {
+    // 2026-08-02 adversarial review finding #8: the old path persisted
+    // nearEntry=true beside status=NO_ENTRY_NEAR ("kept, conservative") and
+    // neither field could be trusted downstream. No coercion can honestly
+    // build a level verdict in code, so the run rejects and retries.
+    const harness = makeDeps({
+      generate: async (params) => ({
+        object: {
+          meta: {
+            createdAt: NOW.toISOString(),
+            currentPrice: CURRENT_PRICE,
+            nearEntry: false,
+            zone: 'upper value shelf',
+          },
+          status: 'NO_ENTRY_NEAR',
+          evaluatedLevel: null,
+          direction: null,
+          trigger: null,
+          stop: null,
+          targets: null,
+          checks: null,
+          nextSignal: null,
+          revalidationAction: null,
+          caution: null,
+          reason: 'No entry near.',
+        },
+        model: params.model,
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 } as GenerateStructuredResult<EvalResult>['usage'],
+        cost: 0,
+        cachedInputTokens: 0,
+        latencyMs: 1,
+      }),
+    })
+    await expect(runEval(harness.deps)).rejects.toThrow(EvalContractViolationError)
+    // Nothing incoherent was persisted.
+    expect(harness.getInsertedRow()).toBeUndefined()
   })
 
   it('keeps a long ENTER against a red flush that price recovered from', async () => {

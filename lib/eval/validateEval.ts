@@ -1,7 +1,17 @@
-import type { Direction, EvalResult } from '@/knowledge/schema/briefing.schema'
+import { EvalResult } from '@/knowledge/schema/briefing.schema'
+import type { Direction } from '@/knowledge/schema/briefing.schema'
 import type { DeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { RED_BUILDING_MIN_BARS } from '@/lib/engine/ripStatus'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
+
+/**
+ * Thrown when the model's verdict contradicts a code-owned fact in a way no
+ * coercion can honestly repair (feat-083) — e.g. NO_ENTRY_NEAR while the
+ * code-owned gate says a level IS near: a coherent level verdict needs checks
+ * and a judgment only the model can make, so the run must retry, not persist
+ * the contradiction. Deliberately NOT an EvalInputError — retrying CAN help.
+ */
+export class EvalContractViolationError extends Error {}
 
 /**
  * Post-model enforcement for the eval-task, mirroring the analyze-task's
@@ -85,6 +95,61 @@ export interface ValidatedEval {
   /** The `entry_levels.id` the verdict is about, or null (NO_ENTRY_NEAR / position eval). */
   evaluatedLevelId: string | null
   warnings: string[]
+}
+
+/**
+ * Deterministically rebuild a gate-demoted ENTER as a CONTRACT-COHERENT WAIT
+ * (2026-08-02 adversarial review finding #3: flipping only the status enum
+ * persisted a WAIT with a null nextSignal, an ENTER-shaped trigger, reason
+ * and caution — the headline status and its supporting advisory disagreed at
+ * the exact moment the safety gate intervened). The model's checks stay — they
+ * are its honest market read and the demotion is code's, surfaced in the
+ * warning, the appended reason sentence and the persisted warnings column.
+ */
+function coherentWaitDemotion(
+  entry: EvalResult,
+  direction: 'long' | 'short',
+  gate: {
+    counterCount: number
+    entryCount: number
+    areaEdge: number | null
+    edgeName: string
+  },
+): EvalResult {
+  const counterColor = direction === 'long' ? 'red' : 'blue'
+  const entryColor = direction === 'long' ? 'blue' : 'red'
+  const recloseSide = direction === 'long' ? 'above' : 'below'
+  return {
+    ...entry,
+    status: 'WAIT',
+    trigger: null,
+    nextSignal:
+      `Price recloses ${recloseSide} the prior close ${gate.edgeName}` +
+      `${gate.areaEdge !== null ? ` (${gate.areaEdge})` : ''} with ${entryColor} response at the ` +
+      `border while the ${counterColor} extreme cluster stops out-printing the entry side.`,
+    revalidationAction: null,
+    caution: `Do not enter while one-sided ${counterColor} initiative holds price out of the area.`,
+    reason:
+      `${entry.reason} Code initiative gate: ${gate.counterCount} counter-extreme vs ` +
+      `${gate.entryCount} entry-extreme bars with price closed out of the area — demoted from ` +
+      `ENTER to WAIT.`,
+  }
+}
+
+/**
+ * Fail-closed guard on status-changing coercions (feat-083): a coerced result
+ * that violates the EvalResult per-status contract is a code bug — persisting
+ * it would re-open the incoherent-verdict path the contract closed, so throw
+ * instead.
+ */
+function assertCoercedContract(result: EvalResult, what: string): void {
+  const parsed = EvalResult.safeParse(result)
+  if (!parsed.success) {
+    throw new EvalContractViolationError(
+      `${what} produced a contract-violating result: ` +
+        parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; '),
+    )
+  }
 }
 
 /**
@@ -172,13 +237,20 @@ export function enforceEvalFacts(
       caution: null,
       reason: result.reason,
     }
+    assertCoercedContract(result, 'not-near → NO_ENTRY_NEAR coercion')
   }
 
+  // A NO_ENTRY_NEAR against the code-owned near gate is unrepairable: the
+  // persisted row would carry nearEntry=true beside status=NO_ENTRY_NEAR and
+  // neither field could be trusted downstream (2026-08-02 adversarial review
+  // finding #8 — the old path knowingly persisted the contradiction). A
+  // coherent level verdict cannot be fabricated in code, so reject and let
+  // the task retry.
   if (proximity.nearEntry && result.status === 'NO_ENTRY_NEAR') {
-    warnings.push(
+    throw new EvalContractViolationError(
       options.position
-        ? `position eval (${options.position}) — the model returned NO_ENTRY_NEAR, which does not apply to a position check — kept (conservative), review the reason`
-        : 'code-computed gate says an active entry IS near, but the model returned NO_ENTRY_NEAR — kept (conservative), review the reason',
+        ? `position eval (${options.position}): the model returned NO_ENTRY_NEAR, which does not apply to a position check — rejecting for retry`
+        : 'the code-computed gate says an active entry IS near, but the model returned NO_ENTRY_NEAR — rejecting for retry',
     )
   }
 
@@ -254,7 +326,13 @@ export function enforceEvalFacts(
               `closed out of the area (last close ${telemetry.recentRange.lastClose} vs ` +
               `prior ${edgeName} ${areaEdge}) — coerced to WAIT`,
           )
-          result = { ...result, status: 'WAIT' }
+          result = coherentWaitDemotion(result, direction, {
+            counterCount,
+            entryCount,
+            areaEdge,
+            edgeName,
+          })
+          assertCoercedContract(result, 'ENTER→WAIT initiative-gate demotion')
         }
       }
     }
