@@ -34,8 +34,9 @@ Each objective (primary and secondary) carries:
   per the Constraints formula: `(entry→T2 distance) / 25` — the fixed 25-pt operational stop,
   gating on the conclusion (your LAST listed target), never on your structural stop or T1.
 
-Entries, stops, and T1 must sit on engine-supplied structure — a zone border or a terrain level —
-never in the middle of value.
+Entries, stops, and T1 must sit on engine-supplied structure — a zone border, a terrain level, or
+a detector LVN node (taper-edge/valley; the fakeout-formed-extreme anchor below) — never in the
+middle of value.
 
 ## No-trade abstention
 

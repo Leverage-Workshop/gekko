@@ -296,15 +296,50 @@ describe('prompt-data sync gate (feat-054)', () => {
     })
   })
 
+  describe('per-run preamble stays deduplicated vs the cached prefix (feat-080)', () => {
+    // Codex adversarial review finding #5: the user message restated 4–31 lines
+    // of system doctrine, and the copies drifted twice (target cardinality,
+    // bar size). Each rule lives in exactly ONE home: static doctrine in the
+    // cached prefix, live values + pointers in the user message. These canary
+    // phrases are prefix-owned doctrine that the pre-dedup user bullets
+    // restated verbatim — if one reappears in the built user prompt, a
+    // restatement crept back in.
+    const PREFIX_OWNED_CANARIES = [
+      // [phrase proving the doctrine lives in the prefix, restatement phrase the
+      //  pre-dedup user bullet carried and must not carry again]
+      // fakeout-tail fade doctrine (Objective contract)
+      ['being actively repaired', 'actively repairing the tail'],
+      // pattern-scan tristate semantics (Active Pattern Scan contract)
+      ['ambiguous shape', 'ambiguous shape, mid-formation'],
+      // overview register rules (Output Contract)
+      ['recitation of dates', 'recitation of dates'],
+      // rr doctrine restatement (Objective contract / Constraints)
+      ['never on your structural stop', 'NOT your structural stop'],
+    ] as const
+
+    it.each(PREFIX_OWNED_CANARIES)(
+      'the analyze user prompt does not restate prefix doctrine ("%s")',
+      (prefixPhrase, forbiddenRestatement) => {
+        expect(loadDoctrine('analyze', ROOT)).toContain(prefixPhrase)
+        expect(analysisPrompt).not.toContain(forbiddenRestatement)
+      },
+    )
+  })
+
   describe('prompt size budgets (chars; bump consciously, in this diff)', () => {
     // Measured 2026-07-24: analyze 29_141 / update 28_881 / eval 29_302.
     // Raised 2026-07-29 (feat-068): the narrative-overview contract grew
     // output-briefing.md — analyze measured 37_323.
     // Raised 2026-08-01 (feat-074): the fakeout-formed-extreme anchor carve-out
     // grew output-objective.md — analyze measured 39_127.
+    // Raised 2026-08-01 (feat-077/078/080): the No-trade abstention section,
+    // the Active Pattern Scan contract (moved INTO patterns.md from the per-run
+    // user messages by the feat-080 dedup) and the LVN-node anchor sentence
+    // grew the prefix — analyze measured 41_858. Net win: the prefix is cached
+    // once; the user-message text it replaced was paid on every run.
     // Floors catch accidental truncation (a doctrine file emptied or dropped
     // from assembly); ceilings catch silent bloat from new data.
-    const PREFIX_BUDGET = { floor: 20_000, ceiling: 41_000 }
+    const PREFIX_BUDGET = { floor: 20_000, ceiling: 43_000 }
 
     it.each(['analyze', 'update', 'eval'] as const)(
       'the %s cached prefix stays inside budget',
@@ -334,13 +369,16 @@ describe('prompt-data sync gate (feat-054)', () => {
       // ownership bullet added ~2.8k of already-projected data (measured 88_613).
       // Raised 91k → 92k 2026-08-01 (feat-077/078): the noTrade-abstention slot
       // bullet and the structured patternScan instructions added ~1.1k of rule
-      // text (measured 91_394). The feat-080 preamble dedup takes it back down.
+      // text (measured 91_394).
+      // Lowered back 92k → 91k 2026-08-01 (feat-080): the per-run preamble
+      // dedup moved static doctrine restatements into the cached prefix and
+      // trimmed the user bullets to pointers + live values (measured 88_441).
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 92k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 91k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(92_000)
+      ).toBeLessThan(91_000)
     })
   })
 })

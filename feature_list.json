@@ -829,6 +829,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-079-bar-size-config (typecheck, lint 0 errors, 1083 tests passing \u2014 7 new: config schema bounds/int/missing-field, fetch pre-bar-volume tier + tier cascade updates, prompt injection default-750 and configured-1000 assertions; build OK). Live DB verified: config row id=1 returns execution_bar_volume=750."
+    },
+    {
+      "id": "feat-080",
+      "name": "Per-run preamble dedup vs system doctrine (one home per rule)",
+      "description": "Codex adversarial review finding #5 (2026-08-01): the per-run user message restated 4-31 lines of permanent system-message doctrine, and the copies drifted twice in production (target cardinality, bar size) while re-paying the text on every ~60k-token run. Each rule now lives in exactly ONE home \u2014 static doctrine in the cached prefix, live values + pointers in the user message. (1) Prefix additions: knowledge/doctrine/patterns.md gains the 'Active Pattern Scan' contract (tristate semantics, never-guess, indeterminate-cannot-justify-a-trigger \u2014 shared by BOTH briefing-shaped prefixes, which was why it could not live in output-briefing.md alone); output-objective.md's structure sentence now names detector LVN nodes as legal anchors (was user-message-only). (2) Analyze user-message trims: fakeoutTails bullet reduced to the fact shape + Objective-contract pointer (its doctrine half duplicated output-objective.md verbatim); ACTIVE PATTERN SCAN bullet reduced to a contract pointer + keyPoint mirror; the overview bullet reduced to a Tactical-Overview-contract pointer (its register/vocabulary/name-first rules all lived in output-briefing.md); the rr bullet keeps only the live ${rrMin} gate values + Constraints pointer (dropped the structural-stop/T1/single-target restatements); the entries/stops/T1 and objective-slot bullets reduced to contract pointers. (3) Update user-message: same five trims mirrored; patternScan mission item now points at the contract. (4) Budgets re-measured: analyze user prompt 91,394 -> 88,441 chars per run (ceiling lowered back 92k -> 91k as promised in feat-078); analyze prefix 41,858 (ceiling consciously raised 41k -> 43k \u2014 the prefix is cached once, the user-message text it replaced was paid every run). (5) New drift guard in prompt-data-sync: four prefix-owned canary phrases (fakeout repair exception, tristate wording, overview register, rr structural-stop restatement) asserted present in loadDoctrine('analyze') and ABSENT from the built user prompt \u2014 a restatement creeping back fails CI.",
+      "dependencies": [
+        "feat-079"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-080-preamble-dedup (typecheck, lint 0 errors, 1087 tests passing \u2014 4 new canary-guard cases; build OK). Measured: user prompt 88,441 (was 91,394), analyze prefix 41,858, update prefix 36,797."
     }
   ]
 }
