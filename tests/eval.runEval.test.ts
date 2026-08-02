@@ -686,6 +686,33 @@ describe('runEval', () => {
       ).toBe(true)
     })
 
+    it('passes when the flush reverses one bar early, stalling within tolerance of the level', () => {
+      // Median 750-volume bar spans ~15 pts, so a flush that reverses one bar
+      // early naturally stops about half a bar short of the border. Low at
+      // 30253 is 8 pts above the level — inside the 10-pt tolerance.
+      const earlyReversalBars = [bar(30288, 30298, 30295), bar(30253, 30295, 30291)]
+      expect(
+        absorbedFlushException('long', heldTelemetry, {
+          levelPrice: LEVEL,
+          recentBars: earlyReversalBars,
+          absorption: null,
+        }),
+      ).toBe(true)
+    })
+
+    it('rejects a flush that stalls just beyond the contact tolerance', () => {
+      // Low at 30255.25 is 10.25 pts above the level — just outside the
+      // 10-pt tolerance, pinning the boundary.
+      const shortOfLevelBars = [bar(30288, 30298, 30295), bar(30255.25, 30295, 30291)]
+      expect(
+        absorbedFlushException('long', heldTelemetry, {
+          levelPrice: LEVEL,
+          recentBars: shortOfLevelBars,
+          absorption: null,
+        }),
+      ).toBe(false)
+    })
+
     it('passes on a stall-confirmed flush-color stack at the level even without recent-bar contact', () => {
       // The flush was absorbed earlier in the session; recent bars consolidate
       // above. The code-owned scan (full-session bars) still carries the

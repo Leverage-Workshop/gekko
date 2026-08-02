@@ -16,7 +16,13 @@ near-gate NO_ENTRY_NEAR rejected for retry via EvalContractViolationError) →
 feat-084 (prior-baseline context — the evaluated level's creation-time thesis
 from its source briefing renders in the eval prompt) → feat-085 (level-aware
 absorbed-flush exception — stall-confirmed stack at the level or bar contact
-required; far counter-extremes no longer bypass the demotion). Remaining
+required; far counter-extremes no longer bypass the demotion). Follow-up
+2026-08-02 (operator review): LEVEL_CONTACT_TOLERANCE_PTS bumped 5 → 10 —
+measured 750-volume exec bars (chart-data rolling sample) span ~14.75 pts
+median / ~17.7 mean, so a flush reversing one bar early stalls ~half a bar
+short of the border and 5 pts wrongly demoted that front-run; 10 stays well
+inside the 20-pt proximity gate and 25-pt rotation scale. Two boundary tests
+pin it (8 pts passes, 10.25 rejects). Remaining
 `not-started`: feat-051..053 (data exports).
 Latest: **Eval-only system prefix + absorption dedup + per-run bar volume**
 (feat-081 — Codex eval findings #1/#9/#10: the eval's cached prefix shipped
