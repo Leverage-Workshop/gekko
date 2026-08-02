@@ -34,6 +34,7 @@ export type {
 } from './proximity'
 export {
   AREA_EXIT_TOLERANCE_PTS,
+  EvalContractViolationError,
   absorbedFlushException,
   enforceEvalFacts,
 } from './validateEval'

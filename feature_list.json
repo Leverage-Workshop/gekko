@@ -860,6 +860,16 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-082-eval-verdict-contract (typecheck clean, lint 0 errors, 1119 tests passing incl. 6 new per-status contract cases; build OK). Migration applied to live DB (26 rows in schema_migrations)."
+    },
+    {
+      "id": "feat-083",
+      "name": "Coherent status coercion + near-gate contradiction rejection (Codex eval findings #3/#8)",
+      "description": "Codex adversarial eval-prompt review (2026-08-02) findings #3 (CRITICAL) and #8 (MEDIUM): the initiative-gate demotion rewrote ONLY the status enum (a persisted WAIT could carry a null nextSignal, an ENTER-shaped trigger, reason and caution \u2014 the headline status and its advisory disagreed exactly when the safety gate intervened), and a model NO_ENTRY_NEAR against the code-owned near gate was 'kept (conservative)', deliberately persisting nearEntry=true beside status=NO_ENTRY_NEAR so neither field was trustworthy downstream. Changes: (1) the ENTER\u2192WAIT demotion now deterministically rebuilds a contract-coherent WAIT \u2014 trigger nulled, code-written nextSignal naming the reclose + counter-cluster-fade observables from the actual gate numbers, code-written caution, gate sentence appended to the reason; the model's checks stay (its honest market read; the demotion is code's, surfaced in warnings). (2) Status-changing coercions are fail-closed: assertCoercedContract re-parses the coerced object against the EvalResult per-status contract and throws on violation instead of persisting incoherence. (3) A NO_ENTRY_NEAR returned when the code gate says a level IS near now throws the new EvalContractViolationError (plain Error, NOT EvalInputError \u2014 the trigger.dev task retries it, since a fresh generation can honestly fix it; nothing is persisted).",
+      "dependencies": [
+        "feat-082"
+      ],
+      "status": "done",
+      "evidence": "./init.sh green on feat-083-coherent-coercion (typecheck clean, lint 0 errors, 1120 tests passing incl. the extended demotion-coherence assertions and the new near-gate rejection case; build OK)."
     }
   ]
 }
