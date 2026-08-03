@@ -1,17 +1,19 @@
 /**
- * Direction-aware risk/reward gate for trade Objectives.
+ * Direction-aware risk/reward computation for trade Objectives.
  *
- * Two doctrine non-negotiables are enforced here so the model never has to do the
+ * Two doctrine rules are computed here so the model never has to do the
  * arithmetic (and never gets it wrong):
  *
- *   1. 3:1 R/R minimum — `instructions.md` #5 ("Require minimum 3:1 risk/reward for any
- *      setup") and the playbook engagement checklist ("Reward: 3:1 R/R minimum available
- *      to next target?"). The threshold is configurable (`config.rr_min`, default 3.0) but
- *      defaults to the doctrine 3.0 here. Risk is the operator's FIXED operational stop
- *      ({@link FIXED_RISK_PTS} = 25 pts, 2026-07-27 operator decision), NOT the structural
- *      stop distance — the operator trades a flat 25-pt stop, so the gate is simply
- *      "reward to T2 >= rrMin x 25 pts". The structural stop is still validated for
- *      geometry (protective side) and the no-widen rule, but it no longer sets R/R.
+ *   1. R/R reference (INFORMATIONAL since feat-086) — the ratio is measured against the
+ *      operator's FIXED operational stop ({@link FIXED_RISK_PTS} = 25 pts, 2026-07-27
+ *      operator decision), NOT the structural stop distance: `rr = reward to T2 / 25`.
+ *      The threshold (`config.rr_min`, default 3.0) survives as a display reference —
+ *      `meetsGate` reports it — but it no longer binds objective selection: the
+ *      entry-first contract (2026-08-03 operator directive) qualifies entry levels by
+ *      the significant-move floor (`config.significant_move_pts`, advisory-checked in
+ *      validateBriefing), and a low rr never disqualifies or relocates an entry. The
+ *      structural stop is still validated for geometry (protective side) and the
+ *      no-widen rule.
  *
  *   2. Stops never widen — `tactical-companion-playbook.md` "Stop Management: Never Allow
  *      movement farther from entry; Only Tighten When …". Given the prior briefing's stop

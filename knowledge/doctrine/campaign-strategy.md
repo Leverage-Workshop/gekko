@@ -56,7 +56,7 @@ Before authorizing any entry, confirm alignment:
 - **Telemetry** — initiative confirmed via CSV (Delta Intensity aligning with the border)?
 - **Visual** — absorption / exhaustion / failed breakout confirmed on the Execution Chart?
 - **Risk** — clear invalidation point for the stop behind structure?
-- **Reward** — the engine-computed R/R gate is met to the T2 conclusion (fixed 25-pt stop basis).
+- **Reward** — the reversal has at least the significant-move floor (stated in the user message) of room to the T2 conclusion.
 
 ## Position management
 

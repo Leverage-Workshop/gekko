@@ -19,6 +19,7 @@ export interface SettingsInitialValues {
   triage_model_effort: ReasoningEffort | null
   high_conviction_model_effort: ReasoningEffort | null
   execution_bar_volume: number
+  significant_move_pts: number
 }
 
 interface SettingsFormProps {
@@ -30,6 +31,8 @@ interface SettingsFormProps {
   effortColumnsMissing: boolean
   /** Live DB predates the execution_bar_volume migration (feat-079). */
   barVolumeColumnMissing: boolean
+  /** Live DB predates the significant_move_pts migration (feat-086). */
+  significantMoveColumnMissing: boolean
 }
 
 type SaveState =
@@ -125,11 +128,13 @@ export function SettingsForm({
   highConvictionColumnsMissing,
   effortColumnsMissing,
   barVolumeColumnMissing,
+  significantMoveColumnMissing,
 }: SettingsFormProps) {
   const [modelId, setModelId] = useState(initial.model_id)
   const [triageModelId, setTriageModelId] = useState(initial.triage_model_id)
   const [rrMin, setRrMin] = useState(String(initial.rr_min))
   const [barVolume, setBarVolume] = useState(String(initial.execution_bar_volume))
+  const [significantMove, setSignificantMove] = useState(String(initial.significant_move_pts))
   const [hcEnabled, setHcEnabled] = useState(initial.high_conviction_enabled)
   const [hcModelId, setHcModelId] = useState(initial.high_conviction_model_id)
   const [modelEffort, setModelEffort] = useState(initial.model_effort)
@@ -156,6 +161,12 @@ export function SettingsForm({
       setState({ phase: 'error', message: 'Validation failed' })
       return
     }
+    const sigMove = Number(significantMove)
+    if (significantMove.trim() === '' || Number.isNaN(sigMove)) {
+      setFieldErrors({ significant_move_pts: ['Must be a number'] })
+      setState({ phase: 'error', message: 'Validation failed' })
+      return
+    }
 
     try {
       const res = await fetch('/api/config', {
@@ -171,6 +182,7 @@ export function SettingsForm({
           triage_model_effort: triageEffort,
           high_conviction_model_effort: hcEffort,
           execution_bar_volume: barVol,
+          significant_move_pts: sigMove,
         }),
       })
       const body = (await res.json().catch(() => null)) as ConfigResponse | null
@@ -252,8 +264,35 @@ export function SettingsForm({
         />
         <FieldError messages={fieldErrors.rr_min} />
         <p className="mt-1 text-xs font-light text-muted">
-          Risk/reward gate applied to objectives (0.5–10).
+          Display-only R/R reference against the fixed 25-pt stop (0.5–10) —
+          objective selection is gated by Significant Move, not R/R (feat-086).
         </p>
+      </div>
+
+      <div>
+        <FieldLabel htmlFor="significant_move_pts">Significant Move (pts)</FieldLabel>
+        <input
+          id="significant_move_pts"
+          name="significant_move_pts"
+          type="number"
+          step="1"
+          min="10"
+          max="500"
+          value={significantMove}
+          onChange={(e) => setSignificantMove(e.target.value)}
+          className={inputClass}
+        />
+        <FieldError messages={fieldErrors.significant_move_pts} />
+        <p className="mt-1 text-xs font-light text-muted">
+          Minimum room (points) a reversal must have to run before an entry
+          level qualifies for an objective (10–500).
+        </p>
+        {significantMoveColumnMissing && (
+          <p className="mt-2 text-xs font-light tracking-wide text-warning">
+            The significant_move_pts column is not in the live database yet —
+            apply the significant_move_pts migration before saving.
+          </p>
+        )}
       </div>
 
       <div>

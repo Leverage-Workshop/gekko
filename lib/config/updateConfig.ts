@@ -39,6 +39,12 @@ export const ConfigUpdateSchema = z.object({
     .int('Must be a whole number')
     .min(50, 'Must be at least 50')
     .max(50_000, 'Must be at most 50000'),
+  // feat-086: minimum reversal traverse a level must offer to anchor an entry.
+  significant_move_pts: z
+    .number('Must be a number')
+    .int('Must be a whole number')
+    .min(10, 'Must be at least 10')
+    .max(500, 'Must be at most 500'),
 })
 
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
@@ -51,8 +57,8 @@ export type ConfigUpdateOutcome =
 export const MIGRATION_REQUIRED_MESSAGE =
   'A config column is missing in the live database — apply the pending ' +
   'supabase/migrations (high_conviction_flag.sql, model_reasoning_effort.sql, ' +
-  'execution_bar_volume.sql) (Supabase MCP server or dashboard SQL editor) ' +
-  'first, then save again.'
+  'execution_bar_volume.sql, significant_move_pts.sql) (Supabase MCP server ' +
+  'or dashboard SQL editor) first, then save again.'
 
 export async function updateConfigRow(
   supabase: SupabaseClient,

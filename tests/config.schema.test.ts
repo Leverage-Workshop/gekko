@@ -14,6 +14,7 @@ const valid = {
   triage_model_effort: null,
   high_conviction_model_effort: null,
   execution_bar_volume: 750,
+  significant_move_pts: 50,
 }
 
 function fieldErrors(payload: unknown): Record<string, unknown> {
@@ -159,6 +160,34 @@ describe('ConfigUpdateSchema', () => {
   it('rejects a payload missing execution_bar_volume (form always sends it)', () => {
     const { execution_bar_volume: _v, ...missing } = valid
     expect(fieldErrors(missing)).toHaveProperty('execution_bar_volume')
+  })
+
+  // feat-086: significant-move floor — a positive integer inside the sane band.
+  it('accepts significant_move_pts at the 10 and 500 boundaries', () => {
+    expect(ConfigUpdateSchema.safeParse({ ...valid, significant_move_pts: 10 }).success).toBe(true)
+    expect(ConfigUpdateSchema.safeParse({ ...valid, significant_move_pts: 500 }).success).toBe(
+      true,
+    )
+  })
+
+  it('rejects significant_move_pts outside the band, non-integers and non-numbers', () => {
+    expect(fieldErrors({ ...valid, significant_move_pts: 9 })).toHaveProperty(
+      'significant_move_pts',
+    )
+    expect(fieldErrors({ ...valid, significant_move_pts: 501 })).toHaveProperty(
+      'significant_move_pts',
+    )
+    expect(fieldErrors({ ...valid, significant_move_pts: 50.5 })).toHaveProperty(
+      'significant_move_pts',
+    )
+    expect(fieldErrors({ ...valid, significant_move_pts: '50' })).toHaveProperty(
+      'significant_move_pts',
+    )
+  })
+
+  it('rejects a payload missing significant_move_pts (form always sends it)', () => {
+    const { significant_move_pts: _s, ...missing } = valid
+    expect(fieldErrors(missing)).toHaveProperty('significant_move_pts')
   })
 
   it('rejects a payload missing the effort fields (form always sends them)', () => {

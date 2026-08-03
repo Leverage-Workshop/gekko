@@ -41,7 +41,8 @@ export interface UpdatePromptInput {
   rawMgi: unknown
   /** Labels for the attached chart images, in attachment order. */
   charts: readonly ChartAttachment[]
-  rrMin: number
+  /** Minimum reversal traverse (feat-086, `config.significant_move_pts`). */
+  significantMovePts: number
   /** Per-bar volume of the execution-chart bars (feat-079, `config.execution_bar_volume`). */
   executionBarVolume: number
   parent: ParentBriefingContext
@@ -82,7 +83,7 @@ function operatorDirectiveSection(
     `> ${directive.text}`,
     'Precedence rules:',
     `- Honor the directive when regenerating the ${target} objective. If it names a symbolic level (e.g. "ONL", "VAH"), resolve it against the labeled MGI levels and engine facts below. If it cannot be honored exactly on engine-supplied structure, anchor as close to the directive as structure allows and state the deviation explicitly in that objective's rationale.`,
-    '- The directive steers WHERE the objective anchors — every other rule still binds: data ownership, entries/stops/T1 on engine structure, level attribution, and the R/R gate.',
+    '- The directive steers WHERE the objective anchors — every other rule still binds: data ownership, entries/stops/T1 on engine structure, level attribution, and the significant-move floor.',
     frozenEntry
       ? `- The ${other} objective is FROZEN: the engine replaces whatever you output for \`${other}\` with the previous briefing's version verbatim, so copy it unchanged. Your ${target} entry must keep the distinct-anchor floors against ${frozenAnchor}: at least ${MIN_OBJECTIVE_ENTRY_SEPARATION_PTS} pts away if same direction, ${MIN_OPPOSING_ENTRY_SEPARATION_PTS} pts if opposite.`
       : `- The ${other} objective is FROZEN: the engine replaces whatever you output for \`${other}\` with the previous briefing's version verbatim (a no-trade abstention), so copy it unchanged. No distinct-anchor floor applies against an abstaining slot.`,
@@ -121,7 +122,7 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     '- `absorptionCandidates` are code-detected stacks of one-sided bins on the execution delta profiles, each carrying a code-owned `stall` confirmation from the enriched execution bars. A candidate with `stall.confirmed` IS absorption — price stalled at the stack on heavy participation; an unconfirmed candidate has no stall visible in the rolling bar window (possibly aged out, not refuted).',
     `- The execution chart trades ${input.executionBarVolume}-VOLUME bars — per-bar volume is flat by construction; weigh participation by bar count at a price, trade count and delta magnitude, never by the Volume column.`,
     `- The CURRENT engine zone borders are: ${borders.join(', ')}. If these disagree with the previous briefing's terrain, the engine is right — flag the drift in the relevant rationale.`,
-    `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula. The live gate is ${input.rrMin}:1 against the fixed 25-pt operational stop, measured to T2 (your LAST listed target): T2 must sit at least ${input.rrMin * 25} pts beyond entry. Do not propose objectives whose T2 cannot clear the gate — abstain (noTrade) rather than inventing a distant rung.`,
+    `- SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): ${input.significantMovePts} pts. An entry level qualifies only when the reversal it hosts has at least ${input.significantMovePts} pts of room to the nearest realistic opposing structure (entry→T2 ≥ ${input.significantMovePts} pts). Walk the map outward from current price and anchor at the FIRST qualifying level — never skip a qualifying nearer level for a deeper one, and never move an entry to manufacture target distance. Abstain (noTrade) only when no qualifying level exists on that side. \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula — it is informational, never a gate.`,
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure with REAL long-term acceptance (the senior read), A = rotation structure OR demoted balance-area structure (the member verdict `reason` says "faint acceptance" or "shallow valley" — never call these AAA in prose). `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',
     '- Entries, stops and T1 anchor on engine-supplied structure per the Objective contract in the system prompt — a zone border, a `terrain.levels` price, or a `lvnHvnNodes` LVN node (the fakeout-formed-extreme anchor). Entry priority, stop placement and the one-or-two-rung target ladder follow that contract.',
     '- Each objective slot carries EITHER a full trade OR the explicit no-trade abstention, per the Objective contract — abstain rather than fabricating a scenario the map does not offer. A standing objective whose structure is gone may be revised to an abstention; say what changed in its `rationale`.',

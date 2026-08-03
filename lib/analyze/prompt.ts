@@ -27,7 +27,12 @@ export interface AnalysisPromptInput {
   rawMgi: unknown
   /** Labels for the attached chart images, in attachment order. */
   charts: readonly ChartAttachment[]
-  rrMin: number
+  /**
+   * Minimum reversal traverse (feat-086, `config.significant_move_pts`) — the
+   * binding number for entry-level qualification, injected here so the cached
+   * doctrine prefix never states it.
+   */
+  significantMovePts: number
   /**
    * Per-bar volume of the execution-chart bars (feat-079, `config.
    * execution_bar_volume`) — exporter metadata injected here so the cached
@@ -176,7 +181,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- Read the attached screenshots ONLY for perception the numeric data cannot give: absorption vs exhaustion shape, intraday distribution shape on the Market Profile chart, delta clustering quality, and the doctrine patterns.',
     '- ACTIVE PATTERN SCAN (required): scan the execution chart and fill `patternScan` per the Active Pattern Scan contract in the system prompt — never guess a pattern into existence. Mirror the verdict as one of `overview.current.keyPoints`.',
     '- The three `overview` sections follow the Tactical Overview contract in the system prompt: a TIME-ORDERED `narrative` plus 2–4 distilled `keyPoints` per section, the same storytelling register throughout, names before prices, MGI/volume/TPO vocabulary only.',
-    `- \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula. The live gate is ${input.rrMin}:1 against the fixed 25-pt operational stop, measured to T2 (your LAST listed target): T2 must sit at least ${input.rrMin * 25} pts beyond entry. Do not propose objectives whose T2 cannot clear the gate — abstain (noTrade) rather than inventing a distant rung.`,
+    `- SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): ${input.significantMovePts} pts. An entry level qualifies only when the reversal it hosts has at least ${input.significantMovePts} pts of room to the nearest realistic opposing structure (entry→T2 ≥ ${input.significantMovePts} pts). Walk the map outward from current price and anchor at the FIRST qualifying level — never skip a qualifying nearer level for a deeper one, and never move an entry to manufacture target distance. Abstain (noTrade) only when no qualifying level exists on that side. \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula — it is informational, never a gate.`,
     '- Entries, stops and T1 anchor on engine-supplied structure per the Objective contract in the system prompt — a zone border, a `terrain.levels` price, or a `lvnHvnNodes` LVN node (the fakeout-formed-extreme anchor). Entry priority, stop placement and the one-or-two-rung target ladder follow that contract.',
     '- Each objective slot (primary AND secondary) carries EITHER a full trade OR the explicit no-trade abstention, per the Objective contract. The secondary is the best available counter-scenario; when it is real but waiting, express that in its entry `trigger` conditions — abstain only when no genuine scenario exists, never fabricate entries, stops or targets to fill the slot.',
     DISTINCT_ANCHORS_RULE,

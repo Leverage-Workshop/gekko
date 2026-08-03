@@ -28,6 +28,21 @@ const FULL_ROW = {
   triage_model_effort: null,
   high_conviction_model_effort: 'xhigh' as const,
   execution_bar_volume: 750,
+  significant_move_pts: 50,
+  updated_at: '2026-07-08T12:00:00Z',
+}
+
+/** Post execution_bar_volume, pre significant_move_pts (feat-086). */
+const PRE_SIGNIFICANT_MOVE_ROW = {
+  model_id: 'anthropic/claude-sonnet-5',
+  triage_model_id: 'anthropic/claude-haiku-4-5',
+  rr_min: 3,
+  high_conviction_enabled: true,
+  high_conviction_model_id: 'anthropic/claude-opus-4-8',
+  model_effort: 'high' as const,
+  triage_model_effort: null,
+  high_conviction_model_effort: 'xhigh' as const,
+  execution_bar_volume: 750,
   updated_at: '2026-07-08T12:00:00Z',
 }
 
@@ -113,12 +128,32 @@ describe('fetchConfigRow', () => {
     expect(result.highConvictionColumnsMissing).toBe(false)
     expect(result.effortColumnsMissing).toBe(false)
     expect(result.barVolumeColumnMissing).toBe(false)
+    expect(result.significantMoveColumnMissing).toBe(false)
     expect(selects).toHaveLength(1)
     expect(selects[0]).toContain('high_conviction_enabled')
     expect(selects[0]).toContain('model_effort')
     expect(selects[0]).toContain('triage_model_effort')
     expect(selects[0]).toContain('high_conviction_model_effort')
     expect(selects[0]).toContain('execution_bar_volume')
+    expect(selects[0]).toContain('significant_move_pts')
+  })
+
+  it('falls back to the pre-significant-move column set on 42703 with the 50 default padded (feat-086)', async () => {
+    const { client, selects } = selectClient((columns) =>
+      columns.includes('significant_move_pts')
+        ? {
+            data: null,
+            error: { code: '42703', message: 'column config.significant_move_pts does not exist' },
+          }
+        : { data: PRE_SIGNIFICANT_MOVE_ROW, error: null },
+    )
+    const result = await fetchConfigRow(client)
+
+    expect(selects).toHaveLength(2)
+    expect(selects[1]).not.toContain('significant_move_pts')
+    expect(result.significantMoveColumnMissing).toBe(true)
+    expect(result.barVolumeColumnMissing).toBe(false)
+    expect(result.row).toEqual({ ...PRE_SIGNIFICANT_MOVE_ROW, significant_move_pts: 50 })
   })
 
   it('falls back to the pre-bar-volume column set on 42703 with the 750 default padded (feat-079)', async () => {
@@ -132,11 +167,16 @@ describe('fetchConfigRow', () => {
     )
     const result = await fetchConfigRow(client)
 
-    expect(selects).toHaveLength(2)
-    expect(selects[1]).not.toContain('execution_bar_volume')
+    expect(selects).toHaveLength(3)
+    expect(selects[2]).not.toContain('execution_bar_volume')
     expect(result.barVolumeColumnMissing).toBe(true)
+    expect(result.significantMoveColumnMissing).toBe(true)
     expect(result.effortColumnsMissing).toBe(false)
-    expect(result.row).toEqual({ ...PRE_BAR_VOLUME_ROW, execution_bar_volume: 750 })
+    expect(result.row).toEqual({
+      ...PRE_BAR_VOLUME_ROW,
+      execution_bar_volume: 750,
+      significant_move_pts: 50,
+    })
   })
 
   it('falls back to the pre-effort column set on 42703 with efforts padded null', async () => {
@@ -147,10 +187,11 @@ describe('fetchConfigRow', () => {
     )
     const result = await fetchConfigRow(client)
 
-    expect(selects).toHaveLength(3)
-    expect(selects[2]).not.toContain('model_effort')
+    expect(selects).toHaveLength(4)
+    expect(selects[3]).not.toContain('model_effort')
     expect(result.effortColumnsMissing).toBe(true)
     expect(result.barVolumeColumnMissing).toBe(true)
+    expect(result.significantMoveColumnMissing).toBe(true)
     expect(result.highConvictionColumnsMissing).toBe(false)
     expect(result.row).toEqual({
       ...PRE_EFFORT_ROW,
@@ -158,6 +199,7 @@ describe('fetchConfigRow', () => {
       triage_model_effort: null,
       high_conviction_model_effort: null,
       execution_bar_volume: 750,
+      significant_move_pts: 50,
     })
   })
 
@@ -169,11 +211,12 @@ describe('fetchConfigRow', () => {
     )
     const result = await fetchConfigRow(client)
 
-    expect(selects).toHaveLength(4)
-    expect(selects[3]).not.toContain('high_conviction')
+    expect(selects).toHaveLength(5)
+    expect(selects[4]).not.toContain('high_conviction')
     expect(result.highConvictionColumnsMissing).toBe(true)
     expect(result.effortColumnsMissing).toBe(true)
     expect(result.barVolumeColumnMissing).toBe(true)
+    expect(result.significantMoveColumnMissing).toBe(true)
     expect(result.row).toEqual({
       ...LEGACY_ROW,
       high_conviction_enabled: false,
@@ -182,6 +225,7 @@ describe('fetchConfigRow', () => {
       triage_model_effort: null,
       high_conviction_model_effort: null,
       execution_bar_volume: 750,
+      significant_move_pts: 50,
     })
   })
 
@@ -232,6 +276,7 @@ describe('updateConfigRow', () => {
     triage_model_effort: null,
     high_conviction_model_effort: null,
     execution_bar_volume: 750,
+    significant_move_pts: 50,
   }
 
   it('updates row id=1 with a fresh updated_at and returns the row', async () => {
@@ -253,6 +298,7 @@ describe('updateConfigRow', () => {
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('high_conviction_flag')
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('model_reasoning_effort')
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('execution_bar_volume')
+    expect(MIGRATION_REQUIRED_MESSAGE).toContain('significant_move_pts')
   })
 
   it('reports a 404 when the config row is unseeded', async () => {

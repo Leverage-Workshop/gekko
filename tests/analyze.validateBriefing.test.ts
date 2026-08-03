@@ -135,16 +135,35 @@ describe('enforceCodeOwnedFacts', () => {
     expect(result.riskReward.primary?.meetsGate).toBe(true)
   })
 
-  it('warns (not throws) when an objective misses the R/R gate', () => {
+  it('warns (not throws) when the reversal room is below the significant-move floor (feat-086)', () => {
     const weak = briefing({
       primary: longObjective({
         targets: [{ label: 'T1', price: 30265, description: 'too close' }],
       }),
     })
-    const result = enforceCodeOwnedFacts(weak, { rrMin: 3 })
+    const result = enforceCodeOwnedFacts(weak, { rrMin: 3, significantMovePts: 50 })
 
     expect(trade(result.briefing.primary).rr).toBeLessThan(3)
-    expect(result.warnings.some((w) => w.includes('primary'))).toBe(true)
+    expect(
+      result.warnings.some(
+        (w) => w.includes('primary') && w.includes('significant-move floor'),
+      ),
+    ).toBe(true)
+  })
+
+  it('a low rr alone no longer warns when the room clears the floor (feat-086: rr is informational)', () => {
+    // Conclusion 60 pts out: rr 2.4 misses the old 3.0 gate but clears the 50-pt floor.
+    const lowRr = briefing({
+      primary: longObjective({
+        targets: [{ label: 'T2', price: 30310, description: 'next trench' }],
+      }),
+    })
+    const result = enforceCodeOwnedFacts(lowRr, { rrMin: 3, significantMovePts: 50 })
+
+    expect(trade(result.briefing.primary).rr).toBeLessThan(3)
+    expect(result.riskReward.primary?.meetsGate).toBe(false)
+    expect(result.warnings.some((w) => w.includes('significant-move floor'))).toBe(false)
+    expect(result.warnings.some((w) => w.toLowerCase().includes('r/r'))).toBe(false)
   })
 
   it('throws on invalid R/R geometry (no protective stop)', () => {

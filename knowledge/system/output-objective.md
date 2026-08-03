@@ -1,5 +1,19 @@
 # The `Objective` Contract
 
+**The question every objective answers** (entry-first, 2026-08-03 operator directive):
+walking outward from current price, what is the CLOSEST level — below current price for a
+long, above it for a short — where (a) price has a decent probability of reversing, judged
+from the structure the engine grades (zone borders, AAA/A walls and trenches, reclaimed
+borders, detector LVN nodes), and (b) if it does reverse, the move has at least the
+significant-move floor (stated in the user message) of room to travel before the nearest
+realistic opposing structure. Walk the map nearest-first and take the FIRST level that
+passes both; a stronger level further out never outranks a qualifying nearer one. The
+entry is selected on its own merit — NEVER derived from target math, and never pushed
+deeper to manufacture target distance. Expectancy lives in the entry level's quality, not
+in the target geometry: the operator trades a fixed 25-pt stop against reversals that
+statistically travel about a rotation, so a qualifying entry does not need far-away
+mapped structure to justify itself.
+
 Each objective (primary and secondary) carries:
 
 - **`macroGoal`** — a 1-line action statement: Action + Level → Objective. Every price it
@@ -12,27 +26,32 @@ Each objective (primary and secondary) carries:
   the DIFFERENT border defining the counter-scenario. NEVER emit an Entry B / add-on / breakout
   rung or a second stop.
 - **`stops`** — exactly **ONE** protective stop with its invalidation.
-- **`targets`** — **ONE or TWO** rungs, nearest first, the conclusion LAST. Pick T2 first, then
-  place T1 inside the traverse:
+- **`targets`** — **ONE or TWO** rungs, nearest first, the conclusion LAST. Targets are
+  ADVISORY runner guides — where the operator parks a runner, not what qualifies the trade.
+  They are chosen AFTER the entry and never move it:
   - **T2 (Conclusion)** — your best structural estimate of where THIS move realistically concludes
-    when it plays out reasonably well: the far side of the structure being traversed (an LVN return
-    over a distribution concludes at the distribution's opposite side; a rotation off a failed
-    border runs to the next acceptance area's far edge). NOT the homerun — the full HTF campaign
-    traverse is narrative context, never a target rung; a T2 that requires everything to go right
-    is mis-set. T2 must land on a Valley (Trench) or Shelf (Wall) at the NEAR edge of any void
-    beyond it — never a Magnet (Magnet Prohibition), and never a level that can only be reached by
-    crossing a second void.
+    when it plays out reasonably well: the NEAREST realistic conclusion on mapped structure beyond
+    the entry (an LVN return over a distribution concludes at the distribution's opposite side; a
+    rotation off a failed border runs to the next acceptance area's far edge). NOT the homerun —
+    the full HTF campaign traverse is narrative context, never a target rung; a T2 that requires
+    everything to go right is mis-set. T2 must land on a Valley (Trench) or Shelf (Wall) at the
+    NEAR edge of any void beyond it — never a Magnet (Magnet Prohibition), and never a level that
+    can only be reached by crossing a second void. A close T2 is FINE — there is no minimum
+    target distance; the entry→T2 distance is simply the evidence that the level clears the
+    significant-move floor.
   - **T1 (Tactical)** — an engine structure level BETWEEN entry and T2, ideally near the midpoint
     of the entry→T2 traverse — latitude toward whichever real border sits closest to that midpoint.
     The first obstacle a few points from entry is NOT T1 unless the map genuinely offers nothing
     deeper.
   The two-rung **T1 → T2** ladder is the expected shape whenever the engine map offers distinct
   structure between entry and T2. When it offers none, ship the **single-target variant**: one
-  rung, labeled **T2** — it IS the conclusion and the R/R gate measures to it; never label a sole
-  target T1 — and say in the rationale that no intermediate rung exists. Never emit a T3.
+  rung, labeled **T2** — it IS the conclusion; never label a sole target T1 — and say in the
+  rationale that no intermediate rung exists. Never emit a T3.
 - **`rr`** — recomputed and overwritten by the engine after you answer; still populate it honestly
   per the Constraints formula: `(entry→T2 distance) / 25` — the fixed 25-pt operational stop,
-  gating on the conclusion (your LAST listed target), never on your structural stop or T1.
+  measured to the conclusion (your LAST listed target), never on your structural stop or T1. It is
+  INFORMATIONAL — a displayed reference, not a gate; a low rr never disqualifies a qualifying
+  entry and never justifies moving the entry deeper.
 
 Entries, stops, and T1 must sit on engine-supplied structure — a zone border, a terrain level, or
 a detector LVN node (taper-edge/valley; the fakeout-formed-extreme anchor below) — never in the
@@ -43,9 +62,12 @@ middle of value.
 An objective slot may ship an explicit abstention instead of a trade: `{ "noTrade": true,
 "reasonCode": ..., "macroGoal": ..., "rationale": ... }` with `reasonCode` one of
 `no-qualifying-structure`, `insufficient-evidence`, `not-yet-actionable`, `conflicting-signals`.
-Abstaining is the CORRECT output when no engine structure yields an entry→T2 that clears the R/R
-gate, or the evidence for any setup on that side is absent — NEVER fabricate a distant target, a
-hypothetical trigger, or a filler counter-scenario to satisfy the contract. `macroGoal` states the
+Abstaining is the CORRECT output when no level on that side offers both real reversal structure
+and the significant-move floor of room for the reversal to travel (e.g. the only overhead
+structure is the forbidden profile data edge), or the evidence for any setup on that side is
+absent — NEVER fabricate a distant target, a hypothetical trigger, or a filler counter-scenario
+to satisfy the contract, and never reach far down the map for a deep level when the honest
+answer is that no qualifying level exists near enough to act on. `macroGoal` states the
 stand-aside in one line; `rationale` says what is missing and what would change the verdict.
 Abstention is a last resort, not a hedge: a real setup whose activating condition simply hasn't
 fired yet belongs in a trade objective with the condition expressed in its entry `trigger`; use
@@ -68,7 +90,10 @@ map is a defect.
 
 Entry A (Ideal) is the reoffer/rebid at the nearest FAILED structural border in the pullback
 direction (Condition Red: the failed trench/wall overhead, e.g. a broken IBL; Condition Green: the
-reclaimed border below). Entries are pullback anchors relative to current price: a long anchors AT
+reclaimed border below). Nearest means nearest QUALIFYING per the selection walk at the top of
+this contract — skipping a qualifying border for a deeper, stronger-looking one is a defect
+(2026-08-03: a briefing shipped its long at a AAA trench 398 pts below market while the PW High
+AAA wall sat 157 pts away with a qualifying reversal traverse above it — unactionable). Entries are pullback anchors relative to current price: a long anchors AT
 or BELOW current price, a short AT or ABOVE it — never beyond price in the trade direction (a long
 overhead / a short underfoot), except marginally at a contested border price is fighting at right
 now. A breach-and-accept THROUGH a Tier-1 campaign border is NEVER the entry.

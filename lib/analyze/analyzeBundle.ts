@@ -1,5 +1,8 @@
 import { Briefing } from '@/knowledge/schema/briefing.schema'
-import { DEFAULT_EXECUTION_BAR_VOLUME } from '@/lib/config/fetchConfig'
+import {
+  DEFAULT_EXECUTION_BAR_VOLUME,
+  DEFAULT_SIGNIFICANT_MOVE_PTS,
+} from '@/lib/config/fetchConfig'
 import { summarizeIntradayTrend } from '@/lib/engine/intradayTrend'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
@@ -50,6 +53,12 @@ export interface AnalyzeConfig {
    * stays valid — absent reads as {@link DEFAULT_EXECUTION_BAR_VOLUME}.
    */
   execution_bar_volume?: number | null
+  /**
+   * feat-086: minimum reversal traverse (points) a level must offer to anchor
+   * an objective entry. Optional so a pre-migration config read stays valid —
+   * absent reads as {@link DEFAULT_SIGNIFICANT_MOVE_PTS}.
+   */
+  significant_move_pts?: number | null
 }
 
 export interface AnalyzeDeps extends LoadBundleDeps, PersistDeps {
@@ -125,6 +134,7 @@ export async function runAnalysis(
     : (config?.model_effort ?? null)
   const rrMin = config?.rr_min ?? DEFAULT_RR_MIN
   const executionBarVolume = config?.execution_bar_volume ?? DEFAULT_EXECUTION_BAR_VOLUME
+  const significantMovePts = config?.significant_move_pts ?? DEFAULT_SIGNIFICANT_MOVE_PTS
 
   const bundle = await loadLatestBundle(deps)
   warnings.push(...bundle.warnings)
@@ -156,7 +166,7 @@ export async function runAnalysis(
       facts,
       rawMgi: bundle.row.mgi_json,
       charts: bundle.charts,
-      rrMin,
+      significantMovePts,
       executionBarVolume,
     }),
     images: bundle.images,
@@ -166,6 +176,7 @@ export async function runAnalysis(
 
   const validated = enforceCodeOwnedFacts(result.object, {
     rrMin,
+    significantMovePts,
     engineBorders: engineZoneBorders(facts.terrain),
     anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn),
     fakeoutTails: facts.fakeoutTails,
