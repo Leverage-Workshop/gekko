@@ -75,7 +75,7 @@ const analysisPrompt = buildAnalysisPrompt({
     { label: 'TPO / Market Profile chart' },
     { label: 'Execution chart (short timeframe)' },
   ],
-  rrMin: 3,
+  significantMovePts: 50,
   executionBarVolume: 750,
 })
 
@@ -383,6 +383,19 @@ describe('prompt-data sync gate (feat-054)', () => {
       }
       expect(read('lib/eval/prompt.ts')).toContain('${input.executionBarVolume}-volume bars')
     })
+
+    it('the briefing prompts state the configured significant-move floor per run (feat-086)', () => {
+      // The floor is config (significant_move_pts) — the cached prefixes refer
+      // to "the significant-move floor (stated in the user message)" and must
+      // never hardcode the number; the user message states it per run.
+      for (const prefix of briefingPrefixes) {
+        expect(prefix).toContain('significant-move floor')
+        expect(prefix).not.toMatch(/\b50[- ]pt.{0,12}floor/i)
+      }
+      expect(read('lib/analyze/prompt.ts')).toContain('SIGNIFICANT-MOVE FLOOR')
+      expect(read('lib/update/prompt.ts')).toContain('SIGNIFICANT-MOVE FLOOR')
+      expect(analysisPrompt).toContain('SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): 50 pts')
+    })
   })
 
   describe('prompt size budgets (chars; bump consciously, in this diff)', () => {
@@ -398,7 +411,10 @@ describe('prompt-data sync gate (feat-054)', () => {
     // once; the user-message text it replaced was paid on every run.
     // Floors catch accidental truncation (a doctrine file emptied or dropped
     // from assembly); ceilings catch silent bloat from new data.
-    const PREFIX_BUDGET = { floor: 20_000, ceiling: 43_000 }
+    // Ceiling bumped 43k → 47k for feat-086: the entry-first objective
+    // contract added the selection-walk preamble and target-demotion prose to
+    // output-objective.md.
+    const PREFIX_BUDGET = { floor: 20_000, ceiling: 47_000 }
 
     it.each(['analyze', 'update', 'eval'] as const)(
       'the %s cached prefix stays inside budget',

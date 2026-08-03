@@ -14,7 +14,7 @@ import type { ReasoningEffort } from '@/lib/llm/reasoning'
  * high_conviction_flag (feat-031) and model_reasoning_effort (2026-07-25).
  */
 
-/** The full `config` singleton row (post execution_bar_volume migration). */
+/** The full `config` singleton row (post significant_move_pts migration). */
 export interface ConfigRow {
   model_id: string
   triage_model_id: string
@@ -31,6 +31,12 @@ export interface ConfigRow {
    * prompts. The cached doctrine prefix never states the number.
    */
   execution_bar_volume: number
+  /**
+   * Minimum expected reversal traverse (points) a level must offer to anchor
+   * an objective entry (feat-086 entry-first contract). Injected into the
+   * analyze/update prompts; the doctrine prefix never states the number.
+   */
+  significant_move_pts: number
   updated_at: string
 }
 
@@ -52,9 +58,20 @@ export interface ConfigReadResult {
    * the returned row is padded with {@link DEFAULT_EXECUTION_BAR_VOLUME}.
    */
   barVolumeColumnMissing: boolean
+  /**
+   * True when the live DB predates the significant_move_pts migration —
+   * the returned row is padded with {@link DEFAULT_SIGNIFICANT_MOVE_PTS}.
+   */
+  significantMoveColumnMissing: boolean
 }
 
 export const FULL_CONFIG_COLUMNS =
+  'model_id, triage_model_id, rr_min, high_conviction_enabled, high_conviction_model_id, ' +
+  'model_effort, triage_model_effort, high_conviction_model_effort, execution_bar_volume, ' +
+  'significant_move_pts, updated_at'
+
+/** Pre-significant_move_pts column set (post execution_bar_volume). */
+const PRE_SIGNIFICANT_MOVE_CONFIG_COLUMNS =
   'model_id, triage_model_id, rr_min, high_conviction_enabled, high_conviction_model_id, ' +
   'model_effort, triage_model_effort, high_conviction_model_effort, execution_bar_volume, ' +
   'updated_at'
@@ -98,6 +115,18 @@ const BAR_VOLUME_DEFAULTS = {
   execution_bar_volume: DEFAULT_EXECUTION_BAR_VOLUME,
 } as const
 
+/**
+ * Mirrors the significant_move_pts migration default (feat-086) — the minimum
+ * reversal traverse a level must offer to anchor an objective entry. Pads the
+ * read shape when the live DB is pre-migration, and backstops the prompt
+ * builders when config is unseeded.
+ */
+export const DEFAULT_SIGNIFICANT_MOVE_PTS = 50
+
+const SIGNIFICANT_MOVE_DEFAULTS = {
+  significant_move_pts: DEFAULT_SIGNIFICANT_MOVE_PTS,
+} as const
+
 /** Postgres "undefined_column" — the column set predates a checked-in migration. */
 export function isMissingColumnError(error: { code?: string; message?: string }): boolean {
   if (error.code === '42703') {
@@ -126,23 +155,47 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
       highConvictionColumnsMissing: false,
       effortColumnsMissing: false,
       barVolumeColumnMissing: false,
+      significantMoveColumnMissing: false,
     }
   }
   if (!isMissingColumnError(full.error)) {
     throw full.error
   }
 
-  // Live DB predates the execution_bar_volume migration: retry without it and
+  // Live DB predates the significant_move_pts migration: retry without it and
+  // pad with the migration default.
+  const preSignificantMove = await selectConfig(supabase, PRE_SIGNIFICANT_MOVE_CONFIG_COLUMNS)
+  if (!preSignificantMove.error) {
+    return {
+      row: preSignificantMove.data
+        ? ({ ...preSignificantMove.data, ...SIGNIFICANT_MOVE_DEFAULTS } as ConfigRow)
+        : null,
+      highConvictionColumnsMissing: false,
+      effortColumnsMissing: false,
+      barVolumeColumnMissing: false,
+      significantMoveColumnMissing: true,
+    }
+  }
+  if (!isMissingColumnError(preSignificantMove.error)) {
+    throw preSignificantMove.error
+  }
+
+  // Predates the execution_bar_volume migration too: retry without it and
   // pad with the migration default.
   const preBarVolume = await selectConfig(supabase, PRE_BAR_VOLUME_CONFIG_COLUMNS)
   if (!preBarVolume.error) {
     return {
       row: preBarVolume.data
-        ? ({ ...preBarVolume.data, ...BAR_VOLUME_DEFAULTS } as ConfigRow)
+        ? ({
+            ...preBarVolume.data,
+            ...BAR_VOLUME_DEFAULTS,
+            ...SIGNIFICANT_MOVE_DEFAULTS,
+          } as ConfigRow)
         : null,
       highConvictionColumnsMissing: false,
       effortColumnsMissing: false,
       barVolumeColumnMissing: true,
+      significantMoveColumnMissing: true,
     }
   }
   if (!isMissingColumnError(preBarVolume.error)) {
@@ -155,11 +208,17 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
   if (!preEffort.error) {
     return {
       row: preEffort.data
-        ? ({ ...preEffort.data, ...EFFORT_DEFAULTS, ...BAR_VOLUME_DEFAULTS } as ConfigRow)
+        ? ({
+            ...preEffort.data,
+            ...EFFORT_DEFAULTS,
+            ...BAR_VOLUME_DEFAULTS,
+            ...SIGNIFICANT_MOVE_DEFAULTS,
+          } as ConfigRow)
         : null,
       highConvictionColumnsMissing: false,
       effortColumnsMissing: true,
       barVolumeColumnMissing: true,
+      significantMoveColumnMissing: true,
     }
   }
   if (!isMissingColumnError(preEffort.error)) {
@@ -179,10 +238,12 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
           ...HIGH_CONVICTION_DEFAULTS,
           ...EFFORT_DEFAULTS,
           ...BAR_VOLUME_DEFAULTS,
+          ...SIGNIFICANT_MOVE_DEFAULTS,
         } as ConfigRow)
       : null,
     highConvictionColumnsMissing: true,
     effortColumnsMissing: true,
     barVolumeColumnMissing: true,
+    significantMoveColumnMissing: true,
   }
 }

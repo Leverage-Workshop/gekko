@@ -7,6 +7,7 @@ import type {
   PersistedBriefingMeta,
 } from '@/knowledge/schema/briefing.schema'
 import { isNoTrade } from '@/knowledge/schema/briefing.schema'
+import { DEFAULT_SIGNIFICANT_MOVE_PTS } from '@/lib/config/fetchConfig'
 import { DEFAULT_RR_MIN, objectiveRiskReward } from '@/lib/engine/riskReward'
 import type { RiskReward } from '@/lib/engine/riskReward'
 import type { FakeoutTailFact } from '@/lib/engine/fakeoutTails'
@@ -111,8 +112,14 @@ export interface CodeOwnedMeta {
 }
 
 export interface ValidateOptions {
-  /** R/R gate from `config.rr_min`; defaults to {@link DEFAULT_RR_MIN}. */
+  /** Display R/R reference from `config.rr_min`; defaults to {@link DEFAULT_RR_MIN}. */
   rrMin?: number
+  /**
+   * Significant-move floor from `config.significant_move_pts` (feat-086) —
+   * the minimum entry→T2 reversal room before an advisory warning fires;
+   * defaults to {@link DEFAULT_SIGNIFICANT_MOVE_PTS}.
+   */
+  significantMovePts?: number
   /** Engine zone border prices; model zone borders must be drawn from these. */
   engineBorders?: readonly number[]
   /** Code-owned `meta` values; when present the model's are overwritten. */
@@ -499,6 +506,7 @@ function recomputeObjective(
   name: 'primary' | 'secondary',
   objective: Objective,
   rrMin: number,
+  significantMovePts: number,
   warnings: string[],
 ): { objective: Objective; riskReward: RiskReward } {
   let verdict: RiskReward
@@ -509,8 +517,30 @@ function recomputeObjective(
       `${name} objective has invalid R/R geometry: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
-  if (!verdict.valid) {
-    warnings.push(`${name} objective fails the R/R gate: ${verdict.reasons.join('; ')}`)
+  // feat-086: rr is informational — geometry defects still warn, but a low
+  // ratio no longer does. The binding advisory is the significant-move floor:
+  // the entry level must offer at least that much reversal room to T2.
+  const conclusion = verdict.targets[verdict.targets.length - 1]
+  if (verdict.risk <= 0) {
+    warnings.push(
+      `${name} objective's stop ${verdict.stop} is on the wrong side of entry ${verdict.entry} for a ${verdict.direction}`,
+    )
+  }
+  if (!conclusion) {
+    warnings.push(`${name} objective has no targets`)
+  } else if (conclusion.reward <= 0) {
+    warnings.push(
+      `${name} objective's conclusion target ${conclusion.price} is on the wrong side of entry ${verdict.entry} for a ${verdict.direction}`,
+    )
+  } else if (conclusion.reward < significantMovePts) {
+    warnings.push(
+      `${name} objective's reversal room is ${conclusion.reward} pts entry→T2 — below the ${significantMovePts}-pt significant-move floor; the entry level may not host a significant reversal`,
+    )
+  }
+  if (verdict.stopWidened) {
+    warnings.push(
+      `${name} objective's stop ${verdict.stop} widens vs the prior briefing stop ${verdict.priorStop} (must never move farther from entry)`,
+    )
   }
   if (verdict.risk < MIN_STRUCTURAL_STOP_PTS) {
     warnings.push(
@@ -533,6 +563,7 @@ export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
   options: ValidateOptions = {},
 ): ValidatedBriefing<B> {
   const rrMin = options.rrMin ?? DEFAULT_RR_MIN
+  const significantMovePts = options.significantMovePts ?? DEFAULT_SIGNIFICANT_MOVE_PTS
   const warnings: string[] = []
 
   assertZoneContiguity(briefing)
@@ -601,10 +632,10 @@ export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
   }
 
   const primary = primarySingle
-    ? recomputeObjective('primary', primarySingle, rrMin, warnings)
+    ? recomputeObjective('primary', primarySingle, rrMin, significantMovePts, warnings)
     : null
   const secondary = secondarySingle
-    ? recomputeObjective('secondary', secondarySingle, rrMin, warnings)
+    ? recomputeObjective('secondary', secondarySingle, rrMin, significantMovePts, warnings)
     : null
 
   for (const { name, objective } of tradeSlots) {

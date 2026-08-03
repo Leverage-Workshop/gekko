@@ -22,8 +22,13 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
-  const { row, highConvictionColumnsMissing, effortColumnsMissing, barVolumeColumnMissing } =
-    await fetchConfigRow(getServiceClient())
+  const {
+    row,
+    highConvictionColumnsMissing,
+    effortColumnsMissing,
+    barVolumeColumnMissing,
+    significantMoveColumnMissing,
+  } = await fetchConfigRow(getServiceClient())
 
   return (
     <>
@@ -39,8 +44,8 @@ export default async function SettingsPage() {
           <MStripe className="mt-4 w-24" />
           <p className="mt-4 max-w-2xl text-sm font-light leading-relaxed text-body">
             Runtime configuration for the briefing engine — model routing and the
-            risk/reward gate. Edits write the singleton config row and apply from
-            the next briefing or eval run.
+            significant-move floor for objective entries. Edits write the
+            singleton config row and apply from the next briefing or eval run.
           </p>
         </header>
 
@@ -57,11 +62,13 @@ export default async function SettingsPage() {
                 triage_model_effort: row.triage_model_effort,
                 high_conviction_model_effort: row.high_conviction_model_effort,
                 execution_bar_volume: row.execution_bar_volume,
+                significant_move_pts: row.significant_move_pts,
               }}
               updatedAt={row.updated_at}
               highConvictionColumnsMissing={highConvictionColumnsMissing}
               effortColumnsMissing={effortColumnsMissing}
               barVolumeColumnMissing={barVolumeColumnMissing}
+              significantMoveColumnMissing={significantMoveColumnMissing}
             />
           </section>
         ) : (

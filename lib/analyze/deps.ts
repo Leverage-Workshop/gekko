@@ -26,6 +26,7 @@ export function realAnalyzeDeps(): AnalyzeDeps {
         model_effort: row.model_effort,
         high_conviction_model_effort: row.high_conviction_model_effort,
         execution_bar_volume: row.execution_bar_volume,
+        significant_move_pts: row.significant_move_pts,
       }
     },
 

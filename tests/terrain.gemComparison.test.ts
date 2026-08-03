@@ -73,7 +73,7 @@ describe('2026-07-18 bundle — price at the session low (G1/G2/G4)', () => {
       facts,
       rawMgi: {},
       charts: [],
-      rrMin: 3,
+      significantMovePts: 50,
       executionBarVolume: 750,
     })
     expect(prompt).toContain('CAMPAIGN BOUNDARY CHECK')

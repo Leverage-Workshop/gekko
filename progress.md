@@ -2,8 +2,32 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-02
-**Active Feature:** none — the 2026-08-02 Codex adversarial EVAL-prompt review
+**Last Updated:** 2026-08-03
+**Active Feature:** none — latest merged: **feat-086 entry-first
+nearest-reversal-level objective contract** (operator review of the 2026-08-03
+morning briefing: the long shipped 398 pts below market at the deepest AAA
+trench while PW High sat 157 pts away, because the T2-first R/R gate
+(entry→T2 ≥ rr_min×25 on mapped structure) worked backwards from targets to
+select entries — with price extended above the whole mapped acceptance, the
+gate exiled every objective to deep structure. New contract: each slot answers
+"walking outward from current price, what is the CLOSEST level below (long) /
+above (short) with a decent probability of reversal AND ≥ significant_move_pts
+of room for the reversal to travel"; entries are picked nearest-first on their
+own merit, targets are demoted to advisory runner guides (T2 = nearest
+realistic mapped conclusion, no minimum distance), and rr is engine-computed
+but informational (rr_min is display-only). New config column
+significant_move_pts (int default 50, CHECK 10–500, /settings-editable,
+injected into analyze/update user messages; migration applied live via the
+claude.ai Supabase MCP). validateBriefing now warns on reversal room <
+significant_move_pts instead of R/R-gate failure; geometry defects and the
+no-widen rule still warn/throw as before. Law of Asymmetric Initiative, Magnet
+Prohibition, entry standoff/chase gates, and stop doctrine unchanged. Also
+noted during the investigation (NOT yet addressed): (a) on big migration days
+the terrain map lags the day's newly built value — today's TPO POC 28790 was
+only encoded as a prohibited magnet, so no acceptance anchor existed near
+price; (b) the briefing model leaked deliberation text into a target
+description ("287? No. 28698.25 …"). Both are candidate follow-up features.
+Prior state: the 2026-08-02 Codex adversarial EVAL-prompt review
 (LangSmith run 019fc3c5-c241, extracted to langsmith-prompt-review/, 3 CRITICAL
 / 4 HIGH / 3 MEDIUM) is FULLY CLOSED as feat-081..085, all merged to main:
 feat-081 (eval-only prefix — briefing-only doctrine split out of the eval's
