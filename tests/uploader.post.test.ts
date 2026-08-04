@@ -32,7 +32,7 @@ describe('postBundle', () => {
     const { sleep, delays } = recordingSleep()
 
     const result = await postBundle('http://x/api/ingest', 'tok', new FormData(), retry, {
-      fetch: fetchMock as unknown as typeof fetch,
+      fetch: fetchMock,
       sleep,
     })
 
@@ -52,7 +52,7 @@ describe('postBundle', () => {
     const { sleep, delays } = recordingSleep()
 
     const result = await postBundle('http://x', 'tok', new FormData(), retry, {
-      fetch: fetchMock as unknown as typeof fetch,
+      fetch: fetchMock,
       sleep,
     })
 
@@ -68,7 +68,7 @@ describe('postBundle', () => {
     const { sleep } = recordingSleep()
 
     const result = await postBundle('http://x', 'tok', new FormData(), retry, {
-      fetch: fetchMock as unknown as typeof fetch,
+      fetch: fetchMock,
       sleep,
     })
 
@@ -81,7 +81,7 @@ describe('postBundle', () => {
     const { sleep, delays } = recordingSleep()
 
     const result = await postBundle('http://x', 'bad', new FormData(), retry, {
-      fetch: fetchMock as unknown as typeof fetch,
+      fetch: fetchMock,
       sleep,
     })
 
@@ -98,7 +98,7 @@ describe('postBundle', () => {
     const { sleep } = recordingSleep()
 
     const result = await postBundle('http://x', 'tok', new FormData(), retry, {
-      fetch: fetchMock as unknown as typeof fetch,
+      fetch: fetchMock,
       sleep,
     })
 
@@ -120,7 +120,7 @@ describe('postBundle', () => {
     const { sleep } = recordingSleep()
 
     const result = await postBundle('http://x', 'tok', form, retry, {
-      fetch: fetchMock as unknown as typeof fetch,
+      fetch: fetchMock,
       sleep,
     })
 
@@ -136,7 +136,7 @@ describe('postBundle', () => {
     const { sleep, delays } = recordingSleep()
 
     const result = await postBundle('http://x', 'tok', new FormData(), retry, {
-      fetch: fetchMock as unknown as typeof fetch,
+      fetch: fetchMock,
       sleep,
     })
 

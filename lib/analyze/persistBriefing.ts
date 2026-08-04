@@ -55,13 +55,13 @@ export interface EntryLevelInsert {
 }
 
 export interface PersistDeps {
-  insertBriefing(row: BriefingInsert): Promise<{ id: string }>
+  insertBriefing: (row: BriefingInsert) => Promise<{ id: string }>
   /**
    * Set every currently-active `entry_levels` row to `active=false`, EXCEPT
    * rows belonging to `exceptBriefingId` (the set just inserted).
    */
-  deactivateEntryLevels(exceptBriefingId: string): Promise<void>
-  insertEntryLevels(rows: EntryLevelInsert[]): Promise<void>
+  deactivateEntryLevels: (exceptBriefingId: string) => Promise<void>
+  insertEntryLevels: (rows: EntryLevelInsert[]) => Promise<void>
 }
 
 export interface PersistInput {

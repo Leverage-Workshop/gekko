@@ -168,7 +168,7 @@ export function AlertsCenter() {
       })
       // Private topics authorize against the client's JWT (the anon key here);
       // make sure it is attached before joining.
-      client!.realtime
+      void client!.realtime
         .setAuth()
         .catch(() => {})
         .then(() => {
@@ -323,7 +323,7 @@ export function AlertsCenter() {
         )}
 
         {permission === 'default' && (
-          <button onClick={enableAlerts} className={`${smallButton} text-ink`}>
+          <button onClick={() => void enableAlerts()} className={`${smallButton} text-ink`}>
             Enable Alerts
           </button>
         )}
@@ -344,7 +344,7 @@ export function AlertsCenter() {
             </span>
 
             {push === 'off' && (
-              <button onClick={enablePush} className={`${smallButton} text-ink`}>
+              <button onClick={() => void enablePush()} className={`${smallButton} text-ink`}>
                 Enable Push
               </button>
             )}
@@ -358,7 +358,7 @@ export function AlertsCenter() {
             )}
             {push === 'on' && (
               <button
-                onClick={disablePush}
+                onClick={() => void disablePush()}
                 className={`${smallButton} text-success`}
                 title="Push active — alerts arrive even with the tab closed. Click to disable."
                 aria-label="Push active — alerts arrive even with the tab closed. Click to disable."

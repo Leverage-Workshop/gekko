@@ -130,7 +130,7 @@ function extractLevels(mgi: MgiStaticLevels): MgiLevel[] {
   const levels: MgiLevel[] = []
   for (const group of Object.keys(LEVEL_SPECS) as MgiGroup[]) {
     const specs = LEVEL_SPECS[group]
-    const source = mgi[group] as Record<string, unknown> | undefined
+    const source: Record<string, unknown> | undefined = mgi[group]
     if (!source) continue
     for (const code of Object.keys(specs)) {
       const raw = source[code]

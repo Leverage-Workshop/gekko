@@ -203,7 +203,7 @@ export function SettingsForm({
   }
 
   return (
-    <form onSubmit={save} className="space-y-8" noValidate>
+    <form onSubmit={(event) => void save(event)} className="space-y-8" noValidate>
       <div>
         <FieldLabel htmlFor="model_id">Briefing Model</FieldLabel>
         <input

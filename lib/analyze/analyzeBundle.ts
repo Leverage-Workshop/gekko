@@ -63,7 +63,7 @@ export interface AnalyzeConfig {
 
 export interface AnalyzeDeps extends LoadBundleDeps, PersistDeps {
   /** The `config` row (id=1), or null when unseeded. */
-  fetchConfig(): Promise<AnalyzeConfig | null>
+  fetchConfig: () => Promise<AnalyzeConfig | null>
   /** LLM call; injectable for tests. Defaults to {@link generateStructured}. */
   generate?: (params: {
     model: string

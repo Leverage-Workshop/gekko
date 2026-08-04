@@ -329,7 +329,7 @@ describe('generateStructured', () => {
           flush: async () => {
             flushed += 1
           },
-        }) as never,
+        }),
       resolveModel,
       generate: fakeGenerate({
         object: { bias: 'long', score: 0 },
@@ -373,7 +373,7 @@ describe('generateStructured', () => {
             }
           }) as never,
           flush: async () => {},
-        }) as never,
+        }),
       resolveModel,
     })
 

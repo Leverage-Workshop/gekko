@@ -15,7 +15,7 @@ export class IngestValidationError extends Error {
 /** A row insert for `public.raw_bundles`. Refs are object paths within buckets. */
 export type RawBundleRecord = {
   id: string
-  mgi_json: unknown | null
+  mgi_json: unknown
   current_price: number | null
   is_stale: boolean
   htf_png_ref: string | null
@@ -76,7 +76,7 @@ function parseBundleId(form: FormData): string | null {
   return raw
 }
 
-function parseMgi(form: FormData): unknown | null {
+function parseMgi(form: FormData): unknown {
   const raw = form.get(MGI_FIELD)
   if (raw == null || isFile(raw) || raw === '') {
     return null

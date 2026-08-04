@@ -39,7 +39,7 @@ export const runtime = 'nodejs'
 export async function POST(request: Request): Promise<Response> {
   // A body-less POST (the Update button) and malformed JSON both read as an
   // empty body → plain update; only a present-but-invalid directive is a 400.
-  const raw = await request.json().catch(() => undefined)
+  const raw: unknown = await request.json().catch(() => undefined)
   const parsed = UpdateRunBody.safeParse(raw ?? {})
   if (!parsed.success) {
     return json(

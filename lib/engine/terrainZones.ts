@@ -739,7 +739,7 @@ function positionLabel(position: ZonePosition): string {
       return 'Elevator Shaft'
     case 'abyss':
       return 'Abyss'
-    default:
+    case 'zone':
       return 'Zone'
   }
 }

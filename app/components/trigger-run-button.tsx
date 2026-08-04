@@ -60,7 +60,7 @@ export function TriggerRunButton({
 
   return (
     <div className={size === 'sm' ? 'relative' : ''}>
-      <Button variant={variant} size={size} onClick={() => runAction(body)} disabled={inFlight}>
+      <Button variant={variant} size={size} onClick={() => void runAction(body)} disabled={inFlight}>
         {buttonLabel}
       </Button>
       <div role="status">

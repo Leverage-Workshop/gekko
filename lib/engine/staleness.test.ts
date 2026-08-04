@@ -52,7 +52,7 @@ describe('assessStaleness — no data', () => {
   it.each([null, undefined, 'not-a-date'])(
     'treats %s receivedAt as maximally stale with no data',
     (bad) => {
-      const r = assessStaleness({ receivedAt: bad as never, now: NOW })
+      const r = assessStaleness({ receivedAt: bad, now: NOW })
       expect(r.isStale).toBe(true)
       expect(r.hasData).toBe(false)
       expect(r.ageMs).toBe(Infinity)
