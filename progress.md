@@ -2,7 +2,20 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-03
+**Last Updated:** 2026-08-04
+**Latest change (ad-hoc, branch `claude/model-effort-max-setting-dcleix`):**
+'max' added as a selectable reasoning-effort level on /settings. OpenRouter's
+API documents `reasoning.effort = "max"` (~95% of max_tokens, same allocation
+as 'xhigh') but @openrouter/ai-sdk-provider (≤3.0.0) omits it from its effort
+union, so `openrouterModelSettings` casts it through at that one boundary.
+Touched: `lib/llm/reasoning.ts` (REASONING_EFFORTS + 'max'),
+`lib/llm/generateStructured.ts` (boundary cast), settings-form label,
+migration `20260804000000_model_effort_max.sql` (drop/recreate the three
+config effort CHECK constraints — applied live via the Supabase MCP, verified
+in pg_constraint), gekko-db skill snapshot, and tests (schema accepts 'max',
+unknown-effort rejection example now 'ultra', migration guard, settings pass-
+through). `./init.sh` green.
+
 **Active Feature:** none — latest merged: **feat-086 entry-first
 nearest-reversal-level objective contract** (operator review of the 2026-08-03
 morning briefing: the long shipped 398 pts below market at the deepest AAA

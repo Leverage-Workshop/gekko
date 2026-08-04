@@ -89,6 +89,13 @@ describe('openrouterModelSettings', () => {
       reasoning: { effort: 'minimal' },
     })
   })
+
+  it("passes 'max' through despite the provider SDK's narrower effort union", () => {
+    expect(openrouterModelSettings('max')).toEqual({
+      usage: { include: true },
+      reasoning: { effort: 'max' },
+    })
+  })
 })
 
 describe('generateStructured', () => {

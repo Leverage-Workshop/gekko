@@ -6,7 +6,7 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-03 (27 applied migrations).
+the project's REST APIs. Schema snapshot updated 2026-08-04 (28 applied migrations).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -87,7 +87,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | triage_model_id | text | `'openai/gpt-5.6-luna'` — eval-task triage model |
 | high_conviction_enabled | bool | false — when true, analyze-task routes to high_conviction_model_id |
 | high_conviction_model_id | text | `'anthropic/claude-opus-4-8'` |
-| model_effort / triage_model_effort / high_conviction_model_effort | text, nullable | CHECK in ('none','minimal','low','medium','high','xhigh'); NULL = provider default (feat-055) |
+| model_effort / triage_model_effort / high_conviction_model_effort | text, nullable | CHECK in ('none','minimal','low','medium','high','xhigh','max'); NULL = provider default (feat-055; 'max' added 2026-08-04) |
 | rr_min | numeric | 3.0 — display-only since feat-086 (no longer gates objectives) |
 | significant_move_pts | int | 50 — feat-086 entry-first contract: min reversal traverse (pts) a level must offer to anchor an objective entry; CHECK 10–500; injected into analyze/update prompts, /settings-editable |
 | proximity_window_seconds | int | 60 — recency window of exec bars feeding the eval near-entry gate |
@@ -177,14 +177,14 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Migrations & DDL
 
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (27 rows as of 2026-08-03; repo
+  `supabase_migrations.schema_migrations` (28 rows as of 2026-08-04; repo
   `20260802200000_revalidation_action.sql` applied via the claude.ai Supabase
   MCP, so its live timestamp differs from the filename).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has
   no corresponding repo file — it added the anon RLS policy above. And live version
   timestamps can differ from repo filenames when applied via the claude.ai Supabase
   MCP (repo `20260731030000_absorption_stack.sql` is live `20260731033446`). Don't be
-  surprised by count/name mismatches (26 repo files vs 27 live; repo `20260801090000_execution_bar_volume.sql` and `20260803190000_significant_move_pts.sql` were applied live via the claude.ai Supabase MCP, so their live timestamps differ).
+  surprised by count/name mismatches (27 repo files vs 28 live; repo `20260801090000_execution_bar_volume.sql`, `20260803190000_significant_move_pts.sql`, and `20260804000000_model_effort_max.sql` were applied live via the Supabase MCP, so their live timestamps differ).
 - Check applied migrations:
   `curl -s -X POST "$URL/rest/v1/rpc/..."` won't work for this — `schema_migrations`
   isn't exposed via PostgREST. Instead compare repo filenames against the snapshot
