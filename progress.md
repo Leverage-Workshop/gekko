@@ -3,7 +3,16 @@
 ## Current State
 
 **Last Updated:** 2026-08-04
-**Latest change (ad-hoc, branch `claude/model-effort-max-setting-dcleix`):**
+**Latest change (ad-hoc):** `./init.sh` warning cleanup. The 14
+@typescript-eslint/no-unused-vars lint warnings (all `_`-prefixed bindings,
+mostly rest-sibling omit-destructures) are gone: eslint.config.mjs now sets
+the standard underscore ignore patterns + ignoreRestSiblings. `npm audit fix`
+(non-breaking) trimmed vulnerabilities 27 → 24 (lockfile-only churn); the
+remaining 24 all require breaking majors (next@16 pulls sharp/postcss/cookie/
+otel; socket.io chain pins vulnerable ws) — left for a deliberate upgrade
+feature, so npm install still prints its vulnerability count.
+
+**Prior change (ad-hoc, branch `claude/model-effort-max-setting-dcleix`):**
 'max' added as a selectable reasoning-effort level on /settings. OpenRouter's
 API documents `reasoning.effort = "max"` (~95% of max_tokens, same allocation
 as 'xhigh') but @openrouter/ai-sdk-provider (≤3.0.0) omits it from its effort

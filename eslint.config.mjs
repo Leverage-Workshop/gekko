@@ -8,6 +8,23 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Disable ESLint formatting rules that conflict with Prettier (must come last).
   prettier,
+  {
+    rules: {
+      // The codebase uses `_`-prefixed bindings to intentionally discard
+      // values (mostly rest-sibling destructuring that omits fields); the
+      // Next.js preset doesn't ignore them, so every one warned.
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
