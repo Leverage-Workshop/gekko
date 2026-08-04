@@ -55,6 +55,7 @@ export function statusLabel(status: string | undefined): string {
       return 'Waiting'
     case 'DELAYED':
       return 'Delayed'
+    case undefined:
     default:
       return 'Queued'
   }

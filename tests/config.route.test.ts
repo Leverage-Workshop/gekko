@@ -5,8 +5,8 @@ import { MIGRATION_REQUIRED_MESSAGE } from '@/lib/config'
 // via a hoisted module mock (same discipline as briefings.run.route.test.ts)
 // so GET/POST /api/config run without Supabase env or network access.
 
-const state = vi.hoisted(() => ({
-  client: undefined as unknown,
+const state = vi.hoisted((): { client: unknown } => ({
+  client: undefined,
 }))
 vi.mock('@/lib/supabase/server', () => ({
   getServiceClient: () => state.client,

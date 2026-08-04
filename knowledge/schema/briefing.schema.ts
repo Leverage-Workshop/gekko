@@ -456,7 +456,7 @@ export const ABSORPTION_CHECK_NAME = 'Absorption'
 function checkEvalVerdictContract(result: EvalResultRaw, ctx: z.RefinementCtx): void {
   const issue = (path: string, message: string) =>
     ctx.addIssue({ code: 'custom', path: [path], message })
-  const mustBeNull = (path: keyof EvalResultRaw & string) => {
+  const mustBeNull = (path: keyof EvalResultRaw) => {
     if (result[path] !== null) issue(path, `${path} must be null on a ${result.status} verdict`)
   }
 

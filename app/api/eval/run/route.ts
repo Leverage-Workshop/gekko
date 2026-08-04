@@ -32,7 +32,7 @@ const EvalRunBody = z.object({
 
 export async function POST(request: Request): Promise<Response> {
   // A body-less POST (the "Eval" button) fails .json() — treat as empty.
-  const raw = await request.json().catch(() => undefined)
+  const raw: unknown = await request.json().catch(() => undefined)
   const parsed = EvalRunBody.safeParse(raw ?? {})
   if (!parsed.success) {
     return json(

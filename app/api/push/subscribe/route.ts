@@ -32,7 +32,7 @@ const UnsubscribeSchema = z.object({
   endpoint: z.url(),
 })
 
-async function readJson(req: Request): Promise<unknown | undefined> {
+async function readJson(req: Request): Promise<unknown> {
   try {
     return await req.json()
   } catch {

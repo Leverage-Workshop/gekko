@@ -590,7 +590,7 @@ function assertAllKeysRequired(schema: z.ZodType, name: string) {
     }
     const obj = node as Record<string, unknown>
     if (obj.type === 'object' && obj.properties && typeof obj.properties === 'object') {
-      const keys = Object.keys(obj.properties as object)
+      const keys = Object.keys(obj.properties)
       const required = Array.isArray(obj.required) ? (obj.required as string[]) : []
       const missing = keys.filter((k) => !required.includes(k))
       expect(missing, `${name}: optional keys at ${path}`).toEqual([])

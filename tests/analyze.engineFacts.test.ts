@@ -148,7 +148,7 @@ describe('computeEngineFacts', () => {
     expect(result.htfStructure!.recentSwingHighs.length).toBeGreaterThan(0)
     expect(result.htfStructure!.rotation).not.toBeNull()
     // Distances are measured from the MGI current price (29945.75), not the last close.
-    const lastSwingHigh = result.htfStructure!.recentSwingHighs[0]!
+    const lastSwingHigh = result.htfStructure!.recentSwingHighs[0]
     expect(result.htfStructure!.currentVsSwings.fromLastSwingHighPts).toBe(
       Math.round((mgi.current!.price! - lastSwingHigh.price) * 100) / 100,
     )

@@ -184,10 +184,10 @@ function computeMicroSwing(bars: readonly ExecBar[], price: number): MicroSwingR
   // the lagging sequence. Breaking both ways at once (huge developing bar)
   // reads as range — no side holds the break.
   if (brokeAbove && !brokeBelow) {
-    if (state !== 'up') basis = `price broke above the last micro swing high ${round2(lastHigh!)} (was ${state})`
+    if (state !== 'up') basis = `price broke above the last micro swing high ${round2(lastHigh)} (was ${state})`
     state = 'up'
   } else if (brokeBelow && !brokeAbove) {
-    if (state !== 'down') basis = `price broke below the last micro swing low ${round2(lastLow!)} (was ${state})`
+    if (state !== 'down') basis = `price broke below the last micro swing low ${round2(lastLow)} (was ${state})`
     state = 'down'
   } else if (brokeAbove && brokeBelow) {
     state = 'range'

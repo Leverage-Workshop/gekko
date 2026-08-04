@@ -34,9 +34,9 @@ export interface BundleRow {
 
 export interface LoadBundleDeps {
   /** Latest `raw_bundles` row by `received_at`, or null when none exist. */
-  fetchLatestBundle(): Promise<BundleRow | null>
+  fetchLatestBundle: () => Promise<BundleRow | null>
   /** Download one Storage object (bucket + path from the ref columns). */
-  downloadObject(bucket: IngestBucket, path: string): Promise<Uint8Array>
+  downloadObject: (bucket: IngestBucket, path: string) => Promise<Uint8Array>
 }
 
 export interface LoadedBundle {
@@ -238,7 +238,7 @@ export async function loadLatestBundle(
   const base: LoadedExecBundle = {
     row,
     execCsvContent,
-    mgi: row.mgi_json as MgiStaticLevels,
+    mgi: row.mgi_json,
     images,
     charts,
     warnings,

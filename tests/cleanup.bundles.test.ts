@@ -110,10 +110,10 @@ describe('cleanupBundles', () => {
   it('removes objects from both buckets BEFORE deleting the rows', async () => {
     const order: string[] = []
     const deps = makeDeps([[fullCandidate('b1'), fullCandidate('b2')]])
-    deps.removeObjects.mockImplementation(async (bucket: string) => {
+    deps.removeObjects.mockImplementation((bucket: string) => {
       order.push(`remove:${bucket}`)
     })
-    deps.deleteBundleRows.mockImplementation(async () => {
+    deps.deleteBundleRows.mockImplementation(() => {
       order.push('delete-rows')
     })
 

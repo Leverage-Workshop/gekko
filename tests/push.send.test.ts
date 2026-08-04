@@ -26,12 +26,12 @@ interface FakeDeps extends SendPushDeps {
 
 function fakeDeps({
   rows = [row(1)],
-  failWith = new Map<string, unknown>(),
+  failWith = new Map<string, Error>(),
   deleteError,
 }: {
   rows?: PushSubscriptionRow[]
   /** endpoint → error thrown by sendNotification */
-  failWith?: Map<string, unknown>
+  failWith?: Map<string, Error>
   deleteError?: Error
 } = {}): FakeDeps {
   const deps: FakeDeps = {

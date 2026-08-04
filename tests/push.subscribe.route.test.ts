@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // via a hoisted module mock (same discipline as config.route.test.ts) so
 // POST/DELETE /api/push/subscribe run without Supabase env or network.
 
-const state = vi.hoisted(() => ({
-  client: undefined as unknown,
+const state = vi.hoisted((): { client: unknown } => ({
+  client: undefined,
 }))
 vi.mock('@/lib/supabase/server', () => ({
   getServiceClient: () => state.client,

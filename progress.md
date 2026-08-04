@@ -3,7 +3,26 @@
 ## Current State
 
 **Last Updated:** 2026-08-04
-**Latest change (ad-hoc):** `./init.sh` warning cleanup. The 14
+**Latest change (ad-hoc):** lint hardening. `npm run lint` now runs with
+`--max-warnings 0` (warnings fail verification instead of accumulating);
+typescript-eslint's type-aware `recommendedTypeChecked` preset is on for all
+TS files (projectService), plus `switch-exhaustiveness-check`;
+@vitest/eslint-plugin bans focused/disabled tests. `require-await` is off
+(async-interface-conforming fakes/deps are the house idiom). Two scoped
+waivers, both documented in eslint.config.mjs: the untyped-Supabase boundary
+(`lib/*/deps.ts`, fetchConfig, server.ts) skips the unsafe-`any` family +
+only-throw-error until DB types are generated, and test files skip
+unsafe-`any` + unbound-method (mocks). ~230 findings triaged to zero: real
+fixes include a floating realtime auth/subscribe chain and 7 async handlers
+in void onClick/onSubmit positions (alerts-center, settings-form,
+trigger-run-button), exhaustive switches (terrainZones positionLabel 'zone',
+statusLabel undefined), deps interfaces switched to property-style members
+(unbound-method), `request.json()` results typed unknown at both run routes,
+redundant `unknown | null` unions collapsed, and 24 auto-fixed unnecessary
+assertions. Follow-up candidate: generate Supabase DB types and drop the
+boundary waiver.
+
+**Prior change (ad-hoc):** `./init.sh` warning cleanup. The 14
 @typescript-eslint/no-unused-vars lint warnings (all `_`-prefixed bindings,
 mostly rest-sibling omit-destructures) are gone: eslint.config.mjs now sets
 the standard underscore ignore patterns + ignoreRestSiblings. `npm audit fix`

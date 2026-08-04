@@ -11,7 +11,7 @@ const TOKEN = 'secret-token'
 function fetchResponding(status: number, body: unknown): typeof fetch {
   return vi.fn(async () =>
     new Response(JSON.stringify(body), { status }),
-  ) as unknown as typeof fetch
+  )
 }
 
 describe('checkPendingRequest', () => {
