@@ -159,6 +159,20 @@ describe('supabase migrations', () => {
     expect(content).not.toMatch(/delete\s+from/i)
   })
 
+  it("widens the reasoning-effort constraints to include 'max' non-destructively", () => {
+    const file = sql.files.find((f) => f.includes('model_effort_max'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    for (const column of ['model_effort', 'triage_model_effort', 'high_conviction_model_effort']) {
+      expect(content).toContain(`drop constraint if exists config_${column}_check`)
+      expect(content).toContain(
+        `${column} in ('none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max')`,
+      )
+    }
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+
   it('renames five_day_vbp_ref to balance_area_vbp_ref guarded and non-destructively (feat-037)', () => {
     const file = sql.files.find((f) => f.includes('balance_area_vbp_ref'))
     expect(file).toBeDefined()

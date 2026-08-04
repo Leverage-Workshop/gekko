@@ -81,6 +81,7 @@ const EFFORT_LABELS: Record<ReasoningEffort, string> = {
   medium: 'Medium',
   high: 'High',
   xhigh: 'X-High',
+  max: 'Max',
 }
 
 /**

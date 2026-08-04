@@ -30,10 +30,13 @@ export const DEFAULT_MODEL_ID = 'anthropic/claude-sonnet-5'
  */
 export function openrouterModelSettings(
   effort?: ReasoningEffort | null,
-): { usage: { include: true }; reasoning?: { effort: ReasoningEffort } } {
+): { usage: { include: true }; reasoning?: { effort: Exclude<ReasoningEffort, 'max'> } } {
   return {
     usage: { include: true },
-    ...(effort ? { reasoning: { effort } } : {}),
+    // 'max' is documented by the OpenRouter API but absent from
+    // @openrouter/ai-sdk-provider's effort union (as of 3.0.0), so it is cast
+    // through here; the API still rejects efforts a model doesn't support.
+    ...(effort ? { reasoning: { effort: effort as Exclude<ReasoningEffort, 'max'> } } : {}),
   }
 }
 

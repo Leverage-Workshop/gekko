@@ -113,7 +113,7 @@ describe('ConfigUpdateSchema', () => {
   })
 
   it('accepts every documented reasoning effort and null (provider default)', () => {
-    for (const effort of ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', null]) {
+    for (const effort of ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', null]) {
       const parsed = ConfigUpdateSchema.safeParse({
         ...valid,
         model_effort: effort,
@@ -125,7 +125,7 @@ describe('ConfigUpdateSchema', () => {
   })
 
   it('rejects unknown reasoning efforts and non-string values', () => {
-    expect(fieldErrors({ ...valid, model_effort: 'max' }).model_effort).toMatch(/one of/)
+    expect(fieldErrors({ ...valid, model_effort: 'ultra' }).model_effort).toMatch(/one of/)
     expect(
       ConfigUpdateSchema.safeParse({ ...valid, triage_model_effort: 'MEDIUM' }).success,
     ).toBe(false)
