@@ -9,6 +9,13 @@ Method: the bundle's nine artifacts were downloaded from `bundle-csvs`, then
 below is measured against the real payload rather than read off the source. Supporting
 statistics come from the 90 days of 30-min bars the bundle already carries.
 
+A second, independent bundle-data review ran the same day on branch
+`claude/delta-intensity-redundancy-xe1bbj` (PR #131, `feat-087`/`feat-088`). The two
+overlap in three places and this document has been reconciled against it: the volume
+clock (B2) is already filed as `feat-088` and gets no duplicate feature here, and its
+base-rate-controlled *negative* results on Kyle's λ and day-level HTF delta divergence
+are carried into B3 and B5 rather than argued around.
+
 **Bundle under review:** `1c15934a-4a19-46ce-a43a-96f4918ba05a`, received
 2026-08-06 18:33:25 UTC (13:31 CT, mid-RTH), `current_price` 29542.50, `is_stale` false.
 
@@ -279,6 +286,13 @@ bar count and trade count, and can use the actual rate; and `deltaTelemetry.flow
 can distinguish a blowoff (large delta, fast bars) from a grind (large delta, slow bars),
 which is the absorption-vs-exhaustion call the prompt hands to the screenshot.
 
+**Already queued as `feat-088`** (tape pace telemetry, PR #131) — an independent
+bundle-data review reached the same finding with the same measurements. No separate
+feature is filed here; the two consumers named above belong in that one. Worth carrying
+across: feat-088's base-rate control found pace has *no standalone directional edge*
+(18 continuations vs 11 reversals after 4x-pace bursts), so it ships as context that
+gates other signals, never as a trigger.
+
 #### B3. Price impact per unit of order flow (Kyle's λ)
 
 Regress per-bar close−open on per-bar delta over a rolling window. λ is *the* quantitative
@@ -298,6 +312,19 @@ threshold, else null — the same degradation pattern the other engine facts alr
 The signal is the *change* in λ, not its level. This generalises the current absorption
 scan, which can only see stacks that happen to sit in the ~25-bin delta profiles; λ works
 everywhere price has traded.
+
+**A prior negative result applies here.** The 2026-08-07 delta-intensity review (branch
+`claude/delta-intensity-redundancy-xe1bbj`, PR #131) tested λ *as a timing filter* and
+rejected it: 60% vs a 58% base rate, near-nil. That does not refute the framing above —
+λ here is a liquidity-regime read that gates other signals rather than a trigger — but it
+does mean λ has to clear its own base-rate control in *this* framing before it ships, and
+it drops below `feat-087` and RVOL in priority until it does.
+
+Relationship to **`feat-087`** (effort-vs-result absorption prints, PR #131): that is the
+same idea as a binary per-bar test — heavy `|delta|`, small body — and λ is its
+continuous, windowed form. feat-087 should ship first: it carries replicated,
+base-rate-controlled evidence (64%/71% reversal vs a 57% base rate on two bundles) and λ
+does not. λ then adds the regime read a per-bar print cannot give.
 
 #### B4. Promote the value levels that already exist to real structure
 
@@ -319,6 +346,12 @@ swings is sitting in the same rows (D4). Multi-day cumulative delta, delta at ea
 confirmed swing, and divergence between a fresh HTF price extreme and HTF cumulative
 delta are the exact analogues of what `barFlow` already does on the execution timeframe —
 the code pattern exists, it just needs pointing at the other bar series.
+
+Scope caveat: the 2026-08-07 delta-intensity review tested **day-level** HTF delta
+divergence as a fade signal and rejected it (slight continuation bias). This is
+swing-level annotation and cumulative-delta context for the narrative, not a day-level
+fade trigger, and any directional claim needs its own base-rate control. That review also
+reached the parsed-but-unused finding independently, without filing a feature for it.
 
 #### B6. Better volatility estimators, and volatility-scaled distances
 
@@ -402,7 +435,8 @@ turns the doctrine's qualitative level ranking into a measured one.
    the operator's 2026-08-03 finding.
 3. **D2 → A2 → C2** — stop discarding TPO tails, add the one metadata line, then build
    day-type on top.
-4. **B1 + B2** — RVOL and the volume clock. Both free, both gate everything downstream.
+4. **B1** — RVOL (the volume clock, B2, is already queued as `feat-088`). Both are free,
+   and both gate everything downstream.
 5. **B6 → D3/C1** — measure volatility properly, then scale the gates that are currently
    fixed points.
 6. **A1** — the session volume profile, the one genuinely missing export.

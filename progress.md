@@ -4,35 +4,59 @@
 
 **Last Updated:** 2026-08-07
 **Latest change (ad-hoc, branch `claude/data-bundle-adversarial-review-ef0a5b`):**
-adversarial review of the live data bundle →
-`docs/data-bundle-review-2026-08-07.md`, and 20 new features
-(**feat-087..feat-106**) queued from it. Method: pulled the newest
+adversarial review of the live data bundle → `docs/data-bundle-review-2026-08-07.md`,
+plus 19 new backlog features (**feat-089..feat-107**). Method: pulled the newest
 `raw_bundles` row (`1c15934a`, 2026-08-06 18:33 UTC, price 29542.50, mid-RTH),
 downloaded all nine storage artifacts, and ran `computeEngineFacts()` over them
-verbatim via `tsx` — every claim measured, not asserted. Four defects found,
-all higher-value than any new export: (D1) `daily-value-areas.csv` ships the
-IN-PROGRESS session as row 1, so `valueMigration.priorDay` is *today* and
-`currentPriceVsPriorValue` returns `inside / 0 pts outside` by construction on
-every bundle — the accepted-outside-prior-value read has been dead since
-feat-048; `dailyRanges` is contaminated the same way (feat-087). (D2) TPO
-`Letters` produced *nothing* on a day where 227/446 bins (51%) are single
-prints — a 208-pt A-period buying tail and a 19-pt D-period tail both
-discarded by `detectSinglePrintZones`, whose deferred-to "poor/tapered-extreme
-read" does not exist (feat-089). (D3) `significant_move_pts = 50` is 0.18σ /
-0.45 of one 30-min bar at current vol — the feat-086 gate rejects nothing
-(feat-094/095). (D4) `htf_bars.csv` volume + delta (87 days × 2916 bars) are
-parsed, typed, documented and read by no consumer (feat-092/101). Also
-confirmed and generalized the operator's open 2026-08-03 item: TPO POC (1 pt
-from price), prior-day POC/VAH/VAL and the multi-day composite POC are all
-non-anchorable — 40 anchor prices, nearest 2.98 pts away (feat-088). Data adds:
-session volume profile (feat-097), TPO period→clock-time map (feat-090), event
-calendar (feat-104), timezone metadata (feat-106); note feat-051's *session*
-VWAP σ bands need no ACSIL work at all and are split out as feat-096. Math
-adds: RVOL (feat-092), the volume clock — constant-750 bars make bar duration
-an inverse volume rate, 23× p90/p10 spread, currently discarded (feat-093),
-Kyle's λ with a confidence gate (feat-100), Parkinson/GK vol (feat-094),
-IB→day-range distribution (feat-099), empirical per-level reversal stats
-(feat-102). `./init.sh` green (docs + feature_list only, no code touched).
+verbatim via `tsx` — measured, not asserted. Four defects, all higher-value than
+any new export: (D1) `daily-value-areas.csv` ships the IN-PROGRESS session as row 1,
+so `valueMigration.priorDay` is *today* and `currentPriceVsPriorValue` returns
+`inside / 0 pts outside` by construction on every bundle — the
+accepted-outside-prior-value read has been dead since feat-048, and `dailyRanges`
+is contaminated the same way (feat-089). (D2) TPO `Letters` produced *nothing* on a
+day where 227/446 bins (51%) are single prints — a 208-pt A-period buying tail and a
+19-pt D-period tail both discarded by `detectSinglePrintZones`, whose deferred-to
+"poor/tapered-extreme read" does not exist (feat-091). (D3) `significant_move_pts =
+50` is 0.18σ / 0.45 of one 30-min bar at current vol, so the feat-086 gate rejects
+nothing (feat-095/096). (D4) `htf_bars.csv` volume + delta (87d × 2916 bars) are
+parsed, typed, documented and read by no consumer (feat-094/102). Also confirmed and
+generalized the operator's open 2026-08-03 item: TPO POC (1 pt from price),
+prior-day POC/VAH/VAL and the multi-day composite POC are all non-anchorable — 40
+anchor prices, nearest 2.98 pts away (feat-090). Data adds: session volume profile
+(feat-098), TPO period→clock map (feat-092), event calendar (feat-105), timezone
+metadata (feat-107); feat-051's *session* VWAP σ bands need no ACSIL work at all and
+are split out as feat-097. Math adds: RVOL (feat-094), Parkinson/GK vol (feat-095),
+IB→day-range distribution (feat-100), Kyle's λ (feat-101), HTF order flow
+(feat-102), empirical per-level reversal stats (feat-103). **Reconciled with the
+parallel `claude/delta-intensity-redundancy-xe1bbj` review (PR #131):** its feat-088
+already covers the volume-clock finding both reviews reached independently, so no
+duplicate was filed; and its base-rate-controlled negative results — λ as a timing
+filter (60% vs 58%), day-level HTF delta divergence as a fade — are recorded on
+feat-101/102 as constraints rather than argued around. Two cautions preserved in the
+feature text: λ needs a confidence gate (per-window R² 0.02–0.44), and the
+level-reversal stats rest on n = 20–34 per class — the method is feasible, the edge
+is not established. `./init.sh` green (docs + `feature_list.json` only, no code
+touched).
+
+**Prior change (ad-hoc, branch `claude/delta-intensity-redundancy-xe1bbj`):**
+bundle-data math review — no code changes, two new backlog features. Tested
+Codex's claim that DeltaIntensity is redundant given the raw BidVolume/
+AskVolume columns, on two live bundles (2026-08-06). It is NOT reproducible:
+per-bar delta correlates only 0.36; the best bid/ask-derived proxy (EMA-7 of
+delta with in-sample-optimal thresholds) caps at ~63% exact-bucket accuracy
+(60% out-of-sample; ±1 buckets unresolvable), so the study stays in the
+bundle. The same review prototyped candidate math on existing data and added
+the two that survived base-rate controls to `feature_list.json`:
+`feat-087` effort-vs-result absorption prints (|delta| ≥ p75 + body ≤ 25% of
+range after a >10-pt move → 64%/71% reversal vs 57% base, ~2x mean move
+against trend, replicated on both bundles) and `feat-088` tape pace telemetry
+(constant-volume bars ⇒ time-per-bar = participation; 23x dynamic range,
+currently discarded; context-only, no standalone directional edge). Tested
+and rejected: VPIN (no range-expansion correlation), Kyle's lambda as a
+timing filter (60% vs 58%), day-level HTF delta divergence as a fade
+(slight continuation). HTF bid/ask delta noted as parsed-but-unused
+(`parseHtfBars` computes it; nothing downstream reads it).
+
 **Prior change (ad-hoc):** lint hardening. `npm run lint` now runs with
 `--max-warnings 0` (warnings fail verification instead of accumulating);
 typescript-eslint's type-aware `recommendedTypeChecked` preset is on for all
