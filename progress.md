@@ -3,7 +3,42 @@
 ## Current State
 
 **Last Updated:** 2026-08-07
-**Latest change (ad-hoc, branch `claude/delta-intensity-redundancy-xe1bbj`):**
+**Latest change (ad-hoc, branch `claude/data-bundle-adversarial-review-ef0a5b`):**
+adversarial review of the live data bundle → `docs/data-bundle-review-2026-08-07.md`,
+plus 19 new backlog features (**feat-089..feat-107**). Method: pulled the newest
+`raw_bundles` row (`1c15934a`, 2026-08-06 18:33 UTC, price 29542.50, mid-RTH),
+downloaded all nine storage artifacts, and ran `computeEngineFacts()` over them
+verbatim via `tsx` — measured, not asserted. Four defects, all higher-value than
+any new export: (D1) `daily-value-areas.csv` ships the IN-PROGRESS session as row 1,
+so `valueMigration.priorDay` is *today* and `currentPriceVsPriorValue` returns
+`inside / 0 pts outside` by construction on every bundle — the
+accepted-outside-prior-value read has been dead since feat-048, and `dailyRanges`
+is contaminated the same way (feat-089). (D2) TPO `Letters` produced *nothing* on a
+day where 227/446 bins (51%) are single prints — a 208-pt A-period buying tail and a
+19-pt D-period tail both discarded by `detectSinglePrintZones`, whose deferred-to
+"poor/tapered-extreme read" does not exist (feat-091). (D3) `significant_move_pts =
+50` is 0.18σ / 0.45 of one 30-min bar at current vol, so the feat-086 gate rejects
+nothing (feat-095/096). (D4) `htf_bars.csv` volume + delta (87d × 2916 bars) are
+parsed, typed, documented and read by no consumer (feat-094/102). Also confirmed and
+generalized the operator's open 2026-08-03 item: TPO POC (1 pt from price),
+prior-day POC/VAH/VAL and the multi-day composite POC are all non-anchorable — 40
+anchor prices, nearest 2.98 pts away (feat-090). Data adds: session volume profile
+(feat-098), TPO period→clock map (feat-092), event calendar (feat-105), timezone
+metadata (feat-107); feat-051's *session* VWAP σ bands need no ACSIL work at all and
+are split out as feat-097. Math adds: RVOL (feat-094), Parkinson/GK vol (feat-095),
+IB→day-range distribution (feat-100), Kyle's λ (feat-101), HTF order flow
+(feat-102), empirical per-level reversal stats (feat-103). **Reconciled with the
+parallel `claude/delta-intensity-redundancy-xe1bbj` review (PR #131):** its feat-088
+already covers the volume-clock finding both reviews reached independently, so no
+duplicate was filed; and its base-rate-controlled negative results — λ as a timing
+filter (60% vs 58%), day-level HTF delta divergence as a fade — are recorded on
+feat-101/102 as constraints rather than argued around. Two cautions preserved in the
+feature text: λ needs a confidence gate (per-window R² 0.02–0.44), and the
+level-reversal stats rest on n = 20–34 per class — the method is feasible, the edge
+is not established. `./init.sh` green (docs + `feature_list.json` only, no code
+touched).
+
+**Prior change (ad-hoc, branch `claude/delta-intensity-redundancy-xe1bbj`):**
 bundle-data math review — no code changes, two new backlog features. Tested
 Codex's claim that DeltaIntensity is redundant given the raw BidVolume/
 AskVolume columns, on two live bundles (2026-08-06). It is NOT reproducible:
