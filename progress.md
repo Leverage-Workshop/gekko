@@ -2,8 +2,38 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-04
-**Latest change (ad-hoc):** lint hardening. `npm run lint` now runs with
+**Last Updated:** 2026-08-07
+**Latest change (ad-hoc, branch `claude/data-bundle-adversarial-review-ef0a5b`):**
+adversarial review of the live data bundle →
+`docs/data-bundle-review-2026-08-07.md`, and 20 new features
+(**feat-087..feat-106**) queued from it. Method: pulled the newest
+`raw_bundles` row (`1c15934a`, 2026-08-06 18:33 UTC, price 29542.50, mid-RTH),
+downloaded all nine storage artifacts, and ran `computeEngineFacts()` over them
+verbatim via `tsx` — every claim measured, not asserted. Four defects found,
+all higher-value than any new export: (D1) `daily-value-areas.csv` ships the
+IN-PROGRESS session as row 1, so `valueMigration.priorDay` is *today* and
+`currentPriceVsPriorValue` returns `inside / 0 pts outside` by construction on
+every bundle — the accepted-outside-prior-value read has been dead since
+feat-048; `dailyRanges` is contaminated the same way (feat-087). (D2) TPO
+`Letters` produced *nothing* on a day where 227/446 bins (51%) are single
+prints — a 208-pt A-period buying tail and a 19-pt D-period tail both
+discarded by `detectSinglePrintZones`, whose deferred-to "poor/tapered-extreme
+read" does not exist (feat-089). (D3) `significant_move_pts = 50` is 0.18σ /
+0.45 of one 30-min bar at current vol — the feat-086 gate rejects nothing
+(feat-094/095). (D4) `htf_bars.csv` volume + delta (87 days × 2916 bars) are
+parsed, typed, documented and read by no consumer (feat-092/101). Also
+confirmed and generalized the operator's open 2026-08-03 item: TPO POC (1 pt
+from price), prior-day POC/VAH/VAL and the multi-day composite POC are all
+non-anchorable — 40 anchor prices, nearest 2.98 pts away (feat-088). Data adds:
+session volume profile (feat-097), TPO period→clock-time map (feat-090), event
+calendar (feat-104), timezone metadata (feat-106); note feat-051's *session*
+VWAP σ bands need no ACSIL work at all and are split out as feat-096. Math
+adds: RVOL (feat-092), the volume clock — constant-750 bars make bar duration
+an inverse volume rate, 23× p90/p10 spread, currently discarded (feat-093),
+Kyle's λ with a confidence gate (feat-100), Parkinson/GK vol (feat-094),
+IB→day-range distribution (feat-099), empirical per-level reversal stats
+(feat-102). `./init.sh` green (docs + feature_list only, no code touched).
+**Prior change (ad-hoc):** lint hardening. `npm run lint` now runs with
 `--max-warnings 0` (warnings fail verification instead of accumulating);
 typescript-eslint's type-aware `recommendedTypeChecked` preset is on for all
 TS files (projectService), plus `switch-exhaustiveness-check`;

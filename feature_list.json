@@ -900,6 +900,198 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-086-entry-first-objectives (typecheck clean, lint 0 errors, 1138 tests passing incl. 6 new: significant-move-floor advisory fires below 50 pts / low-rr-alone stays silent (validateBriefing), significant_move_pts zod boundaries 10/500 + missing-field rejection (config.schema), pre-significant-move degradation tier padded with 50 (config.store), prompt canary asserting the floor is user-message-injected and never prefix-hardcoded (prompt-data-sync); analyze prefix budget ceiling bumped 43k->47k for the doctrine growth; build OK). Migration 20260803190000_significant_move_pts.sql applied LIVE via claude.ai Supabase MCP (config row verified: significant_move_pts=50); gekko-db skill snapshot updated in the same PR."
+    },
+    {
+      "id": "feat-087",
+      "name": "Exclude the in-progress session from the daily value-area history",
+      "description": "Bundle review 2026-08-07 D1 (docs/data-bundle-review-2026-08-07.md): the live daily-value-areas.csv ships the CURRENT in-progress RTH session as row 1, contradicting the exporter contract in docs/data-todos.md section 3 ('the current in-progress session is excluded'). Verified on bundle 1c15934a (received 13:31 CT mid-RTH): row 1 is 2026-08-06 with SessionHigh/Low 29686.25/29241.25, matching that bundle's own tpo.data.md summary exactly. computeValueMigration() and computeDailyRanges() both document their input as 'completed sessions' and neither validates it, so valueMigration.priorDay resolves to TODAY and currentPriceVsPriorValue returns {position:'inside', pointsOutside:0} by construction on every bundle -- the doctrine's accepted-outside-prior-value read has been dead since feat-048 landed. The true prior session (08-05, VAL 29693) puts price 150.5 pts BELOW prior-day value, the opposite call. pocDrift, valueTrend and priorDayOverlap are all computed one session off, and dailyRanges mixes a partial range (445 pts at 13:31 vs a 464-pt median) into the contraction/expansion mean, biasing the read toward 'contraction' every morning. Fix engine-side regardless of the exporter: drop the leading row when its date equals the live session date (the bundle already carries tpo.sessionDate), guard in parseDailyValueAreas, and emit a warning when the drop happens. Optionally add an IsComplete column to the export as belt-and-braces.",
+      "dependencies": [
+        "feat-048",
+        "feat-060"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-088",
+      "name": "Promote prior-day and TPO value levels to anchorable structure",
+      "description": "Bundle review 2026-08-07 D5/B4 (docs/data-bundle-review-2026-08-07.md), and the operator's open follow-up from the 2026-08-03 briefing review. engineAnchorPrices() is built from terrain only (MGI levels + the two volume profiles), so nothing derived from TPO, the value-area history or the multi-day composite can host an entry. Measured on bundle 1c15934a against its 40 anchor prices: TPO POC 29541 (1 pt from current price) NO, TPO VAH 29638 NO, TPO VAL 29478 NO, prior-day POC 29520 NO, prior-day VAH 29620 NO, prior-day VAL 29476.75 NO, multi-day composite POC 29541 NO -- nearest anchor to any of them is 2.98 pts away. Separately, mgiPriority's docstring still records that Daily MGI Priority ranks 4 and 5 (RVAH/RVAL/RPOC) 'are not in this export'; since feat-048 they are, in daily-value-areas.csv. Work: feed valueMigration.priorDay POC/VAH/VAL into computeMgiPriority as the doctrine's RVAH/RVAL/RPOC at daily ranks 4-5 so they tier, sort and reach terrain; add tpo.poc, tpo.valueArea and multiDayTpo.composite.poc to engineAnchorPrices() as anchorable structure. Depends on feat-087 -- promoting a contaminated priorDay would anchor entries on today's own developing value.",
+      "dependencies": [
+        "feat-087",
+        "feat-046",
+        "feat-071"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-089",
+      "name": "TPO excess/tail facts \u2014 stop discarding extreme single-print runs",
+      "description": "Bundle review 2026-08-07 D2 (docs/data-bundle-review-2026-08-07.md): detectSinglePrintZones() drops every contiguous count==1 run touching a profile extreme, commenting that such tails 'belong to poor/tapered-extreme reads' -- but no such read exists, and detectPoorExtreme() only fires on a 2+ TPO shelf, so a single-print extreme returns null and the tail is never measured. Measured on bundle 1c15934a: 227 of 446 TPO bins (51 percent) are single prints, in exactly two contiguous runs -- 208 bins / 208 pts from the session low (period A) and 19 bins / 19 pts at the high (period D) -- and BOTH were discarded, leaving tpo.singlePrintZones=[], tpo.poorHigh=null, tpo.poorLow=null. The 208-pt A-period buying tail, the defining structural feature of that session, reached the model only as pixels on the TPO screenshot. Add a TpoFacts.excess fact: buying-tail and selling-tail length in bins and points at each extreme, with the period letters that built them, plus the single-print-fraction of the session. Surface in factsPayload and the analyze prompt as code-owned day structure; keep interior singlePrintZones semantics unchanged.",
+      "dependencies": [
+        "feat-046"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-090",
+      "name": "Data export: TPO period letter \u2192 clock-time map in tpo.data.md",
+      "description": "Bundle review 2026-08-07 A2 (docs/data-bundle-review-2026-08-07.md): tpo.data.md exports period letters but no anchor tying them to the clock, so letter 'A' cannot be resolved to a time without assuming which period opens the session. That blocks every period-sequenced read (open type, which period made the high or low, range extension by period, excess timing). Cheapest high-leverage change on the list: two additive lines in the existing ## Metadata section -- '- **First Period Letter**: A' and '- **First Period Start**: 2026-08-06 08:30:00' -- plus parseTpo capturing them and a letter\u2192time resolver derived from tpoPeriodMinutes. Additive markdown change; parseTpo must tolerate their absence (older bundles) rather than hard-rejecting.",
+      "dependencies": [
+        "feat-054",
+        "feat-046"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-091",
+      "name": "TPO day-type and open-type classification",
+      "description": "Bundle review 2026-08-07 C2 (docs/data-bundle-review-2026-08-07.md). With the letter\u2192time map (feat-090) and the excess facts (feat-089) in place, classify the session from the TPO letter sequence: day type (normal, normal-variation, trend, neutral, neutral-extreme, double-distribution) and open type (open-drive, open-test-drive, open-rejection-reverse, open-auction), plus range extension by period and which period printed the session high and low. These are canonical Market Profile reads the doctrine leans on and the engine currently has no name for; today they are inferred from the TPO screenshot. Ground the classification in the bundle's own empirical extension distribution (feat-099) rather than textbook thresholds where the two disagree.",
+      "dependencies": [
+        "feat-090",
+        "feat-089"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-092",
+      "name": "Relative volume (RVOL) from time-of-day seasonality",
+      "description": "Bundle review 2026-08-07 B1/D4 (docs/data-bundle-review-2026-08-07.md). 'Is participation heavy or light right now' is today a vision read on the execution chart. htf_bars.csv already carries 87 days / 2916 30-min bars with volume -- 46 distinct intraday slots at a median of 64 sessions each, ample for a robust per-slot median -- yet htfStructure, multiDayTpo and overnightSession read OHLC only and never touch volume. Compute a per-slot volume baseline and the live RVOL against it (measured on bundle 1c15934a: 10:30 1.25x, 11:00 1.26x, 12:30 0.73x, 13:00 0.92x). Add the day-level companion from daily-value-areas.csv's SessionVolume, which is parsed into DailySession.sessionVolume and referenced nowhere else (today 341,119 vs a 415,467 median = 0.82x; its correlation with session range over the 20 sessions on hand is 0.78). RVOL is the natural confidence gate on every other order-flow signal -- a delta divergence at 0.7x is noise, the same divergence at 1.4x is information -- so surface it as a scalar fact the other facts can cite.",
+      "dependencies": [
+        "feat-049",
+        "feat-048"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-093",
+      "name": "The volume clock \u2014 bar duration as participation intensity",
+      "description": "Bundle review 2026-08-07 B2 (docs/data-bundle-review-2026-08-07.md): the execution bars are constant-volume (config.execution_bar_volume, 750), which makes elapsed time per bar a DIRECT inverse measure of the volume rate -- and it is discarded. The engine reads ExecBar.dateTime only for windowing. Measured on bundle 1c15934a's 630-bar session: p10 16s, median 45s, p90 369s, max 990s -- a 23x p90/p10 spread in intensity invisible to every current fact (median ~1,000 contracts/min, fastest ~45,000). The last 20 bars ran a median 84s vs the session's 45s = 0.54x normal participation. Two immediate consumers: stallConfirmation's 'heavy participation' clause currently proxies participation with bar count and trade count and can use the measured rate instead; and deltaTelemetry.flow.climax can separate a blowoff (large delta, fast bars) from a grind (large delta, slow bars) -- the absorption-vs-exhaustion call the analyze prompt currently hands to the screenshot.",
+      "dependencies": [
+        "feat-047",
+        "feat-079"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-094",
+      "name": "Range-based volatility estimators and sigma-normalized distances",
+      "description": "Bundle review 2026-08-07 B6 (docs/data-bundle-review-2026-08-07.md): htfStructure.atrPoints is the engine's only scale measure. Parkinson (high/low) and Garman-Klass (OHLC) estimators are roughly 5x more statistically efficient per bar than close-to-close, need no new data, and give a stable session sigma (median 283 pts over the 61 RTH sessions reconstructed from bundle 1c15934a's own HTF export). Compute both from the 30-min bars, expose a session-sigma fact, and report distances to structure in sigma alongside points so '29 pts away' reads as '0.10 sigma -- inside the noise' rather than as a meaningful gap. Prerequisite for feat-095.",
+      "dependencies": [
+        "feat-049"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-095",
+      "name": "Volatility-scale the fixed-point gates (significant_move_pts, standoff, chase)",
+      "description": "Bundle review 2026-08-07 D3/C1 (docs/data-bundle-review-2026-08-07.md): feat-086 made significant_move_pts the binding gate for entry qualification, and at current NQ volatility it filters nothing. Measured over the 61 RTH sessions in bundle 1c15934a's own HTF export: median day range 464 pts (50 pts = 11 percent of a day), median Parkinson session sigma 283 pts (50 pts = 0.18 sigma), median 30-min bar range 110 pts (50 pts = 0.45 of ONE bar). Every level on the map clears the floor, so validateBriefing's reversal-room warning never fires. The number is also fixed while the regime is not -- the 20-session range history in the same bundle runs 445 to 748 pts. Re-express the floor as a multiple of the measured scale from feat-094, keeping significant_move_pts as the /settings-editable multiplier (with a migration for the units change), and give MIN_ENTRY_STANDOFF_PTS / MAX_ENTRY_CHASE_PTS the same treatment. Prompt injection must state the resolved point value as well as the multiple so the model reasons in the units it quotes.",
+      "dependencies": [
+        "feat-094",
+        "feat-086"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-096",
+      "name": "Session VWAP sigma bands computed in-engine (splits feat-051)",
+      "description": "Bundle review 2026-08-07 A4 (docs/data-bundle-review-2026-08-07.md): feat-051 blocks the whole VWAP-band capability on an ACSIL export change, but the SESSION-anchored bands need no export at all -- execution_bars.csv carries per-bar volume and sessionIntraday already computes both the Globex- and RTH-anchored VWAPs. Volume-weighted sigma over the same bars is one small function. Measured on bundle 1c15934a: Globex-anchored VWAP 29522.89, sigma 83.72 pts, bands -2s 29355.45 / -1s 29439.17 / +1s 29606.62 / +2s 29690.34, current price 29542.50 at z=+0.23. Ship the session bands here as SessionIntradayFacts and as entry/stop/target-rung structure; feat-051 remains scoped to the 24h/weekly/monthly bands, which genuinely need the export because those VWAPs arrive as bare scalars in mgi_static_levels.json with no underlying series. Bands must degrade to null when sessionIntraday.coverage is 'partial'.",
+      "dependencies": [
+        "feat-063"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-097",
+      "name": "Data export: session volume profile (session.vbp.md)",
+      "description": "Bundle review 2026-08-07 A1 (docs/data-bundle-review-2026-08-07.md): four volume profiles ship and none of them is TODAY. The 400-pt rotation and the balance area are structural/multi-session; the half- and full-rotation delta exports are ~25-bin execution-scale windows carrying Price,Delta with NO Volume column (so no delta-per-volume ratio is computable at those prices either). The only view of the live session is TPO, which is time-based. Consequence: developing volume VPOC/VAH/VAL for the current session does not exist as a number anywhere in the system. Add session.vbp.md -- identical .vbp.md format (Metadata + Summary + fenced Price,Volume,Delta csv), anchored at the RTH open, same cadence and atomic-write pattern -- plus the FILE_FIELDS entry, a raw_bundles ref column, uploader pickup, parser reuse (parseVbpProfile already handles the format) and engine-fact wiring for the developing value area. Unblocks feat-098 and feat-103.",
+      "dependencies": [
+        "feat-054",
+        "feat-050"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-098",
+      "name": "Naked / virgin POC set",
+      "description": "Bundle review 2026-08-07 C5 (docs/data-bundle-review-2026-08-07.md): prior-session POCs that price has never traded back through are among the more reliable magnets in this style, and the engine has no concept of them. Everything needed is close to hand -- daily-value-areas.csv supplies the per-session POC series and htf_bars.csv can answer 'has price traded through this since?' over 87 days -- with the session profile (feat-097) supplying the developing POC. Compute the naked-POC set with each one's age in sessions and distance from current price, feed them into the magnet/anchor sets, and surface the nearest above and below as engine facts.",
+      "dependencies": [
+        "feat-097",
+        "feat-087"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-099",
+      "name": "Initial-Balance to day-range extension distribution",
+      "description": "Bundle review 2026-08-07 B7 (docs/data-bundle-review-2026-08-07.md): classic Market Profile made empirical from data already in every bundle. Over the 62 sessions reconstructed from bundle 1c15934a's HTF export, day_range/IB_range runs p25 1.25, median 1.52, p75 2.08, p90 2.58, max 3.58, and day type by extension splits no-extension 4 percent / one-sided 79 percent / both-sides 16 percent (upside extension as a multiple of IB: median 0.15, p90 0.76). On that bundle IB was 29242-29667 (425 pts) with the session range at 445 pts -- day/IB 1.05, below the p25 -- a statement the briefing can currently make only as an impression. Gives target rungs a distribution to sit on ('p75 of sessions extend to 29910 from this IB') and feeds the day-type classifier (feat-091) empirical thresholds instead of textbook ones. Report the sample size alongside every quantile.",
+      "dependencies": [
+        "feat-049"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-100",
+      "name": "Price impact per unit of order flow (Kyle's lambda)",
+      "description": "Bundle review 2026-08-07 B3 (docs/data-bundle-review-2026-08-07.md): regress per-bar (close-open) on per-bar delta over a rolling window. Lambda is the quantitative statement of absorption -- low lambda means aggressive flow is being met without price moving, high lambda means the book is thin and small flow travels far. Measured on bundle 1c15934a: whole-session lambda 83.7 pts per 1000 net delta (R^2 0.27); rolling 30-bar min 18.2 / median 76.4 / max 155.0, a 9x spread, with the lowest-lambda windows (08:23, 09:20, 08:03) reading as absorption and the highest (06:29, 01:13, 09:57) as vacuum. Honest caveat to carry into the implementation: per-window R^2 runs 0.02-0.44, so lambda is a noisy estimate and the fact MUST carry a confidence gate -- report only when R^2 and window volume clear a threshold, else null, following the degradation pattern the other engine facts already use. The signal is the CHANGE in lambda, not its level. Generalises the current absorption scan, which can only see stacks that happen to fall inside the ~25-bin delta profiles; lambda works everywhere price has traded.",
+      "dependencies": [
+        "feat-047",
+        "feat-092"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-101",
+      "name": "HTF order flow \u2014 cumulative delta and swing-level divergence",
+      "description": "Bundle review 2026-08-07 B5/D4 (docs/data-bundle-review-2026-08-07.md): parseHtfBars produces volume, bidVolume, askVolume and a computed delta per bar; grepping the three consumers (htfStructure, multiDayTpo, overnightSession) finds zero references to any of them -- 87 days x 2916 bars of 30-min order flow parsed, typed, documented and feeding nothing. htfStructure locates swing highs and lows from OHLC and stops there, while the delta at those swings sits in the same rows. Add multi-day cumulative delta, delta and volume at each confirmed swing, and divergence between a fresh HTF price extreme and HTF cumulative delta. These are the exact analogues of what barFlow already computes on the execution timeframe -- the code pattern exists and needs pointing at the other bar series.",
+      "dependencies": [
+        "feat-049"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-102",
+      "name": "Empirical reversal statistics per level class",
+      "description": "Bundle review 2026-08-07 B8 (docs/data-bundle-review-2026-08-07.md): feat-086's contract asks the model for the nearest level with 'a decent probability of reversal', and no probability is computed anywhere. The 61 RTH sessions in every bundle's HTF export can measure it. First touch of prior-session levels on a 3h horizon, reversal excursion vs continuation excursion: PDH n=29 edge 1.13, PDL n=20 edge 1.31, PDC n=34 edge 1.76, prior-day mid n=28 edge 1.51, against an any-bar baseline of 1.16. Two warnings that must survive into the implementation. (1) n of 20-34 per class is far too small to trade off -- this establishes that the METHOD is feasible on data already present, not that PDC carries a 1.76 edge; the statistic needs months of accumulation, ideally persisted across bundles rather than recomputed from one 90-day window. (2) The first cut of this measurement scored 'P(reversal >= 50 pts)' at 100 percent for every level class -- and for the unconditional baseline too, because 50 pts is 0.18 sigma (see feat-095). Every statistic here MUST be reported against its unconditional baseline or it is theatre. Done properly, over the level classes the engine actually uses (AAA vs A borders, LVN valleys, one-sided vs balanced HVN builds), this turns the doctrine's qualitative level ranking into a measured one.",
+      "dependencies": [
+        "feat-094",
+        "feat-049"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-103",
+      "name": "Double-distribution detection within the session profile",
+      "description": "Bundle review 2026-08-07 C3 (docs/data-bundle-review-2026-08-07.md): a bimodal session profile with a low-volume gap between two distributions is a distinct regime the engine has no name for. multiDayTpo finds interior LVN valleys ACROSS sessions, but nothing looks for the shape WITHIN the day. Apply the standard treatment -- a dip test or a two-component mixture fit over the session volume profile (feat-097) or the TPO ladder -- and surface the two distribution centres, the separating valley and a confidence, so the briefing can name a double-distribution day and treat the valley as the structure it is rather than as an ordinary LVN.",
+      "dependencies": [
+        "feat-097",
+        "feat-046"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-104",
+      "name": "Scheduled-event calendar as an engine fact",
+      "description": "Bundle review 2026-08-07 A3 (docs/data-bundle-review-2026-08-07.md): the system has no notion of time-to-event. A briefing generated at 07:55 CT ahead of an 08:30 CPI print and one generated on a quiet Tuesday are treated identically, and the doctrine has nothing to say about standing down into a release. This needs no API -- a hand-maintained JSON of {timestamp, label, tier} in the repo, or a config-backed table, gets most of the value: an engine fact of 'next scheduled event in N minutes, tier 1' plus a doctrine line. It also explains volume anomalies that feat-092's RVOL will otherwise surface as unexplained participation swings.",
+      "dependencies": [],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-105",
+      "name": "Time-to-event conditioning in the analyze and eval contracts",
+      "description": "Bundle review 2026-08-07 C4 (docs/data-bundle-review-2026-08-07.md). With the event calendar (feat-104) in place, condition the output on it: flag or suppress fresh setups inside N minutes of a tier-1 release, carry the standoff into the eval task's near-entry gate, and let the overview attribute an RVOL anomaly (feat-092) to the scheduled event instead of narrating it as spontaneous participation. Thresholds belong in config so the operator can tune the blackout window.",
+      "dependencies": [
+        "feat-104",
+        "feat-092"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-106",
+      "name": "Data export: timezone and session metadata on every export",
+      "description": "Bundle review 2026-08-07 A5 (docs/data-bundle-review-2026-08-07.md): every export writes naive local timestamps and the engine hard-codes the 08:30 CT RTH open (RTH_OPEN_MINUTES in overnightSession.ts, consumed by sessionIntraday, multiDayTpo and the daily-session reconstruction). Correct today, silently wrong across a DST boundary, a holiday/shortened session, or any change to the Sierra machine's timezone -- and the failure mode is a quietly mis-anchored session VWAP and cumulative delta rather than an error. Add '- **Timezone**: America/Chicago' to each export's Metadata section (alongside the '- **Session**: RTH|ETH' marker already planned in feat-053), capture it in the parsers, and assert the engine's assumed session boundaries against it with a warning on mismatch.",
+      "dependencies": [
+        "feat-054"
+      ],
+      "status": "not-started"
     }
   ]
 }
