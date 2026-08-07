@@ -2,8 +2,27 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-04
-**Latest change (ad-hoc):** lint hardening. `npm run lint` now runs with
+**Last Updated:** 2026-08-07
+**Latest change (ad-hoc, branch `claude/delta-intensity-redundancy-xe1bbj`):**
+bundle-data math review — no code changes, two new backlog features. Tested
+Codex's claim that DeltaIntensity is redundant given the raw BidVolume/
+AskVolume columns, on two live bundles (2026-08-06). It is NOT reproducible:
+per-bar delta correlates only 0.36; the best bid/ask-derived proxy (EMA-7 of
+delta with in-sample-optimal thresholds) caps at ~63% exact-bucket accuracy
+(60% out-of-sample; ±1 buckets unresolvable), so the study stays in the
+bundle. The same review prototyped candidate math on existing data and added
+the two that survived base-rate controls to `feature_list.json`:
+`feat-087` effort-vs-result absorption prints (|delta| ≥ p75 + body ≤ 25% of
+range after a >10-pt move → 64%/71% reversal vs 57% base, ~2x mean move
+against trend, replicated on both bundles) and `feat-088` tape pace telemetry
+(constant-volume bars ⇒ time-per-bar = participation; 23x dynamic range,
+currently discarded; context-only, no standalone directional edge). Tested
+and rejected: VPIN (no range-expansion correlation), Kyle's lambda as a
+timing filter (60% vs 58%), day-level HTF delta divergence as a fade
+(slight continuation). HTF bid/ask delta noted as parsed-but-unused
+(`parseHtfBars` computes it; nothing downstream reads it).
+
+**Prior change (ad-hoc):** lint hardening. `npm run lint` now runs with
 `--max-warnings 0` (warnings fail verification instead of accumulating);
 typescript-eslint's type-aware `recommendedTypeChecked` preset is on for all
 TS files (projectService), plus `switch-exhaustiveness-check`;

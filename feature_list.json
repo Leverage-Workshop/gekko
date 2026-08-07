@@ -900,6 +900,25 @@
       ],
       "status": "done",
       "evidence": "./init.sh green on feat-086-entry-first-objectives (typecheck clean, lint 0 errors, 1138 tests passing incl. 6 new: significant-move-floor advisory fires below 50 pts / low-rr-alone stays silent (validateBriefing), significant_move_pts zod boundaries 10/500 + missing-field rejection (config.schema), pre-significant-move degradation tier padded with 50 (config.store), prompt canary asserting the floor is user-message-injected and never prefix-hardcoded (prompt-data-sync); analyze prefix budget ceiling bumped 43k->47k for the doctrine growth; build OK). Migration 20260803190000_significant_move_pts.sql applied LIVE via claude.ai Supabase MCP (config row verified: significant_move_pts=50); gekko-db skill snapshot updated in the same PR."
+    },
+    {
+      "id": "feat-087",
+      "name": "Effort-vs-result absorption prints (level-free order-flow reversal signal)",
+      "description": "Bundle-data math review (2026-08-07, session following the Codex delta-intensity redundancy claim): prototype validation on two live bundles (2026-08-06 18:33 UTC, 630 bars; 16:26 UTC, 534 bars) found one order-flow construct with a real, replicated edge that the engine does not compute. An effort-vs-result absorption print is an exec bar where aggression was heavy but price refused to move: |delta| >= the 75th percentile of the series' |ask-bid| AND candle body <= 25% of the bar's high-low range. When such a bar prints after a directional move (>10 pts net over the prior 10 bars), price reversed within the next 10 bars 64%/71% of the time vs a 57% base rate, and the mean 10-bar move AGAINST the prior trend roughly doubled (+13.2/+15.9 pts vs +7.1/+7.9 baseline) \u2014 consistent across both bundles. This is Wyckoff effort-without-result made numeric, and it fills a real gap: stallConfirmation is level-anchored (needs a candidate border), while this detector is level-FREE \u2014 it fires anywhere on the tape, including at levels the briefing never mapped. Implementation: extend computeBarFlow (lib/engine/barFlow.ts) with an absorptionPrints reduction \u2014 count in the recent window, plus the most recent print's side (absorbing buys vs sells, from delta sign vs prior-move direction), price, and bars-ago \u2014 computed from existing ExecBar fields only (no new export columns); thresholds (P75 delta percentile, 25% body fraction, 10-pt/10-bar prior-move qualifier) as named exported constants for the doctrine drift guard. Surface via engineFacts into the analyze/update and eval prompts as raw facts (advisory context, not a gate), alongside the existing climax/divergence lines. Keep the detector distinct from DeltaIntensity semantics: it uses raw bid/ask columns only.",
+      "dependencies": [
+        "feat-047",
+        "feat-072"
+      ],
+      "status": "not-started"
+    },
+    {
+      "id": "feat-088",
+      "name": "Tape pace telemetry (bar-duration participation rate)",
+      "description": "Bundle-data math review (2026-08-07): the exec chart prints constant-volume bars (execution_bar_volume, ~750), so time-per-bar IS the participation rate \u2014 and the engine currently discards it entirely (timestamps are only used for windowing). Measured on the 2026-08-06 bundle: median bar duration 45s, p10 16s, p90 369s \u2014 a 23x dynamic range in how fast the market is trading. Pace is a CONTEXT feature, not a directional trigger (after 4x-pace bursts: 18 continuations vs 11 reversals \u2014 no standalone edge), so it must ship as descriptive telemetry, never a gate. Value: (1) pace climax into a border is the numeric form of the doctrine's exhaustion cone / climactic-participation read; (2) dead tape (p90+ durations) marks absent participation \u2014 moves on dead tape are suspect; (3) the eval near-entry gate's proximity_window_seconds (default 60s) currently holds anywhere from 1 to 4+ bars depending on pace, silently changing what 'recent' means \u2014 surfacing current pace lets the eval prompt (and operators tuning the window) see that. Implementation: extend computeBarFlow or add a small pace module in lib/engine/ computing per-bar durations from consecutive DateTime deltas (first bar null; guard non-positive gaps from session boundaries), reduced to: median/p10/p90 duration over the series, current-bar-equivalent pace vs median (ratio), burst/dead-tape classification of the recent window, and contracts-per-minute for the latest bars. Surface via engineFacts into analyze/update + eval prompts as raw facts. Percentile bands and burst/dead thresholds as named exported constants for the drift guard. Uses existing ExecBar fields only \u2014 no new export columns.",
+      "dependencies": [
+        "feat-047"
+      ],
+      "status": "not-started"
     }
   ]
 }
