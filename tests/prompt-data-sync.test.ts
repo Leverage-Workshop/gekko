@@ -474,6 +474,10 @@ describe('prompt-data sync gate (feat-054)', () => {
       // meaningful), each replaces a vision read, and none is inlined raw.
       // 98k is a deliberate stop, not a running total: the next fact to land
       // here should trim something before it bumps this number again.
+      // feat-097 (session-VWAP sigma bands + `vwapRungs`) landed under this
+      // ceiling WITHOUT raising it, per the stop above: its guide bullet was
+      // written tight and the rungs are the compact form of numbers already in
+      // `sigmaBands` (measured 97_731 — 269 chars of headroom left).
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,

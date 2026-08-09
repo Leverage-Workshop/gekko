@@ -233,3 +233,63 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
 - **Alternatives considered:** Trimming the fact — rejected, every field is already a scalar or
   a 4-element list; nothing is inlined raw.
 
+## feat-097 — 2026-08-09
+
+- **Decision:** Nest the bands inside the existing `sessionIntraday` fact (`vwap.<anchor>.sigmaBands`
+  plus a flattened `vwapRungs`) rather than minting a new top-level engine fact.
+- **Why:** The spec asks for the bands "as `SessionIntradayFacts` **and** as entry/stop/target-rung
+  structure", and the bands are derived from the very VWAP they hang off — separating them would
+  invite the two to drift. It also keeps the feat-054 registry gate satisfied by updating the
+  existing `exec_csv` row instead of adding a payload key with no export of its own.
+- **Alternatives considered:** a standalone `lib/engine/sessionVwapBands.ts` module + top-level
+  `vwapBands` fact (duplicates the bar-filtering and anchor logic that already lives in
+  `sessionIntraday`, and needs a new registry row for an export it does not own).
+
+- **Decision:** Rung structure is plumbed through `engineAnchorPrices()` (new optional third
+  argument) — NOT through `engineZoneBorders()`.
+- **Why:** `engineBorders` is hard-enforced: the model's `terrain.zones` must reproduce that exact
+  set. A session VWAP band is not a zone partition, so injecting it there would corrupt the zone
+  stack contract to buy a target-rung advisory. `anchorPrices` is exactly the "prices an entry may
+  legitimately sit on" set, and the labelled rungs reach the model directly in the facts payload,
+  so targets can quote them without loosening zone validation.
+- **Alternatives considered:** adding band prices to `engineZoneBorders` (breaks the zone
+  contract); a third `rungPrices` option on `ValidateOptions` (new validation surface for no
+  behavior the anchor set does not already give).
+
+- **Decision:** Include the VWAP centerline itself (`multiple: 0`) in `vwapRungs`, and compute band
+  prices from the UNROUNDED VWAP and sigma, rounding once at the end.
+- **Why:** The centerline is the mean-reversion rung the bands are measured from; excluding it
+  would make the session VWAP quotable in prose but not anchorable. Rounding once is what
+  reproduces the review's reference geometry exactly (bundle `1c15934a`: +1σ 29606.62 and +2σ
+  29690.34 are only reachable from unrounded inputs — 29522.89 + 83.72 rounds to 29606.61).
+- **Alternatives considered:** bands only (centerline unanchorable); deriving bands from the
+  already-rounded published VWAP/sigma (off by a cent at ±1σ/±2σ vs the reference).
+
+- **Decision:** Population sigma (÷ Σv), not a sample/Bessel correction.
+- **Why:** The band describes where THIS session actually traded around its own average; it is not
+  estimating a parameter of a wider population, so there is no n−1 to make. It also matches how
+  charting packages draw VWAP bands, which is what the operator sees on the Sierra chart.
+- **Alternatives considered:** Bessel-corrected sigma (differs by <0.1% at hundreds of bars, and
+  would silently disagree with the platform's own bands).
+
+- **Decision:** Reference numbers verified analytically, not against the live bundle.
+- **Why:** Bundle `1c15934a` lives in Supabase storage and the worktree has no `.env`, so the
+  `gekko-db` skill has no credentials to fetch it. The published figures are internally consistent
+  with this implementation's formula (each band = VWAP + k·sigma from unrounded inputs; z =
+  (29542.50 − 29522.89)/83.72 = +0.23), and the math itself is pinned by a hand-computed unit test
+  where the volume weighting changes the answer (sigma 10 weighted vs sqrt(125) ≈ 11.18 unweighted).
+- **Alternatives considered:** committing a trimmed copy of that bundle as a fixture (bloats the
+  repo and duplicates `chart-data/`, which already exercises the full-coverage path).
+
+- **Decision:** Landed under the existing 98k analyze user-prompt budget instead of raising it,
+  by tightening the guide bullet and moving its interpretive half (how to READ a band) into the
+  cached doctrine prefix (measured 97_731).
+- **Why:** feat-095's reconciliation note in `tests/prompt-data-sync.test.ts` declares 98k "a
+  deliberate stop, not a running total: the next fact to land here should trim something before it
+  bumps this number again" — this feature is that next fact. The split also follows the feat-080
+  dedup rule the repo already runs on: static doctrine belongs in the cached prefix (paid once),
+  live values and pointers in the per-run user message.
+- **Alternatives considered:** bumping to 100k (ignores an explicit, recent instruction from the
+  feature that set the stop); dropping `vwapRungs` from `factsPayload` and surfacing only the
+  nested bands (saves ~450 chars but leaves the model to flatten and label the rungs itself — the
+  attribution labels are the point).

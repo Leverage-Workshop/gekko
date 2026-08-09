@@ -193,7 +193,7 @@ export async function runUpdate(
     rrMin,
     significantMovePts,
     engineBorders: engineZoneBorders(facts.terrain),
-    anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn),
+    anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn, facts.sessionIntraday),
     fakeoutTails: facts.fakeoutTails,
     meta: {
       createdAt: now.toISOString(),

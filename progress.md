@@ -3,7 +3,44 @@
 ## Current State
 
 **Last Updated:** 2026-08-09
-**Latest change (branch `feat-095-volatility-estimators`): feat-095 — range-based
+**Latest change (feat-097, branch `feat-097-session-vwap-bands`):** the session VWAPs now
+carry a volume-weighted sigma envelope, closing review item A4 without touching the ACSIL
+export. `execution_bars.csv` already ships per-bar volume and `sessionIntraday` already
+accumulates both anchored VWAPs, so sigma is one pass over the same bars:
+`sqrt(Σ v·(typical − VWAP)² / Σ v)` (population, weights = bar volume, typical = (H+L+C)/3).
+`lib/engine/sessionIntraday.ts` gained the exported `VWAP_BAND_MULTIPLES` ([1, 2]), the
+`SessionVwapBand` / `SessionVwapSigmaBands` / `SessionVwapRung` types and
+`sessionVwapRungs()`. Every `SessionVwapAnchor` now carries `sigmaBands { sigma, bands
+(−2σ/−1σ/+1σ/+2σ, price-ascending), z }`, and `SessionIntradayFacts` carries `vwapRungs` —
+both anchors' centerlines and bands flattened price-descending, each with the attribution
+label the briefing must quote ("Globex session VWAP −1σ"). Band prices derive from the
+UNROUNDED VWAP and sigma and are rounded once, so no band inherits two roundings; that is
+what reproduces the review's reference geometry (bundle `1c15934a`: VWAP 29522.89, sigma
+83.72, −2σ 29355.45 / −1σ 29439.17 / +1σ 29606.62 / +2σ 29690.34, price 29542.50 at
+z = +0.23) to the cent. **The partial-coverage degradation is load-bearing and tested:**
+`vwap` is already null when the export starts mid-session, so the bands go with it and
+`vwapRungs` is `[]` — no sigma envelope is ever drawn around a session average that was
+never a session average. As rung structure the prices flow through
+`engineAnchorPrices(terrain, lvn, sessionIntraday)` (new optional third argument) into both
+the analyze and update validation paths, so an entry/stop/target anchored on a band is
+engine structure rather than an off-anchor advisory; the anchor enumeration in
+`knowledge/system/output-objective.md`, both prompt builders and the `docs/engine-ownership.md`
+registry row were updated to match. feat-051 stays `not-started` and is now explicitly
+narrowed to the 24h/weekly/monthly bands, which genuinely need the export (those VWAPs
+arrive as bare scalars in `mgi_static_levels.json` with no underlying series). The analyze
+user-prompt budget was NOT raised: feat-095's reconciliation note declares 98k a stop
+rather than a running total, so the guide bullet was written tight and its interpretive
+half moved into the cached doctrine prefix (`knowledge/system/output-objective.md`) —
+measured 97_731, 269 chars of headroom. `./init.sh` green: typecheck 0, lint 0 warnings,
+vitest 1234 passed / 1 skipped, build OK.
+
+**Next up:** the backlog's first `not-started` feature whose deps are all `done` —
+feat-089 (partition developing vs completed sessions) is still the natural follow-on.
+feat-051 remains open and is now narrowed to the 24h/weekly/monthly VWAP bands only; when
+it lands it should reuse `VWAP_BAND_MULTIPLES` from `lib/engine/sessionIntraday.ts` so both
+families of bands sit at the same multiples.
+
+**Prior change (branch `feat-095-volatility-estimators`): feat-095 — range-based
 volatility estimators and sigma-normalized distances.** Closes review §B6: `atrPoints`
 was the engine's only scale measure. New `lib/engine/volatilityScale.ts` computes
 Parkinson (high/low) and Garman-Klass (OHLC) variance from the existing 30-min HTF bars —
@@ -29,6 +66,7 @@ typecheck, lint --max-warnings 0, vitest 1218 passed / 1 skipped, next build. An
 budget raised to 97k chars — feat-094 and feat-095 each measured +2k against the 91k
 base in parallel and both bumped to 93k; together they measure 95_076, reconciled in
 `tests/prompt-data-sync.test.ts` with a note that 97k is a stop, not a running total.
+
 
 **Prior change (feat-091, branch `feat-091-tpo-excess-tails`):** TPO excess is measured
 instead of discarded, closing review item D2. `lib/engine/tpoFacts.ts` gained

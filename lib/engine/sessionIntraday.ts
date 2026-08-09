@@ -13,6 +13,10 @@ import { GLOBEX_OPEN_MINUTES, RTH_OPEN_MINUTES } from './overnightSession'
  * Everything here is computed in code from the exec bars — the operator
  * explicitly wants NO new chart studies or export columns.
  *
+ * feat-097 adds the volume-weighted sigma envelope around each session VWAP,
+ * computed over those same raw exec bars, plus the flattened rung structure
+ * (`vwapRungs`) entries, stops and target rungs may anchor on.
+ *
  * VWAP and cumulative delta accumulate over the RAW exec bars (finer than any
  * resample); the 5-minute resample exists for time-based series (the VWAP
  * slope) and the 15-minute bars for one-timeframing. Chart time is US Central
@@ -45,6 +49,15 @@ export const FULL_COVERAGE_TOLERANCE_MINUTES = 30
 /** VWAP drift below this many points per 30 min reads as flat. */
 export const VWAP_SLOPE_EPSILON_PTS = 2
 
+/**
+ * Sigma multiples the session-VWAP bands are minted at (feat-097), inner-first.
+ * ±1σ is the mean-reversion rung the session keeps rotating back through; ±2σ
+ * is the extension/exhaustion rung. Deliberately the same pair the ACSIL
+ * `vwapBands` export will carry for the 24h/weekly/monthly anchors (feat-051),
+ * so the two families of bands read identically downstream.
+ */
+export const VWAP_BAND_MULTIPLES = [1, 2] as const
+
 /** Cumulative-delta change within this many contracts per 30 min reads as flat. */
 export const CUM_DELTA_EPSILON = 50
 
@@ -56,6 +69,37 @@ const MS_PER_MINUTE = 60_000
 export type SessionTrend = 'rising' | 'falling' | 'flat'
 export type SessionPosition = 'above' | 'below' | 'at'
 
+/** One sigma band around a session VWAP. */
+export type SessionVwapBand = {
+  /** Signed sigma multiple — −2, −1, +1, +2 (see {@link VWAP_BAND_MULTIPLES}). */
+  multiple: number
+  /** VWAP + multiple × sigma. */
+  price: number
+}
+
+/**
+ * Volume-weighted sigma envelope around a session VWAP (feat-097). Computed
+ * over the SAME exec bars that produce the VWAP itself — `execution_bars.csv`
+ * already carries per-bar volume, so no export change is involved (the
+ * 24h/weekly/monthly bands do need one: those VWAPs arrive as bare scalars in
+ * `mgi_static_levels.json` with no underlying series — feat-051).
+ */
+export type SessionVwapSigmaBands = {
+  /**
+   * Volume-weighted standard deviation of bar typical price about the VWAP, in
+   * points (population sigma, weights = bar volume).
+   */
+  sigma: number
+  /** The bands, price-ascending: −2σ, −1σ, +1σ, +2σ. */
+  bands: SessionVwapBand[]
+  /**
+   * Where current price sits in the envelope: (current − VWAP) / sigma. Null
+   * when sigma is 0 (a session with no dispersion yet — one bar, or every bar
+   * at one price).
+   */
+  z: number | null
+}
+
 export type SessionVwapAnchor = {
   /** Volume-weighted average price since the anchor, from the raw exec bars. */
   value: number
@@ -65,6 +109,29 @@ export type SessionVwapAnchor = {
   /** VWAP now vs VWAP 30 minutes ago — the direction the average is dragging. */
   slope: SessionTrend
   slopePtsPer30Min: number | null
+  /**
+   * Volume-weighted sigma bands around this VWAP (feat-097). Null only when the
+   * anchor carries no volume — and the whole `vwap` block is already null on
+   * partial coverage, so the bands degrade with it.
+   */
+  sigmaBands: SessionVwapSigmaBands | null
+}
+
+/** Which session VWAP a rung belongs to. */
+export type SessionVwapAnchorName = 'globex' | 'rth'
+
+/**
+ * A session-VWAP price usable as entry / stop / target-rung structure
+ * (feat-097) — the VWAP centerline itself plus its sigma bands, each carrying
+ * the attribution label the briefing must quote when it anchors there.
+ */
+export type SessionVwapRung = {
+  price: number
+  anchor: SessionVwapAnchorName
+  /** 0 for the VWAP centerline, ±1 / ±2 for the sigma bands. */
+  multiple: number
+  /** Attribution label, e.g. "Globex session VWAP −1σ". */
+  label: string
 }
 
 export type SessionCumDeltaAnchor = {
@@ -105,8 +172,9 @@ export type SessionIntradayFacts = {
   /**
    * 'full' when the export starts at the Globex open (within tolerance);
    * 'partial' otherwise (e.g. the retired rolling export). Session-anchored
-   * VWAP / cumulative delta are null on partial coverage — a "session VWAP"
-   * accumulated from mid-session would be a lie with a label.
+   * VWAP (with its sigma bands) / cumulative delta are null on partial
+   * coverage — a "session VWAP" accumulated from mid-session would be a lie
+   * with a label, and a sigma envelope around it doubly so.
    */
   coverage: 'full' | 'partial'
   vwap: {
@@ -114,6 +182,13 @@ export type SessionIntradayFacts = {
     /** Anchored at the 08:30 CT open; null before RTH. */
     rth: SessionVwapAnchor | null
   } | null
+  /**
+   * Session-VWAP prices (centerline + sigma bands) flattened into rung
+   * structure for entries, stops and target rungs (feat-097), price-descending.
+   * Empty when `vwap` is null — on partial coverage there is no honest session
+   * average, so there are no honest bands to trade off either.
+   */
+  vwapRungs: SessionVwapRung[]
   cumulativeDelta: {
     globex: SessionCumDeltaAnchor
     rth: SessionCumDeltaAnchor | null
@@ -223,6 +298,75 @@ function vwapOf(bars: readonly ExecBar[]): number | null {
   return vol > 0 ? pv / vol : null
 }
 
+/**
+ * Volume-weighted standard deviation of bar typical price about `vwap`, over
+ * the same bars the VWAP accumulated on: sqrt(Σ vᵢ(pᵢ − VWAP)² / Σ vᵢ).
+ * Population sigma — this describes where the session actually traded, it does
+ * not estimate a parameter of a wider population, so there is no n−1 to make.
+ */
+function vwapSigmaOf(bars: readonly ExecBar[], vwap: number): number | null {
+  let weightedSquares = 0
+  let vol = 0
+  for (const bar of bars) {
+    const typical = (bar.high + bar.low + bar.close) / 3
+    const deviation = typical - vwap
+    weightedSquares += deviation * deviation * bar.volume
+    vol += bar.volume
+  }
+  return vol > 0 ? Math.sqrt(weightedSquares / vol) : null
+}
+
+/**
+ * The sigma envelope around one anchor's VWAP. Band prices are derived from the
+ * UNROUNDED VWAP and sigma and rounded once, so a band never inherits two
+ * roundings.
+ */
+function sigmaBandsOf(
+  bars: readonly ExecBar[],
+  vwap: number,
+  currentPrice: number,
+): SessionVwapSigmaBands | null {
+  const sigma = vwapSigmaOf(bars, vwap)
+  if (sigma === null) return null
+  const bands = [...VWAP_BAND_MULTIPLES]
+    .flatMap((multiple) => [-multiple, multiple])
+    .sort((a, b) => a - b)
+    .map((multiple) => ({ multiple, price: round2(vwap + multiple * sigma) }))
+  return {
+    sigma: round2(sigma),
+    bands,
+    z: sigma > 0 ? round2((currentPrice - vwap) / sigma) : null,
+  }
+}
+
+/**
+ * Flatten the session VWAPs and their sigma bands into rung structure
+ * (feat-097): every price an objective may legitimately anchor an entry, stop
+ * or target on, price-descending, each with its attribution label. Empty when
+ * `vwap` is null (partial coverage).
+ */
+export function sessionVwapRungs(vwap: SessionIntradayFacts['vwap']): SessionVwapRung[] {
+  if (vwap === null) return []
+  const anchors: Array<[SessionVwapAnchorName, SessionVwapAnchor | null, string]> = [
+    ['globex', vwap.globex, 'Globex session VWAP'],
+    ['rth', vwap.rth, 'RTH session VWAP'],
+  ]
+  const rungs: SessionVwapRung[] = []
+  for (const [anchor, facts, name] of anchors) {
+    if (facts === null) continue
+    rungs.push({ price: facts.value, anchor, multiple: 0, label: name })
+    for (const band of facts.sigmaBands?.bands ?? []) {
+      rungs.push({
+        price: band.price,
+        anchor,
+        multiple: band.multiple,
+        label: `${name} ${band.multiple > 0 ? '+' : '−'}${Math.abs(band.multiple)}σ`,
+      })
+    }
+  }
+  return rungs.sort((a, b) => b.price - a.price)
+}
+
 function vwapAnchor(bars: readonly ExecBar[], currentPrice: number): SessionVwapAnchor | null {
   const value = vwapOf(bars)
   if (value === null) return null
@@ -240,6 +384,7 @@ function vwapAnchor(bars: readonly ExecBar[], currentPrice: number): SessionVwap
     position: classifyPosition(currentPrice - value),
     slope: slopePts === null ? 'flat' : classifyTrend(slopePts, VWAP_SLOPE_EPSILON_PTS),
     slopePtsPer30Min: slopePts,
+    sigmaBands: sigmaBandsOf(bars, value, currentPrice),
   }
 }
 
@@ -368,6 +513,7 @@ export function computeSessionIntraday(
     lastBarTime: fmtChartTime(lastBar.dateTime),
     coverage,
     vwap,
+    vwapRungs: sessionVwapRungs(vwap),
     cumulativeDelta,
     oneTimeframing,
   }

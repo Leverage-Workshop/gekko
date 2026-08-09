@@ -547,7 +547,7 @@
     {
       "id": "feat-051",
       "name": "Data export: VWAP standard-deviation bands in mgi_static_levels.json",
-      "description": "Extend the MGI ACSIL study with a `vwapBands` object (\u00b11\u03c3/\u00b12\u03c3 for vwap24, weekly, monthly) per docs/data-todos.md item 6 (additive JSON change), then plumb the bands through `lib/engine/mgiPriority.ts`/level handling as additional MGI levels for entries, stops and target rungs.",
+      "description": "Extend the MGI ACSIL study with a `vwapBands` object (\u00b11\u03c3/\u00b12\u03c3 for vwap24, weekly, monthly) per docs/data-todos.md item 6 (additive JSON change), then plumb the bands through `lib/engine/mgiPriority.ts`/level handling as additional MGI levels for entries, stops and target rungs. SCOPE NARROWED by feat-097 (bundle review 2026-08-07 A4): the SESSION-anchored bands shipped there, computed in-engine over the exec bars. What remains here is exactly the 24h/weekly/monthly anchors, which genuinely need the export -- those VWAPs arrive as bare scalars in mgi_static_levels.json with no underlying series, so sigma cannot be computed downstream. Reuse VWAP_BAND_MULTIPLES from lib/engine/sessionIntraday.ts so both families of bands sit at the same multiples, and do NOT touch the session bands.",
       "dependencies": [
         "feat-054"
       ],
@@ -1010,7 +1010,8 @@
       "dependencies": [
         "feat-063"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "lib/engine/sessionIntraday.ts: exported VWAP_BAND_MULTIPLES ([1,2]), SessionVwapBand / SessionVwapSigmaBands / SessionVwapRung types, private vwapSigmaOf (volume-weighted population sigma of bar typical price about the VWAP: sqrt(sum v*(p-VWAP)^2 / sum v)) + sigmaBandsOf, and exported sessionVwapRungs(). Every SessionVwapAnchor now carries sigmaBands { sigma, bands (-2/-1/+1/+2, price-ascending), z }; SessionIntradayFacts carries vwapRungs (Globex+RTH centerlines and bands flattened, price-descending, each with an attribution label like \"Globex session VWAP -1s\"). Band prices derive from the UNROUNDED vwap/sigma and are rounded once. Bands and rungs degrade with the existing partial-coverage null (vwap null => sigmaBands absent, vwapRungs []) - covered by a dedicated test. Rung structure plumbed through engineAnchorPrices(terrain, lvn, sessionIntraday) (new optional 3rd arg) into analyzeBundle + updateBundle validation, the off-anchor advisory wording, both prompt builders and knowledge/system/output-objective.md; docs/engine-ownership.md registry row updated. Tests: 6 new cases in lib/engine/sessionIntraday.test.ts (hand-computed sigma = 10 pts on 1k/2k/3k/4k-volume bars at 100/110/120/130 - pins the VOLUME weighting against the unweighted sqrt(125); typical-price (H+L+C)/3 rather than close; band multiples/order; z null at zero dispersion; partial-coverage degradation; rung flattening/labels for both anchors) + 1 in tests/analyze.engineFacts.test.ts (rungs are additive anchors) + a fixture assertion that bands = VWAP + k*sigma. Reference geometry from bundle 1c15934a (VWAP 29522.89, sigma 83.72, -2s 29355.45 / -1s 29439.17 / +1s 29606.62 / +2s 29690.34, price 29542.50 at z=+0.23) reproduces exactly under this formula from unrounded inputs; the bundle itself is not fetchable locally (no .env credentials in the worktree). Analyze user-prompt budget NOT raised - feat-095 declared 98k a deliberate stop, so the guide bullet was tightened and its interpretive half moved into the cached prefix (knowledge/system/output-objective.md) instead; measured 97_731 with 269 chars of headroom. ./init.sh exit 0: typecheck clean, eslint --max-warnings 0 clean, vitest 1234 passed / 1 skipped, next build OK."
     },
     {
       "id": "feat-098",
