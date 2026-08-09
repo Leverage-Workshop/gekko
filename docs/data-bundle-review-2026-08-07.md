@@ -63,14 +63,38 @@ dailyRanges.days[0]      { date: "2026-08-06", rangePts: 445 }                  
 - The true prior day (08-05, VAL 29693) puts price **150.5 pts below prior-day value** —
   the opposite reading, and the one the doctrine cares about.
 - `pocDrift`, `valueTrend` and `priorDayOverlap` are all computed one session off.
-- `dailyRanges` mixes a partial range into the contraction/expansion mean. At 09:00 CT
-  today's row would be ~100 pts against a ~464-pt median, biasing the read toward
+- `dailyRanges` mixes a partial range into the contraction/expansion mean — and
+  `RANGE_RECENT_SESSIONS` is 3, so a partial number carries a **third** of the verdict. At
+  09:00 CT today's row would be ~100 pts against a ~464-pt median, biasing the read toward
   "contraction" every morning.
 
-Fix is cheap and belongs in the engine regardless of what the exporter does: drop the
-leading row when its date equals the live session date (or when `daily_va` row 1 date ==
-`tpo.sessionDate`, which the bundle already carries), and add a parser guard. Adding an
-`IsComplete` column to the export is the belt-and-braces version.
+**Fix: partition, don't discard** (operator direction, 2026-08-07 — the first draft of
+this section said "drop the leading row", which throws away the more interesting half of
+the problem). That row is the **only volume-based view of the live session anywhere in the
+bundle**: developing volume POC/VAH/VAL, session high/low, and volume so far. It is
+genuinely distinct from the time-based TPO read on the same session —
+
+```
+                POC       value area
+volume (row 1)  29520     29476.75 – 29620
+TPO  (letters)  29541     29478.00 – 29638
+```
+
+— a ~20-point POC disagreement between how volume and how *time* distributed on the same
+day, which is exactly the kind of divergence the doctrine reads. So: `parseDailyValueAreas`
+partitions by date rather than dropping. Rows matching the live session date
+(`tpo.sessionDate`, already in the bundle) become a new nullable `developingSession` fact;
+`computeValueMigration` and `computeDailyRanges` consume only the completed remainder.
+
+Two things the developing fact needs to be safe to use. First a **maturity qualifier** — an
+unfinished value area at 09:00 is not the same object as one at 14:30 — from elapsed RTH
+minutes and volume-so-far against the time-of-day expectation (B1). Second,
+**range-used-so-far** against the completed-session median: 445 of a typical 464 pts
+already printed on this bundle, i.e. a full day's travel done by 13:31, which is a
+different statement from "the range is contracting". Detect by date and never by position
+(pre-open and overnight bundles carry no in-progress row at all), null the fact when
+absent, and warn either way so the split shows up in the trace. An `IsComplete` column on
+the export is belt-and-braces, but the engine must not depend on it.
 
 ### D2. The TPO `Letters` column is parsed and then almost entirely discarded
 
@@ -192,6 +216,14 @@ gives the POCs; it just needs a "has price traded back through this since?" pass
 `htf_bars.csv` can already answer).
 
 Same format as the existing `.vbp.md`, anchored at the RTH open, `Price,Volume,Delta`.
+
+**Scope narrowed by the D1 revision.** Once the developing session is broken out of
+`daily-value-areas.csv`, its *summary* numbers — volume POC/VAH/VAL, high/low, volume so
+far — arrive free, so this export is no longer the only route to developing volume value.
+What still needs it is the price-by-volume **ladder**: node and shelf detection inside the
+live session, the developing profile's shape, and the per-bin delta split. C3 (double
+distribution) and C5 (naked POCs) depend on the ladder, not the summary — so this drops
+below the engine-only items in priority.
 
 ### A2. TPO period → clock-time map (one metadata line)
 
