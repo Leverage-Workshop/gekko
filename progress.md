@@ -3,7 +3,34 @@
 ## Current State
 
 **Last Updated:** 2026-08-09
-**Latest change (branch `feat-094-rvol-time-of-day`):** **feat-094 — relative volume
+**Latest change (feat-091, branch `feat-091-tpo-excess-tails`):** TPO excess is measured
+instead of discarded, closing review item D2. `lib/engine/tpoFacts.ts` gained
+`TpoFacts.excess` (`TpoExcess` / `TpoTail`, threshold `EXCESS_MIN_BINS = 2`):
+`detectExcess()` walks the price-descending ladder inward from each end and reports the
+contiguous `count==1` run touching the LAST row as `buyingTail` (session low) and the run
+touching the FIRST row as `sellingTail` (session high) — each with `bins`, `points`
+(`bins * step`), `top`/`bottom`/`extreme`, the period `letters` that built it in period
+order, and the `HH:MM` `clock` of the earliest of those letters (reusing feat-092's
+`tpoPeriodClock`; null on anchorless exports) — plus `singlePrintBins` / `totalBins` /
+`singlePrintFraction` for the session. `detectSinglePrintZones()` is **untouched**: its
+interior-only semantics are unchanged, but the extreme runs it drops by design now land
+in `excess` rather than vanishing. Degrades to null tails on a run below `EXCESS_MIN_BINS`,
+on a run broken by an untraded hole (same one-grid-step contiguity rule as the zone
+detector), and on a ladder that is single-printed end to end (no body → no excess relative
+to value). Surfaced through `facts.tpo` → `factsPayload` `tpo` (no new payload key, so the
+prompt-data-sync registry is satisfied by an updated `tpo_data` row in
+`docs/engine-ownership.md`), with an analyze-prompt bullet teaching a tail as a FINISHED
+(rejected) auction whose far edge is defended until repaired — the mirror image of
+`poorHigh`/`poorLow` as unfinished auctions — and `singlePrintFraction` as the thin-profile
+/ one-timeframe-day signal. The review's two-run reference case is pinned as a test (446-bin
+1-pt ladder: 208-bin/208-pt `A` buying tail off 29241, 19-bin/19-pt `D` selling tail at
+29686, fraction 0.51), alongside the chart-data fixture's 4-bin/8-pt `F` tail at 29862
+(clock 11:00). Day-type/open-type classification (feat-093) is the next consumer and is
+deliberately NOT in this change. Analyze-prompt budget raised 93k → 95k (measured 94,017)
+with the rationale recorded inline in the feat-054 gate. `./init.sh` green: typecheck 0,
+lint 0 warnings, vitest 1201 passed / 1 skipped, build OK.
+
+**Prior change (branch `feat-094-rvol-time-of-day`):** **feat-094 — relative volume
 (RVOL) from time-of-day seasonality — is DONE.** New engine module
 `lib/engine/relativeVolume.ts` finally reads the `htf_bars.csv` volume column that
 D4 found parsed, typed and consumed by nobody: a per-intraday-slot median baseline
@@ -29,7 +56,7 @@ can now import `computeSlotBaselines` / `expectedRthVolumeThrough` from
 `lib/engine/relativeVolume.ts` for its maturity qualifier instead of forking a
 second time-of-day baseline.
 
-**Prior change (feat-092, branch `feat-092-tpo-period-clock-map`):** the TPO export
+**Earlier change (feat-092, branch `feat-092-tpo-period-clock-map`):** the TPO export
 now carries a period→clock anchor, closing review item A2. `tpo.data.md`'s `## Metadata`
 section gained two additive lines — `- **First Period Letter**: A` and
 `- **First Period Start**: 2026-06-16 08:30:00` — and `lib/engine/parseTpo.ts` captures
@@ -51,7 +78,7 @@ behind A2 — open type, which period made the high/low, range extension by peri
 timing — of which feat-091 (TPO tails) and C2/day-type are the next consumers.
 `./init.sh` green: typecheck 0, lint 0 warnings, vitest 1164 passed / 1 skipped, build OK.
 
-**Prior change (ad-hoc, branch `claude/data-bundle-adversarial-review-ef0a5b`):**
+**Earlier change (ad-hoc, branch `claude/data-bundle-adversarial-review-ef0a5b`):**
 adversarial review of the live data bundle → `docs/data-bundle-review-2026-08-07.md`,
 plus 19 new backlog features (**feat-089..feat-107**). Method: pulled the newest
 `raw_bundles` row (`1c15934a`, 2026-08-06 18:33 UTC, price 29542.50, mid-RTH),

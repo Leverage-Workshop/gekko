@@ -69,6 +69,17 @@ describe('computeEngineFacts', () => {
     expect(result.tpo!.poc).toEqual({ price: 29950, tpoCount: 7, prominence: 2.33, prominent: true })
     expect(result.tpo!.singlePrintZones).toEqual([{ top: 29986, bottom: 29964, letters: 'E' }])
     expect(result.tpo!.poorHigh).toEqual({ price: 30044, tpoCount: 2 })
+    // feat-091: the extreme single-print run the zone detector drops is now
+    // measured as excess instead of vanishing.
+    expect(result.tpo!.excess.buyingTail).toMatchObject({
+      kind: 'buying',
+      bins: 4,
+      points: 8,
+      extreme: 29862,
+      letters: 'F',
+    })
+    expect(result.tpo!.excess.sellingTail).toBeNull()
+    expect(result.tpo!.excess.singlePrintFraction).toBe(0.17)
     expect(result.warnings.some((w) => w.includes('TPO'))).toBe(false)
   })
 

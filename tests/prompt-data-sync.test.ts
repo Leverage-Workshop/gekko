@@ -455,12 +455,18 @@ describe('prompt-data sync gate (feat-054)', () => {
       // RVOL is the confidence gate every other order-flow fact is read
       // through, and the alternative — the model eyeballing participation off
       // the execution chart — is the vision read this feature replaces.
+      // Raised 93k → 95k 2026-08-09 (feat-091): `tpo.excess` (two tails of
+      // seven scalars each plus three session counters) and its ownership
+      // bullet added ~1.9k (measured 94_017). Accepted knowingly: the tails
+      // are the review's D2 finding — a 208-pt buying tail that reached the
+      // model only as pixels on the TPO screenshot — and the fact is what
+      // replaces that vision read.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 93k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 95k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(93_000)
+      ).toBeLessThan(95_000)
     })
   })
 })
