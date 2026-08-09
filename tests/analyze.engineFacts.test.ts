@@ -454,6 +454,23 @@ describe('engineAnchorPrices', () => {
     }
   })
 
+  it('admits the session-VWAP rungs when the session-intraday fact is supplied (feat-097)', () => {
+    const result = facts()
+    const withRungs = engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday)
+    const withoutRungs = new Set(engineAnchorPrices(result.terrain, result.lvn))
+
+    expect(result.sessionIntraday.vwapRungs.length).toBeGreaterThan(0)
+    for (const rung of result.sessionIntraday.vwapRungs) {
+      expect(withRungs).toContain(rung.price)
+    }
+    // The rungs are additive — nothing else changes, and the set stays sorted.
+    const added = withRungs.filter((price) => !withoutRungs.has(price))
+    const rungPrices = new Set(result.sessionIntraday.vwapRungs.map((r) => r.price))
+    for (const price of added) expect(rungPrices.has(price)).toBe(true)
+    expect([...withRungs].sort((a, b) => b - a)).toEqual(withRungs)
+    expect(new Set(withRungs).size).toBe(withRungs.length)
+  })
+
   it('still filters profile data edges out of the anchor set', () => {
     const result = facts()
     const anchors = engineAnchorPrices(result.terrain, result.lvn)

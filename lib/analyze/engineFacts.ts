@@ -198,9 +198,12 @@ export interface EngineFacts {
    * Code-owned session-anchored intraday read (feat-063), computed from the
    * full-session Globex exec-bar export (feat-062): session VWAP (Globex- and
    * RTH-anchored) with slope, session cumulative delta, and 15-min
-   * one-timeframing. VWAP/cum-delta anchors are null when the export starts
-   * mid-session (`coverage: 'partial'`, e.g. the retired rolling export) —
-   * flagged in `warnings`.
+   * one-timeframing. Each VWAP carries its volume-weighted sigma envelope
+   * (feat-097: `sigmaBands`, computed over the same exec bars — no export
+   * change), flattened into `vwapRungs` for entry/stop/target-rung anchoring.
+   * VWAP/cum-delta anchors — and with them the bands and rungs — are null/empty
+   * when the export starts mid-session (`coverage: 'partial'`, e.g. the retired
+   * rolling export) — flagged in `warnings`.
    */
   sessionIntraday: SessionIntradayFacts
   /**
@@ -228,14 +231,18 @@ export function engineZoneBorders(terrain: TerrainZonesResult): number[] {
  * facts are supplied — detector LVN node prices (feat-074: the doctrine's
  * fakeout-formed-extreme fade anchors at the tail's near-edge acceptance
  * boundary, a taper-edge or valley LVN that carries no MGI name and so never
- * becomes terrain structure). HVN peaks stay excluded — they are the middle
- * of value, never an entry. Profile data edges are filtered out, as they are
- * data artifacts the doctrine forbids trading (feat-040 G2). Deduped,
+ * becomes terrain structure) and — when the session-intraday fact is supplied —
+ * the session-VWAP rungs (feat-097: the Globex/RTH VWAP centerlines and their
+ * volume-weighted sigma bands, which are real intraday structure the profile
+ * geometry never mints). HVN peaks stay excluded — they are the middle of
+ * value, never an entry. Profile data edges are filtered out, as they are data
+ * artifacts the doctrine forbids trading (feat-040 G2). Deduped,
  * price-descending. Feeds `ValidateOptions.anchorPrices`.
  */
 export function engineAnchorPrices(
   terrain: TerrainZonesResult,
   lvn?: EngineFacts['lvn'],
+  sessionIntraday?: SessionIntradayFacts,
 ): number[] {
   const lvnNodes = lvn ? [...lvn.rotation.lvn, ...lvn.balanceArea.lvn] : []
   const anchors = [
@@ -246,7 +253,10 @@ export function engineAnchorPrices(
     ),
     ...lvnNodes.map((node) => node.price),
   ].filter((price) => !terrain.dataEdges.includes(price))
-  return [...new Set(anchors)].sort((a, b) => b - a)
+  // Session-VWAP rungs are empty on partial coverage, so they simply drop out
+  // of the anchor set rather than needing a guard here.
+  const vwapRungs = sessionIntraday?.vwapRungs.map((rung) => rung.price) ?? []
+  return [...new Set([...anchors, ...vwapRungs])].sort((a, b) => b - a)
 }
 
 /**

@@ -126,8 +126,9 @@ export interface ValidateOptions {
   meta?: CodeOwnedMeta
   /**
    * Every engine price an entry may legitimately anchor on (zone borders, level
-   * verdicts, composite band members — data edges excluded). When present, an
-   * entry matching none of them draws an advisory warning.
+   * verdicts, composite band members, detector LVN nodes and the session-VWAP
+   * sigma-band rungs — data edges excluded). When present, an entry matching
+   * none of them draws an advisory warning.
    */
   anchorPrices?: readonly number[]
   /**
@@ -402,7 +403,7 @@ function offAnchorEntryWarnings(
   const entry = objective.entries[0]
   if (!anchorPrices.some((price) => samePrice(price, entry.price))) {
     warnings.push(
-      `${name} entry "${entry.label}" @ ${entry.price} matches no engine anchor price — entries must sit on engine structure (a border band member, level verdict or detector LVN node)`,
+      `${name} entry "${entry.label}" @ ${entry.price} matches no engine anchor price — entries must sit on engine structure (a border band member, level verdict, detector LVN node or session-VWAP sigma-band rung)`,
     )
   }
 }

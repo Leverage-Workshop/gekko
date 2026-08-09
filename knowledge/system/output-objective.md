@@ -4,7 +4,7 @@
 walking outward from current price, what is the CLOSEST level — below current price for a
 long, above it for a short — where (a) price has a decent probability of reversing, judged
 from the structure the engine grades (zone borders, AAA/A walls and trenches, reclaimed
-borders, detector LVN nodes), and (b) if it does reverse, the move has at least the
+borders, detector LVN nodes, session-VWAP rungs), and (b) if it does reverse, the move has at least the
 significant-move floor (stated in the user message) of room to travel before the nearest
 realistic opposing structure. Walk the map nearest-first and take the FIRST level that
 passes both; a stronger level further out never outranks a qualifying nearer one. The
@@ -53,9 +53,13 @@ Each objective (primary and secondary) carries:
   INFORMATIONAL — a displayed reference, not a gate; a low rr never disqualifies a qualifying
   entry and never justifies moving the entry deeper.
 
-Entries, stops, and T1 must sit on engine-supplied structure — a zone border, a terrain level, or
-a detector LVN node (taper-edge/valley; the fakeout-formed-extreme anchor below) — never in the
-middle of value.
+Entries, stops, and T1 must sit on engine-supplied structure — a zone border, a terrain level, a
+detector LVN node (taper-edge/valley; the fakeout-formed-extreme anchor below), or a session-VWAP
+rung (the session VWAP itself or one of its volume-weighted sigma bands) — never in the middle of
+value. A session-VWAP rung is intraday structure the profile geometry never mints: quote it with
+its engine label, and read a band as the session's stretch from its own average rather than as a
+distribution border — at or beyond the outer band price is extended (a mean-reversion rung, not an
+entry on its own), while the inner band is the ordinary rotation edge.
 
 ## No-trade abstention
 

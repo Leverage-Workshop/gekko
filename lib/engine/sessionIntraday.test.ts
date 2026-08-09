@@ -5,7 +5,9 @@ import { parseExecBars, type ExecBar } from './parseExecBars'
 import {
   computeSessionIntraday,
   resampleBars,
+  sessionVwapRungs,
   OTF_TIMEFRAME_MINUTES,
+  VWAP_BAND_MULTIPLES,
 } from './sessionIntraday'
 
 const FIXTURE = join(process.cwd(), 'chart-data/execution_bar_data.rolling.csv')
@@ -36,7 +38,13 @@ function mkBar(
 function seriesFrom(
   start: string,
   stepMin: number,
-  prices: readonly { p: number; high?: number; low?: number; delta?: number }[],
+  prices: readonly {
+    p: number
+    high?: number
+    low?: number
+    delta?: number
+    volume?: number
+  }[],
 ): ExecBar[] {
   const t0 = new Date(start).getTime()
   return prices.map((row, i) =>
@@ -44,6 +52,7 @@ function seriesFrom(
       high: row.high,
       low: row.low,
       delta: row.delta,
+      volume: row.volume,
     }),
   )
 }
@@ -234,6 +243,126 @@ describe('computeSessionIntraday', () => {
     expect(computeSessionIntraday(bars, 102).oneTimeframing).toBeNull()
   })
 
+  it('computes the volume-weighted sigma envelope against a hand-computed value (feat-097)', () => {
+    // Flat OHLC → typical price = the bar price. Four bars, volumes 1k/2k/3k/4k:
+    //   VWAP = (100·1000 + 110·2000 + 120·3000 + 130·4000) / 10 000 = 120
+    //   Σ v(p − VWAP)² = 400·1000 + 100·2000 + 0·3000 + 100·4000 = 1 000 000
+    //   sigma = sqrt(1 000 000 / 10 000) = 10 pts exactly
+    // The VOLUME weighting is what makes it 10: the unweighted population sd of
+    // the same four prices is sqrt(125) ≈ 11.18, so this pins the weighting too.
+    const bars = seriesFrom('2026-07-28T17:00:00', 30, [
+      { p: 100, volume: 1000 },
+      { p: 110, volume: 2000 },
+      { p: 120, volume: 3000 },
+      { p: 130, volume: 4000 },
+    ])
+    const facts = computeSessionIntraday(bars, 125)
+    const envelope = facts.vwap?.globex.sigmaBands
+
+    expect(facts.vwap?.globex.value).toBe(120)
+    expect(envelope?.sigma).toBe(10)
+    expect(envelope?.bands).toEqual([
+      { multiple: -2, price: 100 },
+      { multiple: -1, price: 110 },
+      { multiple: 1, price: 130 },
+      { multiple: 2, price: 140 },
+    ])
+    // Current price 125 sits half a sigma above the session average.
+    expect(envelope?.z).toBe(0.5)
+  })
+
+  it('mints one band per signed sigma multiple, price-ascending', () => {
+    const bars = seriesFrom('2026-07-28T17:00:00', 30, [
+      { p: 100, volume: 1000 },
+      { p: 140, volume: 1000 },
+    ])
+    const bands = computeSessionIntraday(bars, 120).vwap?.globex.sigmaBands?.bands ?? []
+
+    expect(bands.map((b) => b.multiple)).toEqual([-2, -1, 1, 2])
+    expect(bands.length).toBe(VWAP_BAND_MULTIPLES.length * 2)
+    expect([...bands].sort((a, b) => a.price - b.price)).toEqual(bands)
+  })
+
+  it('reads sigma off the bars’ typical price, not the close', () => {
+    // Two equal-volume bars whose closes are identical but whose ranges are not:
+    // typical (H+L+C)/3 is 100 and 130 → VWAP 115, sigma 15.
+    const bars = [
+      mkBar('2026-07-28T17:00:00', 100, { high: 110, low: 90, close: 100, volume: 1000 }),
+      mkBar('2026-07-28T17:30:00', 100, { high: 145, low: 145, close: 100, volume: 1000 }),
+    ]
+    const facts = computeSessionIntraday(bars, 115)
+
+    expect(facts.vwap?.globex.value).toBe(115)
+    expect(facts.vwap?.globex.sigmaBands?.sigma).toBe(15)
+  })
+
+  it('nulls z when the session has no dispersion yet', () => {
+    const bars = seriesFrom(
+      '2026-07-28T17:00:00',
+      30,
+      Array.from({ length: 4 }, () => ({ p: 100 })),
+    )
+    const envelope = computeSessionIntraday(bars, 100).vwap?.globex.sigmaBands
+
+    expect(envelope?.sigma).toBe(0)
+    expect(envelope?.z).toBeNull()
+    expect(envelope?.bands.every((b) => b.price === 100)).toBe(true)
+  })
+
+  it('degrades bands and rungs on partial coverage (feat-097)', () => {
+    const bars = seriesFrom(
+      '2026-07-29T11:00:00',
+      15,
+      [100, 120, 110, 130].map((p) => ({ p })),
+    )
+    const facts = computeSessionIntraday(bars, 130)
+
+    expect(facts.coverage).toBe('partial')
+    // No honest session average → no honest envelope around it, and nothing to
+    // anchor an entry, stop or target rung on.
+    expect(facts.vwap).toBeNull()
+    expect(facts.vwapRungs).toEqual([])
+    expect(sessionVwapRungs(facts.vwap)).toEqual([])
+  })
+
+  it('flattens both anchors into labelled rung structure, price-descending (feat-097)', () => {
+    const overnight = seriesFrom(
+      '2026-07-28T17:00:00',
+      60,
+      Array.from({ length: 15 }, () => ({ p: 100 })),
+    )
+    // RTH oscillates ±2 around 120 on equal volume → RTH VWAP 120, sigma 2.
+    const rth = seriesFrom(
+      '2026-07-29T08:30:00',
+      5,
+      Array.from({ length: 12 }, (_, i) => ({ p: i % 2 === 0 ? 118 : 122 })),
+    )
+    const facts = computeSessionIntraday([...overnight, ...rth], 120)
+    const rungs = facts.vwapRungs
+
+    expect(facts.vwap?.rth?.value).toBe(120)
+    expect(facts.vwap?.rth?.sigmaBands?.sigma).toBe(2)
+
+    // Two anchors × (1 centerline + 4 bands).
+    expect(rungs.length).toBe(2 * (1 + VWAP_BAND_MULTIPLES.length * 2))
+    expect([...rungs].sort((a, b) => b.price - a.price)).toEqual(rungs)
+    expect(rungs.filter((r) => r.anchor === 'rth').length).toBe(5)
+
+    const globexCenter = rungs.find((r) => r.anchor === 'globex' && r.multiple === 0)
+    expect(globexCenter?.label).toBe('Globex session VWAP')
+    expect(globexCenter?.price).toBe(facts.vwap?.globex.value)
+
+    const rthMinusOne = rungs.find((r) => r.anchor === 'rth' && r.multiple === -1)
+    expect(rthMinusOne?.label).toBe('RTH session VWAP −1σ')
+    expect(rungs.find((r) => r.anchor === 'globex' && r.multiple === 2)?.label).toBe(
+      'Globex session VWAP +2σ',
+    )
+    // Every band price is reachable as a rung.
+    for (const band of facts.vwap?.globex.sigmaBands?.bands ?? []) {
+      expect(rungs.some((r) => r.anchor === 'globex' && r.price === band.price)).toBe(true)
+    }
+  })
+
   it('handles the real export fixture (rolling window captured at 21:52 — covers the young Globex session)', () => {
     const bars = parseExecBars(readFileSync(FIXTURE, 'utf8'))
     const facts = computeSessionIntraday(bars, 29945.75)
@@ -247,5 +376,16 @@ describe('computeSessionIntraday', () => {
     expect(facts.cumulativeDelta?.globex).toBeDefined()
     expect(facts.oneTimeframing).not.toBeNull()
     expect(facts.barCount).toBe(bars.length)
+
+    // feat-097: the real export carries per-bar volume, so the sigma envelope
+    // comes off the same bars with no export change. Band geometry mirrors the
+    // reference read in docs/data-bundle-review-2026-08-07.md § A4 (bundle
+    // 1c15934a: VWAP 29522.89, sigma 83.72, ±1σ 29439.17 / 29606.62).
+    const envelope = facts.vwap!.globex.sigmaBands!
+    expect(envelope.sigma).toBeGreaterThan(0)
+    for (const band of envelope.bands) {
+      expect(band.price).toBeCloseTo(facts.vwap!.globex.value + band.multiple * envelope.sigma, 1)
+    }
+    expect(facts.vwapRungs.map((r) => r.price)).toContain(envelope.bands[0].price)
   })
 })
