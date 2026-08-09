@@ -606,3 +606,85 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   orderings, which are real engine output); trimming terrain verdict internals (`local` stats,
   embedded magnet refs) — a bigger, riskier change to the model surface with no connection to
   this feature; not promoting the levels to terrain (fails the feature).
+
+## feat-108 — 2026-08-09
+
+- **Decision:** Ship `ATR_PROJECTION_MULTIPLES = [0.5, 1, 1.5, 2]` — the starting set — but only
+  after arguing each end against the measured scale, and bound it there.
+- **Why:** Measured on the repo's own HTF export: ATR 116.23 pts, session sigma 295.12 pts, so
+  0.5x = 0.20σ, 1x = 0.39σ, 1.5x = 0.59σ, 2x = 0.79σ (13/26/39/52% of the 446-pt median session
+  range). The set stops at 2x because 3x is 349 pts — 1.18σ and 78% of a median session range,
+  larger than the whole rotation the engine measures — so a rung there extrapolates past the
+  measured distribution rather than naming structure. It stops at 0.5x because 0.25x (29 pts)
+  sits inside the fixed 25-pt operational stop itself and could be traded neither to nor away
+  from. 0.5x is retained despite failing the target gate because it is still 2.3x that stop and
+  half an ATR beyond a swing is the operator's stop placement.
+- **Alternatives considered:** (a) dropping sub-1x multiples entirely — rejected: it would delete
+  legitimate entry/stop structure to avoid a target-only problem, and under the unmeasured-sigma
+  fallback those rungs actually qualify; (b) adding 3x for "runner" targets — rejected as above;
+  (c) deriving the multiples live from the session sigma so 1 rung always equals the floor —
+  rejected: the operator names ATR multiples out loud ("plus one ATR"), so the multiples must be
+  the round numbers he says and the GATE is what varies.
+
+- **Decision:** The "below 1x mostly fails the gate" constraint is expressed as a per-rung
+  `clearsSignificantMove` boolean resolved against feat-096's gate AS IT RESOLVES THAT RUN, plus a
+  fact-level `significantMoveNote` — not as a static filter and not as a fixed threshold.
+- **Why:** The gate is not a constant. `resolveGates` returns 118.05 pts against the fixture's
+  measured 295.12-pt sigma, but degrades to the fixed 50-pt `SIGNIFICANT_MOVE_FALLBACK_PTS` when
+  the scale is unmeasured — under which a 0.5x rung (58 pts) DOES clear. Which multiples can host
+  a target is therefore a property of the regime, not of the multiple, and any static filter
+  would have been wrong in one of the two regimes. This is also sharper than the brief assumed:
+  1x ATR = 0.394σ against a 0.4σ floor lands 1.82 pts UNDER it on this fixture, so even the 1x
+  rung is flagged. Both regimes are pinned by tests.
+- **Alternatives considered:** (a) filtering sub-floor rungs out of `rungs` — rejected: they are
+  valid entry and stop anchors, and silently dropping them is the "silently cannot host an
+  objective" failure the feature description names; (b) a note field alone with no per-rung flag —
+  rejected: the model would have to do the arithmetic per rung, which is the freehand ATR
+  arithmetic this feature exists to remove.
+
+- **Decision:** Swing-anchored rungs project OUTWARD only (swing high upward, swing low downward);
+  current-price rungs project both ways.
+- **Why:** The two uses the operator named are directional — "current price plus one ATR" is a
+  target either side, "swing low minus one ATR" is where a reversal is expected, i.e. where an
+  extension BEYOND the swing exhausts. Projecting inward from a swing would mint prices inside the
+  rotation, which terrain already partitions and the current-price projections already reach —
+  duplicate structure with a weaker claim on it, at real payload cost.
+- **Alternatives considered:** projecting both directions from every reference (32 rungs instead
+  of 16, half of them redundant with terrain).
+
+- **Decision:** `significantMoveSigma` was added as an optional `EngineFactsInput` field rather
+  than resolving the gate in the prompt layer where feat-096 put it.
+- **Why:** The flag has to be computed where the rungs are built, and the rungs are engine facts
+  that also feed `engineAnchorPrices()`. Both call sites (`analyzeBundle`, `updateBundle`) already
+  resolve `config.significant_move_sigma` a few lines above `computeEngineFacts`, so passing it
+  down costs nothing and keeps the engine from silently assuming the default when the operator has
+  edited the config. It defaults to `DEFAULT_SIGNIFICANT_MOVE_SIGMA`, so every existing caller
+  (including tests) is unaffected.
+- **Alternatives considered:** computing projections in the prompt layer (splits one fact across
+  two layers and leaves `engineAnchorPrices` unable to see them); hardcoding the default in the
+  engine (wrong whenever the operator has changed the setting — the exact drift feat-096 fixed).
+
+- **Decision:** Held the analyze user-prompt ceiling FLAT at 106k and paid for the new fact by
+  harvesting duplication — measured 102_273, which is 2_790 chars BELOW the 105_063 baseline.
+- **Why:** `tests/prompt-data-sync.test.ts` carries an explicit standing instruction ("the next
+  fact to land here should trim something before it bumps this number again"). The naive wiring
+  measured 110_459 (+5_396). Two trims, neither changing what the model sees semantically:
+  (1) all 10 `terrain.borders[].members` entries were verified byte-identical to verdicts
+  `terrain.levels` already carries, so members keep price, kind, `hard`/`faint`/`shallow`,
+  `source` and the `reason` string the AAA-demotion rule quotes, and drop the re-serialized
+  `level` object, `local` block, `magnet` ref and `detectorNode` (all reachable under the same
+  label two lines up) — this is exactly the duplication feat-090 identified; (2) rungs render as
+  compact `PRICE · label · travel` strings, the feat-090 `mgiPriority.tier1` precedent. The
+  interpretive half of the teaching went into the cached `output-objective.md` prefix
+  (feat-096/097's split), which measures 46_757 against its 47k ceiling — also not raised.
+- **Alternatives considered:** raising the ceiling to 111k (ignores a recent explicit instruction
+  and would have been a pure bump with no trim); dropping `rungs` from the payload and letting the
+  model read only `atrPoints` (returns the feature to freehand arithmetic — the whole point).
+
+- **Decision:** Verified the zone stack rather than assuming it, per feat-090's example, and did
+  not touch `engineZoneBorders()`.
+- **Why:** The zone stack is hard-enforced as the set the model must reproduce; an ATR projection
+  is a derived expectation, not a partition of the map. Measured 10 zones / 11 borders on the
+  fixture before and after, pinned as an assertion alongside a test that the anchor set DID grow —
+  so the test fails if the rungs ever leak into the partition.
+- **Alternatives considered:** none — this boundary was set by feat-097 and restated in the brief.

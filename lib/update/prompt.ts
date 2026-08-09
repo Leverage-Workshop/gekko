@@ -7,6 +7,7 @@ import {
   engineZoneBorders,
 } from '@/lib/analyze'
 import {
+  ATR_PROJECTION_RULE,
   DEVELOPING_SESSION_RULE,
   DISTINCT_ANCHORS_RULE,
   RELATIVE_VOLUME_RULE,
@@ -134,7 +135,7 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     `- The CURRENT engine zone borders are: ${borders.join(', ')}. If these disagree with the previous briefing's terrain, the engine is right — flag the drift in the relevant rationale.`,
     `- SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): ${describeGate(significantMove)}. An entry level qualifies only when the reversal it hosts has at least ${significantMove.pts} pts of room to the nearest realistic opposing structure (entry→T2 ≥ ${significantMove.pts} pts). Walk the map outward from current price and anchor at the FIRST qualifying level — never skip a qualifying nearer level for a deeper one, and never move an entry to manufacture target distance. Abstain (noTrade) only when no qualifying level exists on that side. \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula — it is informational, never a gate.`,
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure with REAL long-term acceptance (the senior read), A = rotation structure OR demoted balance-area structure (the member verdict `reason` says "faint acceptance" or "shallow valley" — never call these AAA in prose). `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',
-    '- Entries, stops and T1 anchor on engine-supplied structure per the Objective contract in the system prompt — a zone border, a `terrain.levels` price, a `lvnHvnNodes` LVN node (the fakeout-formed-extreme anchor) or a `sessionIntraday.vwapRungs` session-VWAP rung. Entry priority, stop placement and the one-or-two-rung target ladder follow that contract.',
+    '- Entries, stops and T1 anchor on engine-supplied structure per the Objective contract in the system prompt — a zone border, a `terrain.levels` price, a `lvnHvnNodes` LVN node (the fakeout-formed-extreme anchor) a `sessionIntraday.vwapRungs` session-VWAP rung or an `atrProjections.rungs` ATR-projected rung. Entry priority, stop placement and the one-or-two-rung target ladder follow that contract.',
     '- Each objective slot carries EITHER a full trade OR the explicit no-trade abstention, per the Objective contract — abstain rather than fabricating a scenario the map does not offer. A standing objective whose structure is gone may be revised to an abstention; say what changed in its `rationale`.',
     DISTINCT_ANCHORS_RULE,
     ...[dataEdgeRule(facts)].filter(Boolean),
@@ -148,6 +149,7 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     "- `sessionIntraday` is the code-owned session-anchored intraday read (feat-063): session VWAP with slope and position (`vwap.globex` / `.rth`), session cumulative delta, and 15-minute one-timeframing (state, bars held, `breakLevel`, whether the developing bar broke it). This is the intraday trend read at the operator's trade horizon — weigh it alongside the Rip condition in tacticalRead, with attribution like any other level (e.g. \"27810 (session VWAP)\"). When `sessionIntraday.vwap` is null the export started mid-session — say so rather than inventing a session average.",
     "- Each session VWAP carries a code-owned volume-weighted sigma envelope (feat-097): `sessionIntraday.vwap.globex.sigmaBands` (and `.rth`) gives `sigma` in points, the ±1σ/±2σ `bands` and `z` (where current price sits in the envelope); `sessionIntraday.vwapRungs` flattens the centerlines and bands into labelled rung structure entries, stops and target rungs may anchor on, quoted with their `label` (e.g. \"29439.17 (Globex session VWAP −1σ)\"). Price at/beyond ±2σ is extended from the session's own average; ±1σ is the ordinary rotation edge. Sigma is computed — never re-derive it or read bands off the screenshots. Empty `vwapRungs` = partial coverage, no session bands.",
     RELATIVE_VOLUME_RULE,
+    ATR_PROJECTION_RULE,
     '- Read the attached screenshots ONLY for perception the numeric data cannot give: absorption vs exhaustion shape, intraday distribution shape on the Market Profile chart, delta clustering quality, and the doctrine patterns.',
     '',
     '# Meta fields',

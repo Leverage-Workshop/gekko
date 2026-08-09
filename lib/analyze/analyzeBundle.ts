@@ -148,6 +148,9 @@ export async function runAnalysis(
     htfCsvContent: bundle.htfCsvContent,
     mgi: bundle.mgi,
     receivedAt: bundle.row.received_at,
+    // feat-108: the ATR projections mark each rung against the significant-move
+    // floor, so the engine needs the same configured multiple the prompt uses.
+    significantMoveSigma,
     now,
   })
   warnings.push(...facts.warnings)
@@ -177,10 +180,13 @@ export async function runAnalysis(
     significantMoveSigma,
     volatilityScale: facts.volatilityScale,
     engineBorders: engineZoneBorders(facts.terrain),
-    anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn, facts.sessionIntraday, {
-      tpo: facts.tpo,
-      multiDayTpo: facts.multiDayTpo,
-    }),
+    anchorPrices: engineAnchorPrices(
+      facts.terrain,
+      facts.lvn,
+      facts.sessionIntraday,
+      { tpo: facts.tpo, multiDayTpo: facts.multiDayTpo },
+      facts.atrProjections,
+    ),
     fakeoutTails: facts.fakeoutTails,
     // Fresh map: entries must stand off current price (the update task, revising a
     // standing plan price is meant to approach, does not set this).
