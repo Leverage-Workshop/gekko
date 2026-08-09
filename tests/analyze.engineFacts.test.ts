@@ -105,7 +105,12 @@ describe('computeEngineFacts', () => {
   })
 
   it('computes value migration from the daily value-area history (feat-048)', () => {
-    const result = facts({ dailyVaContent: read('daily-value-areas.csv') })
+    // The TPO export supplies the live session date the history is partitioned
+    // on (feat-089) — without it the developing row would BE the prior day.
+    const result = facts({
+      dailyVaContent: read('daily-value-areas.csv'),
+      tpoDataContent: read('tpo.data.md'),
+    })
     expect(result.valueMigration).not.toBeNull()
     expect(result.valueMigration!.priorDay.date).toBe('2026-06-15')
     expect(result.valueMigration!.pocDrift).toEqual({
@@ -133,8 +138,57 @@ describe('computeEngineFacts', () => {
     ).toBe(true)
   })
 
-  it('computes daily ranges alongside value migration (feat-060)', () => {
+  it('splits the live session out of the value-area history (feat-089)', () => {
+    const result = facts({
+      dailyVaContent: read('daily-value-areas.csv'),
+      tpoDataContent: read('tpo.data.md'),
+      htfCsvContent: read('htf_bar_data.rolling.csv'),
+    })
+
+    // The developing row is the live session's VOLUME view — and the TIME view
+    // of the same day (tpo) puts its POC 20 pts away, the divergence the
+    // doctrine reads.
+    const dev = result.developingSession
+    expect(dev).not.toBeNull()
+    expect(dev!.date).toBe('2026-06-16')
+    expect(dev!.date).toBe(result.tpo!.sessionDate)
+    expect(dev!.poc).toBe(29930)
+    expect(result.tpo!.poc.price).toBe(29950)
+    expect(dev!.rangePts).toBe(182)
+    expect(dev!.currentPriceVsDevelopingValue).not.toBeNull()
+
+    // ...and it is gone from everything that documents completed sessions.
+    expect(result.valueMigration!.priorDay.date).toBe('2026-06-15')
+    expect(result.valueMigration!.recentSessions.some((s) => s.date === '2026-06-16')).toBe(false)
+    expect(result.dailyRanges!.days.some((d) => d.date === '2026-06-16')).toBe(false)
+
+    // Maturity qualifier: range used so far against the completed median.
+    expect(dev!.maturity.range!.medianCompletedRangePts).toBe(240)
+    expect(dev!.maturity.range!.usedFraction).toBe(0.76)
+    expect(dev!.sessionVolume).toBe(268000)
+
+    // The split is visible in the trace either way.
+    expect(
+      result.warnings.some((w) => w.includes('row 2026-06-16 is the live session')),
+    ).toBe(true)
+  })
+
+  it('nulls the developing session when the history carries no live row (feat-089)', () => {
+    // No TPO export: the live session date falls back to the execution bars'
+    // trading day, which no row in the fixture history matches.
     const result = facts({ dailyVaContent: read('daily-value-areas.csv') })
+    expect(result.developingSession).toBeNull()
+    expect(result.valueMigration).not.toBeNull()
+    expect(
+      result.warnings.some((w) => w.includes('carries no row for the live session')),
+    ).toBe(true)
+  })
+
+  it('computes daily ranges alongside value migration (feat-060)', () => {
+    const result = facts({
+      dailyVaContent: read('daily-value-areas.csv'),
+      tpoDataContent: read('tpo.data.md'),
+    })
     expect(result.dailyRanges).not.toBeNull()
     expect(result.dailyRanges!.days[0]).toEqual({ date: '2026-06-15', rangePts: 379 })
     expect(result.dailyRanges!.days).toHaveLength(8)

@@ -522,12 +522,23 @@ describe('prompt-data sync gate (feat-054)', () => {
       // (feat-097's pattern), leaving +84 net. It measured 97_815 against the
       // then-98k stop and re-measured after rebasing onto feat-093's 101k
       // ceiling. The user message keeps only live numbers.
+      // Raised 101k → 104k 2026-08-09 (feat-089), honouring the same stop by
+      // trimming first: the `developingSession` fact drops the three fields that
+      // duplicated its own top-level scalars (`rthSessionMinutes`,
+      // `maturity.volume.sessionVolume`, `maturity.range.rangePts`), its guide
+      // bullet was cut ~25%, and both split warnings were shortened. What
+      // remains (measured 102_435) is the live session's volume value area and
+      // its maturity qualifier. Accepted knowingly: unlike the facts above,
+      // this row was ALREADY inside every bundle — silently corrupting
+      // `valueMigration.priorDay` into TODAY — so the choice was never "carry
+      // it or not" but "carry it labelled or carry it lying". The stop stands:
+      // the next fact to land here trims before it bumps.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 101k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 104k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(101_000)
+      ).toBeLessThan(104_000)
     })
   })
 })

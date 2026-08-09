@@ -300,10 +300,13 @@ describe('runEval', () => {
 
   it('feeds the code-owned prior-day value context when the bundle carries the history (feat-048)', async () => {
     const encoder = new TextEncoder()
+    // The fixture history ships the live in-progress session as row 1 (feat-089);
+    // re-date it onto the trading day the fixture's execution bars run into, so
+    // the eval path's partition fires the way it does on a real bundle.
     const dailyVaCsv = readFileSync(
       join(process.cwd(), 'chart-data', 'daily-value-areas.csv'),
       'utf-8',
-    )
+    ).replace('2026-06-16,', '2026-07-10,')
     const harness = makeDeps()
     const base = harness.deps.fetchLatestBundle
     const download = harness.deps.downloadObject
@@ -319,7 +322,9 @@ describe('runEval', () => {
     const prompt = harness.getCaptured()!.prompt
 
     expect(prompt).toContain('# Prior-day value context')
+    // The PRIOR COMPLETED session, not the developing one the export ships first.
     expect(prompt).toContain('2026-06-15: VAL 29800 / POC 29890 / VAH 29962')
+    expect(prompt).not.toContain('2026-07-10:')
     expect(prompt).toContain('value migrating UP at 20 pts/session over 5 sessions')
   })
 

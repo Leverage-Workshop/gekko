@@ -254,14 +254,17 @@ describe('computeRelativeVolume', () => {
 
   it('measures a live daily SessionVolume against the elapsed-time expectation', () => {
     const bars = [...history(20, 1000), ...today([1000, 1000, 1000])]
-    const daily = [
-      // Row 1 is the in-progress session (today), as the live export ships it.
-      dailySession('2026-07-01', 200_000),
-      ...Array.from({ length: RVOL_MIN_DAILY_SESSIONS }, (_, i) =>
-        dailySession(`2026-06-${String(20 - i).padStart(2, '0')}`, 400_000),
-      ),
-    ]
-    const facts = computeRelativeVolume({ bars, dailySessions: daily })
+    // The live export ships the in-progress session as row 1; feat-089 hands it
+    // over already partitioned, so this module never re-derives "which row is today".
+    const developing = dailySession('2026-07-01', 200_000)
+    const daily = Array.from({ length: RVOL_MIN_DAILY_SESSIONS }, (_, i) =>
+      dailySession(`2026-06-${String(20 - i).padStart(2, '0')}`, 400_000),
+    )
+    const facts = computeRelativeVolume({
+      bars,
+      completedSessions: daily,
+      developingSession: developing,
+    })
     expect(facts.daily?.inProgress).toBe(true)
     expect(facts.daily?.medianSessionVolume).toBe(400_000)
     expect(facts.daily?.expectedFraction).toBe(0.5)
@@ -279,7 +282,7 @@ describe('computeRelativeVolume', () => {
         dailySession(`2026-06-${String(29 - i).padStart(2, '0')}`, 400_000),
       ),
     ]
-    const facts = computeRelativeVolume({ bars, dailySessions: daily })
+    const facts = computeRelativeVolume({ bars, completedSessions: daily })
     expect(facts.daily?.inProgress).toBe(false)
     expect(facts.daily?.expectedFraction).toBe(1)
     expect(facts.daily?.rvol).toBe(0.8)
@@ -291,7 +294,7 @@ describe('computeRelativeVolume', () => {
     const daily = Array.from({ length: RVOL_MIN_DAILY_SESSIONS }, (_, i) =>
       dailySession(`2026-06-${String(30 - i).padStart(2, '0')}`, 400_000),
     )
-    expect(computeRelativeVolume({ bars, dailySessions: daily }).daily).toBeNull()
+    expect(computeRelativeVolume({ bars, completedSessions: daily }).daily).toBeNull()
     expect(computeRelativeVolume({ bars }).daily).toBeNull()
   })
 
@@ -304,7 +307,7 @@ describe('computeRelativeVolume', () => {
         dailySession(`2026-06-${String(29 - i).padStart(2, '0')}`, 400_000),
       ),
     ]
-    const facts = computeRelativeVolume({ bars, dailySessions: daily })
+    const facts = computeRelativeVolume({ bars, completedSessions: daily })
     expect(facts.current).toBeNull()
     expect(facts.sessionSoFar).toBeNull()
     expect(facts.participation?.source).toBe('daily')

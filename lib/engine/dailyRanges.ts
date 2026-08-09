@@ -8,6 +8,12 @@ import type { DailyValueArea } from './parseDailyValueAreas'
  * these numbers. Expressed in plain points BY DESIGN — the overview doctrine
  * forbids citing ATR, so the model quotes the actual recent ranges instead of
  * a volatility statistic.
+ *
+ * COMPLETED SESSIONS ONLY (feat-089). {@link RANGE_RECENT_SESSIONS} is 3, so a
+ * partial range carried a THIRD of the contraction/expansion verdict and biased
+ * it toward 'contracting' every morning. Callers must pass
+ * `partitionDailyValueAreas(...).completed`; the live session's travel-so-far
+ * is reported separately by `computeDevelopingSession`.
  */
 
 /** Completed sessions (newest-first) surfaced in the range series. */
@@ -42,7 +48,8 @@ function mean(values: readonly number[]): number {
 }
 
 /**
- * @param sessions completed sessions, most recent first (as parsed).
+ * @param sessions COMPLETED sessions, most recent first — the `completed` half
+ *   of `partitionDailyValueAreas`, never the raw parse (feat-089).
  * @throws when `sessions` is empty — callers gate on a non-empty parse.
  */
 export function computeDailyRanges(sessions: readonly DailyValueArea[]): DailyRangeFacts {

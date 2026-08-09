@@ -14,8 +14,9 @@ import { computeDeltaTelemetry } from '@/lib/engine/deltaTelemetry'
 import { parseDeltaProfile } from '@/lib/engine/parseProfile'
 import { parseExecBars } from '@/lib/engine/parseExecBars'
 import { assessStaleness } from '@/lib/engine/staleness'
-import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
-import type { DailyValueArea } from '@/lib/engine/parseDailyValueAreas'
+import { parseDailyValueAreas, partitionDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
+import type { DailyValueAreaPartition } from '@/lib/engine/parseDailyValueAreas'
+import { tradingDayOf } from '@/lib/engine/overnightSession'
 import { computeValueMigration } from '@/lib/engine/valueMigration'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { parseHtfBars } from '@/lib/engine/parseHtfBars'
@@ -109,25 +110,43 @@ function scanEvalAbsorption(
 }
 
 /**
- * Code-owned prior-day value context (feat-048), best-effort like the delta
- * exports: a bundle without the history (pre-study) stays silent; malformed
- * content degrades to null + warning — value context must never block an
- * entry check.
+ * Split the value-area history into the live developing session and the
+ * completed remainder (feat-089), best-effort like the delta exports: a bundle
+ * without the history (pre-study) stays silent; malformed content degrades to
+ * null + warning — value context must never block an entry check.
+ *
+ * The eval bundle carries no TPO export, so the live session date comes from
+ * the execution bars' trading day (same Globex-reopen roll as
+ * `overnightSession`). Without the split the eval's "prior-day value" context
+ * resolved to TODAY, exactly as the analyze path did.
  */
-function computeEvalValueMigration(
+function partitionEvalDailyVa(
   content: string | null,
-  currentPrice: number,
+  liveSessionDate: string | null,
   warnings: string[],
-): ValueMigrationFacts | null {
+): DailyValueAreaPartition | null {
   if (content === null) return null
   try {
-    return computeValueMigration(parseDailyValueAreas(content), currentPrice)
+    return partitionDailyValueAreas(parseDailyValueAreas(content), liveSessionDate)
   } catch (error) {
     warnings.push(
       `failed to parse the daily value-area history: ${error instanceof Error ? error.message : String(error)}`,
     )
     return null
   }
+}
+
+/**
+ * Code-owned prior-day value context (feat-048), from COMPLETED sessions only
+ * (feat-089). Null when the history is absent, malformed, or holds nothing but
+ * the live session.
+ */
+function computeEvalValueMigration(
+  partition: DailyValueAreaPartition | null,
+  currentPrice: number,
+): ValueMigrationFacts | null {
+  if (partition === null || partition.completed.length === 0) return null
+  return computeValueMigration(partition.completed, currentPrice)
 }
 
 /**
@@ -158,27 +177,23 @@ function computeEvalHtfContext(
 
 /**
  * Code-owned relative-volume context (feat-094), best-effort on the same terms
- * as the HTF structure read. The daily value-area history is passed when it
- * parsed, for the day-level `SessionVolume` companion; a failure there only
- * costs the daily leg, never the intraday slot read.
+ * as the HTF structure read. The PARTITIONED value-area history is passed when
+ * it parsed, for the day-level `SessionVolume` companion (feat-089: the caller
+ * owns the single notion of which row is today); a failure there only costs the
+ * daily leg, never the intraday slot read.
  */
 function computeEvalRelativeVolume(
   htfContent: string | null,
-  dailyVaContent: string | null,
+  partition: DailyValueAreaPartition | null,
   warnings: string[],
 ): RelativeVolumeFacts | null {
   if (htfContent === null) return null
-  let dailySessions: DailyValueArea[] | null = null
-  if (dailyVaContent !== null) {
-    try {
-      dailySessions = parseDailyValueAreas(dailyVaContent)
-    } catch {
-      // Already warned by computeEvalValueMigration — the daily leg just drops.
-      dailySessions = null
-    }
-  }
   try {
-    return computeRelativeVolume({ bars: parseHtfBars(htfContent), dailySessions })
+    return computeRelativeVolume({
+      bars: parseHtfBars(htfContent),
+      completedSessions: partition?.completed ?? null,
+      developingSession: partition?.developing ?? null,
+    })
   } catch (error) {
     warnings.push(
       `failed to compute relative volume: ${error instanceof Error ? error.message : String(error)}`,
@@ -403,7 +418,14 @@ export async function runEval(
     execBars,
     warnings,
   )
-  const valueMigration = computeEvalValueMigration(bundle.dailyVaContent, currentPrice, warnings)
+  // One notion of "today" for the eval path too (feat-089): the exec bars are
+  // the only dated tape in an eval bundle.
+  const dailyVaPartition = partitionEvalDailyVa(
+    bundle.dailyVaContent,
+    execBars.length > 0 ? tradingDayOf(execBars[execBars.length - 1]) : null,
+    warnings,
+  )
+  const valueMigration = computeEvalValueMigration(dailyVaPartition, currentPrice)
   const { htfStructure, volatilityScale } = computeEvalHtfContext(
     bundle.htfCsvContent,
     currentPrice,
@@ -411,7 +433,7 @@ export async function runEval(
   )
   const relativeVolume = computeEvalRelativeVolume(
     bundle.htfCsvContent,
-    bundle.dailyVaContent,
+    dailyVaPartition,
     warnings,
   )
 

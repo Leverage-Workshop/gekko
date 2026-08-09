@@ -15,10 +15,12 @@ import { RTH_OPEN_MINUTES, minutesOfDay, tradingDayOf } from './overnightSession
  *
  * The day-level companion comes from `daily-value-areas.csv`'s `SessionVolume`,
  * which was parsed into `DailyValueArea.sessionVolume` and referenced nowhere
- * else. When that row is the live in-progress session its volume is a
- * volume-SO-FAR, so it is compared against the time-of-day expectation
- * (the fraction of a normal session's volume that has typically printed by
- * now), not against a whole-session median.
+ * else. Which row is the live session is NOT decided here (feat-089): the
+ * caller partitions the history by date and passes `developingSession` +
+ * `completedSessions` separately, so the engine holds exactly one notion of
+ * "today". A developing subject's volume is a volume-SO-FAR, so it is compared
+ * against the time-of-day expectation (the fraction of a normal session's
+ * volume that has typically printed by now), not a whole-session median.
  *
  * RVOL is deliberately surfaced as a SCALAR the other facts cite rather than a
  * trigger of its own: a delta divergence at 0.7x is noise, the same divergence
@@ -317,28 +319,32 @@ function slotRvol(bar: HtfBar, baseline: SlotBaseline | undefined): SlotRvol {
 /**
  * Day-level RVOL from the value-area history's `SessionVolume`.
  *
- * The newest row is the subject; the remaining rows are the baseline. When the
- * newest row is the live session its volume is a running total, so it is
- * measured against `medianSessionVolume × expectedFraction` instead of the
- * whole-session median — otherwise every morning reads as "light".
+ * WHICH ROW IS TODAY is decided ONCE, by the caller's date partition
+ * (`partitionDailyValueAreas`, feat-089) — this function no longer re-derives
+ * it from the bars' trading day, which was a second, competing notion of the
+ * live session. The subject is the developing row when the bundle has one, else
+ * the newest completed row; the completed rows (minus the subject) are the
+ * baseline. A developing subject's volume is a running total, so it is measured
+ * against `medianSessionVolume × expectedFraction` instead of the whole-session
+ * median — otherwise every morning reads as "light".
  */
 function computeDailyVolumeRvol(
-  sessions: readonly DailyValueArea[],
-  sessionDate: string,
+  developing: DailyValueArea | null,
+  completed: readonly DailyValueArea[],
   intradayExpectedFraction: number | null,
 ): DailyVolumeRvol | null {
-  if (sessions.length === 0) return null
-  const subject = sessions[0]
-  const baseline = sessions
-    .slice(1)
-    .filter((s) => s.date !== subject.date && Number.isFinite(s.sessionVolume) && s.sessionVolume > 0)
+  const subject = developing ?? completed[0]
+  if (subject === undefined) return null
+  const baseline = completed.filter(
+    (s) => s !== subject && Number.isFinite(s.sessionVolume) && s.sessionVolume > 0,
+  )
   if (baseline.length < RVOL_MIN_DAILY_SESSIONS) return null
   if (!Number.isFinite(subject.sessionVolume) || subject.sessionVolume <= 0) return null
 
   const medianSessionVolume = Math.round(median(baseline.map((s) => s.sessionVolume)))
   if (medianSessionVolume <= 0) return null
 
-  const inProgress = subject.date === sessionDate
+  const inProgress = developing !== null
   // A completed row is measured against a whole session. A live row without a
   // usable intraday expectation falls back to fraction 1 — `inProgress` tells
   // the model the ratio is a floor, which beats suppressing the fact entirely.
@@ -367,10 +373,19 @@ export type RelativeVolumeInput = {
   /** Chronological parsed HTF export (oldest first, in-progress bar last). */
   bars: readonly HtfBar[]
   /**
-   * Daily value-area history (newest first), for the day-level companion.
-   * Omit/null when the bundle carries none — `daily` degrades to null.
+   * COMPLETED daily value-area sessions (newest first) — the `completed` half of
+   * `partitionDailyValueAreas` (feat-089), for the day-level companion's
+   * baseline. Omit/null when the bundle carries no history: `daily` degrades to
+   * null. (Renamed from `dailySessions` deliberately: an un-partitioned list
+   * must not compile, or the live row silently re-enters the baseline.)
    */
-  dailySessions?: readonly DailyValueArea[] | null
+  completedSessions?: readonly DailyValueArea[] | null
+  /**
+   * The live in-progress session's row — `partitionDailyValueAreas(...).developing`.
+   * When present it is the day-level subject and its volume is read as a
+   * running total. Null/omitted on pre-open and overnight bundles.
+   */
+  developingSession?: DailyValueArea | null
 }
 
 /**
@@ -425,9 +440,14 @@ export function computeRelativeVolume(input: RelativeVolumeInput): RelativeVolum
     }
   }
 
-  const daily = input.dailySessions
-    ? computeDailyVolumeRvol(input.dailySessions, sessionDate, sessionSoFar?.expectedFraction ?? null)
-    : null
+  const daily =
+    input.completedSessions || input.developingSession
+      ? computeDailyVolumeRvol(
+          input.developingSession ?? null,
+          input.completedSessions ?? [],
+          sessionSoFar?.expectedFraction ?? null,
+        )
+      : null
 
   let participation: RelativeVolumeFacts['participation'] = null
   if (current !== null && current.rvol !== null) {

@@ -23,8 +23,11 @@ import type { TerrainZonesResult } from '@/lib/engine/terrainZones'
 import { parseTpoProfile } from '@/lib/engine/parseTpo'
 import { computeTpoFacts } from '@/lib/engine/tpoFacts'
 import type { TpoFacts } from '@/lib/engine/tpoFacts'
-import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
+import { parseDailyValueAreas, partitionDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
 import type { DailyValueArea } from '@/lib/engine/parseDailyValueAreas'
+import { computeDevelopingSession } from '@/lib/engine/developingSession'
+import type { DevelopingSessionFacts } from '@/lib/engine/developingSession'
+import { tradingDayOf } from '@/lib/engine/overnightSession'
 import { computeValueMigration } from '@/lib/engine/valueMigration'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { computeDailyRanges } from '@/lib/engine/dailyRanges'
@@ -149,6 +152,19 @@ export interface EngineFacts {
    * `daily-value-areas.csv` — flagged in `warnings`.
    */
   dailyRanges: DailyRangeFacts | null
+  /**
+   * Code-owned DEVELOPING-session read (feat-089): the live in-progress RTH
+   * session's VOLUME value area (developing POC/VAH/VAL, session high/low,
+   * volume so far) split out of the value-area history by date, plus a maturity
+   * qualifier — elapsed RTH minutes, volume so far against the time-of-day
+   * expectation, and range used so far against the completed-session median.
+   * The only volume-based view of the live session in the bundle, and the
+   * companion to the time-based `tpo` read on the same day. Null when the
+   * history carries no row for the live session (pre-open/overnight bundles, or
+   * an exporter that honours its completed-only contract) — flagged in
+   * `warnings` either way, so the split is visible in the trace.
+   */
+  developingSession: DevelopingSessionFacts | null
   /**
    * Code-owned HTF structure read (feat-049): trend state from the swing
    * sequence, recent swing highs/lows, rotation extent and measured 30-min
@@ -365,17 +381,60 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     warnings.push('bundle has no numeric TPO export — TPO facts not computed')
   }
 
+  // ONE notion of "which trading day is live" for the whole engine (feat-089).
+  // `tpo.sessionDate` is the designated source (the TPO export states the day it
+  // profiled); the execution bars — always present — are the fallback, using the
+  // same Globex-reopen roll rule as `overnightSession`.
+  const execSessionDate = bars.length > 0 ? tradingDayOf(bars[bars.length - 1]) : null
+  const liveSessionDate = tpo?.sessionDate ?? execSessionDate
+  if (tpo !== null && execSessionDate !== null && tpo.sessionDate !== execSessionDate) {
+    warnings.push(
+      `live-session date mismatch: tpo.data.md is dated ${tpo.sessionDate} but the execution bars run into ${execSessionDate} — the export's date wins`,
+    )
+  }
+
   let valueMigration: ValueMigrationFacts | null = null
   let dailyRanges: DailyRangeFacts | null = null
+  let developingSession: DevelopingSessionFacts | null = null
   // Held outside the block: the relative-volume read (feat-094) pairs the
-  // per-slot intraday baseline with this history's `SessionVolume` column.
-  let dailySessions: DailyValueArea[] | null = null
+  // per-slot intraday baseline with this history's `SessionVolume` column, and
+  // the developing-session read (feat-089) needs both halves of the partition.
+  let completedSessions: DailyValueArea[] | null = null
+  let developingRow: DailyValueArea | null = null
   if (input.dailyVaContent) {
     try {
-      dailySessions = parseDailyValueAreas(input.dailyVaContent)
-      valueMigration = computeValueMigration(dailySessions, mgi.currentPrice)
-      dailyRanges = computeDailyRanges(dailySessions)
+      const parsed = parseDailyValueAreas(input.dailyVaContent)
+      // Partition, never discard (feat-089): the live row is the only
+      // volume-based view of the developing session in the bundle, and leaving
+      // it in the history made `priorDay` resolve to TODAY.
+      const partition = partitionDailyValueAreas(parsed, liveSessionDate)
+      completedSessions = partition.completed
+      developingRow = partition.developing
+      if (partition.flagDisagreement !== null) {
+        warnings.push(
+          `daily value-area export's IsComplete flag disagrees with the dates: ${partition.flagDisagreement}`,
+        )
+      }
+      if (developingRow !== null) {
+        warnings.push(
+          `value-area history row ${developingRow.date} is the live session — split out as developingSession; ${completedSessions.length} completed sessions feed the migration/range reads`,
+        )
+      } else {
+        warnings.push(
+          `value-area history carries no row for the live session${liveSessionDate === null ? '' : ` ${liveSessionDate}`} — no developing value area (pre-open/overnight, or a completed-only export)`,
+        )
+      }
+      if (completedSessions.length === 0) {
+        warnings.push(
+          'daily value-area history holds only the live session — migration and range reads not computed',
+        )
+      } else {
+        valueMigration = computeValueMigration(completedSessions, mgi.currentPrice)
+        dailyRanges = computeDailyRanges(completedSessions)
+      }
     } catch (error) {
+      completedSessions = null
+      developingRow = null
       warnings.push(
         `daily-value-areas.csv failed to parse — value migration and daily ranges not computed: ${error instanceof Error ? error.message : String(error)}`,
       )
@@ -397,7 +456,11 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     try {
       htfBars = parseHtfBars(input.htfCsvContent)
       htfStructure = computeHtfStructure(htfBars, mgi.currentPrice)
-      relativeVolume = computeRelativeVolume({ bars: htfBars, dailySessions })
+      relativeVolume = computeRelativeVolume({
+        bars: htfBars,
+        completedSessions,
+        developingSession: developingRow,
+      })
       if (relativeVolume.participation === null) {
         warnings.push(
           'no intraday slot or session has enough volume history for a relative-volume read — RVOL not computed',
@@ -424,6 +487,19 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     warnings.push(
       'bundle has no HTF bar data — HTF structure and relative volume not computed',
     )
+  }
+
+  // Computed after the HTF block: the maturity qualifier's volume leg reuses
+  // feat-094's time-of-day expectation rather than forking the baseline, and the
+  // clock comes from the freshest execution bar (chart time).
+  if (developingRow !== null) {
+    developingSession = computeDevelopingSession({
+      developing: developingRow,
+      completed: completedSessions ?? [],
+      currentPrice: mgi.currentPrice,
+      chartNow: bars.length > 0 ? bars[bars.length - 1].dateTime : null,
+      expectedVolumeFraction: relativeVolume?.sessionSoFar?.expectedFraction ?? null,
+    })
   }
 
   const summaryOf = (meta: {
@@ -560,6 +636,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     tpo,
     valueMigration,
     dailyRanges,
+    developingSession,
     htfStructure,
     volatilityScale,
     overnightSession,

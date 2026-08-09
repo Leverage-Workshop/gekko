@@ -8,6 +8,12 @@ import type { DailyValueArea } from './parseDailyValueAreas'
  * place, or is value leading price out of it?" numerically, replacing a
  * screenshot inference off the HTF chart. The balance-area VbP's anchoring is
  * owned by its third-party study — nothing here re-derives or validates it.
+ *
+ * COMPLETED SESSIONS ONLY (feat-089). The live export ships the developing RTH
+ * session as row 1, which made `priorDay` resolve to TODAY and
+ * `currentPriceVsPriorValue` answer "inside / 0 pts outside" by construction —
+ * price compared against the value area being built around it. Callers must
+ * pass `partitionDailyValueAreas(...).completed`, never the raw parse.
  */
 
 /** Sessions (newest-first) the POC drift pace is measured across. */
@@ -108,6 +114,21 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
+/**
+ * Where a price sits relative to one value area. Shared with the developing-session
+ * read (feat-089) so "above / inside / below and by how much" is defined once.
+ */
+export function positionVsValueArea(
+  price: number,
+  vah: number,
+  val: number,
+): { position: PricePosition; pointsOutside: number } {
+  const position: PricePosition = price > vah ? 'above' : price < val ? 'below' : 'inside'
+  const pointsOutside =
+    position === 'above' ? round2(price - vah) : position === 'below' ? round2(val - price) : 0
+  return { position, pointsOutside }
+}
+
 function relate(newer: DailyValueArea, older: DailyValueArea): ValueMigrationFacts['priorDayOverlap'] {
   const overlapHigh = Math.min(newer.vah, older.vah)
   const overlapLow = Math.max(newer.val, older.val)
@@ -127,7 +148,8 @@ function relate(newer: DailyValueArea, older: DailyValueArea): ValueMigrationFac
 }
 
 /**
- * @param sessions completed sessions, most recent first (as parsed).
+ * @param sessions COMPLETED sessions, most recent first — the `completed` half
+ *   of `partitionDailyValueAreas`, never the raw parse (feat-089).
  * @param currentPrice live price for the prior-day-value position read; null
  *   when unavailable (the position fact is then null).
  * @throws when `sessions` is empty — callers gate on a non-empty parse.
@@ -169,15 +191,7 @@ export function computeValueMigration(
 
   let currentPriceVsPriorValue: ValueMigrationFacts['currentPriceVsPriorValue'] = null
   if (currentPrice !== null && Number.isFinite(currentPrice)) {
-    const position: PricePosition =
-      currentPrice > latest.vah ? 'above' : currentPrice < latest.val ? 'below' : 'inside'
-    const pointsOutside =
-      position === 'above'
-        ? round2(currentPrice - latest.vah)
-        : position === 'below'
-          ? round2(latest.val - currentPrice)
-          : 0
-    currentPriceVsPriorValue = { position, pointsOutside }
+    currentPriceVsPriorValue = positionVsValueArea(currentPrice, latest.vah, latest.val)
   }
 
   return {
