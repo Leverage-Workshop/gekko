@@ -1110,6 +1110,16 @@
         "feat-054"
       ],
       "status": "not-started"
+    },
+    {
+      "id": "feat-108",
+      "name": "ATR-projected price levels as anchorable structure",
+      "description": "Operator direction 2026-08-09, following the feat-089..097 batch review: the operator uses ATR as a PRICE LEVEL for targets and reversals -- 'current price plus one ATR' is a target, 'swing low minus one ATR' is where a reversal is expected -- not as a normalizer. The engine today exposes ATR only in the normalizer role: htfStructure.atrPoints as a raw scalar, rotation.extentAtr, and currentVsSwings.fromLastSwingHighAtr / fromLastSwingLowAtr (all feat-049), plus an eval-prompt line framing 'a few ATR' as rotation noise. No ATR-derived PRICE exists anywhere in the engine, so engineAnchorPrices() cannot host an entry, stop or target on one and the model can only produce ATR-projected prices as freehand arithmetic in prose -- exactly the off-anchor advisory that feat-090 and feat-097 eliminated for the value and VWAP levels. Work: project ATR from a small, defensible set of reference prices into concrete price rungs and feed them into engineAnchorPrices() through the same optional-argument seam feat-090 established for value levels (do NOT touch engineZoneBorders -- an ATR projection is not a zone partition, per the boundary feat-097 set). Reference anchors should cover the two uses the operator named: projections from current price (target rungs both directions) and from the last confirmed swing high and swing low (reversal rungs), at named exported multiples (start with 0.5/1.0/1.5/2.0x and justify the set against the measured distribution rather than shipping round numbers unargued). Each rung must carry its reference and multiple as an attribution label a briefing can quote, in the style of feat-097's vwapRungs. Note the scale relationship before choosing multiples: one 30-min ATR is ~110 pts, which is ~0.4 sigma and therefore almost exactly feat-096's significant-move floor -- so a 1x ATR projection sits at the minimum reversal room the engine already demands, and multiples below 1x will mostly fail that gate. Say so in the fact rather than emitting rungs that silently cannot host an objective. Must degrade to null/empty when htfStructure is null (no HTF export) or atrPoints is 0, and must not fabricate a swing-anchored rung when no confirmed swing exists. Surface via engineFacts into the analyze/update prompts as anchorable structure. This feature does NOT change the existing ATR-normalized distance fields -- it adds the price-level role alongside them.",
+      "dependencies": [
+        "feat-049",
+        "feat-090"
+      ],
+      "status": "not-started"
     }
   ]
 }
