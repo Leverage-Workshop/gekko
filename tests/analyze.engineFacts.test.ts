@@ -658,3 +658,111 @@ describe('engineAnchorPrices — value levels are anchorable (feat-090)', () => 
     expect(withValue).toEqual(base)
   })
 })
+
+/**
+ * feat-108 — ATR reaches the engine as a PRICE, not only as a normalizer.
+ * Before this feature no ATR-derived price existed anywhere, so "current price
+ * plus one ATR" (a target) and "swing low minus one ATR" (a reversal) could
+ * only appear as freehand arithmetic in the model's prose. The regression
+ * feat-090 pinned is the model here: every projected rung must be IN
+ * `engineAnchorPrices()` at distance 0.
+ */
+describe('engineAnchorPrices — ATR projections are anchorable (feat-108)', () => {
+  const full = () => facts({ tpoDataContent, dailyVaContent, htfCsvContent })
+
+  const anchorsWith = (result: ReturnType<typeof computeEngineFacts>) =>
+    engineAnchorPrices(
+      result.terrain,
+      result.lvn,
+      result.sessionIntraday,
+      { tpo: result.tpo, multiDayTpo: result.multiDayTpo },
+      result.atrProjections,
+    )
+
+  it('admits every projected rung, at zero distance', () => {
+    const result = full()
+    const projections = result.atrProjections
+    expect(projections).not.toBeNull()
+    expect(projections!.rungs.length).toBeGreaterThan(0)
+
+    const anchors = anchorsWith(result)
+    for (const rung of projections!.rungs) {
+      const nearest = Math.min(...anchors.map((a) => Math.abs(a - rung.price)))
+      expect(nearest, `${rung.label} @ ${rung.price} is off-structure`).toBe(0)
+      expect(anchors, rung.label).toContain(rung.price)
+    }
+    expect([...anchors].sort((a, b) => b - a)).toEqual(anchors)
+    expect(new Set(anchors).size).toBe(anchors.length)
+  })
+
+  it('projects the two uses the operator named, from the real fixture', () => {
+    const result = full()
+    const { atrPoints, rungs } = result.atrProjections!
+    const round2 = (n: number) => Math.round(n * 100) / 100
+
+    // "current price plus one ATR" is a target.
+    const up = rungs.find((r) => r.reference === 'current-price' && r.multiple === 1)!
+    expect(up.price).toBe(round2(result.currentPrice + atrPoints))
+
+    // "swing low minus one ATR" is where a reversal is expected.
+    const swingLow = result.htfStructure!.recentSwingLows[0].price
+    const down = rungs.find((r) => r.reference === 'last-swing-low' && r.multiple === -1)!
+    expect(down.price).toBe(round2(swingLow - atrPoints))
+    expect(down.label).toContain('last swing low')
+  })
+
+  it('adds the rungs ONLY through the projections argument, purely additively', () => {
+    const result = full()
+    const without = new Set(
+      engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday, {
+        tpo: result.tpo,
+        multiDayTpo: result.multiDayTpo,
+      }),
+    )
+    const withRungs = anchorsWith(result)
+    const rungPrices = new Set(result.atrProjections!.rungs.map((r) => r.price))
+
+    const added = withRungs.filter((price) => !without.has(price))
+    expect(added.length).toBeGreaterThan(0)
+    for (const price of added) expect(rungPrices.has(price)).toBe(true)
+  })
+
+  /**
+   * The boundary feat-097 set and feat-090 verified rather than assumed: a
+   * projection is not a zone partition, and the zone stack is hard-enforced as
+   * the set the model must reproduce.
+   */
+  it('leaves the zone stack untouched while the anchor set grows', () => {
+    const result = full()
+    const borders = engineZoneBorders(result.terrain)
+
+    // The same stack feat-090 verified rather than assumed: 10 zones, 11 borders.
+    expect(result.terrain.zones).toHaveLength(10)
+    expect(borders).toHaveLength(11)
+
+    // The anchor set DID take the rungs...
+    const without = engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday, {
+      tpo: result.tpo,
+      multiDayTpo: result.multiDayTpo,
+    })
+    expect(anchorsWith(result).length).toBeGreaterThan(without.length)
+
+    // ...and not one of them reached the hard-enforced zone stack.
+    const rungPrices = new Set(result.atrProjections!.rungs.map((r) => r.price))
+    const strayed = borders.filter((b) => rungPrices.has(b) && !without.includes(b))
+    expect(strayed).toEqual([])
+    expect(engineZoneBorders(result.terrain)).toEqual(borders)
+  })
+
+  it('degrades to null with no HTF export, and drops out of the anchor set', () => {
+    const result = facts({ tpoDataContent, dailyVaContent })
+    expect(result.htfStructure).toBeNull()
+    expect(result.atrProjections).toBeNull()
+
+    const base = engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday, {
+      tpo: result.tpo,
+      multiDayTpo: result.multiDayTpo,
+    })
+    expect(anchorsWith(result)).toEqual(base)
+  })
+})

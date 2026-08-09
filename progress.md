@@ -8,7 +8,54 @@
 2026-08-07 bundle review batch is in flight. See "Carried forward" at the end of this
 block for the follow-ups that outlive it.
 
-**Latest change (branch `feat-090-anchorable-value-levels`): feat-090 — prior-day and TPO
+**Latest change (branch `feat-108-atr-projected-levels`): feat-108 — ATR-projected price
+levels are anchorable structure.** Operator direction 2026-08-09: he uses ATR as a PRICE
+LEVEL — "current price plus one ATR" is a target, "swing low minus one ATR" is where a
+reversal is expected — but the engine exposed ATR only as a NORMALIZER (`atrPoints`,
+`rotation.extentAtr`, `currentVsSwings.*Atr`, all feat-049). No ATR-derived price existed
+anywhere, so `engineAnchorPrices()` could not host an entry, stop or target on one and the
+model could only produce such a price as freehand arithmetic in prose — the same off-anchor
+advisory feat-090 and feat-097 eliminated for the value and VWAP levels. New
+`lib/engine/atrProjection.ts` projects the 30-min ATR from three references at
+`ATR_PROJECTION_MULTIPLES = 0.5/1/1.5/2x`: **current price both directions** (target rungs)
+and **outward from the last confirmed swing high and swing low** (reversal rungs; inward is
+already terrain, and no rung is emitted for a side with no confirmed swing). Each rung
+carries its reference and multiple as a quotable attribution label in feat-097's `vwapRungs`
+style — `"current price (29945.75) +1× ATR"`. Reached the anchor set through a new 5th
+optional argument on `engineAnchorPrices()`, the feat-090 seam; **`engineZoneBorders()` was
+not touched and the zone stack is verified unchanged (10 zones / 11 borders before and
+after)**, with the assertion paired against a check that the anchor set *did* grow, so the
+test fails if a projection ever leaks into the partition. All 16 rungs are anchors at
+distance exactly 0, pinned by the feat-090-style regression.
+
+The sharp part is the **scale relationship**. One 30-min ATR measures 116.23 pts against a
+295.12-pt session sigma = **0.394σ**, and feat-096's significant-move floor is 0.4σ =
+118.05 pts — so 1× ATR does not sit merely *at* the floor, it lands **1.82 pts under it** on
+this fixture, and 8 of the 16 rungs (every 0.5× and 1× rung) cannot host a target. The fact
+**says so** rather than emitting them silently: a per-rung `clearsSignificantMove` boolean
+plus a `significantMoveNote`, both resolved against the gate *as it resolves that run*. That
+is deliberate — the gate degrades to the fixed 50-pt fallback when the sigma is unmeasured,
+under which the same 0.5× rungs DO clear, so a static filter would have been wrong in one of
+the two regimes. Both are pinned by tests. Sub-floor rungs stay in the set because they are
+legitimate entry and stop structure (0.5× ATR is still 2.3× the fixed 25-pt operational
+stop); they are just never legal as a target. `significantMoveSigma` is now an optional
+`EngineFactsInput` field so the engine tests the flag against the operator's configured
+value, not the default. The existing ATR normalizer fields and the eval-prompt ATR line are
+unchanged — this feature adds the price-level role alongside them.
+
+**Prompt budget: the ceiling did NOT move, and the payload got smaller.** Naive wiring
+measured 110_459 (+5_396 over the 105_063 baseline); the shipped version measures
+**102_273** against the unchanged 106k ceiling — 2_790 chars *below* baseline. Paid for by
+honouring the standing "trim before you bump" note with the duplication feat-090 identified:
+all 10 `terrain.borders[].members` entries were verified byte-identical to verdicts
+`terrain.levels` already carries, so members now keep price, kind, `hard`/`faint`/`shallow`,
+`source` and the `reason` string the AAA-demotion rule quotes and drop the re-serialized
+`level`/`local`/`magnet`/`detectorNode` (all reachable under the same label two lines up);
+rungs render as compact `PRICE · label · travel` strings, the feat-090 `mgiPriority.tier1`
+precedent. Interpretive prose went into the cached `output-objective.md` prefix
+(feat-096/097's split), which measures 46_757 against its 47k ceiling — also not raised.
+
+**Prior change (branch `feat-090-anchorable-value-levels`): feat-090 — prior-day and TPO
 value levels are anchorable structure.** Closes review D5/B4 and the operator's open
 follow-up from the 2026-08-03 briefing review. `engineAnchorPrices()` was built from
 terrain only — MGI levels plus the two VOLUME profiles — so nothing derived from TPO, the
