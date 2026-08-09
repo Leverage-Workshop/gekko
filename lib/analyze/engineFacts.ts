@@ -30,8 +30,11 @@ import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { computeDailyRanges } from '@/lib/engine/dailyRanges'
 import type { DailyRangeFacts } from '@/lib/engine/dailyRanges'
 import { parseHtfBars } from '@/lib/engine/parseHtfBars'
+import type { HtfBar } from '@/lib/engine/parseHtfBars'
 import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import { computeVolatilityScale } from '@/lib/engine/volatilityScale'
+import type { StructureReference, VolatilityScaleFacts } from '@/lib/engine/volatilityScale'
 import { computeOvernightSession } from '@/lib/engine/overnightSession'
 import type { OvernightSessionFacts } from '@/lib/engine/overnightSession'
 import { computeMultiDayTpo } from '@/lib/engine/multiDayTpo'
@@ -155,6 +158,17 @@ export interface EngineFacts {
    */
   htfStructure: HtfStructureFacts | null
   /**
+   * Code-owned volatility SCALE read (feat-095), computed from the same 30-min
+   * bars: Parkinson (high/low) and Garman-Klass (OHLC) range estimators — ~5x
+   * more efficient per bar than close-to-close — aggregated into one session
+   * sigma in points (`volatilityScale.sessionSigmaPts`), plus the distance from
+   * current price to the nearest structure in points AND sigma. The scale
+   * number that tells the model whether "29 pts away" is a gap or noise. Null
+   * when the bundle has no HTF bar export or under 3 complete RTH sessions —
+   * flagged in `warnings`.
+   */
+  volatilityScale: VolatilityScaleFacts | null
+  /**
    * Code-owned overnight-session read (feat-060): the Globex session's
    * high/low/range plus RTH-so-far extremes from the 30-min bars. Null when
    * the bundle has no HTF bar export OR the export carries no overnight bars
@@ -233,6 +247,45 @@ export function engineAnchorPrices(
     ...lvnNodes.map((node) => node.price),
   ].filter((price) => !terrain.dataEdges.includes(price))
   return [...new Set(anchors)].sort((a, b) => b - a)
+}
+
+/**
+ * The structure a sigma-normalized distance is worth quoting against
+ * (feat-095): the nearest Tier-1 campaign border each side and the nearest
+ * engine zone border each side. Deliberately narrow — the point of the fact is
+ * "is the next thing that matters inside the noise?", and dumping the whole map
+ * in sigma would bury that answer.
+ */
+function sigmaStructureRefs(
+  mgi: MgiPriority,
+  terrain: TerrainZonesResult,
+  price: number,
+): StructureReference[] {
+  const refs: StructureReference[] = []
+  if (mgi.nearestTier1Above) {
+    refs.push({
+      label: `${mgi.nearestTier1Above.level.label} (nearest Tier-1 above)`,
+      price: mgi.nearestTier1Above.level.price,
+    })
+  }
+  if (mgi.nearestTier1Below) {
+    refs.push({
+      label: `${mgi.nearestTier1Below.level.label} (nearest Tier-1 below)`,
+      price: mgi.nearestTier1Below.level.price,
+    })
+  }
+  // engineZoneBorders is price-DESCENDING: the nearest border above is the last
+  // one over price; the nearest below is the first one under it.
+  const borders = engineZoneBorders(terrain)
+  const borderAbove = borders.filter((b) => b > price).at(-1)
+  const borderBelow = borders.find((b) => b < price)
+  if (borderAbove !== undefined) {
+    refs.push({ label: 'nearest zone border above', price: borderAbove })
+  }
+  if (borderBelow !== undefined) {
+    refs.push({ label: 'nearest zone border below', price: borderBelow })
+  }
+  return refs
 }
 
 /**
@@ -327,9 +380,12 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   let overnightSession: OvernightSessionFacts | null = null
   let multiDayTpo: MultiDayTpoFacts | null = null
   let relativeVolume: RelativeVolumeFacts | null = null
+  // Held for the volatility-scale pass (feat-095), which runs after terrain so
+  // its sigma-normalized distances can quote the assembled zone borders.
+  let htfBars: HtfBar[] | null = null
   if (input.htfCsvContent) {
     try {
-      const htfBars = parseHtfBars(input.htfCsvContent)
+      htfBars = parseHtfBars(input.htfCsvContent)
       htfStructure = computeHtfStructure(htfBars, mgi.currentPrice)
       relativeVolume = computeRelativeVolume({ bars: htfBars, dailySessions })
       if (relativeVolume.participation === null) {
@@ -454,6 +510,22 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   if (!terrain.contiguityValid) {
     warnings.push(`terrain contiguity invalid: ${terrain.issues.join('; ')}`)
   }
+
+  // Volatility scale (feat-095): the session sigma, plus the distance to the
+  // structure that actually bounds the next move — read in points AND sigma.
+  let volatilityScale: VolatilityScaleFacts | null = null
+  if (htfBars) {
+    volatilityScale = computeVolatilityScale({
+      bars: htfBars,
+      currentPrice: mgi.currentPrice,
+      structure: sigmaStructureRefs(mgi, terrain, mgi.currentPrice),
+    })
+    if (volatilityScale === null) {
+      warnings.push(
+        'HTF export holds under 3 complete RTH sessions — session sigma not computed',
+      )
+    }
+  }
   // Formation test on the rotation profile only (feat-075): the session-lens
   // doctrine says the trade-horizon profile governs where retests stall; the
   // balance-area composite is the lens that launders fakeout tails under
@@ -479,6 +551,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     valueMigration,
     dailyRanges,
     htfStructure,
+    volatilityScale,
     overnightSession,
     multiDayTpo,
     relativeVolume,

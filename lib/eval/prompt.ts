@@ -5,6 +5,8 @@ import type { ExecBar } from '@/lib/engine/parseExecBars'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import type { VolatilityScaleFacts } from '@/lib/engine/volatilityScale'
+import { sigmaOfPoints } from '@/lib/engine/volatilityScale'
 import type { IntradayTrendFacts } from '@/lib/engine/intradayTrend'
 import type { RelativeVolumeFacts } from '@/lib/engine/relativeVolume'
 import type { ChartAttachment } from '@/lib/analyze'
@@ -72,6 +74,14 @@ export interface EvalPromptInput {
    * to the delta telemetry and absorption candidates in this same prompt.
    */
   relativeVolume?: RelativeVolumeFacts | null
+  /**
+   * Code-owned volatility scale (feat-095) from the same 30-min bar export:
+   * the Parkinson/Garman-Klass session sigma. Rendered as one context line so
+   * the distance to the evaluated level, and any adverse excursion, can be
+   * judged as a fraction of a session's normal travel rather than raw points.
+   * Null when the bundle carries no usable HTF export.
+   */
+  volatilityScale?: VolatilityScaleFacts | null
   /**
    * Code-owned composite intraday trend (feat-064) from the full-session exec
    * bars — the trend read at the operator's trade horizon. Rendered as one
@@ -260,6 +270,29 @@ function relativeVolumeLine(rv: RelativeVolumeFacts | null | undefined): string 
 }
 
 /**
+ * One code-owned volatility-scale line (feat-095): the session sigma from the
+ * range estimators, with the evaluated level's distance re-expressed in it.
+ * Distance in points alone cannot say whether a level is realistically in
+ * reach — 29 pts is a different fact in a 283-pt session than in a 90-pt one.
+ */
+function volatilityContextLine(
+  scale: VolatilityScaleFacts | null | undefined,
+  proximity: ProximityAssessment,
+): string {
+  if (!scale) {
+    return 'No volatility scale is available for this bundle — judge distances in points alone.'
+  }
+  const nearest = proximity.nearest
+  const levelSigma =
+    nearest !== null ? sigmaOfPoints(nearest.effectiveDistancePoints, scale) : null
+  const levelBit =
+    nearest !== null && levelSigma !== null
+      ? ` The evaluated level ${nearest.level.price} is ${nearest.effectiveDistancePoints} pts away = ${levelSigma} session sigma.`
+      : ''
+  return `Code-owned (30-min bars, Parkinson/Garman-Klass range estimators): one RTH session's sigma is ${scale.sessionSigmaPts} pts (Garman-Klass ${scale.garmanKlass.sessionSigmaPts} pts), median 30-min bar range ${scale.medianBarRangePts} pts, median session range ${scale.medianSessionRangePts} pts, measured over ${scale.sessionsAnalyzed} sessions.${levelBit} Read every distance and adverse excursion against this scale: under ~0.25 sigma is inside one session's normal travel and proves nothing on its own; keep quoting points and attach the sigma as the qualifier.`
+}
+
+/**
  * One code-owned composite intraday trend line (feat-064): the trend read at
  * the operator's trade horizon — direction, conviction, character and open
  * component disagreements. Computed without the Rip frame on this path.
@@ -409,6 +442,9 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '',
     '# HTF structure context (code-owned, from the 30-min HTF bar export)',
     htfContextLine(input.htfStructure),
+    '',
+    '# Volatility scale (code-owned, range estimators over the 30-min HTF bars)',
+    volatilityContextLine(input.volatilityScale, input.proximity),
     '',
     '# Intraday trend context (code-owned composite, from the full-session exec bars)',
     intradayTrendLine(input.intradayTrend),

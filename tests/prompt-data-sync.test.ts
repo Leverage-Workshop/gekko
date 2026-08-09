@@ -461,12 +461,25 @@ describe('prompt-data sync gate (feat-054)', () => {
       // are the review's D2 finding — a 208-pt buying tail that reached the
       // model only as pixels on the TPO screenshot — and the fact is what
       // replaces that vision read.
+      // Raised 2026-08-09 (feat-095): the volatilityScale fact (two estimators
+      // at two granularities, median bar/session ranges, and four
+      // sigma-normalized structure distances) plus its ownership bullet added
+      // ~2.5k of already-projected data.
+      // RECONCILED 2026-08-09 → 98k: feat-091, feat-094 and feat-095 were
+      // developed in parallel against the same 91k base, so each measured only
+      // its own ~+2k and each raised the ceiling independently. Together they
+      // measure 96_217. All three were kept — TPO excess, RVOL and the
+      // volatility scale answer different questions (what the auction rejected,
+      // whether participation backs the move, and whether a point distance is
+      // meaningful), each replaces a vision read, and none is inlined raw.
+      // 98k is a deliberate stop, not a running total: the next fact to land
+      // here should trim something before it bumps this number again.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 95k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 98k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(95_000)
+      ).toBeLessThan(98_000)
     })
   })
 })

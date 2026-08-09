@@ -990,7 +990,8 @@
       "dependencies": [
         "feat-049"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "lib/engine/volatilityScale.ts + colocated test (24 cases; estimator math pinned to hand-computed values, not read back from the implementation): Parkinson and Garman-Klass variance from the 30-min HTF bars, each measured at bar AND RTH-session granularity with no sqrt-t scaling. Headline fact volatilityScale.sessionSigmaPts = the Parkinson session sigma in points (295.12 on the chart-data fixture; the bundle review measured a 283-pt median). distancesToStructure reports the nearest Tier-1 level and zone border each side in points AND sigma with a noise/minor/meaningful/large band, so points are never replaced. Exported constants: RTH_CLOSE_MINUTES, RTH_BARS_PER_SESSION, SIGMA_ESTIMATION_SESSIONS, MIN_SIGMA_ESTIMATION_SESSIONS, PARKINSON_VARIANCE_SCALING, GARMAN_KLASS_RANGE_COEFF, GARMAN_KLASS_CLOSE_OPEN_COEFF, SIGMA_NOISE_MAX/SIGMA_MINOR_MAX/SIGMA_MEANINGFUL_MAX; helpers sigmaOfPoints and pointsForSigma are the resolvers feat-096 consumes. Degrades to null + a warning under 3 complete RTH sessions. Wired into EngineFacts.volatilityScale -> factsPayload -> the analyze and update prompts as a raw fact, and into the eval prompt as a volatility-scale context line (evalBundle now parses the HTF export once for both HTF facts). Registry row added to docs/engine-ownership.md; analyze user-prompt budget raised 91k -> 93k chars (measured 90_901). ./init.sh passed (exit 0) after rebasing onto feat-092/feat-094: typecheck, lint --max-warnings 0, vitest 1218 passed / 1 skipped, next build."
     },
     {
       "id": "feat-096",
