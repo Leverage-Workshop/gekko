@@ -11,6 +11,9 @@ const balanceAreaVbpContent = read('balance-area.vbp.md')
 const halfRotationDeltaContent = read('half-rotation-delta.vbp.md')
 const fullRotationDeltaContent = read('full-rotation-delta.vbp.md')
 const execCsvContent = read('execution_bar_data.rolling.csv')
+const tpoDataContent = read('tpo.data.md')
+const dailyVaContent = read('daily-value-areas.csv')
+const htfCsvContent = read('htf_bar_data.rolling.csv')
 const mgi = JSON.parse(read('mgi_static_levels.json')) as MgiStaticLevels
 
 const NOW = '2026-06-16T16:00:00Z'
@@ -542,5 +545,116 @@ describe('engineAnchorPrices', () => {
     for (const edge of result.terrain.dataEdges) {
       expect(anchors).not.toContain(edge)
     }
+  })
+})
+
+/**
+ * feat-090 — the review's own measurement (docs/data-bundle-review-2026-08-07.md
+ * D5), reproduced on the fixture bundle. Before this feature `engineAnchorPrices`
+ * was built from terrain alone (MGI levels + the two VOLUME profiles), so nothing
+ * derived from TPO, the value-area history or the multi-day composite could host
+ * an entry: on bundle 1c15934a the session's own point of control sat 1 pt from
+ * current price and the NEAREST anchor to any of these seven prices was 2.98 pts
+ * away. All seven must now be anchors exactly.
+ */
+describe('engineAnchorPrices — value levels are anchorable (feat-090)', () => {
+  const full = () =>
+    facts({
+      tpoDataContent,
+      dailyVaContent,
+      htfCsvContent,
+    })
+
+  const sevenPrices = (result: ReturnType<typeof computeEngineFacts>) => ({
+    'TPO POC': result.tpo!.poc.price,
+    'TPO VAH': result.tpo!.valueArea.high,
+    'TPO VAL': result.tpo!.valueArea.low,
+    'prior-day POC': result.valueMigration!.priorDay.poc,
+    'prior-day VAH': result.valueMigration!.priorDay.vah,
+    'prior-day VAL': result.valueMigration!.priorDay.val,
+    'composite POC': result.multiDayTpo!.composite.poc.price,
+  })
+
+  it('admits all seven measured value prices, at zero distance', () => {
+    const result = full()
+    const anchors = engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday, {
+      tpo: result.tpo,
+      multiDayTpo: result.multiDayTpo,
+    })
+
+    for (const [label, price] of Object.entries(sevenPrices(result))) {
+      const nearest = Math.min(...anchors.map((a) => Math.abs(a - price)))
+      expect(nearest, `${label} @ ${price} is off-structure`).toBe(0)
+      expect(anchors, label).toContain(price)
+    }
+    expect([...anchors].sort((a, b) => b - a)).toEqual(anchors)
+    expect(new Set(anchors).size).toBe(anchors.length)
+  })
+
+  it('routes the prior COMPLETED session value through terrain, as MGI ranks 4–5', () => {
+    const result = full()
+    const priorDay = result.valueMigration!.priorDay
+    const byCode = new Map(result.mgi.levels.map((l) => [l.code, l]))
+
+    // The doctrine's ranks 4 (RVAH/RVAL) and 5 (RPOC), Tier 2 like PDH/PDL.
+    for (const [code, label, price, rank] of [
+      ['rvah', 'RVAH', priorDay.vah, 4],
+      ['rval', 'RVAL', priorDay.val, 4],
+      ['rpoc', 'RPOC', priorDay.poc, 5],
+    ] as const) {
+      const level = byCode.get(code)
+      expect(level, code).toBeDefined()
+      expect(level).toMatchObject({ label, price, group: 'daily', tier: 2, dailyRank: rank })
+      // Ranked into the Daily MGI Priority sort, and reaching terrain (which is
+      // what makes it anchorable at all).
+      expect(result.mgi.dailyPrioritySort).toContain(level)
+      expect(result.terrain.levels.map((v) => v.level.code)).toContain(code)
+    }
+    // It is the prior COMPLETED session (feat-089's partition), never the
+    // developing one — promoting today's own value would anchor entries on the
+    // value area being built around current price.
+    expect(priorDay.date).not.toBe(result.developingSession?.date)
+  })
+
+  it('adds the TPO and composite levels only through the value argument', () => {
+    const result = full()
+    const withoutValue = new Set(
+      engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday),
+    )
+    const withValue = engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday, {
+      tpo: result.tpo,
+      multiDayTpo: result.multiDayTpo,
+    })
+
+    // The TIME-based levels are the ones terrain could never mint...
+    for (const label of ['TPO POC', 'TPO VAH', 'TPO VAL', 'composite POC'] as const) {
+      expect(withoutValue.has(sevenPrices(result)[label]), label).toBe(false)
+    }
+    // ...while the prior-day value area needs no argument here: it is already
+    // terrain by the time this function runs.
+    for (const label of ['prior-day POC', 'prior-day VAH', 'prior-day VAL'] as const) {
+      expect(withoutValue.has(sevenPrices(result)[label]), label).toBe(true)
+    }
+    // Purely additive: everything it adds is one of those four prices.
+    const added = withValue.filter((price) => !withoutValue.has(price))
+    const valuePrices = new Set([
+      result.tpo!.poc.price,
+      result.tpo!.valueArea.high,
+      result.tpo!.valueArea.low,
+      result.multiDayTpo!.composite.poc.price,
+    ])
+    for (const price of added) expect(valuePrices.has(price)).toBe(true)
+  })
+
+  it('degrades cleanly when the TPO and composite facts are absent', () => {
+    const result = facts({ dailyVaContent })
+    expect(result.tpo).toBeNull()
+    expect(result.multiDayTpo).toBeNull()
+    const base = engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday)
+    const withValue = engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday, {
+      tpo: result.tpo,
+      multiDayTpo: result.multiDayTpo,
+    })
+    expect(withValue).toEqual(base)
   })
 })

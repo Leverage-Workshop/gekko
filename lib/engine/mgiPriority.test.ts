@@ -145,3 +145,73 @@ describe('computeMgiPriority — borders and edge cases', () => {
     expect(r.nearestTier1Below).toBeNull()
   })
 })
+
+/**
+ * feat-090 — Daily MGI Priority ranks 4–5. RVAH/RVAL/RPOC are exported in
+ * `daily-value-areas.csv`, not `mgi_static_levels.json`, so the caller passes the prior
+ * COMPLETED session's value area in and the classifier synthesizes the levels.
+ */
+describe('computeMgiPriority — prior-day value (RVAH/RVAL/RPOC)', () => {
+  const base: MgiStaticLevels = {
+    current: { price: 500 },
+    daily: { rip: 505, pdh: 520, pdl: 480, ibh: 515, ibl: 490 },
+    vRange: { high: 600, low: 400 },
+  }
+
+  it('promotes the prior value area to Tier-2 daily levels at ranks 4 and 5', () => {
+    const r = computeMgiPriority(base, { priorDayValue: { poc: 502, vah: 512, val: 494 } })
+
+    const byCode = new Map(r.levels.map(l => [l.code, l]))
+    expect(byCode.get('rvah')).toEqual({
+      code: 'rvah',
+      label: 'RVAH',
+      price: 512,
+      group: 'daily',
+      tier: 2,
+      dailyRank: 4,
+    })
+    expect(byCode.get('rval')).toMatchObject({ label: 'RVAL', price: 494, dailyRank: 4 })
+    expect(byCode.get('rpoc')).toMatchObject({ label: 'RPOC', price: 502, dailyRank: 5 })
+    // Merged into the one price-descending list, not appended to the end.
+    for (let i = 1; i < r.levels.length; i++) {
+      expect(r.levels[i - 1].price).toBeGreaterThanOrEqual(r.levels[i].price)
+    }
+  })
+
+  it('sorts them into the Daily MGI Priority Order between PDH/PDL and IBH/IBL', () => {
+    const r = computeMgiPriority(base, { priorDayValue: { poc: 502, vah: 512, val: 494 } })
+    expect(r.dailyPrioritySort.map(l => l.label)).toEqual([
+      'Rip', // 1
+      'PDH', // 3
+      'PDL', // 3
+      'RVAH', // 4 (price tie-break within the rank)
+      'RVAL', // 4
+      'RPOC', // 5
+      'IBH', // 6
+      'IBL', // 6
+    ])
+  })
+
+  it('leaves the Tier-1 campaign borders alone — value is intraday, not a campaign border', () => {
+    const r = computeMgiPriority(base, { priorDayValue: { poc: 502, vah: 512, val: 494 } })
+    expect(r.tier1.map(l => l.code)).toEqual(['high', 'low'])
+    expect(r.nearestTier1Above?.level.price).toBe(600)
+    expect(r.nearestTier1Below?.level.price).toBe(400)
+  })
+
+  it('is a no-op when the prior value is absent (pre-feat-090 behaviour)', () => {
+    const without = computeMgiPriority(base)
+    expect(without.levels.some(l => l.dailyRank === 4 || l.dailyRank === 5)).toBe(false)
+    expect(computeMgiPriority(base, { priorDayValue: null }).levels).toEqual(without.levels)
+  })
+
+  it('promotes each member independently, skipping non-finite ones', () => {
+    const r = computeMgiPriority(base, {
+      // @ts-expect-error — exercising a malformed/partial export row
+      priorDayValue: { poc: 502, vah: Number.NaN, val: undefined },
+    })
+    expect(r.levels.map(l => l.code)).toContain('rpoc')
+    expect(r.levels.map(l => l.code)).not.toContain('rvah')
+    expect(r.levels.map(l => l.code)).not.toContain('rval')
+  })
+})

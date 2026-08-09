@@ -69,9 +69,20 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
     absorptionCandidates: facts.absorption.candidates,
     magnetCheck: facts.magnetCheck,
     mgiPriority: {
+      // `levels` is the data (feat-090 adds RVAH/RVAL/RPOC — Daily MGI Priority
+      // ranks 4–5, the prior COMPLETED session's value area, sourced from the
+      // daily value-area export rather than the static MGI JSON).
       levels: facts.mgi.levels,
-      tier1: facts.mgi.tier1,
-      dailyPrioritySort: facts.mgi.dailyPrioritySort,
+      // `tier1` and `dailyPrioritySort` are ORDERED VIEWS of `levels`, not new
+      // data: the tier-1 subset price-descending, and the daily subset in Daily
+      // MGI Priority Order. Emitted as "LABEL PRICE [#rank]" strings — the
+      // ordering is the whole point of each view, and it survives intact
+      // without restating six fields per level that `levels` already carries
+      // two lines up.
+      tier1: facts.mgi.tier1.map((l) => `${l.label} ${l.price}`),
+      dailyPrioritySort: facts.mgi.dailyPrioritySort.map(
+        (l) => `${l.label} ${l.price}${l.dailyRank === null ? '' : ` #${l.dailyRank}`}`,
+      ),
       nearestTier1Above: facts.mgi.nearestTier1Above,
       nearestTier1Below: facts.mgi.nearestTier1Below,
     },

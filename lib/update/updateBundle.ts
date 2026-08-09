@@ -192,7 +192,10 @@ export async function runUpdate(
     significantMoveSigma,
     volatilityScale: facts.volatilityScale,
     engineBorders: engineZoneBorders(facts.terrain),
-    anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn, facts.sessionIntraday),
+    anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn, facts.sessionIntraday, {
+      tpo: facts.tpo,
+      multiDayTpo: facts.multiDayTpo,
+    }),
     fakeoutTails: facts.fakeoutTails,
     meta: {
       createdAt: now.toISOString(),

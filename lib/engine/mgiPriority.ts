@@ -18,6 +18,14 @@
  *   - Tier 3 (Micro-Timing): Leg VWAP — lives in the exec CSV (see deltaTelemetry), not in
  *     this static JSON, so it never appears here.
  *
+ * NOT every level comes from the static JSON (feat-090). The Daily MGI Priority Order's
+ * ranks 4–5 — RVAH / RVAL / RPOC, the prior RTH session's value area and point of control —
+ * are exported in `daily-value-areas.csv` instead (since feat-048), so the caller passes
+ * them through `opts.priorDayValue` and they are synthesized into the same `MgiLevel`
+ * shape. That is what makes them tier, sort in `dailyPrioritySort`, and reach terrain
+ * (`selectAnchorLevels` takes the whole `daily` group), which in turn makes them
+ * anchorable structure an entry may sit on.
+ *
  * Pure + immutable; no file I/O (the caller passes the parsed JSON). Plain TypeScript
  * types (engine fact, not a Briefing output — no Zod).
  */
@@ -71,8 +79,10 @@ type LevelSpec = { label: string; tier: MgiTier; dailyRank?: number }
  * Declarative classification keyed by group → JSON code. The single place tiering and the
  * Daily MGI Priority Order ranks are encoded, so the mapping stays auditable.
  * Daily ranks follow the playbook's "Daily MGI Priority Order":
- *   1 Rip · 2 ONH/ONL · 3 PDH/PDL · 6 IBH/IBL · 7 VWAP. (Ranks 4/5 = RVAH/RVAL/RPOC are
- * not in this export.) Daily levels without a rank (PDC, OR High/Mid/Low) sort after ranked.
+ *   1 Rip · 2 ONH/ONL · 3 PDH/PDL · 4 RVAH/RVAL · 5 RPOC · 6 IBH/IBL · 7 VWAP.
+ * Ranks 4/5 are NOT in `mgi_static_levels.json` — they arrive from the daily value-area
+ * export via `opts.priorDayValue` and are specified in {@link PRIOR_DAY_VALUE_SPECS}.
+ * Daily levels without a rank (PDC, OR High/Mid/Low) sort after ranked.
  */
 const LEVEL_SPECS: Record<MgiGroup, Record<string, LevelSpec>> = {
   daily: {
@@ -117,6 +127,33 @@ const LEVEL_SPECS: Record<MgiGroup, Record<string, LevelSpec>> = {
   },
 }
 
+/**
+ * The prior COMPLETED RTH session's value, sourced from `daily-value-areas.csv` rather
+ * than the static MGI JSON — shape-compatible with `valueMigration.priorDay` so the caller
+ * hands the fact straight through.
+ *
+ * MUST be the prior *completed* session (feat-089's date partition), never the developing
+ * one: before that fix the newest row was TODAY, and promoting it here would have anchored
+ * entries on the value area being built around current price.
+ */
+export type PriorDayValue = {
+  poc: number
+  vah: number
+  val: number
+}
+
+/**
+ * Daily MGI Priority ranks 4–5 (playbook `<mgi_reference>`): RVAH/RVAL are the prior RTH
+ * value area (acceptance zones), RPOC the prior RTH point of control (major magnet/pivot).
+ * Tier 2 alongside PDH/PDL/PDC — they are intraday daily reference levels that set bias,
+ * not HTF campaign borders (the Tier-1 list is Weekly/Monthly, VRange extremes, ONH/ONL).
+ */
+const PRIOR_DAY_VALUE_SPECS: Record<keyof PriorDayValue, LevelSpec & { code: string }> = {
+  vah: { code: 'rvah', label: 'RVAH', tier: 2, dailyRank: 4 },
+  val: { code: 'rval', label: 'RVAL', tier: 2, dailyRank: 4 },
+  poc: { code: 'rpoc', label: 'RPOC', tier: 2, dailyRank: 5 },
+}
+
 function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
@@ -149,6 +186,29 @@ function extractLevels(mgi: MgiStaticLevels): MgiLevel[] {
   return levels
 }
 
+/**
+ * Synthesize the RVAH/RVAL/RPOC levels from the prior completed session's value (feat-090).
+ * Non-finite members are skipped one by one, so a partial export still promotes what it has.
+ */
+function priorDayValueLevels(priorDayValue: PriorDayValue | null | undefined): MgiLevel[] {
+  if (!priorDayValue) return []
+  const levels: MgiLevel[] = []
+  for (const key of Object.keys(PRIOR_DAY_VALUE_SPECS) as (keyof PriorDayValue)[]) {
+    const price = priorDayValue[key]
+    if (!isFiniteNumber(price)) continue
+    const spec = PRIOR_DAY_VALUE_SPECS[key]
+    levels.push({
+      code: spec.code,
+      label: spec.label,
+      price,
+      group: 'daily',
+      tier: spec.tier,
+      dailyRank: spec.dailyRank ?? null,
+    })
+  }
+  return levels
+}
+
 /** Closest level strictly above/below `price` (strict — a level at `price` is neither). */
 function nearest(levels: MgiLevel[], price: number, dir: 'above' | 'below'): NearestBorder | null {
   const candidates = levels.filter(l => (dir === 'above' ? l.price > price : l.price < price))
@@ -160,20 +220,41 @@ function nearest(levels: MgiLevel[], price: number, dir: 'above' | 'below'): Nea
 }
 
 /**
- * Classify the static MGI levels and locate the nearest Tier-1 campaign border above and
- * below the current price. Current price defaults to `mgi.current.price`; override via opts
- * (e.g. when the live price comes from elsewhere in the bundle).
+ * Resolve the one live price the whole engine reads from: `mgi.current.price`, or the
+ * caller's override when the live price comes from elsewhere in the bundle. Exported so a
+ * caller that needs the price BEFORE it can build `computeMgiPriority`'s inputs (feat-090:
+ * the prior-day value area is parsed from another export, and that parse wants the price)
+ * resolves it exactly once, from the same source, with the same failure.
+ *
+ * @throws when neither source carries a finite number (malformed MGI export).
  */
-export function computeMgiPriority(
-  mgi: MgiStaticLevels,
-  opts: { currentPrice?: number } = {},
-): MgiPriority {
-  const currentPrice = opts.currentPrice ?? mgi?.current?.price
+export function resolveCurrentPrice(mgi: MgiStaticLevels, override?: number): number {
+  const currentPrice = override ?? mgi?.current?.price
   if (!isFiniteNumber(currentPrice)) {
     throw new Error('computeMgiPriority: no finite current price')
   }
+  return currentPrice
+}
 
-  const levels = extractLevels(mgi).sort((a, b) => b.price - a.price)
+/**
+ * Classify the MGI levels and locate the nearest Tier-1 campaign border above and below the
+ * current price. Current price defaults to `mgi.current.price`; override via opts (e.g.
+ * when the live price comes from elsewhere in the bundle).
+ *
+ * `opts.priorDayValue` carries the Daily MGI Priority Order's ranks 4–5 (RVAH/RVAL/RPOC),
+ * which live in the daily value-area export rather than the static JSON. Pass
+ * `valueMigration.priorDay` — the prior COMPLETED session (feat-089), never the developing
+ * one. Omit it and the export simply carries no rank-4/5 levels, exactly as before feat-090.
+ */
+export function computeMgiPriority(
+  mgi: MgiStaticLevels,
+  opts: { currentPrice?: number; priorDayValue?: PriorDayValue | null } = {},
+): MgiPriority {
+  const currentPrice = resolveCurrentPrice(mgi, opts.currentPrice)
+
+  const levels = [...extractLevels(mgi), ...priorDayValueLevels(opts.priorDayValue)].sort(
+    (a, b) => b.price - a.price,
+  )
   const tier1 = levels.filter(l => l.tier === 1)
 
   const dailyPrioritySort = levels
