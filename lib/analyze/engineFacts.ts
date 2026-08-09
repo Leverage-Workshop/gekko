@@ -24,6 +24,7 @@ import { parseTpoProfile } from '@/lib/engine/parseTpo'
 import { computeTpoFacts } from '@/lib/engine/tpoFacts'
 import type { TpoFacts } from '@/lib/engine/tpoFacts'
 import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
+import type { DailyValueArea } from '@/lib/engine/parseDailyValueAreas'
 import { computeValueMigration } from '@/lib/engine/valueMigration'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { computeDailyRanges } from '@/lib/engine/dailyRanges'
@@ -39,6 +40,8 @@ import { computeSessionIntraday } from '@/lib/engine/sessionIntraday'
 import type { SessionIntradayFacts } from '@/lib/engine/sessionIntraday'
 import { computeIntradayTrend } from '@/lib/engine/intradayTrend'
 import type { IntradayTrendFacts } from '@/lib/engine/intradayTrend'
+import { computeRelativeVolume } from '@/lib/engine/relativeVolume'
+import type { RelativeVolumeFacts } from '@/lib/engine/relativeVolume'
 
 /**
  * Deterministic engine pass over one export bundle: every computed fact the
@@ -167,6 +170,16 @@ export interface EngineFacts {
    */
   multiDayTpo: MultiDayTpoFacts | null
   /**
+   * Code-owned relative-volume read (feat-094): today's 30-min slot volumes
+   * against a per-slot median built from the HTF export's own history, the
+   * cumulative RTH volume against the time-of-day expectation, and the
+   * day-level `SessionVolume` companion — reduced to one `participation`
+   * scalar (with a band and a confidence `gate`) that every other order-flow
+   * fact is read through. Null when the bundle has no (or a malformed)
+   * `htf_bar_data.rolling.csv` — flagged in `warnings`.
+   */
+  relativeVolume: RelativeVolumeFacts | null
+  /**
    * Code-owned session-anchored intraday read (feat-063), computed from the
    * full-session Globex exec-bar export (feat-062): session VWAP (Globex- and
    * RTH-anchored) with slope, session cumulative delta, and 15-min
@@ -290,9 +303,12 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
 
   let valueMigration: ValueMigrationFacts | null = null
   let dailyRanges: DailyRangeFacts | null = null
+  // Held outside the block: the relative-volume read (feat-094) pairs the
+  // per-slot intraday baseline with this history's `SessionVolume` column.
+  let dailySessions: DailyValueArea[] | null = null
   if (input.dailyVaContent) {
     try {
-      const dailySessions = parseDailyValueAreas(input.dailyVaContent)
+      dailySessions = parseDailyValueAreas(input.dailyVaContent)
       valueMigration = computeValueMigration(dailySessions, mgi.currentPrice)
       dailyRanges = computeDailyRanges(dailySessions)
     } catch (error) {
@@ -309,10 +325,17 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   let htfStructure: HtfStructureFacts | null = null
   let overnightSession: OvernightSessionFacts | null = null
   let multiDayTpo: MultiDayTpoFacts | null = null
+  let relativeVolume: RelativeVolumeFacts | null = null
   if (input.htfCsvContent) {
     try {
       const htfBars = parseHtfBars(input.htfCsvContent)
       htfStructure = computeHtfStructure(htfBars, mgi.currentPrice)
+      relativeVolume = computeRelativeVolume({ bars: htfBars, dailySessions })
+      if (relativeVolume.participation === null) {
+        warnings.push(
+          'no intraday slot or session has enough volume history for a relative-volume read — RVOL not computed',
+        )
+      }
       overnightSession = computeOvernightSession(htfBars, mgi.currentPrice)
       if (overnightSession === null) {
         warnings.push(
@@ -327,11 +350,13 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
       }
     } catch (error) {
       warnings.push(
-        `htf_bar_data.rolling.csv failed to parse — HTF structure not computed: ${error instanceof Error ? error.message : String(error)}`,
+        `htf_bar_data.rolling.csv failed to parse — HTF structure and relative volume not computed: ${error instanceof Error ? error.message : String(error)}`,
       )
     }
   } else {
-    warnings.push('bundle has no HTF bar data — HTF structure not computed')
+    warnings.push(
+      'bundle has no HTF bar data — HTF structure and relative volume not computed',
+    )
   }
 
   const summaryOf = (meta: {
@@ -455,6 +480,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     htfStructure,
     overnightSession,
     multiDayTpo,
+    relativeVolume,
     sessionIntraday,
     intradayTrend,
     warnings,

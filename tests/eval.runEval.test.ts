@@ -364,6 +364,39 @@ describe('runEval', () => {
     )
   })
 
+  it('feeds the code-owned participation context and its gate (feat-094)', async () => {
+    const encoder = new TextEncoder()
+    const htfCsv = readFileSync(
+      join(process.cwd(), 'chart-data', 'htf_bar_data.rolling.csv'),
+      'utf-8',
+    )
+    const harness = makeDeps()
+    const base = harness.deps.fetchLatestBundle
+    const download = harness.deps.downloadObject
+    harness.deps.fetchLatestBundle = async () => ({
+      ...(await base())!,
+      htf_csv_ref: 'b1/htf_bars.csv',
+    })
+    harness.deps.downloadObject = async (bucket, path) =>
+      path === 'b1/htf_bars.csv' ? encoder.encode(htfCsv) : download(bucket, path)
+
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    expect(prompt).toContain('# Participation context')
+    expect(prompt).toContain('participation 1.25x normal (NORMAL, from the slot read')
+    expect(prompt).toContain('the 12:30 30-min slot traded 19668 vs a 15749 median')
+    // The gate is the point: it tells the model how to weigh the delta
+    // telemetry and absorption candidates rendered below it.
+    expect(prompt).toContain('weigh the delta telemetry and absorption candidates at face value')
+  })
+
+  it('renders an honest absence note when there is no relative-volume read (feat-094)', async () => {
+    const harness = makeDeps()
+    await runEval(harness.deps)
+    expect(harness.getCaptured()!.prompt).toContain('No relative-volume read is available')
+  })
+
   it('requires an Absorption condition on every level verdict (feat-072/082)', async () => {
     // The doctrine names the required check; the EvalResult refinement
     // hard-enforces it at generate time (feat-082), and enforcement keeps a

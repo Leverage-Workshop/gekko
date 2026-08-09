@@ -8,6 +8,7 @@ import {
 } from '@/lib/analyze'
 import {
   DISTINCT_ANCHORS_RULE,
+  RELATIVE_VOLUME_RULE,
   campaignBoundaryRule,
   chartManifest,
   dataEdgeRule,
@@ -134,6 +135,7 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     "- `htfStructure` is the code-owned HTF structure read (feat-049): trend state from the confirmed swing sequence, recent swing highs/lows, rotation extent and the measured 30-min ATR. The swing state is a LAGGING read — `htfStructure.trend.integrity` (feat-064: 'intact' / 'under-test' / 'broken') squares it with the live price; NEVER state a directional HTF trend without the qualifier. Ground meta.htfTrend and every HTF narrative in these numbers — the planning-chart screenshot adds distribution shape only; when `htfStructure` is null the bundle carried no HTF bar export.",
     "- `intradayTrend` is the code-owned COMPOSITE intraday trend (feat-064) — senior to the HTF swing state for session narration: `direction` (majority of 15-min one-timeframing, micro swing structure with a Dow break rule, momentum stack), `conviction` (confirming reads: session cum delta, Rip, VWAP position), `character` and explicit `disagreements`. Ground tacticalRead's location/initiative narration in it and surface its disagreements rather than smoothing them over. The Law of Asymmetric Initiative awards the PRIMARY objective off `intradayTrend.direction` (never the lagging HTF swing state); on `neutral` award it to the structurally superior setup.",
     "- `sessionIntraday` is the code-owned session-anchored intraday read (feat-063): session VWAP with slope and position (`vwap.globex` / `.rth`), session cumulative delta, and 15-minute one-timeframing (state, bars held, `breakLevel`, whether the developing bar broke it). This is the intraday trend read at the operator's trade horizon — weigh it alongside the Rip condition in tacticalRead, with attribution like any other level (e.g. \"27810 (session VWAP)\"). When `sessionIntraday.vwap` is null the export started mid-session — say so rather than inventing a session average.",
+    RELATIVE_VOLUME_RULE,
     '- Read the attached screenshots ONLY for perception the numeric data cannot give: absorption vs exhaustion shape, intraday distribution shape on the Market Profile chart, delta clustering quality, and the doctrine patterns.',
     '',
     '# Meta fields',
