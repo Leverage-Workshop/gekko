@@ -13,7 +13,15 @@ any new export: (D1) `daily-value-areas.csv` ships the IN-PROGRESS session as ro
 so `valueMigration.priorDay` is *today* and `currentPriceVsPriorValue` returns
 `inside / 0 pts outside` by construction on every bundle — the
 accepted-outside-prior-value read has been dead since feat-048, and `dailyRanges`
-is contaminated the same way (feat-089). (D2) TPO `Letters` produced *nothing* on a
+gives a partial range a third of its contraction verdict (`RANGE_RECENT_SESSIONS`
+= 3). **Revised per operator direction:** feat-089 now PARTITIONS rather than
+drops — that row is the only volume-based view of the live session in the bundle
+(developing volume POC 29520 / VA 29476.75–29620 vs the time-based TPO POC 29541
+/ VA 29478–29638, a ~20-pt disagreement), so it becomes a nullable
+`developingSession` fact with a maturity qualifier and a range-used-so-far read,
+while valueMigration/dailyRanges consume only the completed remainder. That in
+turn narrows feat-098 (session volume profile export) to the price-by-volume
+ladder, since the summary numbers now arrive free. (D2) TPO `Letters` produced *nothing* on a
 day where 227/446 bins (51%) are single prints — a 208-pt A-period buying tail and a
 19-pt D-period tail both discarded by `detectSinglePrintZones`, whose deferred-to
 "poor/tapered-extreme read" does not exist (feat-091). (D3) `significant_move_pts =
