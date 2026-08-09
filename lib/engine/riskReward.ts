@@ -10,7 +10,8 @@
  *      The threshold (`config.rr_min`, default 3.0) survives as a display reference —
  *      `meetsGate` reports it — but it no longer binds objective selection: the
  *      entry-first contract (2026-08-03 operator directive) qualifies entry levels by
- *      the significant-move floor (`config.significant_move_pts`, advisory-checked in
+ *      the significant-move floor (`config.significant_move_sigma`, a multiple of the
+ *      measured session sigma since feat-096, advisory-checked in
  *      validateBriefing), and a low rr never disqualifies or relocates an entry. The
  *      structural stop is still validated for geometry (protective side) and the
  *      no-widen rule.

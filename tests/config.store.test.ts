@@ -28,11 +28,11 @@ const FULL_ROW = {
   triage_model_effort: null,
   high_conviction_model_effort: 'xhigh' as const,
   execution_bar_volume: 750,
-  significant_move_pts: 50,
+  significant_move_sigma: 0.4,
   updated_at: '2026-07-08T12:00:00Z',
 }
 
-/** Post execution_bar_volume, pre significant_move_pts (feat-086). */
+/** Post execution_bar_volume, pre significant_move_sigma (feat-096 units change). */
 const PRE_SIGNIFICANT_MOVE_ROW = {
   model_id: 'anthropic/claude-sonnet-5',
   triage_model_id: 'anthropic/claude-haiku-4-5',
@@ -135,25 +135,25 @@ describe('fetchConfigRow', () => {
     expect(selects[0]).toContain('triage_model_effort')
     expect(selects[0]).toContain('high_conviction_model_effort')
     expect(selects[0]).toContain('execution_bar_volume')
-    expect(selects[0]).toContain('significant_move_pts')
+    expect(selects[0]).toContain('significant_move_sigma')
   })
 
-  it('falls back to the pre-significant-move column set on 42703 with the 50 default padded (feat-086)', async () => {
+  it('falls back to the pre-significant-move column set on 42703 with the 0.4-sigma default padded (feat-096)', async () => {
     const { client, selects } = selectClient((columns) =>
-      columns.includes('significant_move_pts')
+      columns.includes('significant_move_sigma')
         ? {
             data: null,
-            error: { code: '42703', message: 'column config.significant_move_pts does not exist' },
+            error: { code: '42703', message: 'column config.significant_move_sigma does not exist' },
           }
         : { data: PRE_SIGNIFICANT_MOVE_ROW, error: null },
     )
     const result = await fetchConfigRow(client)
 
     expect(selects).toHaveLength(2)
-    expect(selects[1]).not.toContain('significant_move_pts')
+    expect(selects[1]).not.toContain('significant_move_sigma')
     expect(result.significantMoveColumnMissing).toBe(true)
     expect(result.barVolumeColumnMissing).toBe(false)
-    expect(result.row).toEqual({ ...PRE_SIGNIFICANT_MOVE_ROW, significant_move_pts: 50 })
+    expect(result.row).toEqual({ ...PRE_SIGNIFICANT_MOVE_ROW, significant_move_sigma: 0.4 })
   })
 
   it('falls back to the pre-bar-volume column set on 42703 with the 750 default padded (feat-079)', async () => {
@@ -175,7 +175,7 @@ describe('fetchConfigRow', () => {
     expect(result.row).toEqual({
       ...PRE_BAR_VOLUME_ROW,
       execution_bar_volume: 750,
-      significant_move_pts: 50,
+      significant_move_sigma: 0.4,
     })
   })
 
@@ -199,7 +199,7 @@ describe('fetchConfigRow', () => {
       triage_model_effort: null,
       high_conviction_model_effort: null,
       execution_bar_volume: 750,
-      significant_move_pts: 50,
+      significant_move_sigma: 0.4,
     })
   })
 
@@ -225,7 +225,7 @@ describe('fetchConfigRow', () => {
       triage_model_effort: null,
       high_conviction_model_effort: null,
       execution_bar_volume: 750,
-      significant_move_pts: 50,
+      significant_move_sigma: 0.4,
     })
   })
 
@@ -276,7 +276,7 @@ describe('updateConfigRow', () => {
     triage_model_effort: null,
     high_conviction_model_effort: null,
     execution_bar_volume: 750,
-    significant_move_pts: 50,
+    significant_move_sigma: 0.4,
   }
 
   it('updates row id=1 with a fresh updated_at and returns the row', async () => {
@@ -298,7 +298,7 @@ describe('updateConfigRow', () => {
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('high_conviction_flag')
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('model_reasoning_effort')
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('execution_bar_volume')
-    expect(MIGRATION_REQUIRED_MESSAGE).toContain('significant_move_pts')
+    expect(MIGRATION_REQUIRED_MESSAGE).toContain('volatility_scaled_gates')
   })
 
   it('reports a 404 when the config row is unseeded', async () => {

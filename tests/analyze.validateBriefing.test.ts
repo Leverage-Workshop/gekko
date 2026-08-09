@@ -141,7 +141,8 @@ describe('enforceCodeOwnedFacts', () => {
         targets: [{ label: 'T1', price: 30265, description: 'too close' }],
       }),
     })
-    const result = enforceCodeOwnedFacts(weak, { rrMin: 3, significantMovePts: 50 })
+    // No volatilityScale supplied → the floor degrades to the fixed 50-pt fallback.
+    const result = enforceCodeOwnedFacts(weak, { rrMin: 3, significantMoveSigma: 0.4 })
 
     expect(trade(result.briefing.primary).rr).toBeLessThan(3)
     expect(
@@ -158,7 +159,7 @@ describe('enforceCodeOwnedFacts', () => {
         targets: [{ label: 'T2', price: 30310, description: 'next trench' }],
       }),
     })
-    const result = enforceCodeOwnedFacts(lowRr, { rrMin: 3, significantMovePts: 50 })
+    const result = enforceCodeOwnedFacts(lowRr, { rrMin: 3, significantMoveSigma: 0.4 })
 
     expect(trade(result.briefing.primary).rr).toBeLessThan(3)
     expect(result.riskReward.primary?.meetsGate).toBe(false)

@@ -14,6 +14,7 @@ import {
   dataEdgeRule,
   factsPayload,
 } from '@/lib/analyze/prompt'
+import { describeGate, resolveGates } from '@/lib/engine/scaledGates'
 import type { OperatorDirective } from './directive'
 
 /**
@@ -42,8 +43,12 @@ export interface UpdatePromptInput {
   rawMgi: unknown
   /** Labels for the attached chart images, in attachment order. */
   charts: readonly ChartAttachment[]
-  /** Minimum reversal traverse (feat-086, `config.significant_move_pts`). */
-  significantMovePts: number
+  /**
+   * Minimum reversal traverse (feat-086 contract, `config.significant_move_sigma`)
+   * as a multiple of the measured session sigma (feat-096); resolved to points
+   * against `facts.volatilityScale` and stated in both units.
+   */
+  significantMoveSigma: number
   /** Per-bar volume of the execution-chart bars (feat-079, `config.execution_bar_volume`). */
   executionBarVolume: number
   parent: ParentBriefingContext
@@ -96,6 +101,9 @@ function operatorDirectiveSection(
 export function buildUpdatePrompt(input: UpdatePromptInput): string {
   const { facts, parent } = input
   const borders = engineZoneBorders(facts.terrain)
+  // feat-096: the floor is stored in session sigma and resolved against this
+  // run's measured scale (fixed-point fallback when the scale is unmeasured).
+  const { significantMove } = resolveGates(facts.volatilityScale, input.significantMoveSigma)
 
   return [
     '# Mission',
@@ -123,7 +131,7 @@ export function buildUpdatePrompt(input: UpdatePromptInput): string {
     '- `absorptionCandidates` are code-detected stacks of one-sided bins on the execution delta profiles, each carrying a code-owned `stall` confirmation from the enriched execution bars. A candidate with `stall.confirmed` IS absorption — price stalled at the stack on heavy participation; an unconfirmed candidate has no stall visible in the rolling bar window (possibly aged out, not refuted).',
     `- The execution chart trades ${input.executionBarVolume}-VOLUME bars — per-bar volume is flat by construction; weigh participation by bar count at a price, trade count and delta magnitude, never by the Volume column.`,
     `- The CURRENT engine zone borders are: ${borders.join(', ')}. If these disagree with the previous briefing's terrain, the engine is right — flag the drift in the relevant rationale.`,
-    `- SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): ${input.significantMovePts} pts. An entry level qualifies only when the reversal it hosts has at least ${input.significantMovePts} pts of room to the nearest realistic opposing structure (entry→T2 ≥ ${input.significantMovePts} pts). Walk the map outward from current price and anchor at the FIRST qualifying level — never skip a qualifying nearer level for a deeper one, and never move an entry to manufacture target distance. Abstain (noTrade) only when no qualifying level exists on that side. \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula — it is informational, never a gate.`,
+    `- SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): ${describeGate(significantMove)}. An entry level qualifies only when the reversal it hosts has at least ${significantMove.pts} pts of room to the nearest realistic opposing structure (entry→T2 ≥ ${significantMove.pts} pts). Walk the map outward from current price and anchor at the FIRST qualifying level — never skip a qualifying nearer level for a deeper one, and never move an entry to manufacture target distance. Abstain (noTrade) only when no qualifying level exists on that side. \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula — it is informational, never a gate.`,
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure with REAL long-term acceptance (the senior read), A = rotation structure OR demoted balance-area structure (the member verdict `reason` says "faint acceptance" or "shallow valley" — never call these AAA in prose). `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',
     '- Entries, stops and T1 anchor on engine-supplied structure per the Objective contract in the system prompt — a zone border, a `terrain.levels` price, a `lvnHvnNodes` LVN node (the fakeout-formed-extreme anchor) or a `sessionIntraday.vwapRungs` session-VWAP rung. Entry priority, stop placement and the one-or-two-rung target ladder follow that contract.',
     '- Each objective slot carries EITHER a full trade OR the explicit no-trade abstention, per the Objective contract — abstain rather than fabricating a scenario the map does not offer. A standing objective whose structure is gone may be revised to an abstention; say what changed in its `rationale`.',

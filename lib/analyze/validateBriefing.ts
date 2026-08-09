@@ -7,10 +7,11 @@ import type {
   PersistedBriefingMeta,
 } from '@/knowledge/schema/briefing.schema'
 import { isNoTrade } from '@/knowledge/schema/briefing.schema'
-import { DEFAULT_SIGNIFICANT_MOVE_PTS } from '@/lib/config/fetchConfig'
 import { DEFAULT_RR_MIN, objectiveRiskReward } from '@/lib/engine/riskReward'
 import type { RiskReward } from '@/lib/engine/riskReward'
 import type { FakeoutTailFact } from '@/lib/engine/fakeoutTails'
+import { describeGate, resolveGates } from '@/lib/engine/scaledGates'
+import type { GateScale, ResolvedGate } from '@/lib/engine/scaledGates'
 
 /**
  * Post-LLM enforcement of the code-owned facts (mirroring the eval-task's
@@ -56,27 +57,30 @@ export const MIN_OBJECTIVE_ENTRY_SEPARATION_PTS = 5
 export const MIN_OPPOSING_ENTRY_SEPARATION_PTS = 25
 
 /**
- * Minimum distance between a fresh briefing's Entry A and the code-owned current price.
- * Relaxed from 15 to 1 (2026-07-20 operator decision): entries near price are allowed
- * again; the gate now only rejects an entry pinned exactly where price already trades.
- * Enforced only for fresh analyze generations (`enforceEntryStandoff`) — an update
- * revising a standing plan must NOT be rejected just because price has since approached
- * the planned entry (that is the trade working, and it is exactly when updates fire).
+ * The two entry-placement gates (feat-096) now live in `lib/engine/scaledGates.ts` as
+ * MULTIPLES of the measured session sigma, resolved to points per run:
+ *
+ * - standoff — a fresh briefing's Entry A must sit at least this far from the code-owned
+ *   current price (2026-07-20 operator decision relaxed it from 15 pts to 1: entries near
+ *   price are allowed; only an entry pinned exactly where price trades is rejected).
+ *   Enforced for fresh analyze generations only (`enforceEntryStandoff`) — an update
+ *   revising a standing plan must NOT be rejected because price has since approached the
+ *   planned entry (that is the trade working, and exactly when updates fire).
+ * - chase — the most an entry may sit BEYOND current price in the trade direction (above
+ *   price for a long, below for a short). Doctrine entries are pullback anchors, so
+ *   anything past this allowance is the forbidden breakout/breakdown chase (2026-07-23: a
+ *   fresh briefing shipped a long 30 pts above price). The allowance exists for the
+ *   contested-border case. Hard for fresh generations, advisory for updates.
+ *
+ * The `*_FALLBACK_PTS` values are the pre-feat-096 fixed points, used when the session
+ * sigma is unmeasured. Re-exported here because this module is where they were enforced.
  */
-export const MIN_ENTRY_STANDOFF_PTS = 1
-
-/**
- * Maximum distance an entry may sit on the CHASE side of the code-owned current price —
- * above price for a long, below price for a short. Doctrine entries are pullback anchors
- * (the rebid/reclaimed border below for a long, the failed border overhead for a short),
- * so an entry beyond price in the trade direction is the forbidden breakout/breakdown
- * chase (2026-07-23: a fresh briefing shipped a long 30 pts above current price). The
- * allowance covers the contested-border case, where the anchor may sit marginally beyond
- * price while the fight straddles the level. Hard-enforced for fresh analyze generations
- * (`enforceEntryStandoff`); advisory for updates, whose standing entries price may have
- * legitimately traded through since the plan was made.
- */
-export const MAX_ENTRY_CHASE_PTS = 5
+export {
+  MAX_ENTRY_CHASE_FALLBACK_PTS,
+  MAX_ENTRY_CHASE_SIGMA,
+  MIN_ENTRY_STANDOFF_FALLBACK_PTS,
+  MIN_ENTRY_STANDOFF_SIGMA,
+} from '@/lib/engine/scaledGates'
 
 export interface ValidatedBriefing<B extends PersistedBriefing = Briefing> {
   /** The briefing with engine-recomputed `rr` on both trade objectives. */
@@ -115,11 +119,20 @@ export interface ValidateOptions {
   /** Display R/R reference from `config.rr_min`; defaults to {@link DEFAULT_RR_MIN}. */
   rrMin?: number
   /**
-   * Significant-move floor from `config.significant_move_pts` (feat-086) —
-   * the minimum entry→T2 reversal room before an advisory warning fires;
-   * defaults to {@link DEFAULT_SIGNIFICANT_MOVE_PTS}.
+   * Significant-move floor from `config.significant_move_sigma` (feat-086
+   * contract, feat-096 units) — the minimum entry→T2 reversal room before an
+   * advisory warning fires, expressed as a MULTIPLE of the measured session
+   * sigma and resolved to points against {@link ValidateOptions.volatilityScale}.
+   * Defaults to {@link DEFAULT_SIGNIFICANT_MOVE_SIGMA}.
    */
-  significantMovePts?: number
+  significantMoveSigma?: number
+  /**
+   * The measured volatility scale (feat-095 `facts.volatilityScale`) every
+   * sigma-expressed gate resolves against. Null/omitted — an unmeasured regime
+   * — degrades each gate to its pre-feat-096 fixed point value rather than
+   * dropping it.
+   */
+  volatilityScale?: GateScale
   /** Engine zone border prices; model zone borders must be drawn from these. */
   engineBorders?: readonly number[]
   /** Code-owned `meta` values; when present the model's are overwritten. */
@@ -339,7 +352,7 @@ function assertDistinctObjectiveAnchors(primary: Objective, secondary: Objective
 
 /**
  * Entry-standoff invariant (2026-07-20, analyze task only): a fresh briefing's entry must
- * sit at least {@link MIN_ENTRY_STANDOFF_PTS} from the code-owned current price.
+ * sit at least the resolved standoff gate from the code-owned current price.
  *
  * @throws {BriefingValidationError} on an entry pinned at/near current price.
  */
@@ -347,19 +360,20 @@ function assertEntryStandoff(
   name: 'primary' | 'secondary',
   objective: Objective,
   currentPrice: number,
+  standoff: ResolvedGate,
 ): void {
   const entry = objective.entries[0]
   const distance = Math.abs(entry.price - currentPrice)
-  if (distance < MIN_ENTRY_STANDOFF_PTS) {
+  if (distance < standoff.pts) {
     throw new BriefingValidationError(
-      `${name} entry "${entry.label}" @ ${entry.price} is ${distance} pts from current price ${currentPrice} — a fresh briefing entry must stand off at least ${MIN_ENTRY_STANDOFF_PTS} pts (anchor the next structural border; the live decision at a contested level belongs to the eval)`,
+      `${name} entry "${entry.label}" @ ${entry.price} is ${distance} pts from current price ${currentPrice} — a fresh briefing entry must stand off at least ${describeGate(standoff)} (anchor the next structural border; the live decision at a contested level belongs to the eval)`,
     )
   }
 }
 
 /**
- * Chase-side invariant (2026-07-23): an entry may not sit more than
- * {@link MAX_ENTRY_CHASE_PTS} beyond the code-owned current price in the trade direction
+ * Chase-side invariant (2026-07-23): an entry may not sit more than the resolved chase
+ * allowance beyond the code-owned current price in the trade direction
  * (long above price / short below price) — that is a breakout/breakdown chase, not a
  * pullback anchor. Hard (throws) when `enforceEntryStandoff` is set (fresh analyze map);
  * advisory otherwise (update path: price trading through a standing entry is stale-plan
@@ -372,17 +386,18 @@ function enforceEntryChaseSide(
   objective: Objective,
   currentPrice: number,
   hard: boolean,
+  chaseGate: ResolvedGate,
   warnings: string[],
 ): void {
   const entry = objective.entries[0]
   const long = objective.direction === 'long'
   const chase = long ? entry.price - currentPrice : currentPrice - entry.price
-  if (chase <= MAX_ENTRY_CHASE_PTS) return
+  if (chase <= chaseGate.pts) return
   const finding =
     `${name} ${objective.direction} entry "${entry.label}" @ ${entry.price} sits ${chase} pts ` +
     `${long ? 'above' : 'below'} current price ${currentPrice} — a ` +
     `${long ? 'breakout' : 'breakdown'} chase, not a pullback anchor: a long anchors at/below ` +
-    `price, a short at/above (max ${MAX_ENTRY_CHASE_PTS} pts beyond price, for a contested border)`
+    `price, a short at/above (max ${describeGate(chaseGate)} beyond price, for a contested border)`
   if (hard) {
     throw new BriefingValidationError(finding)
   }
@@ -507,7 +522,7 @@ function recomputeObjective(
   name: 'primary' | 'secondary',
   objective: Objective,
   rrMin: number,
-  significantMovePts: number,
+  significantMove: ResolvedGate,
   warnings: string[],
 ): { objective: Objective; riskReward: RiskReward } {
   let verdict: RiskReward
@@ -533,9 +548,9 @@ function recomputeObjective(
     warnings.push(
       `${name} objective's conclusion target ${conclusion.price} is on the wrong side of entry ${verdict.entry} for a ${verdict.direction}`,
     )
-  } else if (conclusion.reward < significantMovePts) {
+  } else if (conclusion.reward < significantMove.pts) {
     warnings.push(
-      `${name} objective's reversal room is ${conclusion.reward} pts entry→T2 — below the ${significantMovePts}-pt significant-move floor; the entry level may not host a significant reversal`,
+      `${name} objective's reversal room is ${conclusion.reward} pts entry→T2 — below the significant-move floor of ${describeGate(significantMove)}; the entry level may not host a significant reversal`,
     )
   }
   if (verdict.stopWidened) {
@@ -564,7 +579,10 @@ export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
   options: ValidateOptions = {},
 ): ValidatedBriefing<B> {
   const rrMin = options.rrMin ?? DEFAULT_RR_MIN
-  const significantMovePts = options.significantMovePts ?? DEFAULT_SIGNIFICANT_MOVE_PTS
+  // feat-096: every gate below is a multiple of the measured session sigma,
+  // resolved to points once per validation. An unmeasured scale (null) falls
+  // back to the pre-feat-096 fixed points — never a zero-width gate.
+  const gates = resolveGates(options.volatilityScale ?? null, options.significantMoveSigma)
   const warnings: string[] = []
 
   assertZoneContiguity(briefing)
@@ -618,11 +636,18 @@ export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
   }
   for (const { name, objective } of tradeSlots) {
     if (options.enforceEntryStandoff && options.meta) {
-      assertEntryStandoff(name, objective, options.meta.currentPrice)
+      assertEntryStandoff(name, objective, options.meta.currentPrice, gates.entryStandoff)
     }
     if (options.meta) {
       const hard = options.enforceEntryStandoff === true
-      enforceEntryChaseSide(name, objective, options.meta.currentPrice, hard, warnings)
+      enforceEntryChaseSide(
+        name,
+        objective,
+        options.meta.currentPrice,
+        hard,
+        gates.entryChase,
+        warnings,
+      )
     }
     if (options.anchorPrices && options.anchorPrices.length > 0) {
       offAnchorEntryWarnings(name, objective, options.anchorPrices, warnings)
@@ -633,10 +658,10 @@ export function enforceCodeOwnedFacts<B extends PersistedBriefing>(
   }
 
   const primary = primarySingle
-    ? recomputeObjective('primary', primarySingle, rrMin, significantMovePts, warnings)
+    ? recomputeObjective('primary', primarySingle, rrMin, gates.significantMove, warnings)
     : null
   const secondary = secondarySingle
-    ? recomputeObjective('secondary', secondarySingle, rrMin, significantMovePts, warnings)
+    ? recomputeObjective('secondary', secondarySingle, rrMin, gates.significantMove, warnings)
     : null
 
   for (const { name, objective } of tradeSlots) {

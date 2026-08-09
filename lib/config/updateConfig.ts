@@ -39,12 +39,14 @@ export const ConfigUpdateSchema = z.object({
     .int('Must be a whole number')
     .min(50, 'Must be at least 50')
     .max(50_000, 'Must be at most 50000'),
-  // feat-086: minimum reversal traverse a level must offer to anchor an entry.
-  significant_move_pts: z
+  // feat-086 contract / feat-096 units: minimum reversal traverse a level must
+  // offer to anchor an entry, as a MULTIPLE of the measured session sigma
+  // (feat-095). Bounds mirror the significant_move_sigma CHECK constraint —
+  // 0.05σ (~14 pts at a 283-pt sigma) to 2σ (~566 pts, a two-day move).
+  significant_move_sigma: z
     .number('Must be a number')
-    .int('Must be a whole number')
-    .min(10, 'Must be at least 10')
-    .max(500, 'Must be at most 500'),
+    .min(0.05, 'Must be at least 0.05')
+    .max(2, 'Must be at most 2'),
 })
 
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
@@ -57,7 +59,8 @@ export type ConfigUpdateOutcome =
 export const MIGRATION_REQUIRED_MESSAGE =
   'A config column is missing in the live database — apply the pending ' +
   'supabase/migrations (high_conviction_flag.sql, model_reasoning_effort.sql, ' +
-  'execution_bar_volume.sql, significant_move_pts.sql) (Supabase MCP server ' +
+  'execution_bar_volume.sql, significant_move_pts.sql, ' +
+  'volatility_scaled_gates.sql) (Supabase MCP server ' +
   'or dashboard SQL editor) first, then save again.'
 
 export async function updateConfigRow(
