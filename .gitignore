@@ -29,3 +29,8 @@ chart-data/lvn-fixtures/fixture-x.vbp.md
 # Local Claude Code settings (contains secrets)
 .claude/settings.local.json
 langsmith-prompt-review/
+
+# Transient git worktrees for parallel Claude Code subagents. Each is a full
+# checkout with its own node_modules (~900 MB) and is removed when the agent
+# finishes — never commit them.
+.claude/worktrees/
