@@ -10,10 +10,8 @@ import {
   persistBriefing,
 } from '@/lib/analyze'
 import type { DoctrineTask, LoadBundleDeps, PersistDeps } from '@/lib/analyze'
-import {
-  DEFAULT_EXECUTION_BAR_VOLUME,
-  DEFAULT_SIGNIFICANT_MOVE_PTS,
-} from '@/lib/config/fetchConfig'
+import { DEFAULT_EXECUTION_BAR_VOLUME } from '@/lib/config/fetchConfig'
+import { DEFAULT_SIGNIFICANT_MOVE_SIGMA } from '@/lib/engine/scaledGates'
 import { summarizeIntradayTrend } from '@/lib/engine/intradayTrend'
 import { DEFAULT_RR_MIN } from '@/lib/engine/riskReward'
 import { DEFAULT_MODEL_ID, generateStructured } from '@/lib/llm'
@@ -121,7 +119,7 @@ export async function runUpdate(
     : (config?.model_effort ?? null)
   const rrMin = config?.rr_min ?? DEFAULT_RR_MIN
   const executionBarVolume = config?.execution_bar_volume ?? DEFAULT_EXECUTION_BAR_VOLUME
-  const significantMovePts = config?.significant_move_pts ?? DEFAULT_SIGNIFICANT_MOVE_PTS
+  const significantMoveSigma = config?.significant_move_sigma ?? DEFAULT_SIGNIFICANT_MOVE_SIGMA
 
   const parentRow = await deps.fetchLatestBriefing()
   if (!parentRow) {
@@ -169,7 +167,7 @@ export async function runUpdate(
       facts,
       rawMgi: bundle.row.mgi_json,
       charts: bundle.charts,
-      significantMovePts,
+      significantMoveSigma,
       executionBarVolume,
       parent: {
         briefing: parent,
@@ -191,7 +189,8 @@ export async function runUpdate(
   // traded through is a stale plan to flag, not a generation to reject.)
   const validated = enforceCodeOwnedFacts(composed, {
     rrMin,
-    significantMovePts,
+    significantMoveSigma,
+    volatilityScale: facts.volatilityScale,
     engineBorders: engineZoneBorders(facts.terrain),
     anchorPrices: engineAnchorPrices(facts.terrain, facts.lvn, facts.sessionIntraday),
     fakeoutTails: facts.fakeoutTails,

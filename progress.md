@@ -3,7 +3,45 @@
 ## Current State
 
 **Last Updated:** 2026-08-09
-**Latest change (feat-093, branch `feat-093-tpo-day-open-type`):** the canonical Market
+**Latest change (branch `feat-096-volatility-scaled-gates`): feat-096 — the fixed-point
+gates are volatility-scaled.** Closes review D3/C1. feat-086 made `significant_move_pts`
+the binding gate for entry qualification and set it to 50 points; measured over the 61 RTH
+sessions in bundle 1c15934a's own HTF export that is **0.18σ against a 283-pt median
+Parkinson session sigma, 0.45 of ONE 30-min bar (median range 110 pts) and 11% of a median
+day (464 pts)** — every level on the map cleared it, so `validateBriefing`'s reversal-room
+warning never fired. New `lib/engine/scaledGates.ts` re-expresses all three point gates as
+MULTIPLES of feat-095's measured session sigma and resolves them to points per run
+(`resolveGates` → `pointsForSigma`): the significant-move floor **0.4σ** (~113 pts at 283,
+118.05 on the repo fixture's 295.12-pt sigma), entry standoff **0.005σ** (1.42 pts) and
+entry chase **0.02σ** (5.66 pts). 0.4σ is argued against the measured distribution, not
+picked round: one median 30-min bar range, ~1.1 average operator rotations (~102 pts), 24%
+of a median day, and above feat-095's own 0.25σ noise band — the band the retired 50-pt
+floor sat inside (see `decisions-log.md`). **The reversal-room warning now fires and there
+is a test proving it**: the fixture's doctrine-sound 3:1 objective (75 pts entry→T2)
+cleared the old 50-pt floor with room to spare and is below the 113.2-pt floor at the
+measured sigma; a companion test pins that the same briefing stays silent at 0.18σ, so the
+D3 no-op is a visible regression if the default is ever walked back. Degradation is
+explicit: an unmeasured sigma (under 3 complete RTH sessions) falls back to the
+pre-feat-096 FIXED points (50 / 1 / 5) and every message says so — never a zero-width gate,
+never a divide by zero. Both prompts inject each gate in BOTH units (`describeGate`:
+resolved points first, multiple as the qualifier) so the model reasons in the units it
+quotes. DB: `significant_move_pts` (int, CHECK 10–500) → **`significant_move_sigma`**
+(numeric, CHECK 0.05–2.0, default 0.4) in
+`supabase/migrations/20260809140000_volatility_scaled_gates.sql`; the conversion takes an
+untouched 50 to the new 0.4 default (a proportional 0.18σ would have carried the no-op
+across) and any operator-tuned value to `points / 283` clamped into range, then drops the
+old column. **The migration is COMMITTED BUT NOT APPLIED — this session had no Supabase
+credentials.** Until an operator applies it the existing `fetchConfigRow` ladder degrades
+by design (pads 0.4, flags `significantMoveColumnMissing`, `/settings` says which migration
+to apply); recorded as PENDING in `.claude/skills/gekko-db/SKILL.md`. `/settings` relabels
+the field "Significant Move (× session σ)" with help text leading "NOT points — a
+MULTIPLIER". Analyze prompt budget **NOT raised**: stating both units cost +135 chars, so
+the interpretive half moved into the cached `output-objective.md` prefix (feat-097's
+pattern), landing **+84 net** — measured 100_403 against feat-093's 101k ceiling, which
+feat-096 did not raise. `./init.sh` green: typecheck,
+lint --max-warnings 0, vitest 1244 passed / 1 skipped (21 new), next build.
+
+**Prior change (feat-093, branch `feat-093-tpo-day-open-type`):** the canonical Market
 Profile session reads are code-owned, closing review item C2. New `lib/engine/tpoDayType.ts`
 classifies a session from the TPO letter **sequence** and hangs off `TpoFacts.classification`
 (so `facts.tpo` → `factsPayload` `tpo`, no new payload key): `dayType` — normal /

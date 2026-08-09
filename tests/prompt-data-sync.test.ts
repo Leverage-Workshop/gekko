@@ -75,7 +75,7 @@ const analysisPrompt = buildAnalysisPrompt({
     { label: 'TPO / Market Profile chart' },
     { label: 'Execution chart (short timeframe)' },
   ],
-  significantMovePts: 50,
+  significantMoveSigma: 0.4,
   executionBarVolume: 750,
 })
 
@@ -385,7 +385,7 @@ describe('prompt-data sync gate (feat-054)', () => {
     })
 
     it('the briefing prompts state the configured significant-move floor per run (feat-086)', () => {
-      // The floor is config (significant_move_pts) — the cached prefixes refer
+      // The floor is config (significant_move_sigma) — the cached prefixes refer
       // to "the significant-move floor (stated in the user message)" and must
       // never hardcode the number; the user message states it per run.
       for (const prefix of briefingPrefixes) {
@@ -394,7 +394,25 @@ describe('prompt-data sync gate (feat-054)', () => {
       }
       expect(read('lib/analyze/prompt.ts')).toContain('SIGNIFICANT-MOVE FLOOR')
       expect(read('lib/update/prompt.ts')).toContain('SIGNIFICANT-MOVE FLOOR')
-      expect(analysisPrompt).toContain('SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): 50 pts')
+      // feat-096: the floor is a sigma MULTIPLE, injected with the point value
+      // it resolves to on this run's measured scale. The resolved points lead —
+      // the model quotes points, so it must reason in them — and the multiple
+      // qualifies them. 0.4σ × the fixture bundle's 295.12-pt session sigma.
+      expect(analysisPrompt).toContain(
+        'SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): 118.05 pts (0.4σ of the measured 295.12-pt session sigma)',
+      )
+      // Never the bare multiple with no points attached.
+      expect(analysisPrompt).not.toMatch(/floor[^.]{0,40}: 0\.4σ/)
+    })
+
+    it('the entry standoff and chase gates are injected in BOTH units (feat-096)', () => {
+      // 0.005σ / 0.02σ of the fixture's 295.12-pt sigma = 1.48 / 5.9 pts.
+      expect(analysisPrompt).toContain('must sit at least 1.48 pts (0.005σ) away from it')
+      expect(analysisPrompt).toContain('more than 5.9 pts (0.02σ) beyond current price')
+      // The cached prefix must not restate either number.
+      for (const prefix of briefingPrefixes) {
+        expect(prefix).not.toMatch(/\b1[- ]pt standoff/i)
+      }
     })
   })
 
@@ -496,6 +514,14 @@ describe('prompt-data sync gate (feat-054)', () => {
       // teach two closed enums plus how to trade each day type, since neither
       // appears anywhere in the cached prefix. The stop stands: the next fact
       // to land here should trim before it bumps this number again.
+      // feat-096 (2026-08-09) took the trim instruction too and did NOT bump
+      // this number: stating each gate in BOTH units (resolved points + the
+      // sigma multiple) is that feature's headline requirement and cost ~135
+      // chars, so the interpretive half — "rescaled every run so the floor
+      // tracks the regime" — moved into the cached output-objective.md prefix
+      // (feat-097's pattern), leaving +84 net. It measured 97_815 against the
+      // then-98k stop and re-measured after rebasing onto feat-093's 101k
+      // ceiling. The user message keeps only live numbers.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,

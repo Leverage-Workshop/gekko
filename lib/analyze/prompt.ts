@@ -1,11 +1,11 @@
 import type { EngineFacts } from './engineFacts'
 import { engineZoneBorders } from './engineFacts'
 import {
-  MAX_ENTRY_CHASE_PTS,
-  MIN_ENTRY_STANDOFF_PTS,
   MIN_OBJECTIVE_ENTRY_SEPARATION_PTS,
   MIN_OPPOSING_ENTRY_SEPARATION_PTS,
 } from './validateBriefing'
+import { describeGate, resolveGates } from '@/lib/engine/scaledGates'
+import type { ResolvedGates } from '@/lib/engine/scaledGates'
 
 /**
  * User-message assembly for the analyze-task `generateObject` call. All
@@ -28,11 +28,13 @@ export interface AnalysisPromptInput {
   /** Labels for the attached chart images, in attachment order. */
   charts: readonly ChartAttachment[]
   /**
-   * Minimum reversal traverse (feat-086, `config.significant_move_pts`) — the
-   * binding number for entry-level qualification, injected here so the cached
-   * doctrine prefix never states it.
+   * Minimum reversal traverse (feat-086 contract, `config.significant_move_sigma`)
+   * as a MULTIPLE of the measured session sigma (feat-096) — the binding number
+   * for entry-level qualification, injected here so the cached doctrine prefix
+   * never states it. Resolved to points against `facts.volatilityScale`; both
+   * units are stated in the prompt so the model reasons in the points it quotes.
    */
-  significantMovePts: number
+  significantMoveSigma: number
   /**
    * Per-bar volume of the execution-chart bars (feat-079, `config.
    * execution_bar_volume`) — exporter metadata injected here so the cached
@@ -143,8 +145,9 @@ export const DISTINCT_ANCHORS_RULE = `- DISTINCT ANCHORS (required): the primary
  * is the forbidden breakout/breakdown chase — the 30-pts-overhead long that prompted the
  * gate could never be a pullback anchor.
  */
-export function entryStandoffRule(facts: EngineFacts): string {
-  return `- ENTRY STANDOFF (required): current price is ${facts.currentPrice} and every entry must sit at least ${MIN_ENTRY_STANDOFF_PTS} pts away from it — validation rejects the briefing otherwise. ENTRY SIDE (required): entries are PULLBACK anchors relative to that current price — a LONG Entry A anchors AT or BELOW it (the rebid/reclaimed border price pulls back down into), a SHORT at or above (the failed border overhead price rallies into). An entry more than ${MAX_ENTRY_CHASE_PTS} pts beyond current price in the trade direction (long overhead / short underfoot) is a breakout/breakdown chase and validation rejects the briefing. CONTESTED BORDER: when price is trading at or around a structural border right now, PREFER anchoring Entry A at that contested border when BOTH hold: (1) it is significant structure — a Tier-1 campaign border, a composite border band, or balance-area-profile structure, not a lone minor level — and (2) the execution chart shows price has been FIGHTING there for a while: multiple bars of two-sided trade stalling at the level, repeated tests, or an absorption stack building — not a first touch or a clean traversal. Absent that sustained fight (or at a minor level), anchor at the NEXT structural border in the entry's direction instead. If the contested border price itself sits inside the ${MIN_ENTRY_STANDOFF_PTS}-pt floor of current price, anchor the entry on the band member on the entry side that clears the floor.`
+export function entryStandoffRule(facts: EngineFacts, gates: ResolvedGates): string {
+  const { entryStandoff: standoff, entryChase: chase } = gates
+  return `- ENTRY STANDOFF (required): current price is ${facts.currentPrice} and every entry must sit at least ${standoff.pts} pts (${standoff.sigmaMultiple}σ) away from it — validation rejects the briefing otherwise. ENTRY SIDE (required): entries are PULLBACK anchors relative to that current price — a LONG Entry A anchors AT or BELOW it (the rebid/reclaimed border price pulls back down into), a SHORT at or above (the failed border overhead price rallies into). An entry more than ${chase.pts} pts (${chase.sigmaMultiple}σ) beyond current price in the trade direction (long overhead / short underfoot) is a breakout/breakdown chase and validation rejects the briefing. CONTESTED BORDER: when price is trading at or around a structural border right now, PREFER anchoring Entry A at that contested border when BOTH hold: (1) it is significant structure — a Tier-1 campaign border, a composite border band, or balance-area-profile structure, not a lone minor level — and (2) the execution chart shows price has been FIGHTING there for a while: multiple bars of two-sided trade stalling at the level, repeated tests, or an absorption stack building — not a first touch or a clean traversal. Absent that sustained fight (or at a minor level), anchor at the NEXT structural border in the entry's direction instead. If the contested border price itself sits inside the ${standoff.pts}-pt floor of current price, anchor the entry on the band member on the entry side that clears the floor.`
 }
 
 /**
@@ -174,6 +177,9 @@ export function campaignBoundaryRule(facts: EngineFacts): string {
 export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
   const { facts } = input
   const borders = engineZoneBorders(facts.terrain)
+  // feat-096: the three point gates are stored in session sigma and resolved
+  // against the run's measured scale (fixed-point fallback when unmeasured).
+  const gates = resolveGates(facts.volatilityScale, input.significantMoveSigma)
 
   return [
     '# Mission',
@@ -205,11 +211,11 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- Read the attached screenshots ONLY for perception the numeric data cannot give: absorption vs exhaustion shape, intraday distribution shape on the Market Profile chart beyond the code-owned day/open classification, delta clustering quality, and the doctrine patterns.',
     '- ACTIVE PATTERN SCAN (required): scan the execution chart and fill `patternScan` per the Active Pattern Scan contract in the system prompt — never guess a pattern into existence. Mirror the verdict as one of `overview.current.keyPoints`.',
     '- The three `overview` sections follow the Tactical Overview contract in the system prompt: a TIME-ORDERED `narrative` plus 2–4 distilled `keyPoints` per section, the same storytelling register throughout, names before prices, MGI/volume/TPO vocabulary only.',
-    `- SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): ${input.significantMovePts} pts. An entry level qualifies only when the reversal it hosts has at least ${input.significantMovePts} pts of room to the nearest realistic opposing structure (entry→T2 ≥ ${input.significantMovePts} pts). Walk the map outward from current price and anchor at the FIRST qualifying level — never skip a qualifying nearer level for a deeper one, and never move an entry to manufacture target distance. Abstain (noTrade) only when no qualifying level exists on that side. \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula — it is informational, never a gate.`,
+    `- SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): ${describeGate(gates.significantMove)}. An entry level qualifies only when the reversal it hosts has at least ${gates.significantMove.pts} pts of room to the nearest realistic opposing structure (entry→T2 ≥ ${gates.significantMove.pts} pts). Walk the map outward from current price and anchor at the FIRST qualifying level — never skip a qualifying nearer level for a deeper one, and never move an entry to manufacture target distance. Abstain (noTrade) only when no qualifying level exists on that side. \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula — it is informational, never a gate.`,
     '- Entries, stops and T1 anchor on engine-supplied structure per the Objective contract in the system prompt — a zone border, a `terrain.levels` price, a `lvnHvnNodes` LVN node (the fakeout-formed-extreme anchor) or a `sessionIntraday.vwapRungs` session-VWAP rung. Entry priority, stop placement and the one-or-two-rung target ladder follow that contract.',
     '- Each objective slot (primary AND secondary) carries EITHER a full trade OR the explicit no-trade abstention, per the Objective contract. The secondary is the best available counter-scenario; when it is real but waiting, express that in its entry `trigger` conditions — abstain only when no genuine scenario exists, never fabricate entries, stops or targets to fill the slot.',
     DISTINCT_ANCHORS_RULE,
-    entryStandoffRule(input.facts),
+    entryStandoffRule(input.facts, gates),
     ...[dataEdgeRule(input.facts)].filter(Boolean),
     ...[campaignBoundaryRule(input.facts)].filter(Boolean),
     '',

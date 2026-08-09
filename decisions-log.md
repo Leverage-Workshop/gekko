@@ -373,3 +373,88 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
 - **Alternatives considered:** dropping `dayTypeBasis`/`openTypeBasis` (~300 chars saved, but
   they carry the numbers the briefing is supposed to quote); emitting all periods rather than
   extension events (~1.5k more, mostly rotation rows that say nothing).
+## feat-096 — 2026-08-09
+
+- **Decision:** The default significant-move floor is **0.4σ** of the measured Parkinson
+  session sigma (~113 pts at the review's 283-pt reference, ~118 pts on the repo fixture's
+  295.12-pt sigma), not a round number and not a sigma expression of the old 50 pts.
+- **Why:** The point of review D3 is that 50 pts = 0.18σ filtered nothing, so a
+  units-preserving conversion (0.18σ) would have shipped the same no-op in new clothes. 0.4σ
+  is defensible against the measured distribution from four directions: it is one median
+  30-min bar range (110 pts — the old floor was 0.45 of one bar); ~1.1 of the operator's
+  average rotation (~102 pts, the 2026-07-27 expectancy note); 24% of a median day range
+  (464 pts), so a session still has room for three qualifying setups; and it sits ABOVE
+  feat-095's `SIGMA_NOISE_MAX` (0.25σ), the band the engine already calls "not a meaningful
+  gap" — the old floor sat *inside* that band, which is precisely why it could never filter.
+  Pinned in `lib/engine/scaledGates.test.ts` against the review's numbers rather than read
+  back out of the implementation.
+- **Alternatives considered:** 0.25σ (= the noise boundary, 71 pts — clears the "inside
+  noise" objection but still under one bar range); 0.5σ (142 pts, the "meaningful" band
+  floor — rejected as too aggressive for a *minimum*: it would abstain on legitimate
+  rotations in a quiet tape); re-tuning the fixed points to ~110 (rejected — the number is
+  fixed while the regime is not, which is half of the D3 finding).
+
+- **Decision:** The DB column is RENAMED `significant_move_pts` → `significant_move_sigma`
+  (numeric, CHECK 0.05–2.0), not kept under the old name with new units.
+- **Why:** The feature description says "keeping significant_move_pts as the
+  /settings-editable multiplier", which reads as *keep the same single knob*, not *keep the
+  same identifier*. A column literally named `_pts` holding a sigma multiple is a naming lie
+  that would mislead every future reader and every hand-written SQL query, and the units
+  change already requires a migration. The knob itself is unchanged: one number, same place
+  in `/settings`, same role.
+- **Alternatives considered:** Keeping the name and changing only the semantics (rejected —
+  silent unit drift is exactly the class of bug this feature exists to fix); adding a second
+  column and keeping both (rejected — two sources of truth for one gate).
+
+- **Decision:** The migration converts an existing stored value by CASE: exactly 50 (the
+  untouched feat-086 default) becomes the new 0.4 default; anything else is converted
+  proportionally as `points / 283` and clamped into 0.05–2.0.
+- **Why:** A stored 50 surviving as 50σ (~14,000 pts) would abstain on every level, so a
+  raw carry-over was never an option. But a purely proportional conversion of the *default*
+  (50/283 = 0.18σ) would carry the no-op gate straight across into the new units and ship a
+  feature that changes nothing on the live database. 50 is the seeded default and was never
+  operator-tuned, so it takes the new default; any other value was a deliberate operator
+  choice expressed in points and is honored proportionally at the reference sigma.
+- **Alternatives considered:** Proportional conversion for all values (rejected — preserves
+  the bug on the one database that matters); resetting all values to the default (rejected —
+  discards a real operator preference without asking).
+
+- **Decision:** When the session sigma is unmeasured, every gate falls back to its
+  pre-feat-096 FIXED point value (50 / 1 / 5) rather than resolving the multiple against the
+  283-pt reference sigma.
+- **Why:** An unmeasured scale means the engine has just admitted it cannot size the regime
+  (under 3 complete RTH sessions); quoting `0.4 × 283 = 113 pts` there would invent a scale
+  from a historical constant and present it as measured. The fixed fallback is honest, is
+  exactly the pre-feature behaviour, and is stated as a fallback in both the prompt and the
+  warning text (`describeGate`). The gate is never dropped and never divides by zero.
+- **Alternatives considered:** Resolving against `REFERENCE_SESSION_SIGMA_PTS` (keeps the
+  operator's configured multiple meaningful and would make the gate strictly stronger — a
+  defensible choice, rejected as it presents a historical constant as a live measurement);
+  skipping the gate entirely when unmeasured (rejected outright — silently dropping a
+  guardrail).
+
+- **Decision:** The analyze user-prompt budget ceiling was NOT raised; it stays at 98k.
+- **Why:** feat-095 left the 98k ceiling as "a deliberate stop, not a running total" with the
+  instruction that the next feature should trim before it bumps. Stating each gate in both
+  units (resolved points + multiple) is this feature's headline requirement and measured
+  +135 chars, so the interpretive half of the floor bullet — "rescaled every run so the floor
+  tracks the regime" — moved into the cached `output-objective.md` prefix (feat-097's
+  pattern: interpretation in the cached prefix, live numbers in the per-run message),
+  landing at **+84 net**. Measured 97_815 against the then-98k stop; after rebasing onto feat-093 (which raised the ceiling to 101k for `tpo.classification`) it re-measures 100_403 — feat-096 itself never moved the number. The user message now
+  carries only numbers that change per run.
+- **Alternatives considered:** Raising the ceiling to 99k (rejected — the instruction was
+  explicit and the trim was available); dropping the multiple from the prompt and quoting
+  points only (rejected — the spec requires both units so the model can reason about why the
+  floor moved between runs).
+
+- **Decision:** The migration is COMMITTED BUT NOT APPLIED to the live database.
+- **Why:** This session has no Supabase credentials (no `.env` in the environment) and DDL
+  cannot go through PostgREST, so applying it was impossible rather than skipped. The
+  existing `fetchConfigRow` degradation ladder already covers exactly this state: the live DB
+  still carrying `significant_move_pts` fails the full select, falls to the
+  pre-significant-move tier, pads `significant_move_sigma` with 0.4, and `/settings` tells the
+  operator to apply the `volatility_scaled_gates` migration before saving. Recorded in
+  `.claude/skills/gekko-db/SKILL.md` as a PENDING migration so the snapshot does not claim a
+  live column that is not there.
+- **Alternatives considered:** Blocking the feature on DB access (rejected — the degradation
+  path is designed for this and the code half is independently verifiable).

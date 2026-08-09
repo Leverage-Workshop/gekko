@@ -19,7 +19,7 @@ export interface SettingsInitialValues {
   triage_model_effort: ReasoningEffort | null
   high_conviction_model_effort: ReasoningEffort | null
   execution_bar_volume: number
-  significant_move_pts: number
+  significant_move_sigma: number
 }
 
 interface SettingsFormProps {
@@ -31,7 +31,7 @@ interface SettingsFormProps {
   effortColumnsMissing: boolean
   /** Live DB predates the execution_bar_volume migration (feat-079). */
   barVolumeColumnMissing: boolean
-  /** Live DB predates the significant_move_pts migration (feat-086). */
+  /** Live DB predates the significant_move_sigma migration (feat-096). */
   significantMoveColumnMissing: boolean
 }
 
@@ -135,7 +135,7 @@ export function SettingsForm({
   const [triageModelId, setTriageModelId] = useState(initial.triage_model_id)
   const [rrMin, setRrMin] = useState(String(initial.rr_min))
   const [barVolume, setBarVolume] = useState(String(initial.execution_bar_volume))
-  const [significantMove, setSignificantMove] = useState(String(initial.significant_move_pts))
+  const [significantMove, setSignificantMove] = useState(String(initial.significant_move_sigma))
   const [hcEnabled, setHcEnabled] = useState(initial.high_conviction_enabled)
   const [hcModelId, setHcModelId] = useState(initial.high_conviction_model_id)
   const [modelEffort, setModelEffort] = useState(initial.model_effort)
@@ -164,7 +164,7 @@ export function SettingsForm({
     }
     const sigMove = Number(significantMove)
     if (significantMove.trim() === '' || Number.isNaN(sigMove)) {
-      setFieldErrors({ significant_move_pts: ['Must be a number'] })
+      setFieldErrors({ significant_move_sigma: ['Must be a number'] })
       setState({ phase: 'error', message: 'Validation failed' })
       return
     }
@@ -183,7 +183,7 @@ export function SettingsForm({
           triage_model_effort: triageEffort,
           high_conviction_model_effort: hcEffort,
           execution_bar_volume: barVol,
-          significant_move_pts: sigMove,
+          significant_move_sigma: sigMove,
         }),
       })
       const body = (await res.json().catch(() => null)) as ConfigResponse | null
@@ -271,27 +271,33 @@ export function SettingsForm({
       </div>
 
       <div>
-        <FieldLabel htmlFor="significant_move_pts">Significant Move (pts)</FieldLabel>
+        <FieldLabel htmlFor="significant_move_sigma">
+          Significant Move (× session σ)
+        </FieldLabel>
         <input
-          id="significant_move_pts"
-          name="significant_move_pts"
+          id="significant_move_sigma"
+          name="significant_move_sigma"
           type="number"
-          step="1"
-          min="10"
-          max="500"
+          step="0.05"
+          min="0.05"
+          max="2"
           value={significantMove}
           onChange={(e) => setSignificantMove(e.target.value)}
           className={inputClass}
         />
-        <FieldError messages={fieldErrors.significant_move_pts} />
+        <FieldError messages={fieldErrors.significant_move_sigma} />
         <p className="mt-1 text-xs font-light text-muted">
-          Minimum room (points) a reversal must have to run before an entry
-          level qualifies for an objective (10–500).
+          NOT points — a MULTIPLIER (0.05–2.00) of the measured session
+          volatility. Minimum room a reversal must have to run before an entry
+          level qualifies for an objective, as a multiple of the engine&rsquo;s
+          Parkinson session sigma, resolved to points every run so the floor
+          tracks the regime. The default 0.40 is ~113 pts at a 283-pt sigma;
+          the fixed 50 pts it replaced was 0.18σ and filtered nothing.
         </p>
         {significantMoveColumnMissing && (
           <p className="mt-2 text-xs font-light tracking-wide text-warning">
-            The significant_move_pts column is not in the live database yet —
-            apply the significant_move_pts migration before saving.
+            The significant_move_sigma column is not in the live database yet —
+            apply the volatility_scaled_gates migration before saving.
           </p>
         )}
       </div>

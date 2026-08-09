@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ReasoningEffort } from '@/lib/llm/reasoning'
+import { DEFAULT_SIGNIFICANT_MOVE_SIGMA } from '@/lib/engine/scaledGates'
 
 /**
  * Shared config-row read used by the analyze pipeline (lib/analyze/deps.ts),
@@ -14,7 +15,7 @@ import type { ReasoningEffort } from '@/lib/llm/reasoning'
  * high_conviction_flag (feat-031) and model_reasoning_effort (2026-07-25).
  */
 
-/** The full `config` singleton row (post significant_move_pts migration). */
+/** The full `config` singleton row (post significant_move_sigma migration). */
 export interface ConfigRow {
   model_id: string
   triage_model_id: string
@@ -32,11 +33,14 @@ export interface ConfigRow {
    */
   execution_bar_volume: number
   /**
-   * Minimum expected reversal traverse (points) a level must offer to anchor
-   * an objective entry (feat-086 entry-first contract). Injected into the
-   * analyze/update prompts; the doctrine prefix never states the number.
+   * Minimum expected reversal traverse a level must offer to anchor an
+   * objective entry (feat-086 entry-first contract), as a MULTIPLE of the
+   * measured session sigma (feat-096 units change — the fixed 50 pts it
+   * replaced was 0.18σ and filtered nothing). Resolved to points per run
+   * against `facts.volatilityScale` and injected into the analyze/update
+   * prompts in BOTH units; the doctrine prefix never states the number.
    */
-  significant_move_pts: number
+  significant_move_sigma: number
   updated_at: string
 }
 
@@ -59,8 +63,11 @@ export interface ConfigReadResult {
    */
   barVolumeColumnMissing: boolean
   /**
-   * True when the live DB predates the significant_move_pts migration —
-   * the returned row is padded with {@link DEFAULT_SIGNIFICANT_MOVE_PTS}.
+   * True when the live DB predates the significant_move_sigma migration
+   * (feat-096) — the returned row is padded with
+   * {@link DEFAULT_SIGNIFICANT_MOVE_SIGMA}. Also true for a DB still carrying
+   * the retired `significant_move_pts` column: the units differ, so a stale
+   * point value is never read as a multiple.
    */
   significantMoveColumnMissing: boolean
 }
@@ -68,9 +75,13 @@ export interface ConfigReadResult {
 export const FULL_CONFIG_COLUMNS =
   'model_id, triage_model_id, rr_min, high_conviction_enabled, high_conviction_model_id, ' +
   'model_effort, triage_model_effort, high_conviction_model_effort, execution_bar_volume, ' +
-  'significant_move_pts, updated_at'
+  'significant_move_sigma, updated_at'
 
-/** Pre-significant_move_pts column set (post execution_bar_volume). */
+/**
+ * Pre-significant_move_sigma column set (post execution_bar_volume). Covers
+ * BOTH pre-feat-086 databases and databases still on the retired
+ * `significant_move_pts` column — neither can serve a sigma multiple.
+ */
 const PRE_SIGNIFICANT_MOVE_CONFIG_COLUMNS =
   'model_id, triage_model_id, rr_min, high_conviction_enabled, high_conviction_model_id, ' +
   'model_effort, triage_model_effort, high_conviction_model_effort, execution_bar_volume, ' +
@@ -116,15 +127,13 @@ const BAR_VOLUME_DEFAULTS = {
 } as const
 
 /**
- * Mirrors the significant_move_pts migration default (feat-086) — the minimum
- * reversal traverse a level must offer to anchor an objective entry. Pads the
- * read shape when the live DB is pre-migration, and backstops the prompt
- * builders when config is unseeded.
+ * Pads the read shape when the live DB predates the significant_move_sigma
+ * migration (feat-096). The multiple itself — and why it is 0.4σ rather than a
+ * round number — is owned by `lib/engine/scaledGates.ts`; the point value it
+ * resolves to is regime-dependent (~113 pts at the review's 283-pt sigma).
  */
-export const DEFAULT_SIGNIFICANT_MOVE_PTS = 50
-
 const SIGNIFICANT_MOVE_DEFAULTS = {
-  significant_move_pts: DEFAULT_SIGNIFICANT_MOVE_PTS,
+  significant_move_sigma: DEFAULT_SIGNIFICANT_MOVE_SIGMA,
 } as const
 
 /** Postgres "undefined_column" — the column set predates a checked-in migration. */
@@ -162,8 +171,8 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
     throw full.error
   }
 
-  // Live DB predates the significant_move_pts migration: retry without it and
-  // pad with the migration default.
+  // Live DB predates the significant_move_sigma migration (or still carries
+  // the retired points column): retry without it and pad with the default.
   const preSignificantMove = await selectConfig(supabase, PRE_SIGNIFICANT_MOVE_CONFIG_COLUMNS)
   if (!preSignificantMove.error) {
     return {

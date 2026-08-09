@@ -14,7 +14,7 @@ const valid = {
   triage_model_effort: null,
   high_conviction_model_effort: null,
   execution_bar_volume: 750,
-  significant_move_pts: 50,
+  significant_move_sigma: 0.4,
 }
 
 function fieldErrors(payload: unknown): Record<string, unknown> {
@@ -162,32 +162,44 @@ describe('ConfigUpdateSchema', () => {
     expect(fieldErrors(missing)).toHaveProperty('execution_bar_volume')
   })
 
-  // feat-086: significant-move floor — a positive integer inside the sane band.
-  it('accepts significant_move_pts at the 10 and 500 boundaries', () => {
-    expect(ConfigUpdateSchema.safeParse({ ...valid, significant_move_pts: 10 }).success).toBe(true)
-    expect(ConfigUpdateSchema.safeParse({ ...valid, significant_move_pts: 500 }).success).toBe(
+  // feat-086 floor / feat-096 units: a MULTIPLE of the measured session sigma,
+  // inside the CHECK band the migration writes (0.05–2). Fractions are the
+  // whole point now — the old schema demanded an integer point count.
+  it('accepts significant_move_sigma at the 0.05 and 2 boundaries', () => {
+    expect(ConfigUpdateSchema.safeParse({ ...valid, significant_move_sigma: 0.05 }).success).toBe(
+      true,
+    )
+    expect(ConfigUpdateSchema.safeParse({ ...valid, significant_move_sigma: 2 }).success).toBe(
       true,
     )
   })
 
-  it('rejects significant_move_pts outside the band, non-integers and non-numbers', () => {
-    expect(fieldErrors({ ...valid, significant_move_pts: 9 })).toHaveProperty(
-      'significant_move_pts',
-    )
-    expect(fieldErrors({ ...valid, significant_move_pts: 501 })).toHaveProperty(
-      'significant_move_pts',
-    )
-    expect(fieldErrors({ ...valid, significant_move_pts: 50.5 })).toHaveProperty(
-      'significant_move_pts',
-    )
-    expect(fieldErrors({ ...valid, significant_move_pts: '50' })).toHaveProperty(
-      'significant_move_pts',
+  it('accepts a fractional significant_move_sigma (feat-096: it is no longer an integer)', () => {
+    expect(ConfigUpdateSchema.safeParse({ ...valid, significant_move_sigma: 0.35 }).success).toBe(
+      true,
     )
   })
 
-  it('rejects a payload missing significant_move_pts (form always sends it)', () => {
-    const { significant_move_pts: _s, ...missing } = valid
-    expect(fieldErrors(missing)).toHaveProperty('significant_move_pts')
+  it('rejects significant_move_sigma outside the band and non-numbers', () => {
+    expect(fieldErrors({ ...valid, significant_move_sigma: 0.04 })).toHaveProperty(
+      'significant_move_sigma',
+    )
+    expect(fieldErrors({ ...valid, significant_move_sigma: 2.01 })).toHaveProperty(
+      'significant_move_sigma',
+    )
+    // The pre-feat-096 point value: 50σ is ~14,000 pts, and the band rejects it
+    // rather than letting a stale unit through as a multiplier.
+    expect(fieldErrors({ ...valid, significant_move_sigma: 50 })).toHaveProperty(
+      'significant_move_sigma',
+    )
+    expect(fieldErrors({ ...valid, significant_move_sigma: '0.4' })).toHaveProperty(
+      'significant_move_sigma',
+    )
+  })
+
+  it('rejects a payload missing significant_move_sigma (form always sends it)', () => {
+    const { significant_move_sigma: _s, ...missing } = valid
+    expect(fieldErrors(missing)).toHaveProperty('significant_move_sigma')
   })
 
   it('rejects a payload missing the effort fields (form always sends them)', () => {

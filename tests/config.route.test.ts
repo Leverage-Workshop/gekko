@@ -41,7 +41,7 @@ const VALID_BODY = {
   triage_model_effort: null,
   high_conviction_model_effort: null,
   execution_bar_volume: 750,
-  significant_move_pts: 50,
+  significant_move_sigma: 0.4,
 }
 
 function fakeClient({

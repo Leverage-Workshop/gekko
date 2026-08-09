@@ -4,8 +4,10 @@
 walking outward from current price, what is the CLOSEST level — below current price for a
 long, above it for a short — where (a) price has a decent probability of reversing, judged
 from the structure the engine grades (zone borders, AAA/A walls and trenches, reclaimed
-borders, detector LVN nodes, session-VWAP rungs), and (b) if it does reverse, the move has at least the
-significant-move floor (stated in the user message) of room to travel before the nearest
+borders, detector LVN nodes, session-VWAP rungs), and (b) if it does reverse, the move has
+at least the significant-move floor (stated in the user message, in points, alongside the
+multiple of the session's measured volatility it is derived from — it is rescaled every run
+so the floor tracks the regime rather than lagging it) of room to travel before the nearest
 realistic opposing structure. Walk the map nearest-first and take the FIRST level that
 passes both; a stronger level further out never outranks a qualifying nearer one. The
 entry is selected on its own merit — NEVER derived from target math, and never pushed

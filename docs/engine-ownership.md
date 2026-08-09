@@ -31,6 +31,19 @@ qualitatively and defers the numbers to the engine facts.
   from `config.rr_min`). Prose must never restate the ratio — the model reads the engine's
   `meetsGate` / `rr`, and the per-run gate value is injected into the user prompt by
   `lib/analyze/prompt.ts`.
+- **Volatility-scaled gates (feat-096).** The three point thresholds that decide whether a
+  level is worth trading — the significant-move floor (`config.significant_move_sigma`), the
+  entry standoff and the entry chase allowance — are stored as MULTIPLES of the measured
+  Parkinson session sigma and resolved to points per run by `lib/engine/scaledGates.ts`
+  (`resolveGates`), against `facts.volatilityScale` from `lib/engine/volatilityScale.ts`.
+  Bundle review 2026-08-07 D3: the retired fixed 50-pt floor was 0.18σ — inside feat-095's
+  own "noise" band — so every level on the map cleared it and `validateBriefing`'s
+  reversal-room warning never fired. Defaults: 0.4σ / 0.005σ / 0.02σ (~113 / 1.4 / 5.7 pts
+  at the review's 283-pt reference sigma). Prose must never restate a point value: the
+  prompts inject each gate in BOTH units (`describeGate` — resolved points first, the
+  multiple as the qualifier) so the model reasons in the points it quotes. When the sigma is
+  unmeasured (under 3 complete RTH sessions) every gate degrades to its pre-feat-096 fixed
+  points and says so — it is never dropped and never divides by zero.
 - **Stops never widen.** The check lives in `lib/engine/riskReward.ts` (`stopWidened` against a
   prior stop), but the analyze pipeline does not currently feed it the prior briefing's stop — a
   known, deliberately unwired gap (see `docs/gem-alignment-audit.md`). Until it is wired, the
