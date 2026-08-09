@@ -127,8 +127,9 @@ export interface EngineFacts {
   profileSummary: { rotation: ProfileSummary; balanceArea: ProfileSummary }
   /**
    * Code-owned TPO / Market Profile reads (feat-046): single-print zones,
-   * poor high/low, POC prominence, IB. Null when the bundle has no (or a
-   * malformed) `tpo.data.md` — flagged in `warnings`.
+   * poor high/low, excess tails at the extremes (feat-091), POC prominence,
+   * IB. Null when the bundle has no (or a malformed) `tpo.data.md` — flagged
+   * in `warnings`.
    */
   tpo: TpoFacts | null
   /**

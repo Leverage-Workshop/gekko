@@ -136,3 +136,49 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   `expectedRthVolumeThrough` returns `expectedFraction` precisely so feat-089 can multiply it by
   a whole-session median and stay in `SessionVolume` units.
   **Alternatives considered:** exporting only the facts object (forces feat-089 to re-derive).
+
+## feat-091 — 2026-08-09
+
+- **Decision:** Tail length in points is `bins * step`, not `top - bottom`.
+- **Why:** Each ladder bin is one grid step *tall*, so a 208-bin run on a 1-pt grid spans 208
+  pts of price, not 207. It also reproduces the review's own measurement ("208 bins / 208 pts")
+  exactly, so the fact can be checked against D2 without a fencepost argument.
+- **Alternatives considered:** `top - bottom` (undercounts by one bin, and reports 0 pts for a
+  legitimate single-bin excess).
+
+- **Decision:** `EXCESS_MIN_BINS = 2` — one lone single-print bin at an extreme is not excess.
+- **Why:** Every quiet turn leaves exactly one TPO at the extreme bin; calling that a tail
+  would fire `excess` on nearly every session and make the fact meaningless. Two contiguous
+  bins is the smallest run showing the auction was shut off rather than merely thinned. Kept
+  as a named exported constant (engine convention) so the threshold is tunable and visible.
+- **Alternatives considered:** no floor (noise on every profile); a points-based floor (breaks
+  across instruments/bin sizes, where the bin count does not).
+
+- **Decision:** A single-print run covering the WHOLE ladder yields null tails at both ends.
+- **Why:** A tail is excess *relative to a body*. A profile with no 2+ TPO bin anywhere has no
+  value area to be excess from, and reporting the same run as both a buying and a selling tail
+  would double-count it. `singlePrintFraction` still reports 1.0, so the degenerate shape is
+  visible without a bogus tail.
+- **Alternatives considered:** report the run at both ends (double-counts); report it at the
+  end nearest the POC (arbitrary when the POC is itself a single print).
+
+- **Decision:** Each tail carries a single `clock` (the start of the earliest period that built
+  it) rather than a per-letter clock map.
+- **Why:** `tpo.periodClock` (feat-092) already maps every letter in the ladder to its start, so
+  a per-tail map would duplicate payload for no new information. The one number the read needs
+  is *when the excess was carved* — the earliest period in the run. Null on anchorless exports,
+  matching the rest of the feat-092 degradation contract.
+- **Alternatives considered:** `clock: string[]` per letter (duplicates `periodClock`); omit
+  clock entirely and make the model join the letters against `periodClock` itself (works, but
+  the join is exactly the kind of derivation the engine is supposed to own).
+
+- **Decision:** The reference case is pinned as a synthetic 446-bin ladder reproducing bundle
+  1c15934a's geometry, not as a committed copy of that bundle's `tpo.data.md`.
+- **Why:** The bundle lives in Supabase storage, not the repo, and `chart-data/` holds one
+  canonical fixture set that other gates (prompt-data-sync budgets, engine-ownership registry)
+  measure against — adding a second TPO export there would move those numbers for reasons
+  unrelated to this feature. The synthetic ladder pins every number D2 reports (208/208/`A`,
+  19/19/`D`, 227 of 446 = 0.51) so the math is verified, not smoke-tested.
+- **Alternatives considered:** commit the real bundle export as a second fixture (perturbs
+  unrelated budget gates); assert only on the existing fixture's 4-bin tail (would not have
+  caught a fencepost error at 208 bins).
