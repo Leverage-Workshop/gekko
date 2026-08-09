@@ -15,11 +15,24 @@ trusting column lists.
 
 - Project ref: `qvhkqilizwozikpomxob`
 - URL: `https://qvhkqilizwozikpomxob.supabase.co`
-- Credentials live in `.env` at the repo root. **Note:** the URL var is
-  `NEXT_PUBLIC_SUPABASE_URL` (there is no plain `SUPABASE_URL` in `.env`).
+- Credentials reach the process as **environment variables**. Locally they come from
+  `.env` at the repo root; in Claude Code / CI sessions they are **injected directly into
+  the environment and there is no `.env` file at all**. **Do not conclude the database is
+  unreachable because `.env` is missing — check the environment first:**
+
+  ```bash
+  env | grep -E 'SUPABASE'    # NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ```
+
+  (An earlier session wrongly reported "no credentials" after testing only for `.env`,
+  which cost two features their live-data verification. Test the variables, not the file.)
+
+- **Note:** the URL var is `NEXT_PUBLIC_SUPABASE_URL` — there is no plain `SUPABASE_URL`.
 
 ```bash
-set -a && source .env && set +a
+# Only if a .env exists; in an injected-env session the vars are already set and this
+# line fails harmlessly — guard it rather than assuming either shape.
+[ -f .env ] && { set -a && source .env && set +a; }
 URL="$NEXT_PUBLIC_SUPABASE_URL"
 KEY="$SUPABASE_SERVICE_ROLE_KEY"   # bypasses RLS — full read/write on everything
 AUTH=(-H "apikey: $KEY" -H "Authorization: Bearer $KEY")
@@ -178,9 +191,11 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Migrations & DDL
 
 - **PENDING (feat-096, 2026-08-09): `20260809140000_volatility_scaled_gates.sql` is in the
-  repo but was NOT applied to the live database** — the session that wrote it had no
-  Supabase credentials (no `.env`), and DDL cannot go through PostgREST. Until an operator
-  applies it, `config` still carries `significant_move_pts` and the app degrades by design:
+  repo but was NOT applied to the live database** — DDL cannot go through PostgREST, and
+  no DB password or Supabase personal access token is available to the session (the
+  injected `SUPABASE_SERVICE_ROLE_KEY` authorizes PostgREST data access only, never DDL).
+  Verified still pending 2026-08-09: the live `config` row returns `significant_move_pts =
+  50` and no `significant_move_sigma` column. Until an operator applies it, `config` still carries `significant_move_pts` and the app degrades by design:
   `fetchConfigRow` retries without the column, pads `significant_move_sigma` with the 0.4
   default, sets `significantMoveColumnMissing`, and `/settings` shows "apply the
   volatility_scaled_gates migration before saving". The migration adds
@@ -200,8 +215,11 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
   `curl -s -X POST "$URL/rest/v1/rpc/..."` won't work for this — `schema_migrations`
   isn't exposed via PostgREST. Instead compare repo filenames against the snapshot
   above, or run SQL via one of the options below.
-- **Arbitrary SQL / DDL cannot go through PostgREST.** No `psql` or `supabase` CLI is
-  installed on this machine, and no Supabase access token / DB password is in `.env`.
+- **Arbitrary SQL / DDL cannot go through PostgREST.** The service-role key is a
+  PostgREST credential: it bypasses RLS on data, but grants no DDL. `psql` **is** installed
+  (`/usr/bin/psql`), so a direct connection is the shortest path *once someone supplies a
+  connection string* — but no `SUPABASE_ACCESS_TOKEN` (`sbp_...`), `SUPABASE_DB_PASSWORD`
+  or `postgresql://` URL is injected into the environment, so psql alone is not enough.
   Options, in order of preference:
   1. Ask the user to re-enable the Supabase MCP server for the one migration.
   2. `npx supabase db push --db-url "postgresql://..."` — requires the user to supply
