@@ -28,4 +28,7 @@ chart-data/lvn-fixtures/fixture-x.vbp.md
 
 # Local Claude Code settings (contains secrets)
 .claude/settings.local.json
+
+# Per-agent git worktrees created by parallel subagent orchestration
+.claude/worktrees/
 langsmith-prompt-review/
