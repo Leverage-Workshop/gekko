@@ -4,6 +4,8 @@
 - **TPO Period Minutes**: 30
 - **Tick Size**: 0.25
 - **Bin Size (Ticks)**: 8
+- **First Period Letter**: A
+- **First Period Start**: 2026-06-16 08:30:00
 
 ## Summary
 - **POC Price**: 29950.00

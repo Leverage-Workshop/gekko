@@ -1,4 +1,5 @@
-import type { TpoProfile, TpoRow } from './parseTpo'
+import type { TpoPeriodAnchor, TpoProfile, TpoRow } from './parseTpo'
+import { buildTpoPeriodClock } from './tpoPeriodClock'
 
 /**
  * Deterministic TPO / Market Profile reads (feat-046) — the day-structure
@@ -33,6 +34,19 @@ export type TpoFacts = {
   sessionDate: string
   session: 'RTH' | 'ETH'
   tpoPeriodMinutes: number
+  /**
+   * The export's period→clock anchor (feat-092): which letter opens the
+   * session and when. Null on bundles exported before the anchor lines
+   * existed — letters then carry order but no time.
+   */
+  firstPeriod: TpoPeriodAnchor | null
+  /**
+   * Every period letter present in the ladder mapped to its `HH:MM` start,
+   * in period order. Null when `firstPeriod` is null. Lets letter-sequenced
+   * reads (which period built the high, when a single-print zone formed) be
+   * stated as clock times instead of bare letters.
+   */
+  periodClock: Record<string, string> | null
   poc: {
     price: number
     tpoCount: number
@@ -128,10 +142,17 @@ export function computeTpoFacts(profile: TpoProfile): TpoFacts {
   const prominence = medianCount > 0 ? round2(pocRow.tpoCount / medianCount) : 0
 
   const hasIb = summary.ibHigh > 0 && summary.ibLow > 0
+  const periods = buildTpoPeriodClock(
+    meta,
+    rows.map((r) => r.letters),
+  )
   return {
     sessionDate: meta.sessionDate,
     session: meta.session,
     tpoPeriodMinutes: meta.tpoPeriodMinutes,
+    firstPeriod: meta.firstPeriod,
+    periodClock:
+      periods.length > 0 ? Object.fromEntries(periods.map((p) => [p.letter, p.clock])) : null,
     poc: {
       price: pocRow.price,
       tpoCount: pocRow.tpoCount,

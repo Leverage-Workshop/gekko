@@ -60,6 +60,8 @@ and a fenced CSV block, matching the existing `.vbp.md` convention:
 - **TPO Period Minutes**: 30
 - **Tick Size**: 0.25
 - **Bin Size (Ticks)**: 8
+- **First Period Letter**: A
+- **First Period Start**: 2026-07-24 08:30:00
 
 ## Summary
 - **POC Price**: 29950.00
@@ -83,6 +85,22 @@ Price,TPOCount,Letters
 `Letters` (period letters that traded each price) is what lets the engine sequence the
 day (e.g. "single prints from B period", "poor high built in H/I"), not just count.
 
+**Period→clock anchor (`feat-092`, added 2026-08-09).** The two `First Period …` lines
+above are the anchor that turns letters into times: with `TPO Period Minutes` the engine
+resolves any letter as `First Period Start + (letterIndex − firstLetterIndex) ×
+TPO Period Minutes` (`lib/engine/tpoPeriodClock.ts`), surfaced to the model as
+`tpo.periodClock` (letter → `HH:MM`) and `tpo.firstPeriod`. Contract:
+
+- `First Period Letter` — a single letter, the period that OPENS the exported session
+  (`A` for a session-anchored profile). Sequence is `A`–`Z` then `a`–`z`.
+- `First Period Start` — naive local wall-clock of that period's open,
+  `YYYY-MM-DD HH:MM:SS` (the ISO `T` separator and an omitted seconds field are also
+  accepted and normalized). No timezone suffix — the exports are naive local throughout
+  (standing gap A5 in `docs/data-bundle-review-2026-08-07.md`).
+- **Both lines are optional and additive.** `lib/engine/parseTpo.ts` degrades to
+  `meta.firstPeriod === null` when either is absent, so bundles exported before this
+  change keep parsing; only a present-but-unreadable value is a hard reject.
+
 **Claude Code prompt (new study):**
 
 > I have a Sierra Chart ACSIL project containing custom export studies that write data
@@ -92,7 +110,7 @@ day (e.g. "single prints from B period", "poor high built in H/I"), not just cou
 > format). Create a new ACSIL study that exports the current session's TPO / Market
 > Profile data to `C:\gekko\export\tpo.data.md`. Requirements: (1) markdown format with a
 > `## Metadata` section (Session Date, Session RTH/ETH, TPO Period Minutes, Tick Size,
-> Bin Size in ticks), a `## Summary` section (TPO POC Price, Value Area High/Low, IB
+> Bin Size in ticks, First Period Letter, First Period Start), a `## Summary` section (TPO POC Price, Value Area High/Low, IB
 > High/Low from the first hour, Session High/Low), and a `## TPO Data` section containing
 > a fenced csv block with columns `Price,TPOCount,Letters` — one row per price bin, price
 > descending, `Letters` being the concatenated TPO period letters that traded at that
