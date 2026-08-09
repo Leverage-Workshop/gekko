@@ -3,7 +3,39 @@
 ## Current State
 
 **Last Updated:** 2026-08-09
-**Latest change (feat-097, branch `feat-097-session-vwap-bands`):** the session VWAPs now
+**Latest change (feat-093, branch `feat-093-tpo-day-open-type`):** the canonical Market
+Profile session reads are code-owned, closing review item C2. New `lib/engine/tpoDayType.ts`
+classifies a session from the TPO letter **sequence** and hangs off `TpoFacts.classification`
+(so `facts.tpo` → `factsPayload` `tpo`, no new payload key): `dayType` — normal /
+normal-variation / trend / neutral / neutral-extreme / double-distribution — `openType` —
+open-drive / open-test-drive / open-rejection-reverse / open-auction — the IB→day-range
+`extension` (IB high/low, day range, `ratio` = day/IB and the quantile `band`), range
+extension **by period** (filtered to the periods that actually pushed the range out), and
+`highPeriod` / `lowPeriod`. The thresholds are **pinned-empirical, not textbook**:
+`PINNED_IB_EXTENSION_DISTRIBUTION` holds review section B7's measured sample (n=62, p25 1.25 /
+median 1.52 / p75 2.08 / p90 2.58) and the ladder is cut at those quantiles — below p25 the IB
+essentially held (`normal`), p25–p90 one-sided is `normal-variation`, ≥ p90 one-sided is
+`trend`, both sides is `neutral` (`neutral-extreme` when the last period sits on a session
+extreme). `double-distribution` is checked first, off feat-046's interior `singlePrintZones`
+with gap/body guards; when the extension *also* clears the trend decile the basis line says so
+(the chart-data fixture is exactly that: two bodies split by E's 12-bin vacuum, day/IB 3.25x,
+high printed by B at 09:00, low by F at 11:00, open read as an auction). **feat-100 seam:**
+`classifyTpoDay()` takes an optional `IbExtensionDistribution` defaulting to the pinned one and
+the fact reports `distribution.source` / `sampleSize`, so a live-computed distribution drops in
+without a rewrite — feat-100 stays `not-started`. Nothing branches on a clock time: `periodClock`
+only decorates the output, so the classifier works unchanged on live bundles whose exports
+predate feat-092's anchor lines (pinned by a test that strips those lines and asserts an
+identical classification with every clock null). Analyze prompt gained
+`TPO_CLASSIFICATION_RULE`; the screenshot-scoping line now excludes the code-owned day/open
+classification; `docs/engine-ownership.md` `tpo_data` + `tpo_png` rows updated. Analyze-prompt
+budget raised 98k → 101k (measured 100,319) with the rationale inline in the feat-054 gate —
+taken *with* the trim feat-097's stop note asks for, not instead of it: the fact was cut from
++3,056 to +2,588 chars first (extension events only, stripped of the running high/low they
+imply; `dayRange` dropped as `tpo.sessionRange` already carries it; the reference distribution
+cut to the two quantiles the ladder cuts at), and the bullet rewritten tight.
+`./init.sh` green: typecheck 0, lint 0 warnings, vitest 1255 passed / 1 skipped, build OK.
+
+**Prior change (feat-097, branch `feat-097-session-vwap-bands`):** the session VWAPs now
 carry a volume-weighted sigma envelope, closing review item A4 without touching the ACSIL
 export. `execution_bars.csv` already ships per-bar volume and `sessionIntraday` already
 accumulates both anchored VWAPs, so sigma is one pass over the same bars:
@@ -66,7 +98,6 @@ typecheck, lint --max-warnings 0, vitest 1218 passed / 1 skipped, next build. An
 budget raised to 97k chars — feat-094 and feat-095 each measured +2k against the 91k
 base in parallel and both bumped to 93k; together they measure 95_076, reconciled in
 `tests/prompt-data-sync.test.ts` with a note that 97k is a stop, not a running total.
-
 
 **Prior change (feat-091, branch `feat-091-tpo-excess-tails`):** TPO excess is measured
 instead of discarded, closing review item D2. `lib/engine/tpoFacts.ts` gained

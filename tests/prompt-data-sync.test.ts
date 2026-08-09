@@ -478,12 +478,30 @@ describe('prompt-data sync gate (feat-054)', () => {
       // ceiling WITHOUT raising it, per the stop above: its guide bullet was
       // written tight and the rungs are the compact form of numbers already in
       // `sigmaBands` (measured 97_731 — 269 chars of headroom left).
+      // Raised 98k → 101k 2026-08-09 (feat-093): `tpo.classification` — day
+      // type, open type, the IB→day-range extension with its empirical band,
+      // range extension by period and the high/low periods — plus its
+      // ownership bullet. Taken WITH the trim the stop above asks for, not
+      // instead of it: the fact was cut from +3_056 to +2_588 chars before
+      // this bump (per-period extension filtered to extension EVENTS rather
+      // than all 13 periods, then stripped of the running high/low each event
+      // implies; `dayRange` dropped because `tpo.sessionRange` already carries
+      // it; `periodCount` dropped as `periods.length`; the reference
+      // distribution cut to the two quantiles the ladder actually cuts at),
+      // and the guide bullet was rewritten tight. Measured 100_319. What is
+      // left is irreducibly new: day type
+      // and open type are canonical Market Profile reads the doctrine leans
+      // on that the engine had NO name for — they reached the model only as
+      // pixels on the TPO screenshot (review C2) — and the bullet has to
+      // teach two closed enums plus how to trade each day type, since neither
+      // appears anywhere in the cached prefix. The stop stands: the next fact
+      // to land here should trim before it bumps this number again.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 98k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 101k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(98_000)
+      ).toBeLessThan(101_000)
     })
   })
 })
