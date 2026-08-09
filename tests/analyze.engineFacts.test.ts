@@ -178,6 +178,47 @@ describe('computeEngineFacts', () => {
     ).toBe(true)
   })
 
+  it('computes the volatility scale from the same HTF bars (feat-095)', () => {
+    const result = facts({ htfCsvContent: read('htf_bar_data.rolling.csv') })
+    const scale = result.volatilityScale!
+    expect(scale).not.toBeNull()
+    expect(scale.estimator).toBe('parkinson')
+    expect(scale.sessionSigmaPts).toBe(scale.parkinson.sessionSigmaPts)
+    // Both estimators measure the same regime — within ~20% of each other.
+    expect(scale.garmanKlass.sessionSigmaPts / scale.sessionSigmaPts).toBeGreaterThan(0.8)
+    expect(scale.garmanKlass.sessionSigmaPts / scale.sessionSigmaPts).toBeLessThan(1.2)
+    // A session sigma must be a meaningful fraction of a typical day's range.
+    expect(scale.sessionSigmaPts).toBeGreaterThan(0.4 * scale.medianSessionRangePts)
+    expect(scale.sessionSigmaPts).toBeLessThan(scale.medianSessionRangePts)
+    // Sigma is ADDITIVE to points: every distance still carries its point value.
+    expect(scale.distancesToStructure.length).toBeGreaterThan(0)
+    for (const d of scale.distancesToStructure) {
+      expect(typeof d.pts).toBe('number')
+      expect(d.sigma).toBeCloseTo(Math.abs(d.pts) / scale.sessionSigmaPts, 1)
+    }
+    // The nearest Tier-1 each side is quoted against the live price.
+    const labels = scale.distancesToStructure.map((d) => d.label)
+    expect(labels).toContain('nearest zone border above')
+    expect(labels).toContain('nearest zone border below')
+    expect(result.warnings.some((w) => w.includes('session sigma'))).toBe(false)
+  })
+
+  it('degrades to volatilityScale:null with a warning on too little RTH history', () => {
+    expect(facts().volatilityScale).toBeNull()
+
+    // Parses fine, but one 2-bar RTH session is not a measurable regime.
+    const thinHtf = [
+      'DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume',
+      '2026-07-28 09:00:00,28000.00,28010.00,27990.00,28005.00,1000,500,500',
+      '2026-07-28 09:30:00,28005.00,28020.00,28000.00,28015.00,1000,500,500',
+    ].join('\n')
+    const thin = facts({ htfCsvContent: thinHtf })
+    expect(thin.volatilityScale).toBeNull()
+    expect(
+      thin.warnings.some((w) => w.includes('under 3 complete RTH sessions')),
+    ).toBe(true)
+  })
+
   it('computes the overnight session from the full-24h HTF bars (feat-060)', () => {
     const result = facts({ htfCsvContent: read('htf_bar_data.rolling.csv') })
     expect(result.overnightSession).not.toBeNull()

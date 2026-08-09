@@ -3,7 +3,34 @@
 ## Current State
 
 **Last Updated:** 2026-08-09
-**Latest change (feat-091, branch `feat-091-tpo-excess-tails`):** TPO excess is measured
+**Latest change (branch `feat-095-volatility-estimators`): feat-095 — range-based
+volatility estimators and sigma-normalized distances.** Closes review §B6: `atrPoints`
+was the engine's only scale measure. New `lib/engine/volatilityScale.ts` computes
+Parkinson (high/low) and Garman-Klass (OHLC) variance from the existing 30-min HTF bars —
+no new export — at two granularities: per 30-min bar, and per RTH session using each
+session's own aggregated OHLC. The headline `volatilityScale.sessionSigmaPts` is the
+Parkinson session sigma in points: **295.12 on the repo's fixture bundle against the
+review's measured 283-pt median**, with a 446-pt median session range (review: 464).
+Two measurement decisions are worth knowing (both in `decisions-log.md`): the session
+sigma is measured AT session granularity rather than √t-scaled up from the bar sigma —
+√t-scaling read 348 pts, ~25% high, because intraday ranges rotate rather than compound;
+and `RTH_BARS_PER_SESSION` is 15 (08:30–16:00 CT), not the 17 implied by
+`overnightSession`'s open→Globex-reopen window, because the live export prints no bars
+during the 16:00–17:00 CME maintenance halt. `distancesToStructure` reports the nearest
+Tier-1 level and zone border on each side in points AND sigma, banded
+noise/minor/meaningful/large — so "29 pts away" also reads as "0.10σ, inside the noise"
+without points ever being replaced. Degrades to null + a warning under 3 complete RTH
+sessions. Surfaced through `EngineFacts.volatilityScale` → `factsPayload` → the analyze
+and update prompts as a raw fact, and into the eval prompt as a context line. Exported
+`sigmaOfPoints` / `pointsForSigma` are the resolvers **feat-096** consumes to re-express
+`significant_move_pts`, `MIN_ENTRY_STANDOFF_PTS` and `MAX_ENTRY_CHASE_PTS` as sigma
+multiples. No DB change (feat-096 owns the config migration). `./init.sh` green:
+typecheck, lint --max-warnings 0, vitest 1218 passed / 1 skipped, next build. Analyze user-prompt
+budget raised to 97k chars — feat-094 and feat-095 each measured +2k against the 91k
+base in parallel and both bumped to 93k; together they measure 95_076, reconciled in
+`tests/prompt-data-sync.test.ts` with a note that 97k is a stop, not a running total.
+
+**Prior change (feat-091, branch `feat-091-tpo-excess-tails`):** TPO excess is measured
 instead of discarded, closing review item D2. `lib/engine/tpoFacts.ts` gained
 `TpoFacts.excess` (`TpoExcess` / `TpoTail`, threshold `EXCESS_MIN_BINS = 2`):
 `detectExcess()` walks the price-descending ladder inward from each end and reports the

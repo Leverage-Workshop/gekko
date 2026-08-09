@@ -182,3 +182,54 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
 - **Alternatives considered:** commit the real bundle export as a second fixture (perturbs
   unrelated budget gates); assert only on the existing fixture's 4-bin tail (would not have
   caught a fencepost error at 208 bins).
+## feat-095 — 2026-08-09
+
+- **Decision:** The headline `sessionSigmaPts` applies the Parkinson estimator to each RTH
+  session's OWN aggregated OHLC (open of the first 30-min bar, session high/low, close of the
+  last) and averages the per-session variances — rather than computing a per-bar sigma and
+  scaling it up by √(bars per session).
+- **Why:** The feature description pins the target at "median 283 pts over the 61 reconstructed
+  RTH sessions". √t-scaling the 30-min bar sigma reproduced 348 pts on the fixture bundle — ~25%
+  high — because intraday ranges rotate rather than compound, so the √t independence assumption
+  does not hold within a session. Applying Parkinson at session granularity reproduces the
+  review's number directly: ln(29464/29000)/(2·√ln2)·29000 = 276 pts against the review's
+  464-pt median day range and 283-pt sigma, and 295 pts on the repo's own fixture export. The
+  per-bar sigma is still exposed as `parkinson.barSigmaPts` / `garmanKlass.barSigmaPts`, just
+  never scaled across time.
+- **Alternatives considered:** (a) √t scaling from bar sigma — rejected, measurably biased high;
+  (b) median instead of mean of the per-session variances (the review quoted a median) — kept
+  the mean-of-variances, which is the standard Parkinson/Garman-Klass n-period estimator, and
+  reported `medianSessionRangePts` separately so the median view is still visible.
+
+- **Decision:** `RTH_BARS_PER_SESSION` is 15 (08:30–16:00 CT), not 17 (08:30–17:00), and only
+  sessions carrying at least that many bars are measured.
+- **Why:** `overnightSession.ts` defines the RTH window as open → Globex reopen (08:30–17:00 =
+  17 bars), but the live export prints no bars during the 16:00–17:00 CME maintenance halt —
+  verified against `chart-data/htf_bar_data.rolling.csv`, where every complete RTH session
+  carries exactly 15 bars, 08:30–15:30. Using 17 as the completeness threshold rejected every
+  session in the real export and degraded the fact to null. The RTH *filter* still matches
+  `multiDayTpo` (>= open, < Globex reopen) so no bar is silently dropped if one ever prints in
+  that hour; only the completeness threshold uses the 16:00 boundary.
+- **Alternatives considered:** Accepting partial sessions — rejected: the in-progress day has a
+  truncated range and would deflate the scale exactly when it is being quoted. Sessions are
+  therefore excluded until complete, with a minimum of 3 complete sessions before any sigma is
+  reported (`MIN_SIGMA_ESTIMATION_SESSIONS`).
+
+- **Decision:** Sigma-normalized distances are computed against a deliberately narrow structure
+  set — the nearest Tier-1 level each side and the nearest engine zone border each side — rather
+  than the whole level map.
+- **Why:** The review's point is that a nearby distance can read as meaningful when it is
+  noise; four references answer that directly. Rendering every level in sigma would add ~3k
+  chars to an analyze prompt already near its size budget and bury the signal.
+- **Alternatives considered:** Adding a sigma field alongside `htfStructure.currentVsSwings`'s
+  existing ATR-normalized distances — left alone to keep the feat-049 module untouched;
+  `sigmaOfPoints` / `sigmaDistanceTo` are exported so any caller can normalize its own distance.
+
+- **Decision:** The analyze user-prompt size budget in `tests/prompt-data-sync.test.ts` was
+  raised 91k → 93k chars.
+- **Why:** The new fact plus its ownership bullet measured 90_901 chars against a 91_000
+  ceiling — passing, but with no headroom for the next change. The test's own comment prescribes
+  bumping the number consciously, in the diff a reviewer sees.
+- **Alternatives considered:** Trimming the fact — rejected, every field is already a scalar or
+  a 4-element list; nothing is inlined raw.
+
