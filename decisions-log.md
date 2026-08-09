@@ -293,3 +293,83 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   feature that set the stop); dropping `vwapRungs` from `factsPayload` and surfacing only the
   nested bands (saves ~450 chars but leaves the model to flatten and label the rungs itself — the
   attribution labels are the point).
+
+## feat-093 — 2026-08-09
+
+- **Decision:** The day-type thresholds are **pinned-empirical**, not live-computed:
+  `PINNED_IB_EXTENSION_DISTRIBUTION` in `lib/engine/tpoDayType.ts` hard-codes review section
+  B7's measured sample (n=62; day/IB p25 1.25, median 1.52, p75 2.08, p90 2.58, max 3.58;
+  sides 4% / 79% / 16%), and `classifyTpoDay()` takes the distribution as an **optional
+  argument defaulting to that constant** — the feat-100 seam.
+- **Why:** feat-093's spec says to ground classification in the bundle's own extension
+  distribution rather than textbook thresholds where they disagree, but the feature that
+  *computes* that distribution per bundle (feat-100) is `not-started` and explicitly out of
+  scope. B7 has already measured it, so the measured numbers are pinned as named constants
+  with the review section cited in the docblock. The fact reports
+  `classification.distribution.source` (`pinned-empirical` | `measured`) and `sampleSize`, so
+  a briefing can always tell which distribution judged the session. feat-100 needs only to
+  build an `IbExtensionDistribution` with `source: 'measured'` and pass it through
+  `computeTpoFacts` → `classifyTpoDay`; no classifier logic changes.
+- **Alternatives considered:** textbook thresholds (rejected — the spec forbids it where they
+  disagree, and they disagree sharply: the textbook normal day is day/IB ≈ 1.0, but the
+  measured p25 is already 1.25 and only 4% of sessions had no extension at all, so a textbook
+  cut would classify almost nothing as normal); computing the distribution here from
+  `daily-value-areas.csv` (that IS feat-100 — out of scope, and the daily history carries no
+  IB, so it would need the same HTF reconstruction feat-100 owns).
+
+- **Decision:** `double-distribution` is evaluated FIRST, ahead of `trend`, and when the same
+  session's extension also clears the trend decile the `dayTypeBasis` says so explicitly
+  ("double-distribution trend day").
+- **Why:** `dayType` is a single closed enum but the two reads are not mutually exclusive — the
+  chart-data fixture is both (two bodies split by E's 12-bin single-print vacuum, *and* a 3.25x
+  one-sided extension above the p90). Double distribution is the more specific structural claim
+  and the one nothing else in the engine names, so it wins the slot; the trend qualification is
+  preserved in prose rather than silently dropped.
+- **Alternatives considered:** trend first (loses the two-body shape, which is the actionable
+  part — the vacuum between the distributions is the boundary that matters); a second
+  `dayTypeSecondary` field (more payload for a case the basis line already carries).
+
+- **Decision:** Open type is read from the opening periods' **ranges**, using the first
+  period's own range as the stand-in for the opening price, over a 3-period window.
+- **Why:** `tpo.data.md` exports no opening price — only `Price,TPOCount,Letters` — so the
+  textbook "never traded back through the open" test is not literally computable. The first
+  period's range is the tightest available proxy: an open-drive leaves it and never returns, a
+  test-drive pokes one side and drives out the other, a rejection-reverse auctions well past
+  one side then reverses further past the other. Documented as a proxy in the module docblock,
+  with every cut-off a named exported constant.
+- **Alternatives considered:** deriving the open from `execution_bars.csv`'s first RTH bar
+  (couples a TPO fact to a different export and to session-boundary logic this module has no
+  business owning; also breaks the "letter sequence is the only requirement" property); adding
+  an `Open` line to the study export (an exporter change, i.e. a new feature, not feat-093).
+
+- **Decision:** Nothing in the classifier branches on a clock time; `periodClock` only decorates
+  the output, and `neutral-extreme` uses "the last period sits on a session extreme" as its
+  proxy for the textbook "closes on the extreme".
+- **Why:** `facts.tpo.periodClock` is null on every live bundle until the Sierra ACSIL study
+  ships feat-092's two metadata lines, so a classifier that needed times would be dead code in
+  production. Letter *sequence* is always present. Likewise the TPO export carries no close, and
+  the final period's location is the closest ladder-derivable stand-in. Pinned by a test that
+  strips the anchor lines from the fixture and asserts an identical classification with every
+  `clock` null.
+- **Alternatives considered:** requiring the anchor and returning null without it (would make
+  the whole feature inert on live data).
+
+- **Decision:** Analyze-prompt size budget consciously raised 98k → 101k (measured 100,319)
+  AFTER trimming the fact; the classification rule is analyze-only, not shared with the update
+  prompt.
+- **Why:** feat-097 left the gate at 98k with 269 chars of headroom and an explicit note that
+  *the next fact to land should trim before it bumps this number again*, so the trim came
+  first: the fact went from +3,056 to +2,588 chars — per-period extension is filtered to
+  extension *events* (3 rows on the fixture, not 13) and stripped of the running high/low each
+  event implies, `dayRange` dropped because `tpo.sessionRange` already carries it,
+  `periodCount` dropped as `periods.length`, and the reference distribution cut to the two
+  quantiles the ladder actually cuts at (p25/p90, with the sample size B7 requires) — and the
+  guide bullet was rewritten tight. What remains is irreducibly new: the bullet has to teach
+  two closed enums plus how to trade each day type, and neither appears anywhere in the cached
+  prefix. Keeping it out of the update prompt bounds the cost further: day type and open type
+  are settled by the letter sequence the morning briefing already saw, so an update would be
+  paying to restate an unchanged fact. Rationale recorded inline in the feat-054 gate, per
+  convention, and the stop note is restated there rather than deleted.
+- **Alternatives considered:** dropping `dayTypeBasis`/`openTypeBasis` (~300 chars saved, but
+  they carry the numbers the briefing is supposed to quote); emitting all periods rather than
+  extension events (~1.5k more, mostly rotation rows that say nothing).

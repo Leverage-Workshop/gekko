@@ -80,6 +80,17 @@ describe('computeEngineFacts', () => {
     })
     expect(result.tpo!.excess.sellingTail).toBeNull()
     expect(result.tpo!.excess.singlePrintFraction).toBe(0.17)
+    // feat-093: the canonical day-type / open-type read, from the letter
+    // sequence — the fixture's two bodies split by E's single-print vacuum.
+    expect(result.tpo!.classification).toMatchObject({
+      dayType: 'double-distribution',
+      openType: 'open-auction',
+      periods: 'ABCDEFGHIJKLM',
+      highPeriod: { letter: 'B', clock: '09:00', price: 30044 },
+      lowPeriod: { letter: 'F', clock: '11:00', price: 29862 },
+    })
+    expect(result.tpo!.classification!.extension).toMatchObject({ ratio: 3.25, sides: 'down' })
+    expect(result.tpo!.classification!.distribution.source).toBe('pinned-empirical')
     expect(result.warnings.some((w) => w.includes('TPO'))).toBe(false)
   })
 

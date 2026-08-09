@@ -1,5 +1,7 @@
 import type { TpoPeriodAnchor, TpoProfile, TpoRow } from './parseTpo'
 import { buildTpoPeriodClock, TPO_PERIOD_LETTERS } from './tpoPeriodClock'
+import { classifyTpoDay } from './tpoDayType'
+import type { TpoClassification } from './tpoDayType'
 
 /**
  * Deterministic TPO / Market Profile reads (feat-046) — the day-structure
@@ -136,6 +138,14 @@ export type TpoFacts = {
    * is a finished (rejected) one.
    */
   excess: TpoExcess
+  /**
+   * Canonical Market Profile session classification (feat-093): day type,
+   * open type, range extension by period and which period printed the session
+   * high and low — all from the letter sequence, with clock times as
+   * best-effort decoration. Null when the ladder holds fewer than
+   * `MIN_CLASSIFY_PERIODS` periods (too thin to classify).
+   */
+  classification: TpoClassification | null
 }
 
 function median(values: number[]): number {
@@ -300,6 +310,10 @@ export function computeTpoFacts(profile: TpoProfile): TpoFacts {
   const periodClock =
     periods.length > 0 ? Object.fromEntries(periods.map((p) => [p.letter, p.clock])) : null
 
+  const singlePrintZones = detectSinglePrintZones(rows, meta.step)
+  const initialBalance = hasIb ? { high: summary.ibHigh, low: summary.ibLow } : null
+  const sessionRange = { high: summary.sessionHigh, low: summary.sessionLow }
+
   return {
     sessionDate: meta.sessionDate,
     session: meta.session,
@@ -313,11 +327,20 @@ export function computeTpoFacts(profile: TpoProfile): TpoFacts {
       prominent: prominence >= POC_PROMINENCE_MIN,
     },
     valueArea: { high: summary.valueAreaHigh, low: summary.valueAreaLow },
-    initialBalance: hasIb ? { high: summary.ibHigh, low: summary.ibLow } : null,
-    sessionRange: { high: summary.sessionHigh, low: summary.sessionLow },
-    singlePrintZones: detectSinglePrintZones(rows, meta.step),
+    initialBalance,
+    sessionRange,
+    singlePrintZones,
     poorHigh: detectPoorExtreme(rows[0]),
     poorLow: detectPoorExtreme(rows[rows.length - 1]),
     excess: detectExcess(rows, meta.step, periodClock),
+    classification: classifyTpoDay({
+      rows,
+      step: meta.step,
+      ib: initialBalance,
+      sessionRange,
+      singlePrintZones,
+      periodClock,
+      tpoPeriodMinutes: meta.tpoPeriodMinutes,
+    }),
   }
 }
