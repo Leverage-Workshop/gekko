@@ -541,3 +541,68 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   **Alternatives considered:** ignoring the column entirely (loses a free drift detector);
   trusting it when present (couples the engine to an exporter field that does not exist yet).
 
+
+## feat-090 — 2026-08-09
+
+- **Decision:** the developing session's value levels (`developingSession.poc/vah/val`) are
+  NOT added to the anchor set. Today's TIME-based value (`tpo.poc`, `tpo.valueArea`) IS.
+  **Why:** the brief named only `priorDay` and the TPO/composite levels and asked for this to
+  be decided deliberately. An anchor is a price an entry is committed to in advance, and a
+  developing volume value area is still moving: its POC can migrate tens of points between the
+  briefing and the fill, so an entry "on structure" at 09:45 is off it by 11:00 — the anchor
+  set would be validating against a level that no longer exists. feat-089 makes the same point
+  from the other side by attaching a maturity qualifier to the fact precisely because it is
+  provisional. The live session is not left unanchorable, though: `tpo.poc` and the TPO value
+  area are the same session read time-based, and they ARE promoted here, so the operator's
+  "today's POC sits 1 pt away and cannot host an entry" complaint is answered. The developing
+  fact stays what feat-089 built it to be — context the model reads and weighs by maturity.
+  **Alternatives considered:** promoting it gated on `maturity.read === 'mature'` (a threshold
+  that silently changes the anchor set mid-session, so the same briefing is valid at 14:00 and
+  invalid at 09:30 — worse than either constant answer); promoting it unconditionally
+  (anchors on a moving target, and doubles up with the TPO read of the same session).
+
+- **Decision:** the prior-day value area reaches the anchor set through `mgiPriority` →
+  `terrain`, while the TPO/composite levels are passed straight into `engineAnchorPrices()`.
+  **Why:** the spec's own split, and it is the right one. RVAH/RVAL/RPOC are *named doctrine
+  levels* with a defined tier and a defined rank, so they belong in the level classification
+  where they get tested against local volume geometry like every other level. The TPO and
+  composite POCs have no MGI name and no tier; terrain is built from the two VOLUME profiles
+  plus the MGI levels, and nothing time-based can enter it without inventing a classification
+  for it. `engineAnchorPrices` is exactly the seam for "hostable structure that is not
+  terrain" — feat-074's LVN nodes and feat-097's VWAP rungs arrive the same way.
+  **Alternatives considered:** passing all seven prices directly into `engineAnchorPrices`
+  (leaves the doctrine's ranks 4–5 permanently missing from the priority sort, which is half
+  of what the review asked for); synthesizing MGI levels for the TPO POCs too (invents tiers
+  and ranks doctrine does not define).
+
+- **Decision:** `engineZoneBorders()` is untouched, and the terrain zone stack does not change.
+  **Why:** feat-097 established that the zone-border set is the hard-enforced partition the
+  model must reproduce, and a POC is structure, not a partition. Adding three MGI levels *does*
+  reach `assembleTerrain` (that is the point — `selectAnchorLevels` takes the whole `daily`
+  group), so this was checked rather than assumed: on the fixture bundle the stack is 10 zones
+  / 11 borders before and after. The three levels earn level verdicts, not zone splits.
+
+- **Decision:** `resolveCurrentPrice()` was extracted from `computeMgiPriority` and the
+  value-area partition moved above the MGI classification in `computeEngineFacts`.
+  **Why:** `computeMgiPriority` now takes an input (the prior completed session's value area)
+  that is itself parsed from an export priced against the current price — a cycle unless the
+  price is resolved first. One exported helper keeps a single source and a single failure mode
+  for "which price is live" rather than a second `mgi.current.price` read at the call site.
+  **Alternatives considered:** computing `mgiPriority` twice (once for the price, once with
+  the value levels) — two `MgiPriority` objects in scope is exactly the kind of trap where a
+  later edit reads the stale one.
+
+- **Decision:** raised the analyze user-prompt budget 104k → 106k, after trimming 3,738 chars
+  in the same diff (measured 105,063; net +2,628 over feat-089's 102,435).
+  **Why:** feat-089's stop says trim before you bump, so the trim came first. Promoting three
+  levels costs ~6.4k because each earns a FULL terrain verdict (~660 chars) — and that verdict
+  is the entire point, since it is what makes the level anchorable. The trim is the payload's
+  largest genuine duplication: `mgiPriority.tier1` and `mgiPriority.dailyPrioritySort`
+  re-serialized level objects that `mgiPriority.levels` already carries two lines above them.
+  They are now `"LABEL PRICE #rank"` strings — the ORDERING is what those two views exist for,
+  and it survives intact. The new anchoring doctrine went into the cached
+  `output-objective.md` prefix (feat-096's pattern), so it costs the per-run budget nothing.
+  **Alternatives considered:** dropping `tier1`/`dailyPrioritySort` outright (loses the two
+  orderings, which are real engine output); trimming terrain verdict internals (`local` stats,
+  embedded magnet refs) — a bigger, riskier change to the model surface with no connection to
+  this feature; not promoting the levels to terrain (fails the feature).

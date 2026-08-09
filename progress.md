@@ -3,7 +3,64 @@
 ## Current State
 
 **Last Updated:** 2026-08-09
-**Latest change (branch `feat-096-volatility-scaled-gates`): feat-096 — the fixed-point
+
+**BATCH COMPLETE — feat-089 through feat-097 are all `done`.** Nothing from the
+2026-08-07 bundle review batch is in flight. See "Carried forward" at the end of this
+block for the follow-ups that outlive it.
+
+**Latest change (branch `feat-090-anchorable-value-levels`): feat-090 — prior-day and TPO
+value levels are anchorable structure.** Closes review D5/B4 and the operator's open
+follow-up from the 2026-08-03 briefing review. `engineAnchorPrices()` was built from
+terrain only — MGI levels plus the two VOLUME profiles — so nothing derived from TPO, the
+value-area history or the multi-day composite could host an entry: on bundle 1c15934a the
+session's own point of control sat **1 pt from current price and could not be traded**,
+and the nearest anchor to any of the seven measured value prices was 2.98 pts away. Two
+routes, deliberately different. (1) The prior COMPLETED session's value area enters
+`computeMgiPriority` through a new `priorDayValue` option as the doctrine's **Daily MGI
+Priority ranks 4–5 — RVAH/RVAL (4) and RPOC (5), Tier 2 alongside PDH/PDL** — so it tiers,
+sorts in `dailyPrioritySort`, and reaches terrain (`selectAnchorLevels` takes the whole
+`daily` group), arriving in the anchor set as an ordinary terrain level with a verdict.
+This is only safe because of feat-089: promoting a contaminated `priorDay` would have
+anchored entries on the value area being built around current price. (2) `tpo.poc`,
+`tpo.valueArea` and `multiDayTpo.composite.poc` — TIME-based levels terrain can never mint
+— are passed straight into `engineAnchorPrices()` through a new 4th `value` argument, the
+same seam feat-074's LVN nodes and feat-097's VWAP rungs use. **All seven measured prices
+are now anchors at distance exactly 0**, pinned by a regression test that reproduces the
+review's own D5 table. `mgiPriority`'s stale docstring ("ranks 4 and 5 … are not in this
+export" — untrue since feat-048) is corrected. `engineZoneBorders()` was left alone per
+feat-097's boundary, and the zone stack is verified unchanged (10 zones / 11 borders before
+and after): the three new levels earn level verdicts, not zone splits. The developing
+session's levels are deliberately **not** anchorable — an unfinished value area is a moving
+target, and today is already anchorable time-based via `tpo.poc` (reasoned in
+`decisions-log.md`). Structural note: `resolveCurrentPrice()` is now exported from
+`mgiPriority.ts` and `computeEngineFacts` runs the feat-089 partition ABOVE the MGI
+classification, because the classification now consumes a fact parsed from an export that
+is itself priced against current price. Analyze-prompt budget 104k → 106k (**measured
+105,063**), taken *after* the trim feat-089's stop demands: `mgiPriority.tier1` and
+`dailyPrioritySort` were re-serializing level objects `mgiPriority.levels` already carries
+two lines above them and are now compact `"LABEL PRICE #rank"` strings (−3,738, orderings
+intact), and the new anchoring doctrine went into the cached `output-objective.md` prefix
+rather than the per-run message. Net +2,628 for seven newly tradable levels.
+`./init.sh` green: typecheck, lint --max-warnings 0, vitest 1296 passed / 1 skipped
+(9 new), next build.
+
+**Carried forward (open, out of scope for this batch):**
+- **feat-100** would make feat-093's pinned IB-extension quantiles live; the seam is
+  already there (`classifyTpoDay()` takes an optional `IbExtensionDistribution`), and
+  feat-100 stays `not-started`.
+- **`supabase/migrations/20260809140000_volatility_scaled_gates.sql` (feat-096) is
+  COMMITTED BUT NOT APPLIED** — no Supabase credentials in these sessions. The config
+  ladder degrades by design until an operator applies it; recorded as PENDING in
+  `.claude/skills/gekko-db/SKILL.md`.
+- **Two coexisting scale measures:** `htfStructure.atrPoints` and feat-095's session sigma.
+  Neither is wrong; nothing has unified them, and gates now key off the sigma.
+- **feat-092's TPO period→clock map is inert on live bundles** until the Sierra ACSIL study
+  ships the two metadata lines. Everything downstream (feat-093 included) is built to work
+  with every clock null.
+- **The `chart-data` fixture has internally inconsistent dates across files.** Tests work
+  around it; a bundle refresh would be the real fix.
+
+**Prior change (branch `feat-096-volatility-scaled-gates`): feat-096 — the fixed-point
 gates are volatility-scaled.** Closes review D3/C1. feat-086 made `significant_move_pts`
 the binding gate for entry qualification and set it to 50 points; measured over the 61 RTH
 sessions in bundle 1c15934a's own HTF export that is **0.18σ against a 283-pt median

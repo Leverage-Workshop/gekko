@@ -533,12 +533,26 @@ describe('prompt-data sync gate (feat-054)', () => {
       // `valueMigration.priorDay` into TODAY — so the choice was never "carry
       // it or not" but "carry it labelled or carry it lying". The stop stands:
       // the next fact to land here trims before it bumps.
+      // Raised 104k → 106k 2026-08-09 (feat-090), trimming first as the stop
+      // above demands. Promoting the prior completed session's value area to
+      // RVAH/RVAL/RPOC (Daily MGI Priority ranks 4–5) costs ~6.4k: three MGI
+      // levels that each earn a FULL terrain verdict (~660 chars apiece) plus
+      // their entries in the level list and the priority sort — that verdict is
+      // the whole point, since it is what makes them anchorable. Paid for by
+      // dropping the biggest duplication in the payload: `mgiPriority.tier1`
+      // and `mgiPriority.dailyPrioritySort` were re-serializing 33 level
+      // objects that `mgiPriority.levels` already carries two lines above them,
+      // and are now "LABEL PRICE #rank" strings — the ordering is what those
+      // views are FOR, and it survives intact (−3_738). Net +2_628, measured
+      // 105_063. The new anchoring prose went into the cached
+      // output-objective.md prefix (feat-096's pattern), costing this budget
+      // nothing. The stop still stands for the next fact.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 104k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 106k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(104_000)
+      ).toBeLessThan(106_000)
     })
   })
 })

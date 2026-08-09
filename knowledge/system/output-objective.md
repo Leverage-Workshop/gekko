@@ -56,9 +56,11 @@ Each objective (primary and secondary) carries:
   entry and never justifies moving the entry deeper.
 
 Entries, stops, and T1 must sit on engine-supplied structure — a zone border, a terrain level, a
-detector LVN node (taper-edge/valley; the fakeout-formed-extreme anchor below), or a session-VWAP
-rung (the session VWAP itself or one of its volume-weighted sigma bands) — never in the middle of
-value. A session-VWAP rung is intraday structure the profile geometry never mints: quote it with
+detector LVN node (taper-edge/valley; the fakeout-formed-extreme anchor below), a session-VWAP
+rung (the session VWAP itself or one of its volume-weighted sigma bands), or a value level: the
+prior completed RTH session's value area and point of control (RVAH/RVAL/RPOC, Daily MGI Priority
+ranks 4–5, which arrive as ordinary terrain levels), today's TPO point of control and value-area
+edges, and the multi-day composite POC — never in the middle of value. A session-VWAP rung is intraday structure the profile geometry never mints: quote it with
 its engine label, and read a band as the session's stretch from its own average rather than as a
 distribution border — at or beyond the outer band price is extended (a mean-reversion rung, not an
 entry on its own), while the inner band is the ordinary rotation edge.

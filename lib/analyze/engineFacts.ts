@@ -10,7 +10,7 @@ import { annotateNodeBuilds, withBuild } from '@/lib/engine/nodeBuild'
 import type { BuiltLvnDetectionResult } from '@/lib/engine/nodeBuild'
 import { collectMagnets, evaluateMagnetCheck } from '@/lib/engine/magnetCheck'
 import type { MagnetCheck, ProfileSummary } from '@/lib/engine/magnetCheck'
-import { computeMgiPriority } from '@/lib/engine/mgiPriority'
+import { computeMgiPriority, resolveCurrentPrice } from '@/lib/engine/mgiPriority'
 import type { MgiPriority, MgiStaticLevels } from '@/lib/engine/mgiPriority'
 import { parseExecBars } from '@/lib/engine/parseExecBars'
 import { parseDeltaProfile, parseVbpProfile } from '@/lib/engine/parseProfile'
@@ -242,6 +242,18 @@ export function engineZoneBorders(terrain: TerrainZonesResult): number[] {
 }
 
 /**
+ * The TPO-derived value levels an entry may anchor on (feat-090). Passed
+ * separately from `terrain` because terrain is built from the two VOLUME
+ * profiles plus the MGI levels, and nothing time-based reaches it.
+ */
+export type AnchorableValueFacts = {
+  /** Today's TIME-based value: `tpo.poc` and the 70% value-area edges. */
+  tpo?: TpoFacts | null
+  /** The multi-day composite's point of control (`multiDayTpo.composite.poc`). */
+  multiDayTpo?: MultiDayTpoFacts | null
+}
+
+/**
  * Every engine price an entry may legitimately anchor on: zone borders, level
  * verdicts, composite border band members and — when the per-profile node
  * facts are supplied — detector LVN node prices (feat-074: the doctrine's
@@ -254,11 +266,22 @@ export function engineZoneBorders(terrain: TerrainZonesResult): number[] {
  * value, never an entry. Profile data edges are filtered out, as they are data
  * artifacts the doctrine forbids trading (feat-040 G2). Deduped,
  * price-descending. Feeds `ValidateOptions.anchorPrices`.
+ *
+ * `value` adds the TIME-based value levels (feat-090, review D5): today's TPO
+ * POC and value-area edges and the multi-day composite POC. Terrain is built
+ * from the volume profiles and the MGI levels alone, so before this the
+ * session's own point of control — a point from current price on the review's
+ * bundle — could not host an entry. The prior COMPLETED session's value area
+ * arrives by a different route and needs no argument here: it enters as the
+ * doctrine's Daily MGI Priority ranks 4–5 (RVAH/RVAL/RPOC) in
+ * `computeMgiPriority`, so it reaches this set through terrain, tiered and
+ * ranked, like every other named level.
  */
 export function engineAnchorPrices(
   terrain: TerrainZonesResult,
   lvn?: EngineFacts['lvn'],
   sessionIntraday?: SessionIntradayFacts,
+  value?: AnchorableValueFacts,
 ): number[] {
   const lvnNodes = lvn ? [...lvn.rotation.lvn, ...lvn.balanceArea.lvn] : []
   const anchors = [
@@ -272,7 +295,12 @@ export function engineAnchorPrices(
   // Session-VWAP rungs are empty on partial coverage, so they simply drop out
   // of the anchor set rather than needing a guard here.
   const vwapRungs = sessionIntraday?.vwapRungs.map((rung) => rung.price) ?? []
-  return [...new Set([...anchors, ...vwapRungs])].sort((a, b) => b - a)
+  const tpo = value?.tpo
+  const valueLevels = [
+    ...(tpo ? [tpo.poc.price, tpo.valueArea.high, tpo.valueArea.low] : []),
+    ...(value?.multiDayTpo ? [value.multiDayTpo.composite.poc.price] : []),
+  ].filter((price) => Number.isFinite(price))
+  return [...new Set([...anchors, ...vwapRungs, ...valueLevels])].sort((a, b) => b - a)
 }
 
 /**
@@ -331,42 +359,17 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
 
   const bars = parseExecBars(input.execCsvContent)
   const deltaTelemetry = computeDeltaTelemetry(bars)
-  const mgi = computeMgiPriority(input.mgi)
-  const sessionIntraday = computeSessionIntraday(bars, mgi.currentPrice)
+  // ONE live price for the whole engine, resolved from the MGI export before the
+  // classification itself (feat-090): `computeMgiPriority` now takes the prior
+  // completed session's value area as an input, and reading that export is
+  // itself priced against the current price. Same source, same failure, once.
+  const currentPrice = resolveCurrentPrice(input.mgi)
+  const sessionIntraday = computeSessionIntraday(bars, currentPrice)
   if (sessionIntraday.coverage === 'partial') {
     warnings.push(
       `exec export starts ${sessionIntraday.firstBarTime}, well after the Globex open — session VWAP and cumulative delta not computed (partial session coverage)`,
     )
   }
-  // Node build quality (feat-050): the canonical node lists are annotated with
-  // the raw delta that built them when the profile export carries the Delta
-  // column. Terrain and the magnet verdicts consume the UNannotated objects —
-  // they embed magnet/node references throughout their output, and duplicating
-  // the build objects there balloons the prompt payload for no new information.
-  const lvnRaw = {
-    rotation: detectLvnHvn(rotationVbp.rows),
-    balanceArea: detectLvnHvn(balanceAreaVbp.rows),
-  }
-  const lvn = {
-    rotation: annotateNodeBuilds(lvnRaw.rotation, rotationVbp.rows),
-    balanceArea: annotateNodeBuilds(lvnRaw.balanceArea, balanceAreaVbp.rows),
-  }
-  for (const [name, profile] of [
-    ['four-hundred-rotation', rotationVbp],
-    ['balance-area', balanceAreaVbp],
-  ] as const) {
-    if (!profile.rows.some(r => r.delta !== undefined)) {
-      warnings.push(`${name} profile has no Delta column — node build quality not computed`)
-    }
-  }
-  const absorption = confirmStalls(
-    scanAbsorption({
-      halfRotation: halfRotationDelta.rows,
-      fullRotation: fullRotationDelta.rows,
-    }),
-    bars,
-  )
-  const staleness = assessStaleness({ receivedAt: input.receivedAt, now: input.now })
 
   let tpo: TpoFacts | null = null
   if (input.tpoDataContent) {
@@ -429,7 +432,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
           'daily value-area history holds only the live session — migration and range reads not computed',
         )
       } else {
-        valueMigration = computeValueMigration(completedSessions, mgi.currentPrice)
+        valueMigration = computeValueMigration(completedSessions, currentPrice)
         dailyRanges = computeDailyRanges(completedSessions)
       }
     } catch (error) {
@@ -445,6 +448,45 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     )
   }
 
+  // Computed AFTER the value-area partition (feat-090): the prior COMPLETED
+  // session's value area enters the classification as the doctrine's Daily MGI
+  // Priority ranks 4–5 (RVAH/RVAL/RPOC), which is what lets it tier, sort and —
+  // via `selectAnchorLevels`, which takes the whole `daily` group — reach
+  // terrain, where an entry may finally anchor on it.
+  const mgi = computeMgiPriority(input.mgi, {
+    currentPrice,
+    priorDayValue: valueMigration?.priorDay ?? null,
+  })
+  // Node build quality (feat-050): the canonical node lists are annotated with
+  // the raw delta that built them when the profile export carries the Delta
+  // column. Terrain and the magnet verdicts consume the UNannotated objects —
+  // they embed magnet/node references throughout their output, and duplicating
+  // the build objects there balloons the prompt payload for no new information.
+  const lvnRaw = {
+    rotation: detectLvnHvn(rotationVbp.rows),
+    balanceArea: detectLvnHvn(balanceAreaVbp.rows),
+  }
+  const lvn = {
+    rotation: annotateNodeBuilds(lvnRaw.rotation, rotationVbp.rows),
+    balanceArea: annotateNodeBuilds(lvnRaw.balanceArea, balanceAreaVbp.rows),
+  }
+  for (const [name, profile] of [
+    ['four-hundred-rotation', rotationVbp],
+    ['balance-area', balanceAreaVbp],
+  ] as const) {
+    if (!profile.rows.some(r => r.delta !== undefined)) {
+      warnings.push(`${name} profile has no Delta column — node build quality not computed`)
+    }
+  }
+  const absorption = confirmStalls(
+    scanAbsorption({
+      halfRotation: halfRotationDelta.rows,
+      fullRotation: fullRotationDelta.rows,
+    }),
+    bars,
+  )
+  const staleness = assessStaleness({ receivedAt: input.receivedAt, now: input.now })
+
   let htfStructure: HtfStructureFacts | null = null
   let overnightSession: OvernightSessionFacts | null = null
   let multiDayTpo: MultiDayTpoFacts | null = null
@@ -455,7 +497,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   if (input.htfCsvContent) {
     try {
       htfBars = parseHtfBars(input.htfCsvContent)
-      htfStructure = computeHtfStructure(htfBars, mgi.currentPrice)
+      htfStructure = computeHtfStructure(htfBars, currentPrice)
       relativeVolume = computeRelativeVolume({
         bars: htfBars,
         completedSessions,
@@ -466,13 +508,13 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
           'no intraday slot or session has enough volume history for a relative-volume read — RVOL not computed',
         )
       }
-      overnightSession = computeOvernightSession(htfBars, mgi.currentPrice)
+      overnightSession = computeOvernightSession(htfBars, currentPrice)
       if (overnightSession === null) {
         warnings.push(
           'HTF export carries no overnight bars — overnight session facts not computed',
         )
       }
-      multiDayTpo = computeMultiDayTpo(htfBars, mgi.currentPrice)
+      multiDayTpo = computeMultiDayTpo(htfBars, currentPrice)
       if (multiDayTpo === null) {
         warnings.push(
           'HTF export holds fewer than two RTH sessions — multi-day TPO composite not computed',
@@ -496,7 +538,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     developingSession = computeDevelopingSession({
       developing: developingRow,
       completed: completedSessions ?? [],
-      currentPrice: mgi.currentPrice,
+      currentPrice,
       chartNow: bars.length > 0 ? bars[bars.length - 1].dateTime : null,
       expectedVolumeFraction: relativeVolume?.sessionSoFar?.expectedFraction ?? null,
     })
@@ -522,7 +564,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     // Red flip is count-based: the mean is display context only; the flip needs
     // RED_BUILDING_MIN_BARS red-extreme prints clustered in the recent window.
     ripStatus = computeRipStatus({
-      currentPrice: mgi.currentPrice,
+      currentPrice,
       rip,
       deltaIntensity: deltaTelemetry.recentMeanDelta,
       redExtremeCount: deltaTelemetry.recentRedExtremeCount,
@@ -535,7 +577,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     bars,
     sessionIntraday,
     ripCondition: ripStatus?.condition ?? null,
-    currentPrice: mgi.currentPrice,
+    currentPrice,
   })
 
   // Magnet set: built ONCE from the BALANCE-AREA profile (feat-037 — the Gem's
@@ -603,8 +645,8 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   if (htfBars) {
     volatilityScale = computeVolatilityScale({
       bars: htfBars,
-      currentPrice: mgi.currentPrice,
-      structure: sigmaStructureRefs(mgi, terrain, mgi.currentPrice),
+      currentPrice,
+      structure: sigmaStructureRefs(mgi, terrain, currentPrice),
     })
     if (volatilityScale === null) {
       warnings.push(
@@ -622,7 +664,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   }
 
   return {
-    currentPrice: mgi.currentPrice,
+    currentPrice,
     staleness,
     deltaTelemetry,
     mgi,
