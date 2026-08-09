@@ -54,6 +54,45 @@ export function chartManifest(charts: readonly ChartAttachment[]): string {
 }
 
 /**
+ * The MODEL's copy of the terrain result — the two halves of the duplication
+ * feat-090 identified, both harvested, neither touching `facts.terrain` (code
+ * consumers keep every field):
+ *
+ * 1. **feat-108** — each composite border's `members` keeps what the prompts
+ *    actually point at (its price, kind, hard/faint/shallow flags, `source` and
+ *    the `reason` string the AAA-demotion rule quotes); the re-serialized
+ *    `level` object, `local` block, `magnet` ref and `detectorNode` are
+ *    dropped, all reachable under the same label in `terrain.levels`.
+ * 2. **feat-100** — the pre-merge hard-partition list goes entirely.
+ *    `facts.terrain.partitions` is built as `levels.filter(v => v.hard)` — the
+ *    SAME verdict objects, re-serialized in full two keys below the list they
+ *    came from, and named by no prompt line, no doctrine file and no output
+ *    field. What the model reasons about is `terrain.borders`, the merged
+ *    composite result, and `hard: true` on a level verdict says the rest.
+ */
+function modelTerrain(terrain: EngineFacts['terrain']): Record<string, unknown> {
+  // `partitions` is destructured out; `borders` is overridden through the
+  // spread so it keeps its position in the emitted JSON.
+  const { partitions, ...rest } = terrain
+  void partitions
+  return {
+    ...rest,
+    borders: rest.borders.map((border) => ({
+      ...border,
+      members: border.members.map((member) => ({
+        level: `${member.level.label} ${member.level.price}`,
+        kind: member.kind,
+        hard: member.hard,
+        source: member.source,
+        faint: member.faint,
+        shallow: member.shallow,
+        reason: member.reason,
+      })),
+    })),
+  }
+}
+
+/**
  * Compact, model-facing projection of the engine facts (no bulky raw rows).
  * Shared with the update-task prompt (lib/update/prompt.ts).
  */
@@ -86,29 +125,7 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
       nearestTier1Above: facts.mgi.nearestTier1Above,
       nearestTier1Below: facts.mgi.nearestTier1Below,
     },
-    terrain: {
-      ...facts.terrain,
-      // feat-108 trim (the duplication feat-090 identified): every border
-      // member was a byte-identical copy of a verdict `terrain.levels` already
-      // carries — verified on the fixture, all 10 of 10. The member keeps
-      // everything the prompts actually point at (its price, kind, hard/faint/
-      // shallow flags, `source` and the `reason` string the AAA-demotion rule
-      // quotes); the re-serialized `level` object, `local` block, `magnet` ref
-      // and `detectorNode` are dropped, all reachable under the same label in
-      // `terrain.levels`. Semantically identical, ~7k cheaper.
-      borders: facts.terrain.borders.map((border) => ({
-        ...border,
-        members: border.members.map((member) => ({
-          level: `${member.level.label} ${member.level.price}`,
-          kind: member.kind,
-          hard: member.hard,
-          source: member.source,
-          faint: member.faint,
-          shallow: member.shallow,
-          reason: member.reason,
-        })),
-      })),
-    },
+    terrain: modelTerrain(facts.terrain),
     tpo: facts.tpo,
     valueMigration: facts.valueMigration,
     dailyRanges: facts.dailyRanges,
@@ -131,6 +148,7 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
                   : ' · UNDER the significant-move floor — entry/stop only, never a target'),
             ),
           },
+    ibExtension: facts.ibExtension,
     overnightSession: facts.overnightSession,
     multiDayTpo: facts.multiDayTpo,
     relativeVolume: facts.relativeVolume,
@@ -167,6 +185,16 @@ export const RELATIVE_VOLUME_RULE =
  */
 export const TPO_CLASSIFICATION_RULE =
   "- `tpo.classification` is the code-owned Market Profile session classification (feat-093), read from the TPO letter SEQUENCE: `dayType` (normal / normal-variation / trend / neutral / neutral-extreme / double-distribution) and `openType` (open-drive / open-test-drive / open-rejection-reverse / open-auction), each with the numbers it was decided on in its `*Basis`, plus the IB `extension`, `extensions` (each period that pushed the session range out, and by how much) and `highPeriod` / `lowPeriod`. Name the day and the open FROM this fact — never re-derive either from the Market Profile screenshot. Its thresholds are EMPIRICAL, cut from the bundle's own extension history (`tpo.classification.distribution`) rather than textbook levels, so quote the measured band (\"day/IB 3.25x, above the p90 of 2.58\") instead of asserting a textbook rule. Trade them as: `trend` = one timeframe controlled the auction, so favor continuation and treat counter-trend fades as low-probability; `neutral`/`neutral-extreme` = BOTH sides of the IB were extended, responsive two-way trade, so the extremes are fadeable; `double-distribution` = the session accepted two separate values and the single-print vacuum between them is the boundary that matters. Null = the ladder was too thin to classify; say so rather than guessing a day type."
+
+/**
+ * IB→day-range extension rule (feat-100). Analyze-only, like its sibling
+ * `TPO_CLASSIFICATION_RULE`: the distribution is a read on the SESSION's shape
+ * from its own first hour, settled once the morning briefing has it, and the
+ * per-rung "is this reachable" teaching lives in the cached objective contract
+ * (feat-096/097's pattern) so this line carries only live numbers and pointers.
+ */
+export const IB_EXTENSION_RULE =
+  '- `ibExtension` is the code-owned IB→day-range extension distribution (feat-100), measured from the 30-min bars\' OWN history: `ibExtension.distribution` gives `day_range / IB_range` at p25/median/p75/p90/max with the `sampleSize` behind them (quote a quantile ONLY with its n) and the no-extension / one-sided / both-sides split; `ibExtension.session` is today\'s Initial Balance — the first hour, `ibMinutes`/`ibBars` — with the ratio the session has reached so far and its `band`; `ibExtension.upProjections` / `ibExtension.downProjections` project each quantile from today\'s IB edge into a PRICE, with `reached: true` where the session has already gone that far. That is the empirical answer to "how much range is left in this day" — use it to size target rungs and to say whether the session is contained or extended, instead of an impression. `ibExtension.distribution.source` says whether the quantiles were measured from this export or fell back to the review\'s pinned sample (`fallbackReason` says why); it is the SAME distribution `tpo.classification` was judged against. When `ibExtension` is null the bundle carried no HTF bar export — say the extension read is unavailable.'
 
 /**
  * Developing-session rule (feat-089). Shared verbatim with the update-task prompt:
@@ -268,6 +296,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band — name the composite in your labels and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure with REAL long-term acceptance (the senior read — the most important levels on the map), A = rotation structure OR balance-area structure demoted for faint flanking acceptance (under half the profile\'s peak — the member verdict `reason` says "faint acceptance") or a shallow valley (center barely below its own flanks — the `reason` says "shallow valley"). Weight AAA borders accordingly for campaign targets and invalidations; treat demoted balance-area borders as ordinary A structure and NEVER call them AAA in prose. `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',
     '- `tpo` carries the code-owned Market Profile day structure (feat-046): single-print zones, poor high/low, POC prominence, value area and Initial Balance are computed from the numeric TPO export. Do NOT re-derive them from the Market Profile screenshot. `tpo.singlePrintZones` mark one-sided initiative conviction — the aggressor traversed them without two-sided trade — and FAVOR entries in the direction of the move that created them: a rally back into a downside scar is a reoffer candidate at the scar\'s near-edge border (and a flush back into an upside scar a rebid candidate), NEVER a reason to relocate the entry to the scar\'s far side or rule a border out because the zone "might get repaired". A `tpo.poorHigh`/`tpo.poorLow` is an unfinished auction the market tends to revisit. `tpo.excess` (feat-091) is the OPPOSITE read at the same extremes: `tpo.excess.buyingTail` (session low) and `tpo.excess.sellingTail` (session high) are the contiguous single-print runs that reach the extreme, in `bins`/`points` with the `letters` (and `clock`) of the period that carved them — a FINISHED auction, price rejected so hard the auction shut off, and the tail\'s far edge is a level the market defends until it is repaired. Narrate a long tail by size and period ("a 208-pt buying tail carved by the 08:30 period"), never as noise. `tpo.excess.singlePrintFraction` is how much of the session was single-printed — a high fraction means a thin one-timeframe/trend-day profile, so lean on the tails and the POC rather than on value-area edges. A null tail means that extreme was not single-printed: say nothing about excess there. `tpo.periodClock` (feat-092) maps each period letter present in the profile to the clock time that period opened, derived from the export\'s first-period anchor (`tpo.firstPeriod`) — use it to TIME letter-sequenced reads (when a single-print zone was carved, which period built the high or low) instead of quoting bare letters. When `tpo.periodClock` is null the export predates the anchor: keep the letters, do not invent times. When `tpo` is null the bundle carried no TPO export — say so instead of guessing day structure.',
     TPO_CLASSIFICATION_RULE,
+    IB_EXTENSION_RULE,
     '- `valueMigration` is the code-owned value-migration read (feat-048), computed from the per-session value-area history: the prior completed session\'s POC/VAH/VAL, the day-by-day series of the last sessions (`valueMigration.recentSessions` — the data behind the overview\'s HTF and MTF narratives), POC drift direction and pace (`valueMigration.pocDrift`), consecutive higher/lower-value days (`valueMigration.valueTrend`), the prior-day value overlap (`valueMigration.priorDayOverlap`) and where the current price sits relative to prior-day value (`valueMigration.currentPriceVsPriorValue`). Narrate whether the balance area is building in place or value is leading price out of it FROM these numbers — never from the screenshots. When `valueMigration` is null the bundle carried no value-area history — say so instead of guessing the migration.',
     DEVELOPING_SESSION_RULE,
     '- `dailyRanges` is the code-owned daily-range read (feat-060): the per-session range series (`dailyRanges.days`), the recent-vs-prior mean ranges and the contraction/expansion verdict (`dailyRanges.read`), all in plain points. Narrate range behavior from these numbers — quote actual session ranges, never an ATR statistic (the overview must not mention ATR). When `dailyRanges` is null the bundle carried no value-area history — say so.',

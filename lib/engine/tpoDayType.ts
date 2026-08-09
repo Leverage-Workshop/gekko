@@ -381,7 +381,12 @@ function extremePeriod(
   }
 }
 
-function extensionBand(ratio: number, dist: IbExtensionDistribution): IbExtensionBand {
+/**
+ * Where a `day_range / IB_range` ratio sits in a reference distribution.
+ * Exported (feat-100) so the live IB→day-range fact bands its session against
+ * the SAME cuts the day-type ladder uses — one definition, two readers.
+ */
+export function extensionBand(ratio: number, dist: IbExtensionDistribution): IbExtensionBand {
   if (ratio < dist.p25) return 'below-p25'
   if (ratio < dist.median) return 'p25-median'
   if (ratio < dist.p75) return 'median-p75'

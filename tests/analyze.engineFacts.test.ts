@@ -93,8 +93,53 @@ describe('computeEngineFacts', () => {
       lowPeriod: { letter: 'F', clock: '11:00', price: 29862 },
     })
     expect(result.tpo!.classification!.extension).toMatchObject({ ratio: 3.25, sides: 'down' })
+    // feat-100: with no HTF export in this case there is no live distribution
+    // to measure, so the classifier keeps the review's pinned sample.
+    expect(result.ibExtension).toBeNull()
     expect(result.tpo!.classification!.distribution.source).toBe('pinned-empirical')
     expect(result.warnings.some((w) => w.includes('TPO'))).toBe(false)
+  })
+
+  it('measures the IB→day-range extension distribution from the HTF export (feat-100)', () => {
+    const result = facts({ htfCsvContent })
+    const ib = result.ibExtension!
+    expect(ib).not.toBeNull()
+    // The IB is DEFINED, not assumed: the first hour = the first two 30-min bars.
+    expect(ib.ibMinutes).toBe(60)
+    expect(ib.ibBars).toBe(2)
+    // Every quantile is reported with the n behind it (review B7 is explicit).
+    expect(ib.distribution.sampleSize).toBeGreaterThan(0)
+    expect(ib.distribution.p25).toBeLessThanOrEqual(ib.distribution.median)
+    expect(ib.distribution.median).toBeLessThanOrEqual(ib.distribution.p90)
+    // The live session's own IB, and each quantile projected off it into a price.
+    expect(ib.session!.ibRangePts).toBeGreaterThan(0)
+    expect(ib.session!.ratio).toBeCloseTo(
+      ib.session!.rangePts / ib.session!.ibRangePts,
+      1,
+    )
+    for (const p of ib.upProjections) expect(p.price).toBeGreaterThan(ib.session!.ibHigh)
+    for (const p of ib.downProjections) expect(p.price).toBeLessThan(ib.session!.ibLow)
+    // feat-093's classifier is scored against exactly this distribution — the
+    // seam feat-093 built, closed. On a live bundle (60 complete sessions in
+    // the rolling 90-day export) `source` reads 'measured'; here the fixture's
+    // 12 sessions keep the pinned sample, and the fact says which judged it.
+    const withTpo = facts({ htfCsvContent, tpoDataContent })
+    expect(withTpo.tpo!.classification!.distribution).toEqual({
+      source: withTpo.ibExtension!.distribution.source,
+      sampleSize: withTpo.ibExtension!.distribution.sampleSize,
+      p25: withTpo.ibExtension!.distribution.p25,
+      p90: withTpo.ibExtension!.distribution.p90,
+    })
+    // Under the minimum sample the pinned distribution stands, loudly.
+    expect(ib.sessionsAnalyzed).toBe(12)
+    expect(ib.fallbackReason).toContain('12 complete RTH sessions')
+    expect(
+      result.warnings.some((w) => w.includes("falls back to the review's pinned sample")),
+    ).toBe(true)
+  })
+
+  it('degrades to ibExtension:null when the bundle has no HTF export (feat-100)', () => {
+    expect(facts().ibExtension).toBeNull()
   })
 
   it('degrades to tpo:null with a warning when the TPO export is absent or malformed', () => {

@@ -41,6 +41,8 @@ import type { StructureReference, VolatilityScaleFacts } from '@/lib/engine/vola
 import { computeAtrProjections } from '@/lib/engine/atrProjection'
 import type { AtrProjectionFacts } from '@/lib/engine/atrProjection'
 import { DEFAULT_SIGNIFICANT_MOVE_SIGMA, resolveGates } from '@/lib/engine/scaledGates'
+import { computeIbExtension } from '@/lib/engine/ibExtension'
+import type { IbExtensionFacts } from '@/lib/engine/ibExtension'
 import { computeOvernightSession } from '@/lib/engine/overnightSession'
 import type { OvernightSessionFacts } from '@/lib/engine/overnightSession'
 import { computeMultiDayTpo } from '@/lib/engine/multiDayTpo'
@@ -206,6 +208,19 @@ export interface EngineFacts {
    * untouched.
    */
   atrProjections: AtrProjectionFacts | null
+  /**
+   * Code-owned IB→day-range extension read (feat-100), measured from the same
+   * 30-min bars: how far past the first hour's Initial Balance this market's
+   * sessions actually go — the `day_range / IB_range` quantiles with their
+   * sample size, the no-extension / one-sided / both-sides split, and each
+   * quantile PROJECTED from the live session's own IB into a price a target
+   * rung can sit on. `ibExtension.distribution` is also what feat-093's
+   * day-type classifier is cut at, replacing the review's pinned sample
+   * whenever the export carries enough history (`distribution.source`). Null
+   * when the bundle has no HTF bar export or it holds no RTH bars — flagged in
+   * `warnings`.
+   */
+  ibExtension: IbExtensionFacts | null
   /**
    * Code-owned overnight-session read (feat-060): the Globex session's
    * high/low/range plus RTH-so-far extremes from the 30-min bars. Null when
@@ -409,10 +424,42 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     )
   }
 
+  // The HTF export is PARSED here, above the TPO block, purely so feat-100's
+  // extension distribution exists before the TPO classification is computed —
+  // the day-type ladder is cut at those quantiles. Everything else the HTF bars
+  // feed still runs in its own block further down (it depends on facts that are
+  // not resolved yet), and the parse failure is reported there, once, in the
+  // same place and wording as before.
+  let htfBars: HtfBar[] | null = null
+  let htfParseError: Error | null = null
+  if (input.htfCsvContent) {
+    try {
+      htfBars = parseHtfBars(input.htfCsvContent)
+    } catch (error) {
+      htfParseError = error instanceof Error ? error : new Error(String(error))
+    }
+  }
+  let ibExtension: IbExtensionFacts | null = null
+  if (htfBars) {
+    ibExtension = computeIbExtension({ bars: htfBars })
+    if (ibExtension === null) {
+      warnings.push(
+        'HTF export carries no RTH bars — IB extension distribution not computed',
+      )
+    } else if (ibExtension.fallbackReason !== null) {
+      warnings.push(
+        `IB extension distribution falls back to the review's pinned sample: ${ibExtension.fallbackReason}`,
+      )
+    }
+  }
+
   let tpo: TpoFacts | null = null
   if (input.tpoDataContent) {
     try {
-      tpo = computeTpoFacts(parseTpoProfile(input.tpoDataContent))
+      tpo = computeTpoFacts(
+        parseTpoProfile(input.tpoDataContent),
+        ibExtension?.distribution,
+      )
     } catch (error) {
       warnings.push(
         `tpo.data.md failed to parse — TPO facts not computed: ${error instanceof Error ? error.message : String(error)}`,
@@ -529,12 +576,13 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   let overnightSession: OvernightSessionFacts | null = null
   let multiDayTpo: MultiDayTpoFacts | null = null
   let relativeVolume: RelativeVolumeFacts | null = null
-  // Held for the volatility-scale pass (feat-095), which runs after terrain so
-  // its sigma-normalized distances can quote the assembled zone borders.
-  let htfBars: HtfBar[] | null = null
+  // `htfBars` was parsed above (feat-100) and is held for the volatility-scale
+  // pass (feat-095) too, which runs after terrain so its sigma-normalized
+  // distances can quote the assembled zone borders.
   if (input.htfCsvContent) {
     try {
-      htfBars = parseHtfBars(input.htfCsvContent)
+      if (htfParseError !== null) throw htfParseError
+      if (htfBars === null) throw new Error('HTF bars did not parse')
       htfStructure = computeHtfStructure(htfBars, currentPrice)
       relativeVolume = computeRelativeVolume({
         bars: htfBars,
@@ -738,6 +786,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     htfStructure,
     volatilityScale,
     atrProjections,
+    ibExtension,
     overnightSession,
     multiDayTpo,
     relativeVolume,

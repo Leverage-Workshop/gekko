@@ -688,3 +688,88 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   fixture before and after, pinned as an assertion alongside a test that the anchor set DID grow —
   so the test fails if the rungs ever leak into the partition.
 - **Alternatives considered:** none — this boundary was set by feat-097 and restated in the brief.
+## feat-100 — 2026-08-09
+
+- **Decision:** the minimum live sample is `MIN_IB_DISTRIBUTION_SESSIONS = 20` complete RTH
+  sessions; below it the review's pinned n=62 distribution stands and the fact says so.
+  **Why:** the number has to be argued from the quantile the day-type ladder cuts hardest
+  at — the p90 that separates a trend day from an ordinary variation. Under R-7
+  interpolation a p90 at n=20 lands between the 2nd and 3rd largest observations, so one
+  wild session cannot set the trend threshold alone; below ~15 the p90 IS effectively the
+  sample maximum, which would make "trend day" mean "the biggest day in this window".
+  feat-095's `MIN_SIGMA_ESTIMATION_SESSIONS = 3` is precedent for the PATTERN, not the
+  number: a mean over three sessions is a usable scale, a top decile over three sessions is
+  not a decile. The rolling-90-day export carries ~60 complete sessions (60 on bundle
+  1c15934a), so live bundles clear it comfortably and the gate binds only on a fresh export.
+  **Alternatives considered:** 10, which would have let the 12-session repo fixture measure
+  live and shown `source: 'measured'` in the committed integration test — rejected because
+  choosing a statistical threshold to make a fixture look better is exactly backwards; the
+  measured path is proven instead against the real bundle (n=60) and by a synthetic
+  ≥20-session unit test.
+
+- **Decision:** the quantiles are projected into prices DIRECTIONALLY — the measured
+  one-sided extension beyond the IB edge (`ibHigh + q × ibRange`, `ibLow − q × ibRange`) —
+  rather than by re-anchoring the implied day range on the session's realized extreme.
+  **Why:** 79–80% of measured sessions extend one side only, so the one-sided extension
+  distribution is the statistic that actually answers "how far past the IB does this
+  market go". It also reproduces the review's own worked example: on bundle 1c15934a the
+  p75 upside projection is 29892.65 against the review's quoted "extend to 29910 from this
+  IB", where a day-range re-anchor gives 30126 — a 230-pt difference that would put target
+  rungs in a different place. Quantiles whose measured extension is 0 (the p25 either side,
+  and the downside median on that bundle) emit NO rung: their price is the IB edge itself.
+  **Alternatives considered:** the day-range projection (simpler, one distribution, but
+  systematically too far and not what the review means); emitting both (double the payload
+  for two answers to the same question, and the model would quote whichever suits).
+
+- **Decision:** RTH session reconstruction was EXTRACTED into `lib/engine/rthSessions.ts`
+  and feat-095's `volatilityScale.ts` re-exports the constants and `sessionOhlc` from it.
+  **Why:** the brief called duplication the worse outcome, and the two hard-won facts here
+  (`RTH_BARS_PER_SESSION` is 15, not the 17 the open→Globex window implies, because no bars
+  print during the 16:00–17:00 CME halt; incomplete sessions must be excluded or a
+  truncated range deflates the statistic being quoted) are exactly the kind that must exist
+  once. feat-095's behaviour is byte-identical — its 39 tests pass unchanged — and its
+  public exports are preserved by re-export, so no caller moved.
+  **Alternatives considered:** copying the ~20 lines into `ibExtension.ts` (two definitions
+  of "one RTH session" drifting apart at the next early-close bug); moving the exports
+  outright and updating every importer (a bigger diff across feat-095/096 for no gain).
+
+- **Decision:** `terrain.partitions` was dropped from the MODEL's payload (not from
+  `facts.terrain`), lowering the analyze user-prompt ceiling 106k → 100k with the feature
+  landing at 93,630 after the rebase onto feat-108 — the first downward move in this gate's
+  history. feat-108 had already compacted the composite borders' members; the two trims
+  compose in one `modelTerrain()` projection and are documented together there. The CACHED
+  prefix ceiling moved the other way, 47k → 48k (measured 47,248), because the target-rung
+  sanity check belongs in the cached doctrine: that prefix is paid once per model version,
+  the user message every run, and that trade is what let the user-prompt ceiling fall.
+  **Why:** the standing stop says trim before you bump, and feat-090 named this exact
+  duplication. `terrain.partitions` is built as `levels.filter(v => v.hard)` — literally the
+  same verdict objects — and was re-serialized in full (11,069 chars on the fixture) two
+  keys below the list it came from. No prompt line, no doctrine file and no output field
+  names it; what the model reasons about is `terrain.borders`, the merged composite result,
+  and `hard: true` on a level verdict carries the rest. Nothing the model can see was lost,
+  so the ceiling came down with the payload rather than banking the slack.
+  **Alternatives considered:** compacting the magnet refs embedded in every level verdict
+  (feat-090's other candidate, ~2.4k, but it thins evidence the model does read); trimming
+  the composite borders' `members` verdicts (the analyze prompt explicitly points the model
+  at "the member verdict `reason`", so that one WOULD change what it sees); raising the
+  ceiling to 108k (available, unnecessary, and the wrong habit).
+
+- **Decision:** `computeEngineFacts` now parses the HTF export ABOVE the TPO block, holding
+  any parse error and re-throwing it inside the original HTF block.
+  **Why:** the day-type ladder is cut at the extension distribution, so the distribution has
+  to exist before `computeTpoFacts` runs; only the PARSE moved (everything else in the HTF
+  block depends on facts resolved later). Re-throwing in place keeps the warning's wording,
+  position and ordering exactly as they were, which several tests and the trace depend on.
+  **Alternatives considered:** computing the TPO facts and then recomputing just the
+  classification afterwards (rebuilds `classifyTpoDay`'s whole input outside `tpoFacts.ts`,
+  where it would rot); moving the entire HTF block up (it needs the value-area partition,
+  which needs the live session date, which comes from the TPO export — a cycle).
+
+- **Decision:** the `ibExtension` guide bullet is analyze-only; the update prompt receives
+  the fact through the shared `factsPayload` but no rule line.
+  **Why:** it mirrors its sibling `TPO_CLASSIFICATION_RULE` (feat-093) — the extension read
+  is a statement about the SESSION's shape from its own first hour, settled once the morning
+  briefing has it, and an update re-narrating it spends budget restating an unchanged fact.
+  **Alternatives considered:** sharing the rule with the update prompt (defensible for
+  target rungs, which updates do revise — recorded here as the obvious follow-up rather
+  than taken silently in this diff).

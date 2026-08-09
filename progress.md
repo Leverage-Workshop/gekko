@@ -8,7 +8,50 @@
 2026-08-07 bundle review batch is in flight. See "Carried forward" at the end of this
 block for the follow-ups that outlive it.
 
-**Latest change (branch `feat-108-atr-projected-levels`): feat-108 — ATR-projected price
+**Latest change (branch `feat-100-ib-extension-distribution`): feat-100 — the IB→day-range
+extension distribution is measured live, per bundle.** Closes review B7 and the seam
+feat-093 deliberately left open. New `lib/engine/ibExtension.ts` rebuilds the export's own
+RTH sessions from the 30-min HTF bars and measures, per session, `day_range / IB_range`
+against the first hour's Initial Balance (`IB_BARS = IB_MINUTES / HTF_BAR_MINUTES = 2` —
+the IB is DEFINED, not assumed, and the definition rides in the fact). On the review's own
+bundle 1c15934a the live pass measures **p25 1.30 | median 1.55 | p75 2.09 | p90 2.59 |
+max 3.85 over n=60**, against the review's hand-measured **1.25 / 1.52 / 2.08 / 2.58 /
+3.58 (n=62)** — the same distribution, independently reproduced; sides 3/80/17% vs
+4/79/16%; and today's session reads **IB 29241.25–29667.00 (425.75 pts), range 445 pts,
+day/IB 1.05, below-p25**, which is the review's sentence to the decimal.
+**Two payoffs, both live.** (1) Every quantile is projected from the live IB into a PRICE
+(`upProjections` / `downProjections`, each with the quantile's multiple, the price and
+whether the session already `reached` it), so a target rung sits on a distribution: on that
+bundle the p75 upside projection is **29892.65**, against the review's illustrative 29910.
+(2) `computeEngineFacts` passes the measured distribution into `classifyTpoDay`, and the
+classifier — **unchanged, not one branch touched** — now reports
+`distribution: {source: "measured", sampleSize: 60, p25: 1.3, p90: 2.59}` and a basis line
+reading "day/IB 1.04x (below-p25, n=60, measured)". Every quantile is quoted with its n,
+per B7's explicit instruction. Below **`MIN_IB_DISTRIBUTION_SESSIONS = 20`** complete
+sessions the review's pinned n=62 sample stands and the fact says why (`fallbackReason` +
+a warning) — 20 is argued from the p90 the trend threshold cuts at, not picked round
+(`decisions-log.md`). The repo fixture holds 12 complete sessions and therefore exercises
+the fallback path; the live bundle exercises the measured one.
+**Session reconstruction was EXTRACTED, not duplicated:** `lib/engine/rthSessions.ts` now
+owns `HTF_BAR_MINUTES` / `RTH_CLOSE_MINUTES` / `RTH_BARS_PER_SESSION` (15, the CME-halt
+count) / `sessionOhlc` / `groupRthSessions`, and feat-095's `volatilityScale.ts` imports
+and re-exports them — its 39 tests pass **unchanged**, byte-identical behaviour.
+**The analyze user-prompt budget went DOWN for the first time in this gate's history:
+106k → 100k, measured 93,630** on the fixture after rebasing onto feat-108 (99,311 on the
+live bundle pre-rebase). The new fact costs 1,060 chars and its interpretive half went into
+the cached `output-objective.md` prefix (feat-096/097's pattern); it is paid for many times
+over by harvesting the second half of the duplication feat-090 flagged — feat-108 took the
+first (compacting the composite borders' members), and `terrain.partitions` is literally
+`terrain.levels.filter(v => v.hard)`, the SAME verdict objects re-serialized in full
+(−10,528 chars) two keys below the list they came from, named by no prompt line, no
+doctrine file and no output field. The two trims compose in one `modelTerrain()` projection;
+`facts.terrain` is untouched for code consumers. The CACHED prefix ceiling moved the other
+way, 47k → 48k (measured 47,248), which is the trade working as designed: the prefix is
+paid once per model version, the user message every run.
+`./init.sh` green: typecheck, lint --max-warnings 0, vitest 1333 passed / 1 skipped
+(24 new), next build.
+
+**Prior change (branch `feat-108-atr-projected-levels`): feat-108 — ATR-projected price
 levels are anchorable structure.** Operator direction 2026-08-09: he uses ATR as a PRICE
 LEVEL — "current price plus one ATR" is a target, "swing low minus one ATR" is where a
 reversal is expected — but the engine exposed ATR only as a NORMALIZER (`atrPoints`,
@@ -54,7 +97,6 @@ all 10 `terrain.borders[].members` entries were verified byte-identical to verdi
 rungs render as compact `PRICE · label · travel` strings, the feat-090 `mgiPriority.tier1`
 precedent. Interpretive prose went into the cached `output-objective.md` prefix
 (feat-096/097's split), which measures 46_757 against its 47k ceiling — also not raised.
-
 **Prior change (branch `feat-090-anchorable-value-levels`): feat-090 — prior-day and TPO
 value levels are anchorable structure.** Closes review D5/B4 and the operator's open
 follow-up from the 2026-08-03 briefing review. `engineAnchorPrices()` was built from
@@ -92,9 +134,11 @@ rather than the per-run message. Net +2,628 for seven newly tradable levels.
 (9 new), next build.
 
 **Carried forward (open, out of scope for this batch):**
-- **feat-100** would make feat-093's pinned IB-extension quantiles live; the seam is
-  already there (`classifyTpoDay()` takes an optional `IbExtensionDistribution`), and
-  feat-100 stays `not-started`.
+- **feat-100 is now `done`** — the pinned IB-extension quantiles are live. Remaining
+  follow-ups it did not take: the `ibExtension` fact is analyze-only in its guide bullet
+  (the update prompt receives the DATA through the shared `factsPayload` but gets no rule
+  line), and nothing yet feeds the measured distribution into `validateBriefing` — a target
+  rung beyond the p90 projection is narrated, not gated.
 - **`supabase/migrations/20260809140000_volatility_scaled_gates.sql` (feat-096) is
   COMMITTED BUT NOT APPLIED** — no Supabase credentials in these sessions. The config
   ladder degrades by design until an operator applies it; recorded as PENDING in

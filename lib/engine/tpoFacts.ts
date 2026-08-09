@@ -1,7 +1,7 @@
 import type { TpoPeriodAnchor, TpoProfile, TpoRow } from './parseTpo'
 import { buildTpoPeriodClock, TPO_PERIOD_LETTERS } from './tpoPeriodClock'
 import { classifyTpoDay } from './tpoDayType'
-import type { TpoClassification } from './tpoDayType'
+import type { IbExtensionDistribution, TpoClassification } from './tpoDayType'
 
 /**
  * Deterministic TPO / Market Profile reads (feat-046) — the day-structure
@@ -287,7 +287,16 @@ function detectExcess(
   }
 }
 
-export function computeTpoFacts(profile: TpoProfile): TpoFacts {
+/**
+ * @param distribution the IB→day-range extension distribution the day-type
+ *   ladder is cut at (feat-100). Omitted, `classifyTpoDay` falls back to the
+ *   review's pinned sample — which is what every caller did before feat-100
+ *   measured the live one, and what a bundle with no HTF export still gets.
+ */
+export function computeTpoFacts(
+  profile: TpoProfile,
+  distribution?: IbExtensionDistribution,
+): TpoFacts {
   const { meta, summary, rows } = profile
   if (rows.length === 0) {
     throw new Error('TPO profile has no rows')
@@ -341,6 +350,7 @@ export function computeTpoFacts(profile: TpoProfile): TpoFacts {
       singlePrintZones,
       periodClock,
       tpoPeriodMinutes: meta.tpoPeriodMinutes,
+      distribution,
     }),
   }
 }

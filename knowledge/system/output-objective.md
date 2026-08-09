@@ -50,6 +50,12 @@ Each objective (primary and secondary) carries:
   structure between entry and T2. When it offers none, ship the **single-target variant**: one
   rung, labeled **T2** — it IS the conclusion; never label a sole target T1 — and say in the
   rationale that no intermediate rung exists. Never emit a T3.
+  - **Sanity-check every rung against the session's measured extension** — the IB→day-range
+    distribution in the user message, projected from today's Initial Balance into prices.
+    Targets still land on mapped structure and are never derived from it, but a rung beyond
+    the p90 projection asks for a top-decile session and must say so in the rationale, and a
+    session already past the median has spent most of its normal extension. Quote a quantile
+    only with its sample size.
 - **`rr`** — recomputed and overwritten by the engine after you answer; still populate it honestly
   per the Constraints formula: `(entry→T2 distance) / 25` — the fixed 25-pt operational stop,
   measured to the conclusion (your LAST listed target), never on your structural stop or T1. It is
