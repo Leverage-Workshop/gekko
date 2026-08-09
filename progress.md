@@ -72,6 +72,50 @@ taken *with* the trim feat-097's stop note asks for, not instead of it: the fact
 imply; `dayRange` dropped as `tpo.sessionRange` already carries it; the reference distribution
 cut to the two quantiles the ladder cuts at), and the bullet rewritten tight.
 `./init.sh` green: typecheck 0, lint 0 warnings, vitest 1255 passed / 1 skipped, build OK.
+**Latest change (branch `feat-089-split-developing-sessions`):** **feat-089 — split
+developing vs completed sessions in the daily value-area history — is DONE.** Review
+item D1 is closed. `daily-value-areas.csv` ships the LIVE in-progress RTH session as
+row 1 (contradicting its own exporter contract in `docs/data-todos.md` §3), so
+`valueMigration.priorDay` resolved to TODAY and `currentPriceVsPriorValue` answered
+`{position:'inside', pointsOutside:0}` by construction on every bundle — price compared
+against the value area being built around it, which killed the doctrine's
+accepted-outside-prior-value read the day feat-048 landed. The fix PARTITIONS rather
+than discards: new `partitionDailyValueAreas()` in `lib/engine/parseDailyValueAreas.ts`
+splits the parse BY DATE (never by position) into the live row and the completed
+remainder; `computeValueMigration` and `computeDailyRanges` now consume only the
+completed half, and the live row becomes a new nullable `developingSession` fact
+(`lib/engine/developingSession.ts`) — the only VOLUME-based view of the in-progress
+session anywhere in the bundle, and the companion to `tpo`'s TIME-based view of the
+same day. Verified with the review's own numbers: on the 08-06 bundle the
+un-partitioned read says `inside / 0 pts`, the partitioned one resolves priorDay to
+08-05 (VAL 29693) and puts price 150.5 pts BELOW prior-day value — the opposite call.
+The developing fact carries a maturity qualifier so an unfinished value area is never
+read as a finished one: elapsed RTH minutes (clamped to the 390-minute cash session
+from the freshest exec-bar chart clock), volume so far against the time-of-day
+expectation (reusing feat-094's `sessionSoFar.expectedFraction` × the completed-session
+volume median, so there is exactly one time-of-day baseline in the engine), and range
+used so far against the completed-session median range — plus an `early` /
+`developing` / `mature` / `unknown` read and a prose `basis`. Reconciled feat-094's
+competing notion of "which row is today": `computeRelativeVolume` no longer date-matches
+internally, it takes `completedSessions` + `developingSession` from the caller's single
+partition (the old `dailySessions` input was RENAMED so an un-partitioned list cannot
+compile). `lib/eval/evalBundle.ts` partitions on the same terms (its live session date
+comes from the exec bars, since eval bundles carry no TPO). The engine resolves ONE
+live session date — `tpo.sessionDate`, else the exec bars' trading day — and warns
+when the split fires AND when it does not, so the partition is always visible in the
+trace. The export may now carry an optional `IsComplete` column: the parser reads it
+and warns when it disagrees with the dates, but the engine never partitions on it. The
+`chart-data` fixture gained the live in-progress row the real export ships, so the
+prompt-data-sync gate finally exercises the partition. Analyze-prompt budget raised
+101k → 104k (measured 102,435 after rebasing onto feat-091/093/094/095/096/097) — but trimmed
+first, per feat-097's "the next fact to land here should trim something before it bumps
+this number again": three duplicated fields removed from the fact, the guide bullet cut
+~25%, both split warnings shortened. `./init.sh` green.
+
+**Next up:** feat-090 (promote priorDay / TPO levels to anchorable structure) — it can
+now consume `valueMigration.priorDay.{poc,vah,val}` knowing it is the true PRIOR
+COMPLETED session, and `developingSession.{poc,vah,val}` for the live one, without
+re-deriving either.
 
 **Prior change (feat-097, branch `feat-097-session-vwap-bands`):** the session VWAPs now
 carry a volume-weighted sigma envelope, closing review item A4 without touching the ACSIL
@@ -104,8 +148,8 @@ half moved into the cached doctrine prefix (`knowledge/system/output-objective.m
 measured 97_731, 269 chars of headroom. `./init.sh` green: typecheck 0, lint 0 warnings,
 vitest 1234 passed / 1 skipped, build OK.
 
-**Next up:** the backlog's first `not-started` feature whose deps are all `done` —
-feat-089 (partition developing vs completed sessions) is still the natural follow-on.
+**Next up (from the feat-097 session):** feat-089 has since landed (see the top of this
+file); feat-090 is the natural follow-on.
 feat-051 remains open and is now narrowed to the 24h/weekly/monthly VWAP bands only; when
 it lands it should reuse `VWAP_BAND_MULTIPLES` from `lib/engine/sessionIntraday.ts` so both
 families of bands sit at the same multiples.
@@ -183,13 +227,6 @@ built on three sessions. Verified on the real fixture: 12:30 slot 19,668 vs a
 15,749 median over 12 sessions = 1.25x, session-so-far 1.43x at 75% of the day
 elapsed. Analyze-prompt budget raised 91k → 93k (measured 92,127) with the
 rationale recorded inline. `./init.sh` green.
-
-**Next up:** the backlog's first `not-started` feature whose deps are all `done` —
-feat-089 (partition developing vs completed sessions) is the natural follow-on and
-can now import `computeSlotBaselines` / `expectedRthVolumeThrough` from
-`lib/engine/relativeVolume.ts` for its maturity qualifier instead of forking a
-second time-of-day baseline.
-
 **Earlier change (feat-092, branch `feat-092-tpo-period-clock-map`):** the TPO export
 now carries a period→clock anchor, closing review item A2. `tpo.data.md`'s `## Metadata`
 section gained two additive lines — `- **First Period Letter**: A` and

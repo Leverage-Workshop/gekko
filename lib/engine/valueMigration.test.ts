@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { parseDailyValueAreas, type DailyValueArea } from './parseDailyValueAreas'
+import {
+  parseDailyValueAreas,
+  partitionDailyValueAreas,
+  type DailyValueArea,
+} from './parseDailyValueAreas'
 import {
   DRIFT_WINDOW_SESSIONS,
   POC_DRIFT_FLAT_MAX_PTS_PER_DAY,
@@ -9,9 +13,14 @@ import {
   computeValueMigration,
 } from './valueMigration'
 
-const fixtureSessions = parseDailyValueAreas(
-  readFileSync(join(__dirname, '..', '..', 'chart-data', 'daily-value-areas.csv'), 'utf8'),
-)
+// COMPLETED sessions only (feat-089) — the fixture history ships the live
+// 2026-06-16 session as row 1, exactly as the study does.
+const fixtureSessions = partitionDailyValueAreas(
+  parseDailyValueAreas(
+    readFileSync(join(__dirname, '..', '..', 'chart-data', 'daily-value-areas.csv'), 'utf8'),
+  ),
+  '2026-06-16',
+).completed
 
 /** Newest-first session builder: VA is `mid ±width/2`, POC at the midpoint. */
 const session = (date: string, mid: number, width = 100): DailyValueArea => ({
@@ -142,6 +151,39 @@ describe('computeValueMigration', () => {
     expect(facts.valueTrend).toEqual({
       consecutiveHigherValueDays: 0,
       consecutiveLowerValueDays: 0,
+    })
+  })
+
+  it('resolves the prior day against the true prior session, not the developing one (feat-089)', () => {
+    // Bundle review 2026-08-07 D1, reproduced with its own numbers: the export
+    // ships the live session (08-06) as row 1, and price 29542.5 sits INSIDE the
+    // value area being built around it — "inside / 0 pts outside" by
+    // construction, on every bundle, every day.
+    const rows = parseDailyValueAreas(
+      [
+        'Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume',
+        '2026-08-06,29520.00,29620.00,29476.75,29686.25,29241.25,268000',
+        '2026-08-05,29750.00,29810.00,29693.00,29844.00,29660.00,412345',
+        '2026-08-04,29700.00,29780.00,29640.00,29820.00,29600.00,398211',
+      ].join('\n'),
+    )
+    const price = 29542.5
+
+    const unpartitioned = computeValueMigration(rows, price)
+    expect(unpartitioned.priorDay.date).toBe('2026-08-06')
+    expect(unpartitioned.currentPriceVsPriorValue).toEqual({
+      position: 'inside',
+      pointsOutside: 0,
+    })
+
+    const { completed } = partitionDailyValueAreas(rows, '2026-08-06')
+    const partitioned = computeValueMigration(completed, price)
+    // The true prior session (08-05, VAL 29693) puts price 150.5 pts BELOW
+    // prior-day value — the opposite call, and the one the doctrine cares about.
+    expect(partitioned.priorDay.date).toBe('2026-08-05')
+    expect(partitioned.currentPriceVsPriorValue).toEqual({
+      position: 'below',
+      pointsOutside: 150.5,
     })
   })
 })

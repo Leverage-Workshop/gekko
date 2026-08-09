@@ -63,8 +63,13 @@ export function minutesOfDay(d: Date): number {
   return d.getHours() * 60 + d.getMinutes()
 }
 
-/** Calendar date (chart time) of the trading day a bar belongs to: bars at/after the Globex reopen roll to the next day. */
-export function tradingDayOf(bar: HtfBar): string {
+/**
+ * Calendar date (chart time) of the trading day a bar belongs to: bars at/after
+ * the Globex reopen roll to the next day. Takes any timestamped bar (HTF or
+ * execution) — feat-089 resolves the live session date from the exec bars when
+ * the bundle carries no TPO export.
+ */
+export function tradingDayOf(bar: { dateTime: Date }): string {
   const d = new Date(bar.dateTime)
   if (minutesOfDay(d) >= GLOBEX_OPEN_MINUTES) d.setDate(d.getDate() + 1)
   const pad = (n: number) => String(n).padStart(2, '0')

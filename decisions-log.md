@@ -458,3 +458,86 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   live column that is not there.
 - **Alternatives considered:** Blocking the feature on DB access (rejected — the degradation
   path is designed for this and the code half is independently verifiable).
+## feat-089 — 2026-08-09
+
+- **Decision:** the partition lives in `lib/engine/parseDailyValueAreas.ts` as a separate
+  exported `partitionDailyValueAreas(rows, liveSessionDate)`, not inside `parseDailyValueAreas`
+  itself.
+  **Why:** the parser has no way to know the live session date, and giving it one would make a
+  pure "text → rows" function depend on the rest of the bundle. The parse module still OWNS the
+  partition (same file, same contract prose), which is what the spec asks for.
+  **Alternatives considered:** a `parseDailyValueAreas(content, liveSessionDate)` overload
+  (changes every existing call site and couples parsing to bundle context).
+
+- **Decision:** the live session date is `tpo.sessionDate` when the bundle has a TPO export,
+  else the trading day of the LAST EXECUTION BAR (`tradingDayOf`, widened to accept any
+  timestamped bar). A mismatch between the two is warned, and the TPO date wins.
+  **Why:** the spec designates `tpo.sessionDate`, but TPO is best-effort and can be absent
+  (pre-study bundles, and every eval bundle). The exec bars are always present and are the
+  freshest dated tape in the bundle, so they are the honest fallback. Never the wall clock:
+  chart time is US Central and the engine stays timezone-independent, exactly as
+  `overnightSession` does.
+  **Alternatives considered:** falling back to the HTF bars' trading day (also fine, but the HTF
+  export is parsed later and is itself optional); refusing to partition without TPO (leaves the
+  original bug in place for eval and pre-study bundles).
+
+- **Decision:** `computeRelativeVolume`'s `dailySessions` input was RENAMED to
+  `completedSessions`, with a new sibling `developingSession`, rather than being left in place.
+  **Why:** feat-094 flagged that `computeDailyVolumeRvol` had its own "newest row is today"
+  date-matching — a second, competing notion of the live session. The rename makes an
+  un-partitioned list a COMPILE error instead of a silent regression where the live row rejoins
+  its own baseline.
+  **Alternatives considered:** keeping the field and having relativeVolume re-derive the date
+  (two notions of "today" that must agree forever — the drift the harness guards against).
+
+- **Decision:** elapsed RTH minutes comes from the last EXECUTION bar's chart-time timestamp,
+  clamped to `[0, 390]`.
+  **Why:** the exec export is the freshest clock in the bundle (volume bars, seconds
+  granularity); the HTF 30-min bar start would understate elapsed time by up to half an hour,
+  and `input.now`/`received_at` are UTC and would need a timezone conversion the engine
+  deliberately avoids everywhere else.
+  **Alternatives considered:** deriving elapsed minutes from feat-094's `slotsCovered` (coarse,
+  30-min granularity, and null whenever slot history is thin).
+
+- **Decision:** the maturity `read` is driven by the CLOCK first, falling back to the volume
+  expectation, and is `'unknown'` when neither exists.
+  **Why:** the clock is unconditional; the volume expectation needs ≥10 prior sessions per slot.
+  Reporting a maturity band from a missing input would be exactly the fabricated confidence the
+  qualifier exists to prevent.
+  **Alternatives considered:** blending the two into a single score (unexplainable in prose, and
+  the two disagree meaningfully on a heavy-volume half day — which is information, not noise).
+
+- **Decision:** added the live in-progress row (`2026-06-16`, matching `tpo.data.md`'s session
+  date and its session high/low, with a deliberately different VOLUME POC) to
+  `chart-data/daily-value-areas.csv`.
+  **Why:** the fixture could not represent the bug it now guards. With the row present the
+  prompt-data-sync gate exercises the partition end to end and the prompt's
+  `developingSession.*` fact-path pointers actually resolve. It also makes the fixture faithful
+  to what the shipped study writes.
+  **Alternatives considered:** leaving the fixture completed-only and referencing only the bare
+  `developingSession` token in prose (the gate would then never see the feature, and the fact's
+  sub-paths would go unguarded).
+
+- **Decision:** raised the analyze user-prompt size budget 101k → 104k
+  (`tests/prompt-data-sync.test.ts`, measured 102,435 after rebasing onto
+  feat-091/093/094/095/096/097),
+  but trimmed first, because feat-097 left an explicit note that 98k is "a deliberate stop" and
+  "the next fact to land here should trim something before it bumps this number again". The
+  trims: three fields in `developingSession` that duplicated its own top-level scalars
+  (`maturity.rthSessionMinutes`, `maturity.volume.sessionVolume`, `maturity.range.rangePts`),
+  the guide bullet cut ~25%, and both split warnings shortened.
+  **Why:** unlike the facts that pushed the ceiling to 98k, this row was ALREADY inside every
+  bundle — silently corrupting `valueMigration.priorDay` into TODAY — so the choice was never
+  "carry it or not" but "carry it labelled or carry it lying". Nothing raw is inlined.
+  **Alternatives considered:** dropping `maturity.basis` (saves ~200 chars and removes the one
+  field the model can quote verbatim); omitting the split warnings (the spec requires them);
+  suppressing `developingSession` when `maturity.read === 'early'` (hides the fact exactly when
+  the model most needs to be told the value area is unformed).
+
+- **Decision:** the optional `IsComplete` column is parsed and cross-checked, but never
+  partitioned on; a disagreement raises a warning and the DATE verdict stands.
+  **Why:** the spec is explicit that the engine must not depend on it, and an exporter flag that
+  silently outranked the dates would reintroduce the same class of bug from the other side.
+  **Alternatives considered:** ignoring the column entirely (loses a free drift detector);
+  trusting it when present (couples the engine to an exporter field that does not exist yet).
+

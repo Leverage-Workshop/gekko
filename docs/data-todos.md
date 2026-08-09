@@ -205,12 +205,25 @@ Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume
 > patterns). Create a new ACSIL study for a daily chart (or one that iterates completed
 > RTH sessions on an intraday chart) that exports
 > `C:\gekko\export\daily-value-areas.csv`: header
-> `Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume`, one row per *completed* RTH
+> `Date,POC,VAH,VAL,SessionHigh,SessionLow,SessionVolume,IsComplete`, one row per RTH
 > session, most recent first, rolling 20 sessions. POC/VAH/VAL are the volume-profile
 > point of control and 70% value area computed per session (use Sierra's Volume by Price
 > study per session, or compute from per-session volume-at-price). Dates ISO
-> `YYYY-MM-DD`. Prices 2 decimals, volume whole number. The current in-progress session
-> is excluded. Same export cadence and atomic-write pattern as the existing studies.
+> `YYYY-MM-DD`. Prices 2 decimals, volume whole number. `IsComplete` is `1` for a
+> finished session and `0` for the current in-progress one. Same export cadence and
+> atomic-write pattern as the existing studies.
+
+**Contract amendment (feat-089, 2026-08-09).** The original prompt said "the current
+in-progress session is excluded". The shipped study does NOT exclude it — bundle review
+2026-08-07 D1 found the live session as row 1, which made `valueMigration.priorDay`
+resolve to TODAY and `currentPriceVsPriorValue` answer "inside / 0 pts" by construction.
+Rather than chase an exporter change, the engine now **partitions by date**:
+`partitionDailyValueAreas()` splits the parse into the live session (a `developingSession`
+fact — the only volume-based view of the in-progress RTH session in the whole bundle) and
+the completed remainder that `computeValueMigration` / `computeDailyRanges` consume. The
+optional `IsComplete` column above is belt-and-braces only: the parser reads it when
+present and warns when it disagrees with the dates, but **the engine never partitions on
+it**, so an export with or without the column behaves identically.
 
 ---
 
