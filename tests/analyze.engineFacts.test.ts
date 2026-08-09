@@ -191,6 +191,61 @@ describe('computeEngineFacts', () => {
     expect(result.warnings.some((w) => w.includes('no overnight bars'))).toBe(true)
   })
 
+  it('computes relative volume from the HTF bars own history (feat-094)', () => {
+    const result = facts({
+      htfCsvContent: read('htf_bar_data.rolling.csv'),
+      dailyVaContent: read('daily-value-areas.csv'),
+    })
+    const rv = result.relativeVolume
+    expect(rv).not.toBeNull()
+    expect(rv!.sessionDate).toBe('2026-07-28')
+
+    // The headline scalar is the latest COMPLETED 30-min slot against the
+    // median of that same clock slot over the export's prior sessions.
+    expect(rv!.participation).not.toBeNull()
+    expect(rv!.participation!.source).toBe('slot')
+    expect(rv!.current!.slot).toBe('12:30')
+    expect(rv!.current!.baselineSessions).toBeGreaterThanOrEqual(10)
+    expect(rv!.current!.rvol).toBeCloseTo(rv!.current!.volume / rv!.current!.baselineVolume!, 2)
+    expect(rv!.participation!.rvol).toBe(rv!.current!.rvol)
+
+    // In-progress final bar is never measured; the series runs newest-first.
+    expect(rv!.recentSlots[0].slot).toBe('12:30')
+    expect(rv!.recentSlots.map((s) => s.slot)).not.toContain('13:00')
+    expect(rv!.recentSlots.length).toBeLessThanOrEqual(6)
+
+    // Session-so-far is measured against the time-of-day expectation, not a
+    // whole-day median — the same seam feat-089's maturity qualifier reuses.
+    expect(rv!.sessionSoFar!.throughSlot).toBe('12:30')
+    expect(rv!.sessionSoFar!.expectedFraction).toBeGreaterThan(0)
+    expect(rv!.sessionSoFar!.expectedFraction).toBeLessThanOrEqual(1)
+    expect(rv!.sessionSoFar!.rvol).toBeCloseTo(
+      rv!.sessionSoFar!.volume / rv!.sessionSoFar!.expectedVolume,
+      2,
+    )
+
+    // The day-level companion comes from daily-value-areas.csv's SessionVolume.
+    expect(rv!.daily).not.toBeNull()
+    expect(rv!.daily!.medianSessionVolume).toBeGreaterThan(0)
+    expect(result.warnings.some((w) => w.includes('relative-volume'))).toBe(false)
+  })
+
+  it('degrades to relativeVolume:null / a null participation when history is thin (feat-094)', () => {
+    expect(facts().relativeVolume).toBeNull()
+
+    // Parses fine and yields an HTF structure, but no slot has any history.
+    const twoBars = [
+      'DateTime,Open,High,Low,Close,Volume,BidVolume,AskVolume',
+      '2026-07-28 09:00:00,28000.00,28010.00,27990.00,28005.00,1000,500,500',
+      '2026-07-28 09:30:00,28005.00,28015.00,27995.00,28010.00,1000,500,500',
+    ].join('\n')
+    const thin = facts({ htfCsvContent: twoBars })
+    expect(thin.relativeVolume).not.toBeNull()
+    expect(thin.relativeVolume!.participation).toBeNull()
+    expect(thin.relativeVolume!.recentSlots[0].rvol).toBeNull()
+    expect(thin.warnings.some((w) => w.includes('relative-volume read'))).toBe(true)
+  })
+
   it('reports POC/VAH/VAL per volume profile', () => {
     const result = facts()
     expect(result.profileSummary.rotation.pocPrice).toBe(29900)

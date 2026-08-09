@@ -80,11 +80,21 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
     htfStructure: facts.htfStructure,
     overnightSession: facts.overnightSession,
     multiDayTpo: facts.multiDayTpo,
+    relativeVolume: facts.relativeVolume,
     sessionIntraday: facts.sessionIntraday,
     intradayTrend: facts.intradayTrend,
     warnings: facts.warnings,
   }
 }
+
+/**
+ * Relative-volume rule (feat-094). Shared verbatim with the update-task prompt:
+ * RVOL is the confidence gate on every other order-flow fact, so both tasks must
+ * read it the same way or the same tape scores differently between a morning
+ * briefing and its updates.
+ */
+export const RELATIVE_VOLUME_RULE =
+  "- `relativeVolume` is the code-owned relative-volume read (feat-094), computed from the 30-min HTF bars' volume column against their OWN history: `relativeVolume.current` is the latest COMPLETED 30-min slot against the median of that same clock slot over prior sessions, `relativeVolume.recentSlots` the last few slots, `relativeVolume.sessionSoFar` cumulative RTH volume against what a normal session has printed by this time of day, and `relativeVolume.daily` the day-level `SessionVolume` companion (measured against the elapsed-time expectation while the session is still developing, so a mid-morning bundle never reads as light by construction). `relativeVolume.participation` is the ONE scalar to cite: `rvol` (× normal), `band` (dead / light / normal / elevated / heavy) and `gate`. That gate is a CONFIDENCE MODIFIER on the other order-flow facts, never a trigger of its own: at `gate: 'discount'` treat delta divergence, absorption candidates and climax prints as low-information and say the tape is too thin to confirm them; at `gate: 'confirming'` the same signals carry real weight. Never call participation heavy or light from a screenshot when this fact is present, and never invent a number when `participation` is null (too little slot history) — say the RVOL read is unavailable."
 
 /**
  * Data-edge prohibition (feat-040 G2): when the zone stack carries a profile data-edge border
@@ -167,6 +177,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- Each LVN/HVN node and magnet carries a code-owned `build` annotation (feat-050) — WHO built the acceptance there, from the structural profiles\' per-bin delta split: `buyer-built` / `seller-built` (one-sided initiative) or `balanced` (a two-way fight), with the net delta share in `build.ratio`. One-sided acceptance is weaker structure than a balanced build — weigh a one-sided HVN as a softer magnet/wall, and when a node near an entry, stop or target is one-sided, say so in the rationale. When `build` is null the profile export carried no delta split — do not infer build quality from the screenshots.',
     '- `absorptionCandidates` are code-detected stacks of one-sided bins on the execution delta profiles, each carrying a code-owned `stall` confirmation computed from the enriched execution bars (bars that traded at the stack, volume and trades there, net price progress). A candidate with `stall.confirmed` IS absorption — price stalled at the stack on heavy participation; do not re-derive the stall from the screenshots. An unconfirmed candidate is a stack with no stall visible in the rolling bar window (possibly aged out, not refuted) — call absorption on it only if the recent bar data itself shows the stall.',
     `- \`deltaTelemetry.flow\` is the code-owned raw order-flow read from the enriched bars: engine-computed cumulative delta (\`deltaTelemetry.flow.cumulativeDelta\`), delta divergence at the fresh price extreme (\`deltaTelemetry.flow.divergence\`), climax prints and average trade size. The execution chart trades ${input.executionBarVolume}-VOLUME bars — per-bar volume is flat by construction, so weigh participation by bar count at a price, trade count and delta magnitude, never by the Volume column.`,
+    RELATIVE_VOLUME_RULE,
     `- \`terrain.zones\` in your output MUST reproduce the engine zone stack exactly — same contiguous top/bottom border prices (${borders.join(', ')}). You supply only each zone's color and narrative label.`,
     '- `terrain.levels` MUST carry the engine border verdicts (price + kind verbatim); you supply the label wording.',
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band — name the composite in your labels and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure with REAL long-term acceptance (the senior read — the most important levels on the map), A = rotation structure OR balance-area structure demoted for faint flanking acceptance (under half the profile\'s peak — the member verdict `reason` says "faint acceptance") or a shallow valley (center barely below its own flanks — the `reason` says "shallow valley"). Weight AAA borders accordingly for campaign targets and invalidations; treat demoted balance-area borders as ordinary A structure and NEVER call them AAA in prose. `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',

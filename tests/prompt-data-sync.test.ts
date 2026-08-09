@@ -448,12 +448,19 @@ describe('prompt-data sync gate (feat-054)', () => {
       // Lowered back 92k → 91k 2026-08-01 (feat-080): the per-run preamble
       // dedup moved static doctrine restatements into the cached prefix and
       // trimmed the user bullets to pointers + live values (measured 88_441).
+      // Raised 91k → 93k 2026-08-09 (feat-094): the relativeVolume fact (the
+      // latest completed 30-min slot, ≤6 recent slots, session-so-far and the
+      // day-level companion, all already reduced to scalars) plus its
+      // ownership bullet added ~1.6k (measured 92_127). Accepted knowingly:
+      // RVOL is the confidence gate every other order-flow fact is read
+      // through, and the alternative — the model eyeballing participation off
+      // the execution chart — is the vision read this feature replaces.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 91k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 93k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(91_000)
+      ).toBeLessThan(93_000)
     })
   })
 })

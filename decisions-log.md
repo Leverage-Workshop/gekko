@@ -82,3 +82,57 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   updating the existing `tpo_data` row.
 - **Alternatives considered:** ship parser + resolver only (leaves the payoff to feat-091/C2);
   emit full `{start, end}` per period (several times the size for no extra read).
+
+## feat-094 — 2026-08-09
+
+- **Decision:** the headline RVOL is the most recent **completed** 30-min slot; the export's
+  in-progress final bar is dropped from every measurement (and from every baseline).
+  **Why:** `parseHtfBars` documents the last row as the in-progress bar, so its volume is a
+  partial. Comparing a partial against a full-slot median reads "light" by construction on
+  every bundle — the same class of by-construction bug D1 found in `valueMigration.priorDay`.
+  **Alternatives considered:** pro-rating the partial bar by elapsed wall-clock minutes (needs
+  a `now` the module does not otherwise take, and the bundle's own clock is the more honest
+  source); reporting it unqualified (the bug above).
+
+- **Decision:** the day-level `SessionVolume` read is measured against
+  `medianSessionVolume × expectedFraction` — the fraction of a normal RTH day's volume that has
+  typically printed by the last completed slot — not against the whole-session median.
+  **Why:** the live export ships the in-progress session as row 1 (D1), so its `SessionVolume`
+  is a running total. The review's own day-level figure (341,119 vs a 415,467 median = 0.82x)
+  is that unqualified comparison; at ~75% of the session elapsed it is closer to 1.1x. The
+  fact carries `inProgress` and `expectedFraction` so the model can see which comparison it got.
+  **Alternatives considered:** reporting the raw ratio as the review did (systematically
+  understates every mid-session bundle); suppressing the daily leg until feat-089 partitions
+  the history (throws away the only day-level participation number in the bundle).
+
+- **Decision:** the `gate` (discount / neutral / confirming) is *derived* from the band rather
+  than getting its own threshold constants.
+  **Why:** the harness's doctrine-drift guard wants one place per threshold. Two constant sets
+  that must agree is exactly the drift the guard exists to catch.
+  **Alternatives considered:** separate `RVOL_SIGNAL_CONFIRMING_MIN` / `RVOL_SIGNAL_DISCOUNT_MAX`
+  constants set equal to the band edges (duplicated numbers, no extra expressiveness).
+
+- **Decision:** RTH is `[08:30, 15:00)` chart time for the session-so-far / expectation window,
+  via a new `RTH_CLOSE_MINUTES` constant — narrower than `overnightSession`'s implicit
+  `[08:30, 17:00)` RTH.
+  **Why:** the expectation curve has to be in the same units as the value-area exporter's
+  `SessionVolume`, which covers the cash session. `overnightSession` only needs "not overnight",
+  so its wider window is correct there and wrong here.
+  **Alternatives considered:** reusing `overnightSession`'s window (would put the 15:00–17:00
+  post-close tail into the "normal session" denominator and depress every RVOL).
+
+- **Decision:** raised the analyze user-prompt size budget 91k → 93k
+  (`tests/prompt-data-sync.test.ts`, measured 92,127).
+  **Why:** the fact plus its ownership bullet costs ~1.6k of already-projected scalars, and the
+  budget's own comment says to bump consciously in the same diff. The alternative it warns
+  against — inlining raw tables — does not apply; there is nothing further to summarize.
+  **Alternatives considered:** trimming `RVOL_REPORTED_SLOTS` 6 → 3 (saves ~400 chars and loses
+  the slot series that shows participation building or fading, which is the read's main texture).
+
+- **Decision:** `feat-089`'s seam is `computeSlotBaselines()` + `expectedRthVolumeThrough()`,
+  exported from `lib/engine/relativeVolume.ts` and documented as reusable.
+  **Why:** feat-089's developing-session maturity qualifier needs the same time-of-day
+  expectation; a second implementation there would be a second baseline to drift.
+  `expectedRthVolumeThrough` returns `expectedFraction` precisely so feat-089 can multiply it by
+  a whole-session median and stay in `SessionVolume` units.
+  **Alternatives considered:** exporting only the facts object (forces feat-089 to re-derive).

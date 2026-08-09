@@ -6,6 +6,7 @@ import type { StalenessAssessment } from '@/lib/engine/staleness'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
 import type { IntradayTrendFacts } from '@/lib/engine/intradayTrend'
+import type { RelativeVolumeFacts } from '@/lib/engine/relativeVolume'
 import type { ChartAttachment } from '@/lib/analyze'
 import type { EntryLevelRow, ProximityAssessment } from './proximity'
 
@@ -64,6 +65,13 @@ export interface EvalPromptInput {
    * an adverse move can be judged as rotation noise vs trend break.
    */
   htfStructure?: HtfStructureFacts | null
+  /**
+   * Code-owned relative-volume read from the 30-min bar export (feat-094);
+   * null when the bundle carries no usable export. Rendered as one context
+   * line — the participation scalar and the confidence gate the model applies
+   * to the delta telemetry and absorption candidates in this same prompt.
+   */
+  relativeVolume?: RelativeVolumeFacts | null
   /**
    * Code-owned composite intraday trend (feat-064) from the full-session exec
    * bars — the trend read at the operator's trade horizon. Rendered as one
@@ -228,6 +236,30 @@ function htfContextLine(htf: HtfStructureFacts | null | undefined): string {
 }
 
 /**
+ * One code-owned relative-volume line (feat-094): how heavy participation is
+ * right now versus this time of day's own history, and what that means for the
+ * delta/absorption evidence rendered elsewhere in this prompt. The gate is the
+ * point — the same divergence is noise on a thin tape and information on a
+ * heavy one.
+ */
+function relativeVolumeLine(rv: RelativeVolumeFacts | null | undefined): string {
+  if (!rv || rv.participation === null) {
+    return 'No relative-volume read is available for this bundle — judge participation from the bars alone and say the RVOL context is missing.'
+  }
+  const p = rv.participation
+  const gateRule =
+    p.gate === 'discount'
+      ? 'DISCOUNT the delta telemetry and absorption candidates below — participation is light, so divergence and climax prints are weak evidence.'
+      : p.gate === 'confirming'
+        ? 'The delta telemetry and absorption candidates below carry REAL weight — participation is backing the move.'
+        : 'Participation is normal — weigh the delta telemetry and absorption candidates at face value.'
+  const sessionSoFar = rv.sessionSoFar
+    ? ` Session so far: ${rv.sessionSoFar.volume} vs an expected ${rv.sessionSoFar.expectedVolume} (${rv.sessionSoFar.rvol}x) through ${rv.sessionSoFar.throughSlot}.`
+    : ''
+  return `Code-owned: participation ${p.rvol}x normal (${p.band.toUpperCase()}, from the ${p.source} read — ${p.basis}).${sessionSoFar} ${gateRule}`
+}
+
+/**
  * One code-owned composite intraday trend line (feat-064): the trend read at
  * the operator's trade horizon — direction, conviction, character and open
  * component disagreements. Computed without the Rip frame on this path.
@@ -359,6 +391,9 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
           '# Prior briefing baseline (creation-time context for the evaluated level)',
           priorBaselineSection(input.priorBaseline),
         ]),
+    '',
+    '# Participation context (code-owned relative volume, from the 30-min HTF bar export)',
+    relativeVolumeLine(input.relativeVolume),
     '',
     '# Delta telemetry (engine-computed from the execution-bar CSV)',
     '```json',

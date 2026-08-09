@@ -15,11 +15,14 @@ import { parseDeltaProfile } from '@/lib/engine/parseProfile'
 import { parseExecBars } from '@/lib/engine/parseExecBars'
 import { assessStaleness } from '@/lib/engine/staleness'
 import { parseDailyValueAreas } from '@/lib/engine/parseDailyValueAreas'
+import type { DailyValueArea } from '@/lib/engine/parseDailyValueAreas'
 import { computeValueMigration } from '@/lib/engine/valueMigration'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { parseHtfBars } from '@/lib/engine/parseHtfBars'
 import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import { computeRelativeVolume } from '@/lib/engine/relativeVolume'
+import type { RelativeVolumeFacts } from '@/lib/engine/relativeVolume'
 import { DEFAULT_EXECUTION_BAR_VOLUME } from '@/lib/config/fetchConfig'
 import { computeIntradayTrend } from '@/lib/engine/intradayTrend'
 import { computeSessionIntraday } from '@/lib/engine/sessionIntraday'
@@ -141,6 +144,37 @@ function computeEvalHtfStructure(
   } catch (error) {
     warnings.push(
       `failed to parse the HTF bar data: ${error instanceof Error ? error.message : String(error)}`,
+    )
+    return null
+  }
+}
+
+/**
+ * Code-owned relative-volume context (feat-094), best-effort on the same terms
+ * as the HTF structure read. The daily value-area history is passed when it
+ * parsed, for the day-level `SessionVolume` companion; a failure there only
+ * costs the daily leg, never the intraday slot read.
+ */
+function computeEvalRelativeVolume(
+  htfContent: string | null,
+  dailyVaContent: string | null,
+  warnings: string[],
+): RelativeVolumeFacts | null {
+  if (htfContent === null) return null
+  let dailySessions: DailyValueArea[] | null = null
+  if (dailyVaContent !== null) {
+    try {
+      dailySessions = parseDailyValueAreas(dailyVaContent)
+    } catch {
+      // Already warned by computeEvalValueMigration — the daily leg just drops.
+      dailySessions = null
+    }
+  }
+  try {
+    return computeRelativeVolume({ bars: parseHtfBars(htfContent), dailySessions })
+  } catch (error) {
+    warnings.push(
+      `failed to compute relative volume: ${error instanceof Error ? error.message : String(error)}`,
     )
     return null
   }
@@ -364,6 +398,11 @@ export async function runEval(
   )
   const valueMigration = computeEvalValueMigration(bundle.dailyVaContent, currentPrice, warnings)
   const htfStructure = computeEvalHtfStructure(bundle.htfCsvContent, currentPrice, warnings)
+  const relativeVolume = computeEvalRelativeVolume(
+    bundle.htfCsvContent,
+    bundle.dailyVaContent,
+    warnings,
+  )
 
   const configWindow = config?.proximity_window_seconds
   const windowSeconds =
@@ -480,6 +519,7 @@ export async function runEval(
       recentBars,
       valueMigration,
       htfStructure,
+      relativeVolume,
       intradayTrend,
       position,
       priorBaseline,

@@ -3,7 +3,33 @@
 ## Current State
 
 **Last Updated:** 2026-08-09
-**Latest change (feat-092, branch `feat-092-tpo-period-clock-map`):** the TPO export
+**Latest change (branch `feat-094-rvol-time-of-day`):** **feat-094 — relative volume
+(RVOL) from time-of-day seasonality — is DONE.** New engine module
+`lib/engine/relativeVolume.ts` finally reads the `htf_bars.csv` volume column that
+D4 found parsed, typed and consumed by nobody: a per-intraday-slot median baseline
+built from the export's own prior sessions (46 distinct 30-min slots on the live
+bundle), today's completed slots measured against it, cumulative RTH volume against
+the time-of-day expectation, and the day-level companion from
+`daily-value-areas.csv`'s `SessionVolume` (the other field D4 flagged as referenced
+nowhere). Everything reduces to one `participation` scalar — `rvol`, a
+dead/light/normal/elevated/heavy `band`, and a `gate` — which is the confidence
+modifier the analyze/update and eval prompts now apply to delta divergence,
+absorption candidates and climax prints: the same divergence is noise at 0.7x and
+information at 1.4x. The in-progress final bar is never measured (a partial 30-min
+volume against a full-slot median reads light by construction), and a slot with
+under `RVOL_MIN_SLOT_SESSIONS` history degrades to a null rvol rather than a ratio
+built on three sessions. Verified on the real fixture: 12:30 slot 19,668 vs a
+15,749 median over 12 sessions = 1.25x, session-so-far 1.43x at 75% of the day
+elapsed. Analyze-prompt budget raised 91k → 93k (measured 92,127) with the
+rationale recorded inline. `./init.sh` green.
+
+**Next up:** the backlog's first `not-started` feature whose deps are all `done` —
+feat-089 (partition developing vs completed sessions) is the natural follow-on and
+can now import `computeSlotBaselines` / `expectedRthVolumeThrough` from
+`lib/engine/relativeVolume.ts` for its maturity qualifier instead of forking a
+second time-of-day baseline.
+
+**Prior change (feat-092, branch `feat-092-tpo-period-clock-map`):** the TPO export
 now carries a period→clock anchor, closing review item A2. `tpo.data.md`'s `## Metadata`
 section gained two additive lines — `- **First Period Letter**: A` and
 `- **First Period Start**: 2026-06-16 08:30:00` — and `lib/engine/parseTpo.ts` captures
