@@ -432,7 +432,14 @@ describe('prompt-data sync gate (feat-054)', () => {
     // Ceiling bumped 43k → 47k for feat-086: the entry-first objective
     // contract added the selection-walk preamble and target-demotion prose to
     // output-objective.md.
-    const PREFIX_BUDGET = { floor: 20_000, ceiling: 47_000 }
+    // Bumped 47k → 48k 2026-08-09 (feat-100, landing on feat-108's 46_757):
+    // the extension-distribution sanity check on target rungs went into
+    // output-objective.md rather than the per-run message, which is the whole
+    // point of this split — the prefix is cached ONCE per model version, the
+    // user message is paid every run, and that trade is exactly what let the
+    // analyze user-prompt ceiling come DOWN 106k → 100k in the same diff.
+    // Measured 47_248.
+    const PREFIX_BUDGET = { floor: 20_000, ceiling: 48_000 }
 
     it.each(['analyze', 'update', 'eval'] as const)(
       'the %s cached prefix stays inside budget',
@@ -547,12 +554,27 @@ describe('prompt-data sync gate (feat-054)', () => {
       // 105_063. The new anchoring prose went into the cached
       // output-objective.md prefix (feat-096's pattern), costing this budget
       // nothing. The stop still stands for the next fact.
+      // LOWERED 106k → 100k 2026-08-09 (feat-100), the first move DOWN in this
+      // gate's history, measured on top of feat-108. The IB→day-range extension
+      // fact costs 1_060 chars (the day/IB quantiles with their sample size,
+      // today's IB, and each quantile projected into a price); its interpretive
+      // half went into the cached output-objective.md prefix per feat-096/097.
+      // It is paid for many times over by harvesting the second half of the
+      // duplication feat-090 flagged (feat-108 took the first, compacting the
+      // composite borders' members): `terrain.partitions` is literally
+      // `terrain.levels.filter(v => v.hard)` — the SAME verdict objects,
+      // re-serialized in full (−10_528 chars) two keys below the list they came
+      // from, named by no prompt line, no doctrine file and no output field,
+      // and the merged result the model actually reasons about is
+      // `terrain.borders`. Measured 93_630 with both trims in place. The
+      // ceiling comes down with the payload so the gate keeps biting; the stop
+      // feat-089/090 recorded still stands for the next fact to land here.
       expect(analysisPrompt.length).toBeGreaterThan(35_000)
       expect(
         analysisPrompt.length,
-        'the analyze user prompt grew past 106k chars on the fixture bundle — project or ' +
+        'the analyze user prompt grew past 100k chars on the fixture bundle — project or ' +
           'summarize new data instead of inlining it, or consciously raise this budget',
-      ).toBeLessThan(106_000)
+      ).toBeLessThan(100_000)
     })
   })
 })

@@ -1,10 +1,21 @@
 import type { HtfBar } from './parseHtfBars'
 import {
-  GLOBEX_OPEN_MINUTES,
-  RTH_OPEN_MINUTES,
-  minutesOfDay,
-  tradingDayOf,
-} from './overnightSession'
+  HTF_BAR_MINUTES,
+  RTH_BARS_PER_SESSION,
+  RTH_CLOSE_MINUTES,
+  groupRthSessions,
+  sessionOhlc,
+} from './rthSessions'
+import type { Ohlc } from './rthSessions'
+
+/**
+ * RTH session reconstruction moved to `rthSessions.ts` (feat-100) so the IB
+ * extension distribution measures sessions the same way this module does; the
+ * constants and `sessionOhlc` stay exported from here, unchanged, for the
+ * callers that already import them.
+ */
+export { HTF_BAR_MINUTES, RTH_BARS_PER_SESSION, RTH_CLOSE_MINUTES, sessionOhlc }
+export type { Ohlc }
 
 /**
  * Code-owned volatility SCALE read (feat-095) — the engine's answer to "how
@@ -53,22 +64,6 @@ import {
  *   deflate the scale, and folding in the much quieter overnight bars would
  *   deflate it further.
  */
-
-/** HTF planning-chart bar size, minutes (the `htf_bar_data.rolling.csv` export). */
-export const HTF_BAR_MINUTES = 30
-
-/**
- * RTH close, minutes after midnight chart time (16:00 CT) — the CME
- * maintenance halt. Bars stop printing here even though the next trading day
- * does not begin until the 17:00 Globex reopen ({@link GLOBEX_OPEN_MINUTES}),
- * so a session's bar count is measured against THIS boundary, not that one.
- * Verified against the live export: RTH sessions carry 15 bars, 08:30–15:30.
- */
-export const RTH_CLOSE_MINUTES = 16 * 60
-
-/** 30-min bars in one complete RTH session (08:30 → 16:00 CT = 15 bars). */
-export const RTH_BARS_PER_SESSION =
-  (RTH_CLOSE_MINUTES - RTH_OPEN_MINUTES) / HTF_BAR_MINUTES
 
 /**
  * RTH sessions the estimate is measured over — ~two trading weeks. Long enough
@@ -171,9 +166,6 @@ export interface VolatilityScaleInput {
   structure?: readonly StructureReference[]
 }
 
-/** The OHLC shape both estimators consume — one bar or one whole session. */
-type Ohlc = { open: number; high: number; low: number; close: number }
-
 function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
@@ -187,21 +179,6 @@ function median(values: number[]): number {
 function fmtChartTime(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-function isRthBar(bar: HtfBar): boolean {
-  const mins = minutesOfDay(bar.dateTime)
-  return mins >= RTH_OPEN_MINUTES && mins < GLOBEX_OPEN_MINUTES
-}
-
-/** One session's bars collapsed into a single OHLC period. */
-export function sessionOhlc(bars: readonly HtfBar[]): Ohlc {
-  return {
-    open: bars[0].open,
-    high: Math.max(...bars.map((b) => b.high)),
-    low: Math.min(...bars.map((b) => b.low)),
-    close: bars[bars.length - 1].close,
-  }
 }
 
 /**
@@ -308,24 +285,14 @@ export function computeVolatilityScale(
     throw new Error('volatility scale needs at least one bar')
   }
 
-  const sessions = new Map<string, HtfBar[]>()
-  for (const bar of bars) {
-    if (!isRthBar(bar)) continue
-    const day = tradingDayOf(bar)
-    const existing = sessions.get(day)
-    if (existing) existing.push(bar)
-    else sessions.set(day, [bar])
-  }
-
   // Complete sessions only: the in-progress day (and any early close) carries a
   // truncated range that would understate the scale exactly when it is quoted.
-  const dates = [...sessions.keys()]
-    .filter((date) => sessions.get(date)!.length >= RTH_BARS_PER_SESSION)
-    .sort()
+  const sessions = groupRthSessions(bars)
+    .filter((session) => session.complete)
     .slice(-SIGMA_ESTIMATION_SESSIONS)
-  if (dates.length < MIN_SIGMA_ESTIMATION_SESSIONS) return null
+  if (sessions.length < MIN_SIGMA_ESTIMATION_SESSIONS) return null
 
-  const sessionBars = dates.map((date) => sessions.get(date)!)
+  const sessionBars = sessions.map((session) => session.bars)
   const windowBars = sessionBars.flat()
 
   const referencePrice =
@@ -353,7 +320,7 @@ export function computeVolatilityScale(
 
   return {
     barsAnalyzed: windowBars.length,
-    sessionsAnalyzed: dates.length,
+    sessionsAnalyzed: sessions.length,
     windowStart: fmtChartTime(windowBars[0].dateTime),
     windowEnd: fmtChartTime(windowBars[windowBars.length - 1].dateTime),
     barMinutes: HTF_BAR_MINUTES,
