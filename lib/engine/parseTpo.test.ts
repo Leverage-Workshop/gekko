@@ -11,6 +11,8 @@ const minimal = (overrides: Partial<Record<'header' | 'rows', string>> = {}) => 
 - **TPO Period Minutes**: 30
 - **Tick Size**: 0.25
 - **Bin Size (Ticks)**: 8
+- **First Period Letter**: A
+- **First Period Start**: 2026-06-16 08:30:00
 
 ## Summary
 - **POC Price**: 29950.00
@@ -39,6 +41,7 @@ describe('parseTpoProfile', () => {
       tickSize: 0.25,
       binSize: 8,
       step: 2,
+      firstPeriod: { letter: 'A', start: '2026-06-16 08:30:00' },
     })
     expect(tpo.summary).toEqual({
       pocPrice: 29950,
@@ -64,6 +67,57 @@ describe('parseTpoProfile', () => {
     // 29950 -> 29944 skips two bins: still a whole number of 2.0-pt steps.
     const tpo = parseTpoProfile(minimal({ rows: '29950.00,2,"HI"\n29944.00,1,"H"' }))
     expect(tpo.rows.map((r) => r.price)).toEqual([29950, 29944])
+  })
+
+  describe('period→clock anchor (feat-092)', () => {
+    const stripAnchor = (content: string) =>
+      content
+        .replace(/- \*\*First Period Letter\*\*.*\n/, '')
+        .replace(/- \*\*First Period Start\*\*.*\n/, '')
+
+    it('parses an older export that carries neither anchor line', () => {
+      const legacy = stripAnchor(minimal())
+      expect(legacy).not.toContain('First Period')
+      const tpo = parseTpoProfile(legacy)
+      expect(tpo.meta.firstPeriod).toBeNull()
+      // Everything else still parses — absence degrades, it does not reject.
+      expect(tpo.meta.tpoPeriodMinutes).toBe(30)
+      expect(tpo.rows).toHaveLength(3)
+    })
+
+    it('degrades to null when only one of the two lines is present', () => {
+      const onlyLetter = stripAnchor(minimal()).replace(
+        '- **Tick Size**: 0.25',
+        '- **First Period Letter**: A\n- **Tick Size**: 0.25',
+      )
+      expect(parseTpoProfile(onlyLetter).meta.firstPeriod).toBeNull()
+    })
+
+    it('normalizes the ISO T separator and a missing seconds field', () => {
+      const iso = minimal().replace(
+        '- **First Period Start**: 2026-06-16 08:30:00',
+        '- **First Period Start**: 2026-06-16T08:30',
+      )
+      expect(parseTpoProfile(iso).meta.firstPeriod).toEqual({
+        letter: 'A',
+        start: '2026-06-16 08:30:00',
+      })
+    })
+
+    it.each([
+      [
+        'multi-character letter',
+        minimal().replace('First Period Letter**: A', 'First Period Letter**: AB'),
+        /First Period Letter/,
+      ],
+      [
+        'time without a date',
+        minimal().replace('First Period Start**: 2026-06-16 08:30:00', 'First Period Start**: 08:30'),
+        /First Period Start/,
+      ],
+    ])('hard-rejects a present-but-unreadable anchor: %s', (_name, content, message) => {
+      expect(() => parseTpoProfile(content)).toThrow(message)
+    })
   })
 
   it.each([

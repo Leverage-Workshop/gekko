@@ -2,8 +2,30 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-07
-**Latest change (ad-hoc, branch `claude/data-bundle-adversarial-review-ef0a5b`):**
+**Last Updated:** 2026-08-09
+**Latest change (feat-092, branch `feat-092-tpo-period-clock-map`):** the TPO export
+now carries a period→clock anchor, closing review item A2. `tpo.data.md`'s `## Metadata`
+section gained two additive lines — `- **First Period Letter**: A` and
+`- **First Period Start**: 2026-06-16 08:30:00` — and `lib/engine/parseTpo.ts` captures
+them as `meta.firstPeriod`. New `lib/engine/tpoPeriodClock.ts` resolves any letter from
+that anchor plus `TPO Period Minutes`: `TPO_PERIOD_LETTERS` (A–Z then a–z, 52 periods),
+`resolveTpoPeriodTime()` → `{letter, index, start, end, clock}`, `buildTpoPeriodClock()`
+for a whole ladder. Times are naive local wall-clock (matching the study's own output),
+computed in UTC so DST can never shift a period boundary. `tpoFacts` surfaces
+`tpo.firstPeriod` and `tpo.periodClock` (letter → `HH:MM`; the fixture resolves A..M to
+08:30..14:30) and the analyze prompt tells the model to time letter-sequenced reads from
+it instead of quoting bare letters. **Backward compatibility is the load-bearing part:**
+either anchor line missing → `firstPeriod: null`, `periodClock: null`, everything else
+parses exactly as before, so bundles already in `raw_bundles` (and any Sierra machine
+running the pre-feat-092 study) keep working; only a *present but unreadable* value is a
+hard reject. Exporter contract updated in `docs/data-todos.md` §1 (sample block, a new
+anchor-contract subsection, and the ACSIL study prompt) plus the registry row in
+`docs/engine-ownership.md`. This unblocks the period-sequenced reads that were stuck
+behind A2 — open type, which period made the high/low, range extension by period, excess
+timing — of which feat-091 (TPO tails) and C2/day-type are the next consumers.
+`./init.sh` green: typecheck 0, lint 0 warnings, vitest 1164 passed / 1 skipped, build OK.
+
+**Prior change (ad-hoc, branch `claude/data-bundle-adversarial-review-ef0a5b`):**
 adversarial review of the live data bundle → `docs/data-bundle-review-2026-08-07.md`,
 plus 19 new backlog features (**feat-089..feat-107**). Method: pulled the newest
 `raw_bundles` row (`1c15934a`, 2026-08-06 18:33 UTC, price 29542.50, mid-RTH),
@@ -46,7 +68,7 @@ level-reversal stats rest on n = 20–34 per class — the method is feasible, t
 is not established. `./init.sh` green (docs + `feature_list.json` only, no code
 touched).
 
-**Prior change (ad-hoc, branch `claude/delta-intensity-redundancy-xe1bbj`):**
+**Earlier change (ad-hoc, branch `claude/delta-intensity-redundancy-xe1bbj`):**
 bundle-data math review — no code changes, two new backlog features. Tested
 Codex's claim that DeltaIntensity is redundant given the raw BidVolume/
 AskVolume columns, on two live bundles (2026-08-06). It is NOT reproducible:

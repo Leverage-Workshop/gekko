@@ -21,6 +21,9 @@ function profile(rowSpec: Array<[number, number, string]>, summary?: Partial<Tpo
       tickSize: 0.25,
       binSize: 8,
       step: 2,
+      // Anchorless by default — the synthetic profiles double as the
+      // pre-feat-092 export shape.
+      firstPeriod: null,
     },
     summary: {
       pocPrice: maxRow.price,
@@ -45,6 +48,25 @@ describe('computeTpoFacts on the chart-data fixture', () => {
     expect(facts.valueArea).toEqual({ high: 29978, low: 29870 })
     expect(facts.initialBalance).toEqual({ high: 30044, low: 29988 })
     expect(facts.sessionRange).toEqual({ high: 30044, low: 29862 })
+  })
+
+  it('maps every period letter in the ladder to its clock start (feat-092)', () => {
+    expect(facts.firstPeriod).toEqual({ letter: 'A', start: '2026-06-16 08:30:00' })
+    expect(facts.periodClock).toEqual({
+      A: '08:30',
+      B: '09:00',
+      C: '09:30',
+      D: '10:00',
+      E: '10:30',
+      F: '11:00',
+      G: '11:30',
+      H: '12:00',
+      I: '12:30',
+      J: '13:00',
+      K: '13:30',
+      L: '14:00',
+      M: '14:30',
+    })
   })
 
   it('finds the prominent POC', () => {
@@ -153,6 +175,12 @@ describe('computeTpoFacts detection edges', () => {
       profile([[29952, 2, 'AB'], [29950, 3, 'ABC']], { ibHigh: 0, ibLow: 0 }),
     )
     expect(facts.initialBalance).toBeNull()
+  })
+
+  it('degrades the period clock to null on an anchorless (older) export', () => {
+    const facts = computeTpoFacts(profile([[29952, 2, 'AB'], [29950, 3, 'ABC']]))
+    expect(facts.firstPeriod).toBeNull()
+    expect(facts.periodClock).toBeNull()
   })
 
   it('throws on an empty ladder', () => {

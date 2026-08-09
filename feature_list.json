@@ -958,7 +958,8 @@
         "feat-054",
         "feat-046"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "tpo.data.md gained two additive ## Metadata lines -- '- **First Period Letter**: A' and '- **First Period Start**: 2026-06-16 08:30:00' (chart-data fixture + the exporter contract in docs/data-todos.md section 1, including the ACSIL study prompt). parseTpo.ts captures them as meta.firstPeriod (TpoPeriodAnchor | null): absent -> null so pre-anchor bundles keep parsing (test 'parses an older export that carries neither anchor line'; a half-written anchor also degrades to null), present-but-unreadable -> hard reject like the rest of the parser; the ISO 'T' separator and an omitted seconds field are normalized. New lib/engine/tpoPeriodClock.ts is the letter->time resolver derived from tpoPeriodMinutes: TPO_PERIOD_LETTERS (A-Z then a-z, 52 periods), resolveTpoPeriodTime() -> {letter,index,start,end,clock} and buildTpoPeriodClock(); naive local wall-clock, arithmetic in UTC so DST cannot shift a boundary, null/[] whenever the anchor is missing. tpoFacts exposes tpo.firstPeriod and tpo.periodClock (letter -> HH:MM for every letter in the ladder; the fixture resolves A..M to 08:30..14:30), both null on older exports, and the analyze prompt's tpo bullet tells the model to time letter-sequenced reads from it. docs/engine-ownership.md registry row updated. ./init.sh passes end to end on the branch: typecheck 0, lint 0 warnings, vitest 1164 passed / 1 skipped (67 files), next build OK, exit 0."
     },
     {
       "id": "feat-093",
