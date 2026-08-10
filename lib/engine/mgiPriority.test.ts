@@ -27,9 +27,9 @@ describe('computeMgiPriority — fixture', () => {
     }
   })
 
-  it('classifies 16 Tier-1 campaign borders (4 weekly + 6 monthly + 4 vRange + ONH/ONL)', () => {
+  it('classifies 18 Tier-1 campaign borders (4 weekly + 6 monthly + 6 vRange + ONH/ONL)', () => {
     const r = computeMgiPriority(mgi)
-    expect(r.tier1).toHaveLength(16)
+    expect(r.tier1).toHaveLength(18)
     expect(r.tier1.every(l => l.tier === 1)).toBe(true)
     // ONH/ONL are Tier 1; Rip/PDH/IB/OR are Tier 2.
     const onh = r.levels.find(l => l.code === 'onh')
@@ -41,24 +41,47 @@ describe('computeMgiPriority — fixture', () => {
     expect(r.levels.filter(l => l.group === 'atr').map(l => l.tier)).toEqual([2, 2])
   })
 
-  it('tiers the VRange extension band by edge: near (±2) Tier 1, far (±3) Tier 2', () => {
+  it('keeps every VRange level Tier 1 — both 1x-zone edges included', () => {
     const r = computeMgiPriority(mgi)
-    const byCode = new Map(r.levels.map(l => [l.code, l]))
-    // feat-109: the pair is one band, so only the near edge is an anchorable
-    // border. The far edge stays exported as the stop-side reference.
-    expect(byCode.get('extPlus2')?.tier).toBe(1)
-    expect(byCode.get('extMinus2')?.tier).toBe(1)
-    expect(byCode.get('extPlus3')?.tier).toBe(2)
-    expect(byCode.get('extMinus3')?.tier).toBe(2)
-    expect(r.tier1.map(l => l.code)).not.toContain('extPlus3')
-    expect(r.tier1.map(l => l.code)).not.toContain('extMinus3')
-    // The band's width is 0.2x the VRange width by construction — the reason the
-    // two edges were consolidating against each other in terrain. NB: `code` is
-    // not unique across groups (atr also exports high/low), so scope by group.
+    // NB: `code` is not unique across groups (atr also exports high/low), so
+    // scope by group before keying on it.
     const vRange = new Map(r.levels.filter(l => l.group === 'vRange').map(l => [l.code, l]))
-    const width = vRange.get('high')!.price - vRange.get('low')!.price
-    const band = vRange.get('extPlus3')!.price - vRange.get('extPlus2')!.price
-    expect(band / width).toBeCloseTo(0.2, 2)
+    expect([...vRange.values()].every(l => l.tier === 1)).toBe(true)
+    // The two 1x-zone edges do not compete on tier; terrain merges them into one
+    // composite border instead (see terrainZones' band rule).
+    expect(vRange.get('extPlus2')?.tier).toBe(1)
+    expect(vRange.get('extPlus3')?.tier).toBe(1)
+  })
+
+  it('is Implied Vol Ranges geometry: open ± 0.25 / 0.90 / 1.00 of the VIX-implied move', () => {
+    const r = computeMgiPriority(mgi)
+    const vRange = new Map(r.levels.filter(l => l.group === 'vRange').map(l => [l.code, l.price]))
+    // Every level is symmetric about the session OPEN, so opposite pairs share a
+    // midpoint — this is what proves they are open-anchored volatility
+    // projections rather than a range-width construct.
+    const open = (vRange.get('extPlus3')! + vRange.get('extMinus3')!) / 2
+    expect((vRange.get('high')! + vRange.get('low')!) / 2).toBeCloseTo(open, 6)
+    expect((vRange.get('extPlus2')! + vRange.get('extMinus2')!) / 2).toBeCloseTo(open, 6)
+    // D = the full expected session move; the far edge IS 1.00x it by definition.
+    const d = vRange.get('extPlus3')! - open
+    expect((vRange.get('high')! - open) / d).toBeCloseTo(0.25, 3)
+    expect((vRange.get('extPlus2')! - open) / d).toBeCloseTo(0.9, 3)
+    // Sanity: D is a plausible VIX-implied daily move (1.45% here → VIX ~23).
+    const impliedVix = (d / open) * Math.sqrt(252)
+    expect(impliedVix).toBeGreaterThan(0.1)
+    expect(impliedVix).toBeLessThan(0.6)
+  })
+
+  it('labels the mean-reversion lines Upper/Lower, not as range extremes', () => {
+    const r = computeMgiPriority(mgi)
+    const labels = new Map(r.levels.filter(l => l.group === 'vRange').map(l => [l.code, l.label]))
+    // `high`/`low` sit at 0.25x the expected move, so "VRange High" read as the
+    // session's expected extreme in briefing prose — wrong by a factor of four.
+    // The 1x zone is the extreme.
+    expect(labels.get('high')).toBe('VRange Upper')
+    expect(labels.get('low')).toBe('VRange Lower')
+    expect(labels.get('extPlus3')).toContain('1x Zone far')
+    expect(labels.get('extPlus2')).toContain('1x Zone near')
   })
 
   it('finds the nearest DAILY level each side, which the Tier-1 read cannot reach', () => {

@@ -781,6 +781,33 @@ describe('assembleTerrain — class-aware spacing consolidation', () => {
     expect(demotedAAA!.significance).toBe('AAA')
   })
 
+  it('merges the two edges of a VRange 1x zone into one border, at any spacing', () => {
+    // The zone's edges sit ~0.2x the expected move apart — beyond mergeTolerancePts
+    // but inside aTierMinSpanPts, so before the band rule consolidation demoted one
+    // of them on an arbitrary price tie-break. Here both edges land on real trench
+    // geometry (30325 and 30175, 150 pts apart) and must survive as ONE border.
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      // Upper zone, price-descending: the far edge (1.00x) sits above the near (0.90x).
+      mgi: makeMgi(30250, [
+        { price: 30325, label: 'VRange 1x Zone far (upper)', tier: 1, code: 'extPlus3', group: 'vRange' },
+        { price: 30175, label: 'VRange 1x Zone near (upper)', tier: 1, code: 'extPlus2', group: 'vRange' },
+      ]),
+    })
+    const zone = r.borders.find(b => b.label.includes('1x Zone'))
+    expect(zone).toBeDefined()
+    // One border carrying BOTH edges — neither demoted.
+    expect(zone!.members).toHaveLength(2)
+    expect(zone!.label).toContain('near')
+    expect(zone!.label).toContain('far')
+    expect(r.demoted.map(d => d.price)).not.toContain(30325)
+    expect(r.demoted.map(d => d.price)).not.toContain(30175)
+    // Both member prices stay anchorable, so a fade can still sit on the near edge.
+    expect(zone!.members.map(m => m.level.price).sort()).toEqual([30175, 30325])
+  })
+
   it('the Rip holds its border against a Tier-1 neighbor (feat-109 consolidation exemption)', () => {
     // Operator 2026-08-10: the inverse of the test above. Identical geometry, but the Tier-2
     // balance-area anchor is the RIP — the Daily MGI Priority Order's rank-1 level. It ranks

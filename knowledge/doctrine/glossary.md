@@ -59,8 +59,8 @@ The Daily MGI Priority Order and the Structural Hierarchy (Tier 1 Campaign Borde
 Intraday Direction / Tier 3 Micro-Timing) arrive computed in the engine facts. The qualitative
 takeaways:
 
-- **Macro terrain overrides the micro skirmish** — Tier-1 HTF MGI (Weekly/Monthly levels, VRange
-  extremes, major composite edges, ONH/ONL) strictly dictate Primary/Secondary planning, targets,
-  and hard invalidations. Weekly Open is a very strong magnet.
+- **Macro terrain overrides the micro skirmish** — Tier-1 HTF MGI (Weekly/Monthly levels, the
+  VRange expected-move levels, major composite edges, ONH/ONL) strictly dictate Primary/Secondary
+  planning, targets, and hard invalidations. Weekly Open is a very strong magnet.
 - **Leg VWAP is Tier 3** and may never be a primary structural target, an entry border, or a hard
   stop (see Constraints).

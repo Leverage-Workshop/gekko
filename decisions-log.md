@@ -774,27 +774,37 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   target rungs, which updates do revise — recorded here as the obvious follow-up rather
   than taken silently in this diff).
 
-- **Decision (feat-109):** only the NEAR edge of the VRange ±2/±3 extension band is Tier 1 and
-  anchorable; the far edge (±3) drops to Tier 2 as the stop-side reference.
-  **Why:** the pair is not two independent borders. The export places them at fixed range-width
-  multiples (2.3× / 2.5× off the opposite edge), so they are ALWAYS `0.2 × width` apart — 43.5 /
-  43.5 / 43.0 pts across the three archived exports. That is inside `aTierMinSpanPts`, so two
-  same-tier borders that close were already being consolidated against each other on an arbitrary
-  price tie-break (above price the band collapsed to the FAR edge, below price to the NEAR edge).
-  Picking the near edge matches the fade doctrine already settled for single-print scars (PR #98)
-  and fakeout tails (PR #113): anchor at the near edge, never exile the anchor to the far side.
-  **Known cost, accepted with eyes open:** on the fixture bundle the real balance-area acceptance
-  sat at the FAR edge (−3, 29504.25, an AAA border), and −2 is not a border and did not become
-  one — so this retired a genuine AAA partition (zones 10 → 9) rather than relocating it. The
-  structure survives as the detector LVN node at 29490 and stays a legal anchor, but loses its
-  MGI label and its partition.
+- **Decision (feat-109):** all six VRange levels stay Tier 1; the 1x zone's two edges are merged
+  into one composite border in `mergePartitions` instead of being separated by tier.
+  **Why:** the operator supplied the Sierra study's definition, which corrected the diagnosis. Every
+  VRange level is the session OPEN ± a multiple of `D`, the VIX-implied expected session move —
+  `high`/`low` at 0.25·D, and the `ext*` levels at 0.90·D and 1.00·D, the NEAR and FAR edges of one
+  shaded "1x Range Zone" (verified on two exports agreeing to 4 dp, both with D at 1.45% of the
+  open, implied VIX ~23). So the pair genuinely is ONE object — but tier was the wrong lever for
+  saying so. Tier answers "how important is this level"; the problem was that the engine treated one
+  object as two. An earlier pass in this same branch demoted the far edge to Tier 2 (committed in
+  6801604) and it cost a real partition: the fixture's genuine AAA acceptance sits at the FAR edge
+  (29504.25) and the near edge has no volume geometry, so the demotion retired a border rather than
+  relocating it (zones 10 → 9). Reverted. The merge keeps the partition where the profile actually
+  shows acceptance while leaving BOTH edges as legal entry anchors, so a fade can still sit on the
+  near edge.
   **Alternatives considered:** the midpoint of the two edges (the operator's first instinct —
-  rejected: it is a price nothing was ever measured at, it discards the band width, which is the
-  informative part, and it splits the difference in exactly the way the near-edge fade rules
-  reject); a band-aware MERGE collapsing ±2/±3 into one composite border with both edges as
-  members, like the observed `RPOC / 24 VWAP / Rip` cluster — the better design, since it keeps
-  the near edge anchorable AND keeps the far edge's real partition, but it changes
-  `mergePartitions` and was outside the approved scope. Recorded as the recommended follow-up.
+  rejected: a price nothing was measured at, and it discards the zone's extent); demoting the far
+  edge to Tier 2 (tried, reverted, see above); demoting the WHOLE `vRange` group to Tier 2 for
+  consistency with ATR (audit A9 keeps ATR projections out of Tier 1 as "not campaign borders or
+  partition anchors", and VRange is the same category — a volatility projection off a reference
+  price). That last one was recommended and **declined by the operator**: the 0.25·D Upper/Lower
+  lines are good levels in practice. Do not re-propose it.
+
+- **Decision (feat-109):** VRange labels name what the level IS, not the export's field name.
+  **Why:** `high`/`low` were labelled "VRange High"/"VRange Low" and documented as "VRange
+  extremes", but they sit at 0.25·D — a quarter of the expected move. The model quotes MGI labels
+  verbatim in briefing prose, so it was calling the inner mean-reversion line the session's expected
+  extreme, wrong by a factor of four. Now `VRange Upper`/`VRange Lower`, with the extensions as
+  `VRange 1x Zone near/far (upper|lower)` so the zone reads as one object in the composite border's
+  joined label. `knowledge/doctrine/chart-reading.md` and `glossary.md` corrected to match.
+  **Alternatives considered:** leaving the labels and fixing only the docs (the label is what
+  reaches the operator, so the doc fix alone would not have changed a single briefing).
 
 - **Decision (feat-109):** the Rip ranks with the campaign borders in `borderRank` via a new
   `consolidationTier()`, instead of being promoted to Tier 1 in `mgiPriority.ts`.

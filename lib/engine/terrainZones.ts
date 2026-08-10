@@ -323,8 +323,7 @@ function isFiniteNumber(v: unknown): v is number {
  * partitions and target rungs live on the session levels (Kill Box = IBL→IBH, T1 = OR Low,
  * T3 = IB Low); anchoring Tier-1 only erased them from the terrain entirely (gem-comparison
  * F2). Promotion still requires local volume geometry, so a noise level stays a plain `mgi`
- * coordinate. ATR projections stay excluded (volatility context, not structure — audit A9), as
- * is the VRange extension band's far edge (Tier 2 since feat-109 — stop-side reference only).
+ * coordinate. ATR projections stay excluded (volatility context, not structure — audit A9).
  *
  * The Rip needs no clause of its own: it is a `daily`-group level, so the group test already
  * carries it. What used to lose it was consolidation, not selection — see {@link borderRank}.
@@ -608,11 +607,45 @@ function classifyBorder(
  * local dip (lowest centerRatio) — the actual valley of the cluster; the label names every
  * member. Adjacent composites stay > tolerance apart by construction (chain clustering).
  */
+/**
+ * The two edges of one VRange shaded "1x Range Zone" (operator 2026-08-10). The Implied Vol
+ * Ranges study plots the zone as `O ± 0.90·D` (near edge) and `O ± 1.00·D` (far edge) where D is
+ * the VIX-implied session move — one shaded object, not two levels that happen to sit ~0.2·D
+ * apart. `code` is unique within `vRange` for these four (unlike `high`/`low`, which `atr` also
+ * exports), but the group is checked anyway so a future code collision cannot widen this rule.
+ */
+const VRANGE_ZONE_EDGES: readonly (readonly [string, string])[] = [
+  ['extPlus3', 'extPlus2'], // upper zone, price-descending: far edge above near
+  ['extMinus2', 'extMinus3'], // lower zone: near edge above far
+]
+
+function sameVRangeZone(a: BorderVerdict, b: BorderVerdict): boolean {
+  if (a.level.group !== 'vRange' || b.level.group !== 'vRange') return false
+  if (a.level.code === b.level.code) return false
+  return VRANGE_ZONE_EDGES.some(
+    edges => edges.includes(a.level.code) && edges.includes(b.level.code),
+  )
+}
+
+/**
+ * Cluster adjacent hard partitions into composite borders: anything within `tolerance`, PLUS the
+ * two edges of a VRange 1x zone at any spacing ({@link sameVRangeZone}) — the zone is one object,
+ * so its edges must not compete for the partition. Before that rule the pair fell inside
+ * `aTierMinSpanPts` but outside `tolerance`, so consolidation demoted one of them on an arbitrary
+ * price tie-break: the FAR edge survived above price, the NEAR edge below it.
+ *
+ * Merging keeps BOTH: the composite's price is the deepest local dip (the acceptance the profile
+ * actually shows, which on the archived fixture is the far edge), while every member price stays
+ * a legal entry anchor via `engineAnchorPrices()`, so the near edge remains available to anchor a
+ * fade. Clustering is adjacency-based, so an unrelated partition BETWEEN the two edges blocks the
+ * zone merge — deliberate: real structure inside the zone means it is not acting as one thing.
+ */
 function mergePartitions(partitions: BorderVerdict[], tolerance: number): CompositeBorder[] {
   const clusters: BorderVerdict[][] = []
   for (const p of partitions) {
     const last = clusters[clusters.length - 1]
-    if (last && last[last.length - 1].level.price - p.level.price <= tolerance) {
+    const prev = last?.[last.length - 1]
+    if (prev && (prev.level.price - p.level.price <= tolerance || sameVRangeZone(prev, p))) {
       last.push(p)
     } else {
       clusters.push([p])

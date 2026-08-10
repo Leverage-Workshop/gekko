@@ -53,12 +53,17 @@ qualitatively and defers the numbers to the engine facts.
   nearest Tier-1 borders are computed in `lib/engine/mgiPriority.ts`. Not every level comes from
   the static MGI JSON: Daily MGI Priority **ranks 4–5 (RVAH/RVAL/RPOC)** are the prior COMPLETED
   session's value area, passed in from `daily-value-areas.csv` via `computeMgiPriority`'s
-  `priorDayValue` option (feat-090) and classified Tier 2 alongside PDH/PDL. The VRange ±2/±3
-  extensions are ONE BAND, not two borders (feat-109): the export puts them at fixed range-width
-  multiples (2.3× / 2.5× off the opposite edge), so the pair is always 0.2× the width apart —
-  inside terrain's `aTierMinSpanPts`, where two same-tier borders consolidated against each other
-  on an arbitrary price tie-break. Only the NEAR edge (±2) is Tier 1 and anchorable; the FAR edge
-  (±3) is Tier 2, still exported as the stop-side reference. Distance reads come in two flavours:
+  `priorDayValue` option (feat-090) and classified Tier 2 alongside PDH/PDL. **VRange is
+  implied-volatility geography, not traded structure** (feat-109, from the Sierra Implied Vol
+  Ranges study's own definition): every level is the session OPEN ± a multiple of `D`, the expected
+  session move implied by VIX — `high`/`low` at 0.25·D (the study's Upper/Lower Ranges, which act
+  like value-area edges, NOT range extremes — the labels say so), and the four `ext*` levels at
+  0.90·D and 1.00·D, which are the NEAR and FAR edges of one shaded "1x Range Zone". Verified on
+  two archived exports agreeing to 4 dp, both with D at 1.45% of the open (implied VIX ~23). All
+  six stay Tier 1; the zone's two edges are merged into ONE composite border by `mergePartitions`'
+  band rule rather than competing for the partition, because they fall inside `aTierMinSpanPts`
+  but outside `mergeTolerancePts`, where consolidation used to demote one on an arbitrary price
+  tie-break. Distance reads come in two flavours:
   `nearestTier1Above/Below` (campaign borders) and `nearestDailyAbove/Below` (feat-109 — the
   intraday companion, since the Tier-1-only read can never surface the Tier-2 daily levels — the
   rolling pivot, PDH/PDL, IBH/IBL, RVAH/RVAL/RPOC, the OR levels — however close they sit). Both
@@ -75,10 +80,9 @@ qualitatively and defers the numbers to the engine facts.
   arithmetic in prose). Distinct from `engineZoneBorders()`, which is the hard-enforced zone
   stack the model must reproduce and therefore stays a strict partition read (a VWAP band, a
   POC or an ATR projection is structure, not a partition — verified on the fixture bundle:
-  9 zones / 10 borders before and after feat-108. It was 10 / 11 until feat-109 retired the
-  partition at 29504.25 — the far edge of the lower VRange extension band; the volume structure
-  there survives as the detector LVN node at 29490, so the price stays anchorable, just not as a
-  zone border).
+  10 zones / 11 borders before and after feat-108, and unchanged by feat-109 — the VRange 1x-zone
+  merge only fires where BOTH edges promote, and on this fixture only the far edge has the volume
+  geometry for it).
 - **ATR's two roles (feat-108).** `lib/engine/htfStructure.ts` owns ATR as a NORMALIZER
   (`atrPoints`, `rotation.extentAtr`, `currentVsSwings.*Atr` — feat-049, untouched);
   `lib/engine/atrProjection.ts` owns ATR as a PRICE LEVEL. Multiples are named and exported

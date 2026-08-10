@@ -12,7 +12,11 @@ The unmoving macro coordinate system — campaign boundaries and volatility expe
 - Daily, Weekly, Monthly MGI levels (see the MGI Glossary).
 - The **Rip (Rolling Pivot)** — the primary structural anchor for the session's range.
 - ATR (Average True Range).
-- VRange boundaries (volatility-based expected move).
+- VRange — implied-volatility geography from the session open and VIX, NOT traded acceptance:
+  **VRange Upper/Lower** are the inner mean-reversion lines (they behave like value-area edges and
+  flip to support/resistance when broken with conviction), and the **VRange 1x Zone** near/far
+  levels are the two edges of one shaded band at the full expected session move — an inflection
+  band price may never reach, and the band is the object, not either edge alone.
 
 ### 2. Execution telemetry (`execution_bar_data.rolling.csv`)
 Raw mathematical momentum, infantry aggression, dynamic trailing support/resistance, confirmation of

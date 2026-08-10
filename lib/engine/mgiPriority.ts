@@ -13,18 +13,24 @@
  *     ATR projected high/low are volatility context, classified Tier 2 (gem-alignment
  *     audit finding A9 — they are not campaign borders or partition anchors).
  *
- *     The VRange ±2/±3 extensions are ONE BAND, not two independent borders (operator
- *     2026-08-10). The export computes them off the opposite range edge at fixed multiples of
- *     the range width — `extPlus2 = low + 2.3 * width`, `extPlus3 = low + 2.5 * width`, and
- *     mirrored for the minus side — so the pair is ALWAYS exactly 0.2 * width apart (43.5 /
- *     43.5 / 43.0 pts across the three archived exports, on ranges of 216.5 / 217 / 216). That
- *     is under terrain's `aTierMinSpanPts`, so two same-tier borders that close together were
- *     consolidated against each other arbitrarily — above price the pair collapsed to the FAR
- *     edge, below price to the NEAR edge, purely on a price tie-break. Only the NEAR edge
- *     (±2) is therefore Tier 1 and anchorable; the FAR edge (±3) is Tier 2 — still exported,
- *     still quotable as the stop-side reference beyond the band, but no longer competing for
- *     the partition. This matches the near-edge fade doctrine already settled for single-print
- *     scars and fakeout tails: anchor at the near edge, never exile the anchor to the far side.
+ *     WHAT THE VRANGE LEVELS ACTUALLY ARE (operator 2026-08-10, from the Sierra study's own
+ *     definition — the Implied Vol Ranges study, not a range-width construct). Every level is
+ *     the session OPEN plus or minus a multiple of `D`, the expected session move implied by
+ *     VIX. Verified against two archived exports, which agree to 4 decimal places:
+ *       - `high` / `low`     = O ± 0.25·D — the study's "Upper / Lower Ranges", which behave
+ *                              like value-area edges (mean reversion), and flip to S/R when
+ *                              broken with conviction. NOT range extremes, despite the export's
+ *                              field names — hence the labels here.
+ *       - `extPlus2/Minus2`  = O ± 0.90·D — NEAR edge of the study's shaded "1x Range Zone"
+ *       - `extPlus3/Minus3`  = O ± 1.00·D — FAR edge: the full expected session move
+ *     On both fixtures D was 1.45% of the open (433.5 and 431.5 pts), i.e. an implied VIX of
+ *     ~23.0. The ±2/±3 pair is therefore not two levels that happen to sit 0.2·D apart — it is
+ *     the two EDGES OF ONE SHADED ZONE, and the zone is the object the operator trades against.
+ *     Both edges stay Tier 1; terrain merges them into a single composite border rather than
+ *     letting them compete for the partition (see `mergePartitions`' band rule). An earlier
+ *     pass demoted the far edge to Tier 2 to break that competition — reverted, because it cost
+ *     a real partition wherever the acceptance sat at the far edge, which is where the fixture's
+ *     actually was.
  *   - Tier 2 (Intraday Direction): the Rip and Session VWAPs plus the other intraday daily
  *     reference levels (PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low) and the ATR projections.
  *     These set daily bias.
@@ -141,15 +147,16 @@ const LEVEL_SPECS: Record<MgiGroup, Record<string, LevelSpec>> = {
     pmVAH: { label: 'PM VAH', tier: 1 },
     pmVAL: { label: 'PM VAL', tier: 1 },
   },
+  // Labels name what the level IS (O ± a multiple of the VIX-implied session move), not the
+  // export's field name: `high`/`low` are the 0.25x mean-reversion lines, NOT range extremes.
+  // See the VRange note in the module docstring.
   vRange: {
-    high: { label: 'VRange High', tier: 1 },
-    low: { label: 'VRange Low', tier: 1 },
-    // Near edge of the extension band = Tier 1 (anchorable); far edge = Tier 2 (stop-side
-    // reference only). See the band note in the module docstring.
-    extPlus2: { label: 'VRange +2', tier: 1 },
-    extPlus3: { label: 'VRange +3', tier: 2 },
-    extMinus2: { label: 'VRange -2', tier: 1 },
-    extMinus3: { label: 'VRange -3', tier: 2 },
+    high: { label: 'VRange Upper', tier: 1 },
+    low: { label: 'VRange Lower', tier: 1 },
+    extPlus2: { label: 'VRange 1x Zone near (upper)', tier: 1 },
+    extPlus3: { label: 'VRange 1x Zone far (upper)', tier: 1 },
+    extMinus2: { label: 'VRange 1x Zone near (lower)', tier: 1 },
+    extMinus3: { label: 'VRange 1x Zone far (lower)', tier: 1 },
   },
   atr: {
     high: { label: 'ATR High', tier: 2 },
