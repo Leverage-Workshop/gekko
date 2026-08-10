@@ -93,7 +93,7 @@ gap-down test, not the fixture. One new shared `MGI_STRUCTURE_RULE` carries rank
 both the analyze and update prompts (one-home-per-rule). `./init.sh` green: typecheck, lint,
 **1341 tests passing** (1 skipped), build.
 
-**OPEN — replace the off-hours fixture (operator, 2026-08-10).** Because `chart-data/` was
+**OPEN — tracked as feat-110 (`not-started`): add an RTH bundle fixture (operator, 2026-08-10).** Because `chart-data/` was
 generated off hours it cannot exercise the RTH-only paths at all: `tests/analyze.engineFacts.test.ts`
 asserts `developingSession` is **null** on it, and with `ibh`/`ibl` at 0 there is no Initial Balance,
 no RTH-so-far extremes, and no real ONH/ONL. The operator wants a bundle from the DB instead and
@@ -102,7 +102,7 @@ assertions** (`toBe`/`toEqual`/`toBeCloseTo`/`toHaveLength`), concentrated in
 `tests/analyze.engineFacts.test.ts` (111), `tests/eval.runEval.test.ts` (109),
 `lib/engine/sessionIntraday.test.ts` (61), `lib/engine/mgiPriority.test.ts` (51),
 `tests/analyze.runAnalysis.test.ts` (46), `tests/update.runUpdate.test.ts` (45); 13 files read
-`mgi_static_levels.json` specifically. Recommendation: **add, do not replace.** Those numbers carry
+`mgi_static_levels.json` specifically. Recommendation, carried into feat-110's description: **add, do not replace.** Those numbers carry
 provenance — feat-100's distribution was validated against this exact bundle, the gem-comparison
 tests encode findings measured on it — and re-baselining discards the evidence they were ever
 checked. Add a full RTH bundle as a second named fixture with a loader (the convention already
