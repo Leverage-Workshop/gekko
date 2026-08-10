@@ -16,8 +16,8 @@
   "dependencies": {
     "@openrouter/ai-sdk-provider": "^2.9.1",
     "@supabase/supabase-js": "^2.108.2",
-    "@trigger.dev/react-hooks": "4.5.9",
-    "@trigger.dev/sdk": "4.5.9",
+    "@trigger.dev/react-hooks": "4.5.10",
+    "@trigger.dev/sdk": "4.5.10",
     "ai": "^6.0.208",
     "langsmith": "^0.8.3",
     "lightweight-charts": "^5.2.0",
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@trigger.dev/build": "4.5.9",
+    "@trigger.dev/build": "4.5.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
