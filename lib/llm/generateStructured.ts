@@ -3,6 +3,7 @@ import type {
   ImagePart,
   LanguageModel,
   ModelMessage,
+  SystemModelMessage,
   TextPart,
 } from 'ai'
 import type { z } from 'zod'
@@ -190,21 +191,29 @@ export async function generateStructured<T>(
     getTelemetry = getLlmTelemetry,
   } = params
 
-  const messages: ModelMessage[] = []
-  if (system !== undefined) {
-    messages.push({
-      role: 'system',
-      content: system,
-      ...(cacheSystem
-        ? {
-            providerOptions: {
-              openrouter: { cacheControl: { type: 'ephemeral' } },
-            },
-          }
-        : {}),
-    })
-  }
-  messages.push({ role: 'user', content: buildUserContent(prompt, images) })
+  // The doctrine prefix travels via the AI SDK `system` option rather than as
+  // a system-role entry in `messages` — the SDK warns about the latter as a
+  // prompt-injection surface. Passing it as a SystemModelMessage (not a bare
+  // string) keeps the ephemeral cache-control provider option attached; the SDK
+  // prepends it to the provider prompt exactly as the inline message did.
+  const systemMessage: SystemModelMessage | undefined =
+    system === undefined
+      ? undefined
+      : {
+          role: 'system',
+          content: system,
+          ...(cacheSystem
+            ? {
+                providerOptions: {
+                  openrouter: { cacheControl: { type: 'ephemeral' } },
+                },
+              }
+            : {}),
+        }
+
+  const messages: ModelMessage[] = [
+    { role: 'user', content: buildUserContent(prompt, images) },
+  ]
 
   // Telemetry is doubly gated: the caller must opt in (`telemetry`) AND the
   // runtime must be configured (LANGSMITH_API_KEY) — otherwise nothing is
@@ -222,7 +231,12 @@ export async function generateStructured<T>(
   const result = await doGenerate({
     model: resolveModel(model),
     schema,
+    ...(systemMessage ? { system: systemMessage } : {}),
     messages,
+    // `messages` is user/tool content only. A system role appearing there
+    // would be untrusted input impersonating doctrine, so throw rather than
+    // let it reach the model.
+    allowSystemInMessages: false,
     ...(telemetry && telemetryRuntime
       ? {
           providerOptions: {

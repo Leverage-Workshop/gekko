@@ -12,6 +12,13 @@ import {
 
 const Out = z.object({ bias: z.enum(['long', 'short']), score: z.number() })
 
+/** The prompt-shaping args a captured `generateObject` call carries. */
+interface SystemCapture {
+  system?: Record<string, unknown>
+  messages: Record<string, unknown>[]
+  allowSystemInMessages?: boolean
+}
+
 /** A fake `generateObject` that records its args and returns a canned result. */
 function fakeGenerate(opts: {
   object: unknown
@@ -173,7 +180,7 @@ describe('generateStructured', () => {
   })
 
   it('sends the system prefix as a cache-controlled message when cacheSystem is set', async () => {
-    let captured: { messages: Record<string, unknown>[] } | undefined
+    let captured: SystemCapture | undefined
     await generateStructured({
       schema: Out,
       prompt: 'classify',
@@ -184,24 +191,28 @@ describe('generateStructured', () => {
         object: { bias: 'long', score: 0 },
         modelId: DEFAULT_MODEL_ID,
         capture: (a) => {
-          captured = a as typeof captured
+          captured = a as SystemCapture
         },
       }),
     })
 
-    expect(captured!.messages).toHaveLength(2)
-    expect(captured!.messages[0]).toEqual({
+    expect(captured!.system).toEqual({
       role: 'system',
       content: 'DOCTRINE',
       providerOptions: {
         openrouter: { cacheControl: { type: 'ephemeral' } },
       },
     })
-    expect(captured!.messages[1].role).toBe('user')
+    // The doctrine prefix rides the `system` option, never `messages` — the AI
+    // SDK warns about (and here, with allowSystemInMessages: false, rejects)
+    // system roles inside `messages`.
+    expect(captured!.messages).toHaveLength(1)
+    expect(captured!.messages[0].role).toBe('user')
+    expect(captured!.allowSystemInMessages).toBe(false)
   })
 
   it('sends a plain system message when cacheSystem is not set', async () => {
-    let captured: { messages: Record<string, unknown>[] } | undefined
+    let captured: SystemCapture | undefined
     await generateStructured({
       schema: Out,
       prompt: 'classify',
@@ -211,12 +222,90 @@ describe('generateStructured', () => {
         object: { bias: 'long', score: 0 },
         modelId: DEFAULT_MODEL_ID,
         capture: (a) => {
-          captured = a as typeof captured
+          captured = a as SystemCapture
         },
       }),
     })
 
-    expect(captured!.messages[0]).toEqual({ role: 'system', content: 'DOCTRINE' })
+    expect(captured!.system).toEqual({ role: 'system', content: 'DOCTRINE' })
+    expect(captured!.messages).toHaveLength(1)
+  })
+
+  it('omits the system option entirely when no prefix is given', async () => {
+    let captured: SystemCapture | undefined
+    await generateStructured({
+      schema: Out,
+      prompt: 'classify',
+      resolveModel,
+      generate: fakeGenerate({
+        object: { bias: 'long', score: 0 },
+        modelId: DEFAULT_MODEL_ID,
+        capture: (a) => {
+          captured = a as SystemCapture
+        },
+      }),
+    })
+
+    expect(captured!).not.toHaveProperty('system')
+    expect(captured!.messages).toHaveLength(1)
+  })
+
+  it('reaches the provider with a cached system prompt and no SDK warning', async () => {
+    // Exercises the real `generateObject`, not the fake: it is the SDK's own
+    // prompt standardization that warns about system roles in `messages`, and
+    // only a real call proves the cache-control option survives the `system`
+    // option round-trip.
+    const sentPrompts: { role: string; content: unknown; providerOptions?: unknown }[][] =
+      []
+    const model = {
+      specificationVersion: 'v3',
+      provider: 'mock',
+      modelId: DEFAULT_MODEL_ID,
+      supportedUrls: {},
+      doGenerate: async (options: { prompt: typeof sentPrompts[number] }) => {
+        sentPrompts.push(options.prompt)
+        return {
+          content: [{ type: 'text', text: '{"bias":"long","score":0}' }],
+          finishReason: 'stop',
+          usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+          warnings: [],
+          response: { modelId: DEFAULT_MODEL_ID },
+        }
+      },
+    } as never
+
+    const warnings: string[] = []
+    const originalWarn = console.warn
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args.map(String).join(' '))
+    }
+    let result: Awaited<ReturnType<typeof generateStructured>>
+    try {
+      result = await generateStructured({
+        schema: Out,
+        prompt: 'classify',
+        system: 'DOCTRINE',
+        cacheSystem: true,
+        resolveModel: () => model,
+      })
+    } finally {
+      console.warn = originalWarn
+    }
+
+    expect(result.object).toEqual({ bias: 'long', score: 0 })
+    expect(
+      warnings.filter((w) => w.includes('System messages in the prompt')),
+    ).toEqual([])
+
+    const sent = sentPrompts[0]
+    expect(sent[0]).toEqual({
+      role: 'system',
+      content: 'DOCTRINE',
+      providerOptions: {
+        openrouter: { cacheControl: { type: 'ephemeral' } },
+      },
+    })
+    expect(sent[1].role).toBe('user')
   })
 
   it('surfaces the OpenRouter usage-accounting cost', async () => {
