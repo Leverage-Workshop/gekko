@@ -4,7 +4,34 @@
 
 **Last Updated:** 2026-08-10
 
-**Latest change (branch `feat-111-job-pivots`): feat-111 — Job Pivots (daily + weekly) added to
+**Latest change (branch `fix-ai-sdk-system-in-messages-warning`): the doctrine prefix now travels
+via the AI SDK `system` option instead of a system-role entry in `messages`.** Not a feature —
+every analyze/eval/update run was printing `AI SDK Warning: System messages in the prompt or
+messages fields can be a security risk because they may enable prompt injection attacks.` in the
+task logs. AI SDK v6's `standardizePrompt` warns whenever `messages` contains a `system` role;
+`generateStructured` was pushing the doctrine prefix in there as `messages[0]`.
+
+The fix keeps the cache. `Prompt.system` accepts `string | SystemModelMessage |
+SystemModelMessage[]`, and `convertToLanguageModelPrompt` copies a message-shaped `system`
+through with its `providerOptions` intact, so the prefix is still passed as an object carrying
+`openrouter.cacheControl: { type: 'ephemeral' }` — the provider prompt the model receives is
+byte-identical to before, same message, same position, same ephemeral cache marker. Telemetry is
+unaffected: `buildLangsmithProviderOptions`'s `processInputs` already destructured `system`
+alongside `prompt`/`messages`.
+
+`allowSystemInMessages: false` is now set on the call, so `messages` is user content only and a
+system role appearing there throws instead of silently reaching the model — untrusted bundle text
+can never impersonate doctrine. `generateStructured` is the single AI SDK call site in the repo
+(nothing else calls `generateObject`/`generateText`/`streamText`), so that closes the surface.
+
+Test coverage: the two existing system-prefix tests now assert the `system` option rather than
+`messages[0]`, plus a no-prefix case, plus a new test that drives the REAL `generateObject`
+through a stub `LanguageModelV3` — it captures `console.warn` (asserting the warning is gone) and
+asserts the provider-level prompt still carries the cache-controlled system message. That last
+test was verified to fail against the old inline-message shape before the fix was restored.
+`./init.sh` green: 1352 passed | 1 skipped, typecheck + lint + build clean.
+
+**Previous change (branch `feat-111-job-pivots`): feat-111 — Job Pivots (daily + weekly) added to
 the MGI level set, Sierra study through to doctrine.** Operator-supplied definitions, not a
 backlog item. The daily Job Pivot is the auction's line in the sand — the level directional bias
 flips across depending on which side price can hold, and where large rotations visibly start and
@@ -47,7 +74,7 @@ glossary plus a pivots-are-bias-filters note. That growth pushed the cached anal
 fixture is a pre-feature export carrying neither pivot, which is why its 30-level counts are
 unchanged — that path (fields absent) is now covered by its own test.
 
-**Previous change (branch `feat-109-mgi-band-rip-nearest`): feat-109 — three fixes to the MGI
+**Earlier change (branch `feat-109-mgi-band-rip-nearest`): feat-109 — three fixes to the MGI
 importance hierarchy, from an operator review of it.** Not a bundle-review item; the operator
 asked to see where MGI importance is encoded and then to change it. It lives in exactly two
 places: `LEVEL_SPECS` / `PRIOR_DAY_VALUE_SPECS` in `lib/engine/mgiPriority.ts` (tier + Daily MGI
