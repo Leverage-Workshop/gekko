@@ -324,9 +324,12 @@ function isFiniteNumber(v: unknown): v is number {
  * T3 = IB Low); anchoring Tier-1 only erased them from the terrain entirely (gem-comparison
  * F2). Promotion still requires local volume geometry, so a noise level stays a plain `mgi`
  * coordinate. ATR projections stay excluded (volatility context, not structure — audit A9).
+ *
+ * The Rip needs no clause of its own: it is a `daily`-group level, so the group test already
+ * carries it. What used to lose it was consolidation, not selection — see {@link borderRank}.
  */
 export function selectAnchorLevels(mgi: MgiPriority): MgiLevel[] {
-  const chosen = mgi.levels.filter(l => l.tier === 1 || l.group === 'daily' || l.code === 'rip')
+  const chosen = mgi.levels.filter(l => l.tier === 1 || l.group === 'daily')
   const seen = new Set<number>()
   const unique: MgiLevel[] = []
   for (const l of chosen.sort((a, b) => b.price - a.price)) {
@@ -604,11 +607,45 @@ function classifyBorder(
  * local dip (lowest centerRatio) — the actual valley of the cluster; the label names every
  * member. Adjacent composites stay > tolerance apart by construction (chain clustering).
  */
+/**
+ * The two edges of one VRange shaded "1x Range Zone" (operator 2026-08-10). The Implied Vol
+ * Ranges study plots the zone as `O ± 0.90·D` (near edge) and `O ± 1.00·D` (far edge) where D is
+ * the VIX-implied session move — one shaded object, not two levels that happen to sit ~0.2·D
+ * apart. `code` is unique within `vRange` for these four (unlike `high`/`low`, which `atr` also
+ * exports), but the group is checked anyway so a future code collision cannot widen this rule.
+ */
+const VRANGE_ZONE_EDGES: readonly (readonly [string, string])[] = [
+  ['extPlus3', 'extPlus2'], // upper zone, price-descending: far edge above near
+  ['extMinus2', 'extMinus3'], // lower zone: near edge above far
+]
+
+function sameVRangeZone(a: BorderVerdict, b: BorderVerdict): boolean {
+  if (a.level.group !== 'vRange' || b.level.group !== 'vRange') return false
+  if (a.level.code === b.level.code) return false
+  return VRANGE_ZONE_EDGES.some(
+    edges => edges.includes(a.level.code) && edges.includes(b.level.code),
+  )
+}
+
+/**
+ * Cluster adjacent hard partitions into composite borders: anything within `tolerance`, PLUS the
+ * two edges of a VRange 1x zone at any spacing ({@link sameVRangeZone}) — the zone is one object,
+ * so its edges must not compete for the partition. Before that rule the pair fell inside
+ * `aTierMinSpanPts` but outside `tolerance`, so consolidation demoted one of them on an arbitrary
+ * price tie-break: the FAR edge survived above price, the NEAR edge below it.
+ *
+ * Merging keeps BOTH: the composite's price is the deepest local dip (the acceptance the profile
+ * actually shows, which on the archived fixture is the far edge), while every member price stays
+ * a legal entry anchor via `engineAnchorPrices()`, so the near edge remains available to anchor a
+ * fade. Clustering is adjacency-based, so an unrelated partition BETWEEN the two edges blocks the
+ * zone merge — deliberate: real structure inside the zone means it is not acting as one thing.
+ */
 function mergePartitions(partitions: BorderVerdict[], tolerance: number): CompositeBorder[] {
   const clusters: BorderVerdict[][] = []
   for (const p of partitions) {
     const last = clusters[clusters.length - 1]
-    if (last && last[last.length - 1].level.price - p.level.price <= tolerance) {
+    const prev = last?.[last.length - 1]
+    if (prev && (prev.level.price - p.level.price <= tolerance || sameVRangeZone(prev, p))) {
       last.push(p)
     } else {
       clusters.push([p])
@@ -635,14 +672,31 @@ function mergePartitions(partitions: BorderVerdict[], tolerance: number): Compos
 }
 
 /**
+ * Consolidation-only tier. The Rip ranks WITH the campaign borders here (operator 2026-08-10):
+ * it is the Daily MGI Priority Order's rank-1 level, the immediate directional filter, and a
+ * Rip that promoted on real volume geometry should not lose its partition to a Tier-1 neighbor
+ * 16-60 pts away — too far to merge into one band, close enough to trip consolidation.
+ *
+ * Deliberately NOT a tier promotion in `mgiPriority.ts`: the playbook classifies the Rip Tier 2
+ * (Intraday Direction), and `mgi.tier1` feeds the Stratosphere/Abyss envelope and
+ * `nearestTier1Above/Below`. The Rip tracks price intraday, so promoting it there would let it
+ * become the campaign ceiling or floor and collapse the map. This is a survival rule, not a
+ * reclassification — `border.tier` itself is untouched and still reports what it always did.
+ */
+function consolidationTier(border: CompositeBorder): number {
+  return border.members.some(m => m.level.code === 'rip') ? 1 : border.tier
+}
+
+/**
  * Strength ordering for consolidation (lower rank wins): MGI tier first (operator 2026-07-22:
  * a Tier-1 level like Week Open survives against a Tier-2 AAA neighbor), then significance
  * class (AAA before A), composite member count (clustering = significance), kind (Trench
- * before Wall), then the deepest local dip.
+ * before Wall), then the deepest local dip. The tier key is {@link consolidationTier}, so the
+ * Rip survives here on Tier-1 footing without being reclassified as one.
  */
 function borderRank(border: CompositeBorder): number[] {
   return [
-    border.tier,
+    consolidationTier(border),
     border.significance === 'AAA' ? 0 : 1,
     -border.members.length,
     border.kind === 'trench' ? 0 : 1,
@@ -665,7 +719,8 @@ function weakerOf(a: CompositeBorder, b: CompositeBorder): CompositeBorder {
  * handful of zones where MAJOR moves start and end. Any pair of zone dividers closer than
  * `aTierMinSpanPts` where at least one is A-class loses its weaker member per
  * {@link borderRank} (tier outranks class, so a Tier-1 A border survives a Tier-2 AAA
- * neighbor) — demoted to a plain level (still structure, never deleted from `levels`). AAA
+ * neighbor; the Rip ranks as Tier 1 here per {@link consolidationTier}) — demoted to a plain
+ * level (still structure, never deleted from `levels`). AAA
  * pairs are exempt (balance-area structure is kept even when tight — it only merges within
  * `mergeTolerancePts`). Input must be price-descending.
  */

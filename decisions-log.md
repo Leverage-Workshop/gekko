@@ -773,3 +773,66 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   **Alternatives considered:** sharing the rule with the update prompt (defensible for
   target rungs, which updates do revise — recorded here as the obvious follow-up rather
   than taken silently in this diff).
+
+- **Decision (feat-109):** all six VRange levels stay Tier 1; the 1x zone's two edges are merged
+  into one composite border in `mergePartitions` instead of being separated by tier.
+  **Why:** the operator supplied the Sierra study's definition, which corrected the diagnosis. Every
+  VRange level is the session OPEN ± a multiple of `D`, the VIX-implied expected session move —
+  `high`/`low` at 0.25·D, and the `ext*` levels at 0.90·D and 1.00·D, the NEAR and FAR edges of one
+  shaded "1x Range Zone" (verified on two exports agreeing to 4 dp, both with D at 1.45% of the
+  open, implied VIX ~23). So the pair genuinely is ONE object — but tier was the wrong lever for
+  saying so. Tier answers "how important is this level"; the problem was that the engine treated one
+  object as two. An earlier pass in this same branch demoted the far edge to Tier 2 (committed in
+  6801604) and it cost a real partition: the fixture's genuine AAA acceptance sits at the FAR edge
+  (29504.25) and the near edge has no volume geometry, so the demotion retired a border rather than
+  relocating it (zones 10 → 9). Reverted. The merge keeps the partition where the profile actually
+  shows acceptance while leaving BOTH edges as legal entry anchors, so a fade can still sit on the
+  near edge.
+  **Alternatives considered:** the midpoint of the two edges (the operator's first instinct —
+  rejected: a price nothing was measured at, and it discards the zone's extent); demoting the far
+  edge to Tier 2 (tried, reverted, see above); demoting the WHOLE `vRange` group to Tier 2 for
+  consistency with ATR (audit A9 keeps ATR projections out of Tier 1 as "not campaign borders or
+  partition anchors", and VRange is the same category — a volatility projection off a reference
+  price). That last one was recommended and **declined by the operator**: the 0.25·D Upper/Lower
+  lines are good levels in practice. Do not re-propose it.
+
+- **Decision (feat-109):** VRange labels name what the level IS, not the export's field name.
+  **Why:** `high`/`low` were labelled "VRange High"/"VRange Low" and documented as "VRange
+  extremes", but they sit at 0.25·D — a quarter of the expected move. The model quotes MGI labels
+  verbatim in briefing prose, so it was calling the inner mean-reversion line the session's expected
+  extreme, wrong by a factor of four. Now `VRange Upper`/`VRange Lower`, with the extensions as
+  `VRange 1x Zone near/far (upper|lower)` so the zone reads as one object in the composite border's
+  joined label. `knowledge/doctrine/chart-reading.md` and `glossary.md` corrected to match.
+  **Alternatives considered:** leaving the labels and fixing only the docs (the label is what
+  reaches the operator, so the doc fix alone would not have changed a single briefing).
+
+- **Decision (feat-109):** the Rip ranks with the campaign borders in `borderRank` via a new
+  `consolidationTier()`, instead of being promoted to Tier 1 in `mgiPriority.ts`.
+  **Why:** the operator asked for the Rip to be able to hold a border. It could always BE one (it
+  is a `daily`-group level, so `selectAnchorLevels` always carried it — the `code === 'rip'` clause
+  was redundant and is deleted); what it lost was the 16–60 pt consolidation window, too far to
+  merge into one band and close enough to trip spacing, where `borderRank`'s tier key handed the
+  border to any Tier-1 neighbor. A real tier promotion would leak into `mgi.tier1`, which feeds the
+  Stratosphere/Abyss envelope and `nearestTier1Above/Below` — and the Rip tracks price intraday, so
+  it would frequently become the campaign ceiling or floor and collapse the terrain map. Survival
+  rule, not reclassification: `border.tier` still reports the true tier, and the playbook's Tier-2
+  (Intraday Direction) classification stays honest.
+  **Alternatives considered:** `LEVEL_SPECS` promotion (the envelope collapse above); a dedicated
+  rank slot between tiers 1 and 2 (same effect, more machinery for one level).
+
+- **Decision (feat-109):** `nearestDailyAbove/Below` covers the WHOLE daily group, not just the
+  Daily-MGI-ranked members, and `nearest()` now rejects non-positive prices.
+  **Why:** `dailyPrioritySort` is rank order and blind to distance, and the only distance-aware MGI
+  fact was Tier-1-only — so the Rip, PDH/PDL, IBH/IBL, RVAH/RVAL/RPOC and the OR levels could never
+  reach the model with a distance attached, however close. Wrong shape for feat-086's entry-first,
+  nearest-first contract; the fixture makes it concrete (price 3.00 pts under PDC, nearest Tier-1
+  border 100.25 pts away, and PDC is Tier 2 AND unranked). Rank-only would have excluded OR
+  High/Mid/Low, which are unranked but live session structure the doctrine uses as rungs. The
+  placeholder guard is required because ONH/ONL export as 0.00, which is finite and survives
+  extraction — on a gap-down open with nothing real below price it would have been returned as the
+  nearest level below. Same guard `terrainZones` already applied to its campaign anchors.
+  **Alternatives considered:** ranked-only (drops the OR levels); filtering 0.00 out at extraction
+  (cleaner, but it would change `levels`, `tier1`, `dailyPrioritySort` and the terrain anchor set
+  at once — the targeted guard in `nearest()` is the minimal correct fix and terrain already
+  guards itself); also feeding the new pair into `sigmaStructureRefs` (left narrow by design —
+  its docstring says so, and 4 refs → 6 buries the "is the next thing inside the noise?" answer).

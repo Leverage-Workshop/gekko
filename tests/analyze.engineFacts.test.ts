@@ -782,6 +782,9 @@ describe('engineAnchorPrices — ATR projections are anchorable (feat-108)', () 
     const borders = engineZoneBorders(result.terrain)
 
     // The same stack feat-090 verified rather than assumed: 10 zones, 11 borders.
+    // feat-109 keeps it intact — the VRange 1x-zone far edge at 29504.25 holds its
+    // AAA border, and the zone-merge rule only fires when BOTH edges promote (on
+    // this fixture the near edge has no volume geometry, so nothing merges).
     expect(result.terrain.zones).toHaveLength(10)
     expect(borders).toHaveLength(11)
 

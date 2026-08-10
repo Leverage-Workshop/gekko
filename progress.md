@@ -2,7 +2,118 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-09
+**Last Updated:** 2026-08-10
+
+**Latest change (branch `feat-109-mgi-band-rip-nearest`): feat-109 — three fixes to the MGI
+importance hierarchy, from an operator review of it.** Not a bundle-review item; the operator
+asked to see where MGI importance is encoded and then to change it. It lives in exactly two
+places: `LEVEL_SPECS` / `PRIOR_DAY_VALUE_SPECS` in `lib/engine/mgiPriority.ts` (tier + Daily MGI
+Priority rank, the declarative table) and `borderRank` in `lib/engine/terrainZones.ts` (which
+consumes tier as its FIRST sort key, so tier decides which border survives spacing
+consolidation).
+
+**(1) VRange is implied-volatility geography, and the ±2/±3 pair is one shaded zone.** The
+operator supplied the Sierra study's definition mid-session, which corrected a wrong reading. My
+first pass derived "±2/±3 are fixed multiples of the RANGE WIDTH (2.3× / 2.5× off the opposite
+edge)" from the archived exports — arithmetically true but a fitted artifact, not the generator.
+The real construction is the Implied Vol Ranges study: every level is the session OPEN ± a multiple
+of `D`, the expected session move implied by VIX. Verified on two exports agreeing to 4 dp, both
+with `D` at **1.45% of the open** (433.5 and 431.5 pts → implied VIX ≈ 23.0):
+
+| export field | is |
+| --- | --- |
+| `high` / `low` | O ± 0.25·D — the study's Upper/Lower Ranges, value-area-like mean reversion |
+| `extPlus2` / `extMinus2` | O ± 0.90·D — NEAR edge of the shaded "1x Range Zone" |
+| `extPlus3` / `extMinus3` | O ± 1.00·D — FAR edge: the full expected session move |
+
+So the band read was right for a better reason — the two `ext` edges are literally the two edges of
+ONE shaded zone — but the **tier lever was the wrong fix, and it is reverted.** Tier answers "how
+important is this level"; the band's problem was never importance, it was that the engine treated
+one object as two. Demoting the far edge to Tier 2 (the first pass, committed in 6801604) cost a
+real partition: on the fixture the profile's genuine AAA acceptance sat at the FAR edge (29504.25),
+the near edge has no volume geometry at all, so the demotion retired a real border instead of
+relocating it — zone stack 10 → 9. All six VRange levels are Tier 1 again and the stack is back
+to 10 / 11.
+
+**The fix instead lives in `mergePartitions`:** the two zone edges cluster into ONE composite
+border at any spacing (`sameVRangeZone`), not just within `mergeTolerancePts`. They fell inside
+`aTierMinSpanPts` but outside the merge tolerance — the exact gap where consolidation demoted one
+of them on an arbitrary price tie-break (far edge survived above price, near edge below). Merged,
+the composite's price is the deepest local dip (the acceptance the profile actually shows) while
+BOTH member prices stay legal entry anchors, so a fade can still sit on the near edge. Clustering
+is adjacency-based, so an unrelated partition between the edges blocks the merge — deliberate, and
+documented rather than tested (constructing a third promotable valley needs a bespoke
+profile/LVN/magnet set, more fragile than the assertion is worth).
+
+**Operator decision: the whole `vRange` group stays Tier 1.** I had recommended demoting it to
+Tier 2 for consistency with ATR (audit A9 excludes ATR projections from Tier 1 as "not campaign
+borders or partition anchors", and VRange is the same category of object — a volatility projection
+off a reference price). Declined: the 0.25·D Upper/Lower lines are good levels in practice. Do not
+re-propose it.
+
+**Labels corrected, and this was a live prose bug.** `high`/`low` were labelled "VRange High" /
+"VRange Low" and the docstring called them "VRange extremes" — but they sit at a QUARTER of the
+expected move, so the model was quoting them in briefings as the session's expected extreme, wrong
+by a factor of four. Now `VRange Upper` / `VRange Lower`, with the `ext*` levels named
+`VRange 1x Zone near/far (upper|lower)` so the zone reads as one object. `knowledge/doctrine/
+chart-reading.md` and `glossary.md` corrected to match ("VRange extremes" → the expected-move
+levels).
+
+**(2) The Rip holds its partition.** It could always BE a border — it is a `daily`-group level, so
+`selectAnchorLevels` always carried it, and the trailing `code === 'rip'` clause was redundant
+(deleted). What lost it was consolidation: `borderRank`'s first key is tier, so any Tier-1 neighbor
+16–60 pts away took its border — too far to merge into one composite band, close enough to trip
+consolidation. New `consolidationTier()` is now that first key and ranks a Rip-member border as
+tier 1 **for consolidation only**; `border.tier` still reports the true tier. Deliberately NOT a
+tier promotion in `mgiPriority.ts`: the playbook classifies the Rip Tier 2, and `mgi.tier1` feeds
+the Stratosphere/Abyss envelope plus `nearestTier1Above/Below` — the Rip tracks price intraday, so
+a real promotion would let it become the campaign ceiling or floor and collapse the map. No-op on
+the fixture (the Rip there merges into the `RPOC / 24 VWAP / Rip` composite at 29885.08, inside
+`mergeTolerancePts`, and was already surviving); the exemption is insurance for the 16–60 pt
+window, covered by a test that inverts the existing "Tier-1 A survives a Tier-2 AAA neighbor" case.
+
+**(3) `nearestDailyAbove/Below` — the distance-aware companion.** `dailyPrioritySort` is RANK
+order and blind to distance (it lists the Rip first at 200 pts away and the OR levels last with
+price sitting on one), and levels sharing a rank — ONH/ONL, PDH/PDL, IBH/IBL — are TIED, ordered
+by price with no importance implied. The only distance-aware MGI fact was Tier-1-only, so the Rip,
+PDH/PDL, IBH/IBL, RVAH/RVAL/RPOC and the OR levels could never reach the model with a distance
+attached — the wrong shape for feat-086's entry-first, nearest-first contract. The fixture shows
+the gap exactly: price 29945.75 sits **3.00 pts under PDC** while the nearest Tier-1 border is
+100.25 pts away, and PDC is Tier 2 AND unranked. Covers the WHOLE daily group, not just ranked
+members, because OR High/Mid/Low are unranked live session structure used as rungs.
+
+**Also (small, in the same function):** `nearest()` now rejects non-positive prices. The fixture
+exports `onh`/`onl`/`ibh`/`ibl` as **0.00**; they are finite, so they survive extraction, and on a
+gap-down open with no real level below price a 0.00 ONL would have been returned as "the nearest
+level below". Same guard `terrainZones` already applied to the campaign anchors. Per the operator,
+those zeroes are an artifact of generating `chart-data/` **off hours** (current time 21:52, no IB,
+no RTH session yet) — not a permanent export property. The guard still earns its place, because a
+live pre-open or overnight run carries the same zeroes; its coverage comes from the synthetic
+gap-down test, not the fixture. One new shared `MGI_STRUCTURE_RULE` carries rank-vs-distance and the band doctrine to
+both the analyze and update prompts (one-home-per-rule). `./init.sh` green: typecheck, lint,
+**1341 tests passing** (1 skipped), build.
+
+**OPEN — tracked as feat-110 (`not-started`): add an RTH bundle fixture (operator, 2026-08-10).** Because `chart-data/` was
+generated off hours it cannot exercise the RTH-only paths at all: `tests/analyze.engineFacts.test.ts`
+asserts `developingSession` is **null** on it, and with `ibh`/`ibl` at 0 there is no Initial Balance,
+no RTH-so-far extremes, and no real ONH/ONL. The operator wants a bundle from the DB instead and
+correctly expects breakage. Measured blast radius: **21 test files read `chart-data/`, ~750 pinned
+assertions** (`toBe`/`toEqual`/`toBeCloseTo`/`toHaveLength`), concentrated in
+`tests/analyze.engineFacts.test.ts` (111), `tests/eval.runEval.test.ts` (109),
+`lib/engine/sessionIntraday.test.ts` (61), `lib/engine/mgiPriority.test.ts` (51),
+`tests/analyze.runAnalysis.test.ts` (46), `tests/update.runUpdate.test.ts` (45); 13 files read
+`mgi_static_levels.json` specifically. Recommendation, carried into feat-110's description: **add, do not replace.** Those numbers carry
+provenance — feat-100's distribution was validated against this exact bundle, the gem-comparison
+tests encode findings measured on it — and re-baselining discards the evidence they were ever
+checked. Add a full RTH bundle as a second named fixture with a loader (the convention already
+exists: `chart-data/lvn-fixtures/` + `lib/engine/loadLvnFixtures.ts`) and migrate the RTH-only paths
+onto it. NB `chart-data/comparison-examples/` cannot serve as that second set — those predate the
+TPO, daily-value-area and HTF exports, so they are not complete bundles.
+
+**Gotcha worth remembering:** `MgiLevel.code` is NOT unique across groups — `vRange` and `atr`
+both export `high`/`low`. A `new Map(levels.map(l => [l.code, l]))` silently resolves `high` to
+ATR High (extraction order puts `atr` last). Scope by `group` when keying by code. The `label` is
+unique; the `code` is not.
 
 **BATCH COMPLETE — feat-089 through feat-097 are all `done`.** Nothing from the
 2026-08-07 bundle review batch is in flight. See "Carried forward" at the end of this

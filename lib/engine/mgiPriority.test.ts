@@ -27,7 +27,7 @@ describe('computeMgiPriority — fixture', () => {
     }
   })
 
-  it('classifies 18 Tier-1 campaign borders (weekly + monthly + vRange + ONH/ONL)', () => {
+  it('classifies 18 Tier-1 campaign borders (4 weekly + 6 monthly + 6 vRange + ONH/ONL)', () => {
     const r = computeMgiPriority(mgi)
     expect(r.tier1).toHaveLength(18)
     expect(r.tier1.every(l => l.tier === 1)).toBe(true)
@@ -39,6 +39,76 @@ describe('computeMgiPriority — fixture', () => {
     // Doctrine's Tier-1 list has no ATR — the projections are Tier-2 context,
     // never campaign borders or partition anchors (audit finding A9).
     expect(r.levels.filter(l => l.group === 'atr').map(l => l.tier)).toEqual([2, 2])
+  })
+
+  it('keeps every VRange level Tier 1 — both 1x-zone edges included', () => {
+    const r = computeMgiPriority(mgi)
+    // NB: `code` is not unique across groups (atr also exports high/low), so
+    // scope by group before keying on it.
+    const vRange = new Map(r.levels.filter(l => l.group === 'vRange').map(l => [l.code, l]))
+    expect([...vRange.values()].every(l => l.tier === 1)).toBe(true)
+    // The two 1x-zone edges do not compete on tier; terrain merges them into one
+    // composite border instead (see terrainZones' band rule).
+    expect(vRange.get('extPlus2')?.tier).toBe(1)
+    expect(vRange.get('extPlus3')?.tier).toBe(1)
+  })
+
+  it('is Implied Vol Ranges geometry: open ± 0.25 / 0.90 / 1.00 of the VIX-implied move', () => {
+    const r = computeMgiPriority(mgi)
+    const vRange = new Map(r.levels.filter(l => l.group === 'vRange').map(l => [l.code, l.price]))
+    // Every level is symmetric about the session OPEN, so opposite pairs share a
+    // midpoint — this is what proves they are open-anchored volatility
+    // projections rather than a range-width construct.
+    const open = (vRange.get('extPlus3')! + vRange.get('extMinus3')!) / 2
+    expect((vRange.get('high')! + vRange.get('low')!) / 2).toBeCloseTo(open, 6)
+    expect((vRange.get('extPlus2')! + vRange.get('extMinus2')!) / 2).toBeCloseTo(open, 6)
+    // D = the full expected session move; the far edge IS 1.00x it by definition.
+    const d = vRange.get('extPlus3')! - open
+    expect((vRange.get('high')! - open) / d).toBeCloseTo(0.25, 3)
+    expect((vRange.get('extPlus2')! - open) / d).toBeCloseTo(0.9, 3)
+    // Sanity: D is a plausible VIX-implied daily move (1.45% here → VIX ~23).
+    const impliedVix = (d / open) * Math.sqrt(252)
+    expect(impliedVix).toBeGreaterThan(0.1)
+    expect(impliedVix).toBeLessThan(0.6)
+  })
+
+  it('labels the mean-reversion lines Upper/Lower, not as range extremes', () => {
+    const r = computeMgiPriority(mgi)
+    const labels = new Map(r.levels.filter(l => l.group === 'vRange').map(l => [l.code, l.label]))
+    // `high`/`low` sit at 0.25x the expected move, so "VRange High" read as the
+    // session's expected extreme in briefing prose — wrong by a factor of four.
+    // The 1x zone is the extreme.
+    expect(labels.get('high')).toBe('VRange Upper')
+    expect(labels.get('low')).toBe('VRange Lower')
+    expect(labels.get('extPlus3')).toContain('1x Zone far')
+    expect(labels.get('extPlus2')).toContain('1x Zone near')
+  })
+
+  it('finds the nearest DAILY level each side, which the Tier-1 read cannot reach', () => {
+    const r = computeMgiPriority(mgi)
+    // PDC 29948.75 sits 3.00 pts over price while the nearest Tier-1 border is
+    // 100.25 pts away — and PDC is Tier 2 AND unranked, so it reaches the model
+    // with a distance attached only through this fact. Proves the daily read
+    // covers the WHOLE group, not just the Daily-MGI-ranked members.
+    expect(r.nearestDailyAbove?.level.code).toBe('pdc')
+    expect(r.nearestDailyAbove?.distance).toBe(3)
+    expect(r.nearestDailyAbove?.level.dailyRank).toBeNull()
+    expect(r.nearestDailyBelow?.level.code).toBe('vwap24')
+    expect(r.nearestDailyBelow?.distance).toBe(60.67)
+  })
+
+  it('never returns an unset 0.00 placeholder as the nearest level', () => {
+    // This fixture exports onh/onl/ibh/ibl as 0.00 (no overnight data). They are
+    // finite, so they survive extraction — but 0 is not structure below price.
+    const r = computeMgiPriority(mgi)
+    expect(r.levels.filter(l => l.price === 0).map(l => l.code).sort()).toEqual([
+      'ibh',
+      'ibl',
+      'onh',
+      'onl',
+    ])
+    expect(r.nearestDailyBelow?.level.price).toBeGreaterThan(0)
+    expect(r.nearestTier1Below?.level.price).toBeGreaterThan(0)
   })
 
   it('finds nearest Tier-1 border above = VRange High (30046.00), distance 100.25', () => {
@@ -123,6 +193,24 @@ describe('computeMgiPriority — borders and edge cases', () => {
     }
     const r = computeMgiPriority(mgi)
     expect(r.nearestTier1Above?.level.price).toBe(600)
+    // ...and the daily read is the complement that DOES see it (feat-109).
+    expect(r.nearestDailyAbove?.level.price).toBe(510)
+  })
+
+  it('skips 0.00 placeholders even when nothing real sits below price', () => {
+    // Gap-down open: price is under every real level, so an unset ONL would win
+    // the "nearest below" contest on distance alone if it were not guarded.
+    const mgi: MgiStaticLevels = {
+      current: { price: 100 },
+      daily: { onl: 0, onh: 0, pdh: 510 },
+      weekly: { pwHigh: 600 },
+    }
+    const r = computeMgiPriority(mgi)
+    expect(r.nearestDailyBelow).toBeNull()
+    expect(r.nearestTier1Below).toBeNull()
+    expect(r.nearestDailyAbove?.level.price).toBe(510)
+    // The placeholders are still extracted — only the distance reads reject them.
+    expect(r.levels.filter(l => l.price === 0)).toHaveLength(2)
   })
 
   it('ignores non-finite level values in the export', () => {
@@ -143,6 +231,8 @@ describe('computeMgiPriority — borders and edge cases', () => {
     expect(r.dailyPrioritySort).toEqual([])
     expect(r.nearestTier1Above).toBeNull()
     expect(r.nearestTier1Below).toBeNull()
+    expect(r.nearestDailyAbove).toBeNull()
+    expect(r.nearestDailyBelow).toBeNull()
   })
 })
 

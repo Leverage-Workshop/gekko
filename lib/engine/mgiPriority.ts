@@ -12,6 +12,25 @@
  *     targets, and hard invalidations. Doctrine's Tier-1 list does NOT include ATR: the
  *     ATR projected high/low are volatility context, classified Tier 2 (gem-alignment
  *     audit finding A9 — they are not campaign borders or partition anchors).
+ *
+ *     WHAT THE VRANGE LEVELS ACTUALLY ARE (operator 2026-08-10, from the Sierra study's own
+ *     definition — the Implied Vol Ranges study, not a range-width construct). Every level is
+ *     the session OPEN plus or minus a multiple of `D`, the expected session move implied by
+ *     VIX. Verified against two archived exports, which agree to 4 decimal places:
+ *       - `high` / `low`     = O ± 0.25·D — the study's "Upper / Lower Ranges", which behave
+ *                              like value-area edges (mean reversion), and flip to S/R when
+ *                              broken with conviction. NOT range extremes, despite the export's
+ *                              field names — hence the labels here.
+ *       - `extPlus2/Minus2`  = O ± 0.90·D — NEAR edge of the study's shaded "1x Range Zone"
+ *       - `extPlus3/Minus3`  = O ± 1.00·D — FAR edge: the full expected session move
+ *     On both fixtures D was 1.45% of the open (433.5 and 431.5 pts), i.e. an implied VIX of
+ *     ~23.0. The ±2/±3 pair is therefore not two levels that happen to sit 0.2·D apart — it is
+ *     the two EDGES OF ONE SHADED ZONE, and the zone is the object the operator trades against.
+ *     Both edges stay Tier 1; terrain merges them into a single composite border rather than
+ *     letting them compete for the partition (see `mergePartitions`' band rule). An earlier
+ *     pass demoted the far edge to Tier 2 to break that competition — reverted, because it cost
+ *     a real partition wherever the acceptance sat at the far edge, which is where the fixture's
+ *     actually was.
  *   - Tier 2 (Intraday Direction): the Rip and Session VWAPs plus the other intraday daily
  *     reference levels (PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low) and the ATR projections.
  *     These set daily bias.
@@ -56,6 +75,21 @@ export type MgiPriority = {
   dailyPrioritySort: MgiLevel[] // daily-group levels, Daily MGI Priority Order then price
   nearestTier1Above: NearestBorder | null
   nearestTier1Below: NearestBorder | null
+  /**
+   * Nearest DAILY-group level each side (feat-109) — the intraday companion to
+   * `nearestTier1Above/Below`, which is Tier-1-only and so can never surface the Rip, PDH/PDL,
+   * IBH/IBL, RVAH/RVAL/RPOC or the OR levels no matter how close they sit.
+   *
+   * The whole daily group, not just the ranked members: OR High/Mid/Low carry no Daily MGI
+   * Priority rank but are live session structure the doctrine uses as rungs. `level.dailyRank`
+   * rides along so a consumer can weigh rank against distance instead of guessing.
+   *
+   * Distance-aware by design. `dailyPrioritySort` is rank order and is blind to where price
+   * is — it prints the Rip first at 200 pts away and OR Mid last with price sitting on it —
+   * which is the wrong shape for the entry-first, nearest-first objective contract (feat-086).
+   */
+  nearestDailyAbove: NearestBorder | null
+  nearestDailyBelow: NearestBorder | null
 }
 
 /** Shape of the static MGI export. All fields optional — exports may omit levels. */
@@ -113,13 +147,16 @@ const LEVEL_SPECS: Record<MgiGroup, Record<string, LevelSpec>> = {
     pmVAH: { label: 'PM VAH', tier: 1 },
     pmVAL: { label: 'PM VAL', tier: 1 },
   },
+  // Labels name what the level IS (O ± a multiple of the VIX-implied session move), not the
+  // export's field name: `high`/`low` are the 0.25x mean-reversion lines, NOT range extremes.
+  // See the VRange note in the module docstring.
   vRange: {
-    high: { label: 'VRange High', tier: 1 },
-    low: { label: 'VRange Low', tier: 1 },
-    extPlus2: { label: 'VRange +2', tier: 1 },
-    extPlus3: { label: 'VRange +3', tier: 1 },
-    extMinus2: { label: 'VRange -2', tier: 1 },
-    extMinus3: { label: 'VRange -3', tier: 1 },
+    high: { label: 'VRange Upper', tier: 1 },
+    low: { label: 'VRange Lower', tier: 1 },
+    extPlus2: { label: 'VRange 1x Zone near (upper)', tier: 1 },
+    extPlus3: { label: 'VRange 1x Zone far (upper)', tier: 1 },
+    extMinus2: { label: 'VRange 1x Zone near (lower)', tier: 1 },
+    extMinus3: { label: 'VRange 1x Zone far (lower)', tier: 1 },
   },
   atr: {
     high: { label: 'ATR High', tier: 2 },
@@ -209,9 +246,19 @@ function priorDayValueLevels(priorDayValue: PriorDayValue | null | undefined): M
   return levels
 }
 
-/** Closest level strictly above/below `price` (strict — a level at `price` is neither). */
+/**
+ * Closest level strictly above/below `price` (strict — a level at `price` is neither).
+ *
+ * Non-positive prices are UNSET export placeholders, never structure: ONH/ONL export as 0.00
+ * when the overnight session carried no data (the analyze prompt's `overnightSession` rule says
+ * as much). They pass `isFiniteNumber`, so without this guard a gap-down open with no real
+ * level under price would report a 0.00 ONL as "the nearest level below". Same guard the
+ * terrain campaign anchors already apply (`terrainZones.ts`).
+ */
 function nearest(levels: MgiLevel[], price: number, dir: 'above' | 'below'): NearestBorder | null {
-  const candidates = levels.filter(l => (dir === 'above' ? l.price > price : l.price < price))
+  const candidates = levels.filter(
+    l => l.price > 0 && (dir === 'above' ? l.price > price : l.price < price),
+  )
   if (candidates.length === 0) return null
   const level = candidates.reduce((best, l) =>
     Math.abs(l.price - price) < Math.abs(best.price - price) ? l : best,
@@ -257,14 +304,14 @@ export function computeMgiPriority(
   )
   const tier1 = levels.filter(l => l.tier === 1)
 
-  const dailyPrioritySort = levels
-    .filter(l => l.group === 'daily')
-    .sort((a, b) => {
-      const ra = a.dailyRank ?? Infinity
-      const rb = b.dailyRank ?? Infinity
-      if (ra !== rb) return ra - rb
-      return b.price - a.price // tie-break ranked pairs / order unranked by price
-    })
+  const dailyLevels = levels.filter(l => l.group === 'daily')
+  // Copy before sorting: `dailyLevels` stays price-descending for the distance reads below.
+  const dailyPrioritySort = [...dailyLevels].sort((a, b) => {
+    const ra = a.dailyRank ?? Infinity
+    const rb = b.dailyRank ?? Infinity
+    if (ra !== rb) return ra - rb
+    return b.price - a.price // tie-break ranked pairs / order unranked by price
+  })
 
   return {
     currentPrice,
@@ -273,5 +320,7 @@ export function computeMgiPriority(
     dailyPrioritySort,
     nearestTier1Above: nearest(tier1, currentPrice, 'above'),
     nearestTier1Below: nearest(tier1, currentPrice, 'below'),
+    nearestDailyAbove: nearest(dailyLevels, currentPrice, 'above'),
+    nearestDailyBelow: nearest(dailyLevels, currentPrice, 'below'),
   }
 }
