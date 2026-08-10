@@ -44,6 +44,8 @@ function makeMgi(currentPrice: number, specs: AnchorSpec[]): MgiPriority {
     dailyPrioritySort: [],
     nearestTier1Above: null,
     nearestTier1Below: null,
+    nearestDailyAbove: null,
+    nearestDailyBelow: null,
   }
 }
 
@@ -777,6 +779,38 @@ describe('assembleTerrain — class-aware spacing consolidation', () => {
     const demotedAAA = r.demoted.find(d => d.price === 30360)
     expect(demotedAAA).toBeDefined()
     expect(demotedAAA!.significance).toBe('AAA')
+  })
+
+  it('the Rip holds its border against a Tier-1 neighbor (feat-109 consolidation exemption)', () => {
+    // Operator 2026-08-10: the inverse of the test above. Identical geometry, but the Tier-2
+    // balance-area anchor is the RIP — the Daily MGI Priority Order's rank-1 level. It ranks
+    // WITH the campaign borders for consolidation only, so tiers tie at 1, AAA then beats A,
+    // and the Rip survives while the Tier-1 rotation trench at 30325 demotes. Before the
+    // exemption the Rip lost this contest on the tier key alone.
+    const balance = buildProfile(
+      [
+        [30240, 30350, 1000],
+        [30370, 30460, 1000],
+      ],
+      30000,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 30360, label: 'Rip', tier: 2, code: 'rip', group: 'daily' },
+      ]),
+    })
+    const rip = r.borders.find(b => b.price === 30360)
+    expect(rip).toBeDefined()
+    expect(rip!.significance).toBe('AAA')
+    // The exemption is survival-only: the border still REPORTS its true Tier 2.
+    expect(rip!.tier).toBe(2)
+    expect(r.demoted.map(d => d.price)).toContain(30325)
   })
 
   it('keeps AAA borders even when they sit closer than the span floor', () => {

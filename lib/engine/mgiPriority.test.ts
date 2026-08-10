@@ -27,9 +27,9 @@ describe('computeMgiPriority — fixture', () => {
     }
   })
 
-  it('classifies 18 Tier-1 campaign borders (weekly + monthly + vRange + ONH/ONL)', () => {
+  it('classifies 16 Tier-1 campaign borders (4 weekly + 6 monthly + 4 vRange + ONH/ONL)', () => {
     const r = computeMgiPriority(mgi)
-    expect(r.tier1).toHaveLength(18)
+    expect(r.tier1).toHaveLength(16)
     expect(r.tier1.every(l => l.tier === 1)).toBe(true)
     // ONH/ONL are Tier 1; Rip/PDH/IB/OR are Tier 2.
     const onh = r.levels.find(l => l.code === 'onh')
@@ -39,6 +39,53 @@ describe('computeMgiPriority — fixture', () => {
     // Doctrine's Tier-1 list has no ATR — the projections are Tier-2 context,
     // never campaign borders or partition anchors (audit finding A9).
     expect(r.levels.filter(l => l.group === 'atr').map(l => l.tier)).toEqual([2, 2])
+  })
+
+  it('tiers the VRange extension band by edge: near (±2) Tier 1, far (±3) Tier 2', () => {
+    const r = computeMgiPriority(mgi)
+    const byCode = new Map(r.levels.map(l => [l.code, l]))
+    // feat-109: the pair is one band, so only the near edge is an anchorable
+    // border. The far edge stays exported as the stop-side reference.
+    expect(byCode.get('extPlus2')?.tier).toBe(1)
+    expect(byCode.get('extMinus2')?.tier).toBe(1)
+    expect(byCode.get('extPlus3')?.tier).toBe(2)
+    expect(byCode.get('extMinus3')?.tier).toBe(2)
+    expect(r.tier1.map(l => l.code)).not.toContain('extPlus3')
+    expect(r.tier1.map(l => l.code)).not.toContain('extMinus3')
+    // The band's width is 0.2x the VRange width by construction — the reason the
+    // two edges were consolidating against each other in terrain. NB: `code` is
+    // not unique across groups (atr also exports high/low), so scope by group.
+    const vRange = new Map(r.levels.filter(l => l.group === 'vRange').map(l => [l.code, l]))
+    const width = vRange.get('high')!.price - vRange.get('low')!.price
+    const band = vRange.get('extPlus3')!.price - vRange.get('extPlus2')!.price
+    expect(band / width).toBeCloseTo(0.2, 2)
+  })
+
+  it('finds the nearest DAILY level each side, which the Tier-1 read cannot reach', () => {
+    const r = computeMgiPriority(mgi)
+    // PDC 29948.75 sits 3.00 pts over price while the nearest Tier-1 border is
+    // 100.25 pts away — and PDC is Tier 2 AND unranked, so it reaches the model
+    // with a distance attached only through this fact. Proves the daily read
+    // covers the WHOLE group, not just the Daily-MGI-ranked members.
+    expect(r.nearestDailyAbove?.level.code).toBe('pdc')
+    expect(r.nearestDailyAbove?.distance).toBe(3)
+    expect(r.nearestDailyAbove?.level.dailyRank).toBeNull()
+    expect(r.nearestDailyBelow?.level.code).toBe('vwap24')
+    expect(r.nearestDailyBelow?.distance).toBe(60.67)
+  })
+
+  it('never returns an unset 0.00 placeholder as the nearest level', () => {
+    // This fixture exports onh/onl/ibh/ibl as 0.00 (no overnight data). They are
+    // finite, so they survive extraction — but 0 is not structure below price.
+    const r = computeMgiPriority(mgi)
+    expect(r.levels.filter(l => l.price === 0).map(l => l.code).sort()).toEqual([
+      'ibh',
+      'ibl',
+      'onh',
+      'onl',
+    ])
+    expect(r.nearestDailyBelow?.level.price).toBeGreaterThan(0)
+    expect(r.nearestTier1Below?.level.price).toBeGreaterThan(0)
   })
 
   it('finds nearest Tier-1 border above = VRange High (30046.00), distance 100.25', () => {
@@ -123,6 +170,24 @@ describe('computeMgiPriority — borders and edge cases', () => {
     }
     const r = computeMgiPriority(mgi)
     expect(r.nearestTier1Above?.level.price).toBe(600)
+    // ...and the daily read is the complement that DOES see it (feat-109).
+    expect(r.nearestDailyAbove?.level.price).toBe(510)
+  })
+
+  it('skips 0.00 placeholders even when nothing real sits below price', () => {
+    // Gap-down open: price is under every real level, so an unset ONL would win
+    // the "nearest below" contest on distance alone if it were not guarded.
+    const mgi: MgiStaticLevels = {
+      current: { price: 100 },
+      daily: { onl: 0, onh: 0, pdh: 510 },
+      weekly: { pwHigh: 600 },
+    }
+    const r = computeMgiPriority(mgi)
+    expect(r.nearestDailyBelow).toBeNull()
+    expect(r.nearestTier1Below).toBeNull()
+    expect(r.nearestDailyAbove?.level.price).toBe(510)
+    // The placeholders are still extracted — only the distance reads reject them.
+    expect(r.levels.filter(l => l.price === 0)).toHaveLength(2)
   })
 
   it('ignores non-finite level values in the export', () => {
@@ -143,6 +208,8 @@ describe('computeMgiPriority — borders and edge cases', () => {
     expect(r.dailyPrioritySort).toEqual([])
     expect(r.nearestTier1Above).toBeNull()
     expect(r.nearestTier1Below).toBeNull()
+    expect(r.nearestDailyAbove).toBeNull()
+    expect(r.nearestDailyBelow).toBeNull()
   })
 })
 

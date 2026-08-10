@@ -323,10 +323,14 @@ function isFiniteNumber(v: unknown): v is number {
  * partitions and target rungs live on the session levels (Kill Box = IBL→IBH, T1 = OR Low,
  * T3 = IB Low); anchoring Tier-1 only erased them from the terrain entirely (gem-comparison
  * F2). Promotion still requires local volume geometry, so a noise level stays a plain `mgi`
- * coordinate. ATR projections stay excluded (volatility context, not structure — audit A9).
+ * coordinate. ATR projections stay excluded (volatility context, not structure — audit A9), as
+ * is the VRange extension band's far edge (Tier 2 since feat-109 — stop-side reference only).
+ *
+ * The Rip needs no clause of its own: it is a `daily`-group level, so the group test already
+ * carries it. What used to lose it was consolidation, not selection — see {@link borderRank}.
  */
 export function selectAnchorLevels(mgi: MgiPriority): MgiLevel[] {
-  const chosen = mgi.levels.filter(l => l.tier === 1 || l.group === 'daily' || l.code === 'rip')
+  const chosen = mgi.levels.filter(l => l.tier === 1 || l.group === 'daily')
   const seen = new Set<number>()
   const unique: MgiLevel[] = []
   for (const l of chosen.sort((a, b) => b.price - a.price)) {
@@ -635,14 +639,31 @@ function mergePartitions(partitions: BorderVerdict[], tolerance: number): Compos
 }
 
 /**
+ * Consolidation-only tier. The Rip ranks WITH the campaign borders here (operator 2026-08-10):
+ * it is the Daily MGI Priority Order's rank-1 level, the immediate directional filter, and a
+ * Rip that promoted on real volume geometry should not lose its partition to a Tier-1 neighbor
+ * 16-60 pts away — too far to merge into one band, close enough to trip consolidation.
+ *
+ * Deliberately NOT a tier promotion in `mgiPriority.ts`: the playbook classifies the Rip Tier 2
+ * (Intraday Direction), and `mgi.tier1` feeds the Stratosphere/Abyss envelope and
+ * `nearestTier1Above/Below`. The Rip tracks price intraday, so promoting it there would let it
+ * become the campaign ceiling or floor and collapse the map. This is a survival rule, not a
+ * reclassification — `border.tier` itself is untouched and still reports what it always did.
+ */
+function consolidationTier(border: CompositeBorder): number {
+  return border.members.some(m => m.level.code === 'rip') ? 1 : border.tier
+}
+
+/**
  * Strength ordering for consolidation (lower rank wins): MGI tier first (operator 2026-07-22:
  * a Tier-1 level like Week Open survives against a Tier-2 AAA neighbor), then significance
  * class (AAA before A), composite member count (clustering = significance), kind (Trench
- * before Wall), then the deepest local dip.
+ * before Wall), then the deepest local dip. The tier key is {@link consolidationTier}, so the
+ * Rip survives here on Tier-1 footing without being reclassified as one.
  */
 function borderRank(border: CompositeBorder): number[] {
   return [
-    border.tier,
+    consolidationTier(border),
     border.significance === 'AAA' ? 0 : 1,
     -border.members.length,
     border.kind === 'trench' ? 0 : 1,
@@ -665,7 +686,8 @@ function weakerOf(a: CompositeBorder, b: CompositeBorder): CompositeBorder {
  * handful of zones where MAJOR moves start and end. Any pair of zone dividers closer than
  * `aTierMinSpanPts` where at least one is A-class loses its weaker member per
  * {@link borderRank} (tier outranks class, so a Tier-1 A border survives a Tier-2 AAA
- * neighbor) — demoted to a plain level (still structure, never deleted from `levels`). AAA
+ * neighbor; the Rip ranks as Tier 1 here per {@link consolidationTier}) — demoted to a plain
+ * level (still structure, never deleted from `levels`). AAA
  * pairs are exempt (balance-area structure is kept even when tight — it only merges within
  * `mergeTolerancePts`). Input must be price-descending.
  */

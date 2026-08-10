@@ -12,6 +12,19 @@
  *     targets, and hard invalidations. Doctrine's Tier-1 list does NOT include ATR: the
  *     ATR projected high/low are volatility context, classified Tier 2 (gem-alignment
  *     audit finding A9 — they are not campaign borders or partition anchors).
+ *
+ *     The VRange ±2/±3 extensions are ONE BAND, not two independent borders (operator
+ *     2026-08-10). The export computes them off the opposite range edge at fixed multiples of
+ *     the range width — `extPlus2 = low + 2.3 * width`, `extPlus3 = low + 2.5 * width`, and
+ *     mirrored for the minus side — so the pair is ALWAYS exactly 0.2 * width apart (43.5 /
+ *     43.5 / 43.0 pts across the three archived exports, on ranges of 216.5 / 217 / 216). That
+ *     is under terrain's `aTierMinSpanPts`, so two same-tier borders that close together were
+ *     consolidated against each other arbitrarily — above price the pair collapsed to the FAR
+ *     edge, below price to the NEAR edge, purely on a price tie-break. Only the NEAR edge
+ *     (±2) is therefore Tier 1 and anchorable; the FAR edge (±3) is Tier 2 — still exported,
+ *     still quotable as the stop-side reference beyond the band, but no longer competing for
+ *     the partition. This matches the near-edge fade doctrine already settled for single-print
+ *     scars and fakeout tails: anchor at the near edge, never exile the anchor to the far side.
  *   - Tier 2 (Intraday Direction): the Rip and Session VWAPs plus the other intraday daily
  *     reference levels (PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low) and the ATR projections.
  *     These set daily bias.
@@ -56,6 +69,21 @@ export type MgiPriority = {
   dailyPrioritySort: MgiLevel[] // daily-group levels, Daily MGI Priority Order then price
   nearestTier1Above: NearestBorder | null
   nearestTier1Below: NearestBorder | null
+  /**
+   * Nearest DAILY-group level each side (feat-109) — the intraday companion to
+   * `nearestTier1Above/Below`, which is Tier-1-only and so can never surface the Rip, PDH/PDL,
+   * IBH/IBL, RVAH/RVAL/RPOC or the OR levels no matter how close they sit.
+   *
+   * The whole daily group, not just the ranked members: OR High/Mid/Low carry no Daily MGI
+   * Priority rank but are live session structure the doctrine uses as rungs. `level.dailyRank`
+   * rides along so a consumer can weigh rank against distance instead of guessing.
+   *
+   * Distance-aware by design. `dailyPrioritySort` is rank order and is blind to where price
+   * is — it prints the Rip first at 200 pts away and OR Mid last with price sitting on it —
+   * which is the wrong shape for the entry-first, nearest-first objective contract (feat-086).
+   */
+  nearestDailyAbove: NearestBorder | null
+  nearestDailyBelow: NearestBorder | null
 }
 
 /** Shape of the static MGI export. All fields optional — exports may omit levels. */
@@ -116,10 +144,12 @@ const LEVEL_SPECS: Record<MgiGroup, Record<string, LevelSpec>> = {
   vRange: {
     high: { label: 'VRange High', tier: 1 },
     low: { label: 'VRange Low', tier: 1 },
+    // Near edge of the extension band = Tier 1 (anchorable); far edge = Tier 2 (stop-side
+    // reference only). See the band note in the module docstring.
     extPlus2: { label: 'VRange +2', tier: 1 },
-    extPlus3: { label: 'VRange +3', tier: 1 },
+    extPlus3: { label: 'VRange +3', tier: 2 },
     extMinus2: { label: 'VRange -2', tier: 1 },
-    extMinus3: { label: 'VRange -3', tier: 1 },
+    extMinus3: { label: 'VRange -3', tier: 2 },
   },
   atr: {
     high: { label: 'ATR High', tier: 2 },
@@ -209,9 +239,19 @@ function priorDayValueLevels(priorDayValue: PriorDayValue | null | undefined): M
   return levels
 }
 
-/** Closest level strictly above/below `price` (strict — a level at `price` is neither). */
+/**
+ * Closest level strictly above/below `price` (strict — a level at `price` is neither).
+ *
+ * Non-positive prices are UNSET export placeholders, never structure: ONH/ONL export as 0.00
+ * when the overnight session carried no data (the analyze prompt's `overnightSession` rule says
+ * as much). They pass `isFiniteNumber`, so without this guard a gap-down open with no real
+ * level under price would report a 0.00 ONL as "the nearest level below". Same guard the
+ * terrain campaign anchors already apply (`terrainZones.ts`).
+ */
 function nearest(levels: MgiLevel[], price: number, dir: 'above' | 'below'): NearestBorder | null {
-  const candidates = levels.filter(l => (dir === 'above' ? l.price > price : l.price < price))
+  const candidates = levels.filter(
+    l => l.price > 0 && (dir === 'above' ? l.price > price : l.price < price),
+  )
   if (candidates.length === 0) return null
   const level = candidates.reduce((best, l) =>
     Math.abs(l.price - price) < Math.abs(best.price - price) ? l : best,
@@ -257,14 +297,14 @@ export function computeMgiPriority(
   )
   const tier1 = levels.filter(l => l.tier === 1)
 
-  const dailyPrioritySort = levels
-    .filter(l => l.group === 'daily')
-    .sort((a, b) => {
-      const ra = a.dailyRank ?? Infinity
-      const rb = b.dailyRank ?? Infinity
-      if (ra !== rb) return ra - rb
-      return b.price - a.price // tie-break ranked pairs / order unranked by price
-    })
+  const dailyLevels = levels.filter(l => l.group === 'daily')
+  // Copy before sorting: `dailyLevels` stays price-descending for the distance reads below.
+  const dailyPrioritySort = [...dailyLevels].sort((a, b) => {
+    const ra = a.dailyRank ?? Infinity
+    const rb = b.dailyRank ?? Infinity
+    if (ra !== rb) return ra - rb
+    return b.price - a.price // tie-break ranked pairs / order unranked by price
+  })
 
   return {
     currentPrice,
@@ -273,5 +313,7 @@ export function computeMgiPriority(
     dailyPrioritySort,
     nearestTier1Above: nearest(tier1, currentPrice, 'above'),
     nearestTier1Below: nearest(tier1, currentPrice, 'below'),
+    nearestDailyAbove: nearest(dailyLevels, currentPrice, 'above'),
+    nearestDailyBelow: nearest(dailyLevels, currentPrice, 'below'),
   }
 }

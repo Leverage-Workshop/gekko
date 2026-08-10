@@ -773,3 +773,56 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   **Alternatives considered:** sharing the rule with the update prompt (defensible for
   target rungs, which updates do revise — recorded here as the obvious follow-up rather
   than taken silently in this diff).
+
+- **Decision (feat-109):** only the NEAR edge of the VRange ±2/±3 extension band is Tier 1 and
+  anchorable; the far edge (±3) drops to Tier 2 as the stop-side reference.
+  **Why:** the pair is not two independent borders. The export places them at fixed range-width
+  multiples (2.3× / 2.5× off the opposite edge), so they are ALWAYS `0.2 × width` apart — 43.5 /
+  43.5 / 43.0 pts across the three archived exports. That is inside `aTierMinSpanPts`, so two
+  same-tier borders that close were already being consolidated against each other on an arbitrary
+  price tie-break (above price the band collapsed to the FAR edge, below price to the NEAR edge).
+  Picking the near edge matches the fade doctrine already settled for single-print scars (PR #98)
+  and fakeout tails (PR #113): anchor at the near edge, never exile the anchor to the far side.
+  **Known cost, accepted with eyes open:** on the fixture bundle the real balance-area acceptance
+  sat at the FAR edge (−3, 29504.25, an AAA border), and −2 is not a border and did not become
+  one — so this retired a genuine AAA partition (zones 10 → 9) rather than relocating it. The
+  structure survives as the detector LVN node at 29490 and stays a legal anchor, but loses its
+  MGI label and its partition.
+  **Alternatives considered:** the midpoint of the two edges (the operator's first instinct —
+  rejected: it is a price nothing was ever measured at, it discards the band width, which is the
+  informative part, and it splits the difference in exactly the way the near-edge fade rules
+  reject); a band-aware MERGE collapsing ±2/±3 into one composite border with both edges as
+  members, like the observed `RPOC / 24 VWAP / Rip` cluster — the better design, since it keeps
+  the near edge anchorable AND keeps the far edge's real partition, but it changes
+  `mergePartitions` and was outside the approved scope. Recorded as the recommended follow-up.
+
+- **Decision (feat-109):** the Rip ranks with the campaign borders in `borderRank` via a new
+  `consolidationTier()`, instead of being promoted to Tier 1 in `mgiPriority.ts`.
+  **Why:** the operator asked for the Rip to be able to hold a border. It could always BE one (it
+  is a `daily`-group level, so `selectAnchorLevels` always carried it — the `code === 'rip'` clause
+  was redundant and is deleted); what it lost was the 16–60 pt consolidation window, too far to
+  merge into one band and close enough to trip spacing, where `borderRank`'s tier key handed the
+  border to any Tier-1 neighbor. A real tier promotion would leak into `mgi.tier1`, which feeds the
+  Stratosphere/Abyss envelope and `nearestTier1Above/Below` — and the Rip tracks price intraday, so
+  it would frequently become the campaign ceiling or floor and collapse the terrain map. Survival
+  rule, not reclassification: `border.tier` still reports the true tier, and the playbook's Tier-2
+  (Intraday Direction) classification stays honest.
+  **Alternatives considered:** `LEVEL_SPECS` promotion (the envelope collapse above); a dedicated
+  rank slot between tiers 1 and 2 (same effect, more machinery for one level).
+
+- **Decision (feat-109):** `nearestDailyAbove/Below` covers the WHOLE daily group, not just the
+  Daily-MGI-ranked members, and `nearest()` now rejects non-positive prices.
+  **Why:** `dailyPrioritySort` is rank order and blind to distance, and the only distance-aware MGI
+  fact was Tier-1-only — so the Rip, PDH/PDL, IBH/IBL, RVAH/RVAL/RPOC and the OR levels could never
+  reach the model with a distance attached, however close. Wrong shape for feat-086's entry-first,
+  nearest-first contract; the fixture makes it concrete (price 3.00 pts under PDC, nearest Tier-1
+  border 100.25 pts away, and PDC is Tier 2 AND unranked). Rank-only would have excluded OR
+  High/Mid/Low, which are unranked but live session structure the doctrine uses as rungs. The
+  placeholder guard is required because ONH/ONL export as 0.00, which is finite and survives
+  extraction — on a gap-down open with nothing real below price it would have been returned as the
+  nearest level below. Same guard `terrainZones` already applied to its campaign anchors.
+  **Alternatives considered:** ranked-only (drops the OR levels); filtering 0.00 out at extraction
+  (cleaner, but it would change `levels`, `tier1`, `dailyPrioritySort` and the terrain anchor set
+  at once — the targeted guard in `nearest()` is the minimal correct fix and terrain already
+  guards itself); also feeding the new pair into `sigmaStructureRefs` (left narrow by design —
+  its docstring says so, and 4 refs → 6 buries the "is the next thing inside the noise?" answer).

@@ -124,6 +124,11 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
       ),
       nearestTier1Above: facts.mgi.nearestTier1Above,
       nearestTier1Below: facts.mgi.nearestTier1Below,
+      // feat-109: the intraday companion to the Tier-1 pair. `nearestTier1*` is
+      // Tier-1-only, so the Rip / PDH/PDL / IBH/IBL / RVAH/RVAL/RPOC / OR levels
+      // could never reach the model with a distance attached, however close.
+      nearestDailyAbove: facts.mgi.nearestDailyAbove,
+      nearestDailyBelow: facts.mgi.nearestDailyBelow,
     },
     terrain: modelTerrain(facts.terrain),
     tpo: facts.tpo,
@@ -167,6 +172,14 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
  */
 export const ATR_PROJECTION_RULE =
   "- `atrProjections` is the code-owned ATR PRICE-LEVEL read (feat-108): the 30-min ATR projected into concrete anchorable prices — from current price both ways (targets) and outward from the last confirmed swing high/low (reversals) — at 0.5/1/1.5/2x. Each `rungs` entry reads `PRICE · label · travel`; anchor only on that price and quote the label with it (\"30061.98 (current price (29945.75) +1× ATR)\"). Never do ATR arithmetic yourself — a price that is not a rung is not structure. A rung marked UNDER the significant-move floor is legal as an entry or stop but NEVER as a target; `significantMoveNote` says why (one ATR is ~0.4σ — the floor itself). Null = no HTF export; say the projections are unavailable rather than estimating them. These are DERIVED prices; `htfStructure.atrPoints` and the `*Atr` distances keep their separate normalizer job."
+
+/**
+ * MGI structural read (feat-109). Shared verbatim with the update-task prompt — the sole home
+ * for the rank-vs-distance distinction and the VRange extension-band doctrine, so the two
+ * tasks cannot read the same level set differently.
+ */
+export const MGI_STRUCTURE_RULE =
+  "- `mgiPriority` is the code-owned MGI structural read: `levels` carries every exported level with its tier and Daily MGI Priority rank, `tier1` the campaign-border subset price-descending, and `dailyPrioritySort` the daily group in Daily MGI Priority Order (1 Rip · 2 ONH/ONL · 3 PDH/PDL · 4 RVAH/RVAL · 5 RPOC · 6 IBH/IBL · 7 VWAP). That ordering is RANK, not distance — it lists the Rip first even when price is 200 pts away from it and the OR levels last with price sitting on one — and levels sharing a rank (ONH/ONL, PDH/PDL, IBH/IBL) are TIED, ordered by price alone with no importance implied. For distance read the `nearest*` fields instead: `nearestTier1Above/Below` are the nearest CAMPAIGN borders each side, and `nearestDailyAbove/Below` the nearest intraday daily levels each side — the Rip, PDH/PDL, IBH/IBL, RVAH/RVAL/RPOC and the OR levels can never surface in the Tier-1 read no matter how close they sit, so this is where the closest live session structure appears for nearest-first entry selection. The VRange ±2/±3 extensions are ONE BAND, not two independent borders (the pair is always 0.2× the range width apart): the NEAR edge (±2) is the Tier-1 anchorable border, while the FAR edge (±3) is Tier 2 — quote it as the stop-side reference beyond the band, never as the entry anchor."
 
 /**
  * Relative-volume rule (feat-094). Shared verbatim with the update-task prompt:
@@ -291,6 +304,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     `- \`deltaTelemetry.flow\` is the code-owned raw order-flow read from the enriched bars: engine-computed cumulative delta (\`deltaTelemetry.flow.cumulativeDelta\`), delta divergence at the fresh price extreme (\`deltaTelemetry.flow.divergence\`), climax prints and average trade size. The execution chart trades ${input.executionBarVolume}-VOLUME bars — per-bar volume is flat by construction, so weigh participation by bar count at a price, trade count and delta magnitude, never by the Volume column.`,
     RELATIVE_VOLUME_RULE,
     ATR_PROJECTION_RULE,
+    MGI_STRUCTURE_RULE,
     `- \`terrain.zones\` in your output MUST reproduce the engine zone stack exactly — same contiguous top/bottom border prices (${borders.join(', ')}). You supply only each zone's color and narrative label.`,
     '- `terrain.levels` MUST carry the engine border verdicts (price + kind verbatim); you supply the label wording.',
     '- Engine zone borders may be COMPOSITE: several clustered MGI levels merged into one border (`terrain.borders[].members` lists them). Treat the cluster as one border band — name the composite in your labels and pick entry/stop prices from its member levels. Each border carries a `significance` class: AAA = balance-area structure with REAL long-term acceptance (the senior read — the most important levels on the map), A = rotation structure OR balance-area structure demoted for faint flanking acceptance (under half the profile\'s peak — the member verdict `reason` says "faint acceptance") or a shallow valley (center barely below its own flanks — the `reason` says "shallow valley"). Weight AAA borders accordingly for campaign targets and invalidations; treat demoted balance-area borders as ordinary A structure and NEVER call them AAA in prose. `terrain.demoted` lists real structure consolidated out of the zone stack for spacing — usable as level anchors and rungs, but the zone borders define the campaign map.',

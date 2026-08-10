@@ -2,7 +2,74 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-09
+**Last Updated:** 2026-08-10
+
+**Latest change (branch `feat-109-mgi-band-rip-nearest`): feat-109 — three fixes to the MGI
+importance hierarchy, from an operator review of it.** Not a bundle-review item; the operator
+asked to see where MGI importance is encoded and then to change it. It lives in exactly two
+places: `LEVEL_SPECS` / `PRIOR_DAY_VALUE_SPECS` in `lib/engine/mgiPriority.ts` (tier + Daily MGI
+Priority rank, the declarative table) and `borderRank` in `lib/engine/terrainZones.ts` (which
+consumes tier as its FIRST sort key, so tier decides which border survives spacing
+consolidation).
+
+**(1) The VRange ±2/±3 extensions are ONE BAND, not two Tier-1 borders.** Derived from the three
+archived exports rather than assumed: the export places them at fixed range-width multiples —
+`extPlus2 = low + 2.3 × width`, `extPlus3 = low + 2.5 × width`, mirrored below — so the pair is
+ALWAYS exactly `0.2 × width` apart (43.5 / 43.5 / 43.0 pts on ranges of 216.5 / 217 / 216). That
+is inside `aTierMinSpanPts` (60), so the two edges were consolidating against each other on an
+arbitrary price tie-break — above price the band collapsed to the FAR edge, below price to the
+NEAR edge. Now only the near edge (±2) is Tier 1 and anchorable; the far edge (±3) is Tier 2,
+still exported as the stop-side reference. Consistent with the near-edge fade doctrine already
+settled for single-print scars (PR #98) and fakeout tails (PR #113).
+
+**MEASURED on the fixture bundle, and one result deserves a second look.** Exactly one border
+lost: VRange −3 at 29504.25, which held a Tier-1 **AAA** border — zone stack 10 → 9, borders
+11 → 10. Upside: no-op, +2 (30327.75) was already the border and +3 never was. Downside: the
+profile's real balance-area acceptance sat at the **far** edge, and −2 (29547.75) is not a border
+and did not become one — so the demotion **retired a genuine AAA partition instead of relocating
+it**. The volume structure survives as the detector LVN node at 29490 (14.25 pts away), still a
+legal entry anchor per PR #114, so the price stays hostable; it is no longer a zone partition and
+no longer carries the MGI label. **Recommended follow-up:** a band-aware merge that collapses
+±2/±3 into ONE composite border with both edges as members — exactly the shape of the observed
+`RPOC / 24 VWAP / Rip` cluster — would keep the near edge anchorable AND keep the far edge's real
+partition. That is the more faithful reading of "it is one band" and was not in this feature's
+approved scope.
+
+**(2) The Rip holds its partition.** It could always BE a border — it is a `daily`-group level, so
+`selectAnchorLevels` always carried it, and the trailing `code === 'rip'` clause was redundant
+(deleted). What lost it was consolidation: `borderRank`'s first key is tier, so any Tier-1 neighbor
+16–60 pts away took its border — too far to merge into one composite band, close enough to trip
+consolidation. New `consolidationTier()` is now that first key and ranks a Rip-member border as
+tier 1 **for consolidation only**; `border.tier` still reports the true tier. Deliberately NOT a
+tier promotion in `mgiPriority.ts`: the playbook classifies the Rip Tier 2, and `mgi.tier1` feeds
+the Stratosphere/Abyss envelope plus `nearestTier1Above/Below` — the Rip tracks price intraday, so
+a real promotion would let it become the campaign ceiling or floor and collapse the map. No-op on
+the fixture (the Rip there merges into the `RPOC / 24 VWAP / Rip` composite at 29885.08, inside
+`mergeTolerancePts`, and was already surviving); the exemption is insurance for the 16–60 pt
+window, covered by a test that inverts the existing "Tier-1 A survives a Tier-2 AAA neighbor" case.
+
+**(3) `nearestDailyAbove/Below` — the distance-aware companion.** `dailyPrioritySort` is RANK
+order and blind to distance (it lists the Rip first at 200 pts away and the OR levels last with
+price sitting on one), and levels sharing a rank — ONH/ONL, PDH/PDL, IBH/IBL — are TIED, ordered
+by price with no importance implied. The only distance-aware MGI fact was Tier-1-only, so the Rip,
+PDH/PDL, IBH/IBL, RVAH/RVAL/RPOC and the OR levels could never reach the model with a distance
+attached — the wrong shape for feat-086's entry-first, nearest-first contract. The fixture shows
+the gap exactly: price 29945.75 sits **3.00 pts under PDC** while the nearest Tier-1 border is
+100.25 pts away, and PDC is Tier 2 AND unranked. Covers the WHOLE daily group, not just ranked
+members, because OR High/Mid/Low are unranked live session structure used as rungs.
+
+**Also (small, in the same function):** `nearest()` now rejects non-positive prices. This fixture
+exports `onh`/`onl`/`ibh`/`ibl` as **0.00** placeholders; they are finite, so they survive
+extraction, and on a gap-down open with no real level below price a 0.00 ONL would have been
+returned as "the nearest level below". Same guard `terrainZones` already applied to the campaign
+anchors. One new shared `MGI_STRUCTURE_RULE` carries rank-vs-distance and the band doctrine to
+both the analyze and update prompts (one-home-per-rule). `./init.sh` green: typecheck, lint,
+**1338 tests passing** (1 skipped), build.
+
+**Gotcha worth remembering:** `MgiLevel.code` is NOT unique across groups — `vRange` and `atr`
+both export `high`/`low`. A `new Map(levels.map(l => [l.code, l]))` silently resolves `high` to
+ATR High (extraction order puts `atr` last). Scope by `group` when keying by code. The `label` is
+unique; the `code` is not.
 
 **BATCH COMPLETE — feat-089 through feat-097 are all `done`.** Nothing from the
 2026-08-07 bundle review batch is in flight. See "Carried forward" at the end of this

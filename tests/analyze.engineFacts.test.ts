@@ -781,9 +781,13 @@ describe('engineAnchorPrices — ATR projections are anchorable (feat-108)', () 
     const result = full()
     const borders = engineZoneBorders(result.terrain)
 
-    // The same stack feat-090 verified rather than assumed: 10 zones, 11 borders.
-    expect(result.terrain.zones).toHaveLength(10)
-    expect(borders).toHaveLength(11)
+    // The stack feat-090 verified rather than assumed, less the one partition
+    // feat-109 retired: VRange −3 (29504.25) held an AAA border on this fixture,
+    // and the extension band's far edge is Tier 2 now, so it is no longer an
+    // anchor candidate. 10 zones / 11 borders → 9 / 10. The underlying volume
+    // structure survives as the detector LVN node at 29490.
+    expect(result.terrain.zones).toHaveLength(9)
+    expect(borders).toHaveLength(10)
 
     // The anchor set DID take the rungs...
     const without = engineAnchorPrices(result.terrain, result.lvn, result.sessionIntraday, {

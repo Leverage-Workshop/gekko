@@ -53,7 +53,18 @@ qualitatively and defers the numbers to the engine facts.
   nearest Tier-1 borders are computed in `lib/engine/mgiPriority.ts`. Not every level comes from
   the static MGI JSON: Daily MGI Priority **ranks 4–5 (RVAH/RVAL/RPOC)** are the prior COMPLETED
   session's value area, passed in from `daily-value-areas.csv` via `computeMgiPriority`'s
-  `priorDayValue` option (feat-090) and classified Tier 2 alongside PDH/PDL.
+  `priorDayValue` option (feat-090) and classified Tier 2 alongside PDH/PDL. The VRange ±2/±3
+  extensions are ONE BAND, not two borders (feat-109): the export puts them at fixed range-width
+  multiples (2.3× / 2.5× off the opposite edge), so the pair is always 0.2× the width apart —
+  inside terrain's `aTierMinSpanPts`, where two same-tier borders consolidated against each other
+  on an arbitrary price tie-break. Only the NEAR edge (±2) is Tier 1 and anchorable; the FAR edge
+  (±3) is Tier 2, still exported as the stop-side reference. Distance reads come in two flavours:
+  `nearestTier1Above/Below` (campaign borders) and `nearestDailyAbove/Below` (feat-109 — the
+  intraday companion, since the Tier-1-only read can never surface the Tier-2 daily levels — the
+  rolling pivot, PDH/PDL, IBH/IBL, RVAH/RVAL/RPOC, the OR levels — however close they sit). Both
+  reject non-positive prices, which are unset export placeholders (ONH/ONL export as 0.00), never
+  structure. (The word above is deliberately not the three-letter one: the drift guard takes the
+  FIRST guardrail bullet matching /Rip|Vanguard/ and requires it to name `ripStatus.ts`.)
 - **Where an entry may anchor.** `engineAnchorPrices()` (`lib/analyze/engineFacts.ts`) is the one
   definition of hostable structure, and it feeds `validateBriefing`'s off-anchor check: terrain
   zone borders and level verdicts, composite border members, detector LVN nodes (feat-074),
@@ -64,7 +75,10 @@ qualitatively and defers the numbers to the engine facts.
   arithmetic in prose). Distinct from `engineZoneBorders()`, which is the hard-enforced zone
   stack the model must reproduce and therefore stays a strict partition read (a VWAP band, a
   POC or an ATR projection is structure, not a partition — verified on the fixture bundle:
-  10 zones / 11 borders before and after feat-108).
+  9 zones / 10 borders before and after feat-108. It was 10 / 11 until feat-109 retired the
+  partition at 29504.25 — the far edge of the lower VRange extension band; the volume structure
+  there survives as the detector LVN node at 29490, so the price stays anchorable, just not as a
+  zone border).
 - **ATR's two roles (feat-108).** `lib/engine/htfStructure.ts` owns ATR as a NORMALIZER
   (`atrPoints`, `rotation.extentAtr`, `currentVsSwings.*Atr` — feat-049, untouched);
   `lib/engine/atrProjection.ts` owns ATR as a PRICE LEVEL. Multiples are named and exported
@@ -77,6 +91,13 @@ qualitatively and defers the numbers to the engine facts.
   statically — which multiples clear is a property of the regime, not of the multiple.
 - **Rip / Vanguard Protocol thresholds.** Green/Yellow/Red is resolved by
   `lib/engine/ripStatus.ts` from price-vs-Rip and Delta Intensity.
+- **The Rip holds its partition.** `borderRank`'s tier key is `consolidationTier`
+  (`lib/engine/terrainZones.ts`, feat-109): the Rip ranks WITH the campaign borders for spacing
+  consolidation only, so a Rip that promoted on real volume geometry no longer loses its border to
+  a Tier-1 level 16–60 pts away (too far to merge into one band, close enough to trip
+  consolidation). Deliberately not a tier promotion — the playbook classifies the Rip Tier 2, and
+  `mgi.tier1` feeds the Stratosphere/Abyss envelope, which the Rip would collapse by tracking
+  price. `border.tier` still reports the true tier.
 - **Absorption candidates.** Stack detection thresholds are owned by `lib/engine/absorption.ts`.
 - **Delta telemetry reduction.** The compact window the model receives is produced by
   `lib/engine/deltaTelemetry.ts`.
@@ -110,7 +131,7 @@ where the model sees it.
 | `tpo_data` | `tpo.data.md` | `lib/engine/parseTpo.ts` → `lib/engine/tpoFacts.ts`, `lib/engine/tpoPeriodClock.ts`, `lib/engine/tpoDayType.ts` (best-effort: null + warning when absent) | `tpo` (single-print zones, poor high/low, the feat-091 excess read `tpo.excess` — buying/selling tails at the extremes in bins + points with their period letters, and the session single-print fraction — POC prominence, value area, Initial Balance, plus the feat-092 period→clock map: `tpo.firstPeriod` anchor and `tpo.periodClock` letter → `HH:MM`; both null on exports predating the anchor lines; plus the feat-093 session classification `tpo.classification` — day type, open type, IB→day-range extension with its band in the empirical distribution (feat-100 swaps the live-measured one in for the pinned sample; `tpo.classification.distribution.source` says which judged the session), range extension by period, and which period printed the session high and low; derived from the letter SEQUENCE, so it survives a missing clock anchor, and null when the ladder holds under three periods) |
 | `daily_va` | `daily-value-areas.csv` | `lib/engine/parseDailyValueAreas.ts` (parse + feat-089 date partition) → `lib/engine/valueMigration.ts`, `lib/engine/dailyRanges.ts` (COMPLETED sessions only), `lib/engine/developingSession.ts` (the live in-progress row) — best-effort: null + warning when absent; eval: `lib/eval/evalBundle.ts` (best-effort context, same partition) | `valueMigration` (prior-day POC/VAH/VAL, the day-by-day recentSessions series, POC drift, value-day streaks, prior-day overlap, price vs prior-day value; feat-090 also promotes the prior-day POC/VAH/VAL into `mgiPriority` as the doctrine's RVAH/RVAL/RPOC, Daily MGI Priority ranks 4-5, so they tier, sort, reach terrain and become anchorable entry structure), `dailyRanges` (per-session range series + contraction/expansion read, in plain points — the overview never cites ATR), `developingSession` (feat-089: the live session's developing VOLUME value area — POC/VAH/VAL, high/low, volume and travel so far, price vs developing value — with a maturity qualifier: elapsed RTH minutes, volume vs the time-of-day expectation, range used vs the completed-session median; null on pre-open/overnight bundles, and the split is warned either way); eval prompt: prior-day value context line; also feeds the day-level SessionVolume leg of `relativeVolume` (feat-094, via `lib/engine/relativeVolume.ts`) |
 | `htf_csv` | `htf_bars.csv` | `lib/engine/parseHtfBars.ts` → `lib/engine/htfStructure.ts`, `lib/engine/overnightSession.ts`, `lib/engine/multiDayTpo.ts`, `lib/engine/relativeVolume.ts`, `lib/engine/volatilityScale.ts`, `lib/engine/atrProjection.ts`, `lib/engine/rthSessions.ts` → `lib/engine/ibExtension.ts` (best-effort: null + warning when absent); eval: `lib/eval/evalBundle.ts` (best-effort context) | `htfStructure` (trend state from the swing sequence PLUS the real-time `trend.integrity` qualifier — intact / under-test / broken vs the live price, feat-064 — recent swing highs/lows, rotation extent, 30-min ATR, ATR-normalized swing distances) → grounds meta.htfTrend, `overnightSession` (overnight high/low/range + RTH-so-far extremes; null on RTH-only exports), `multiDayTpo` (feat-071: last ~5 RTH sessions' TPO profiles reconstructed from the 30-min bars — one bar = one TPO period — and merged: composite POC with prominence, 70% value area, range, HVN shelves, interior LVN valleys, per-session POC/range walk, current price vs composite value; the numeric multi-day Market Profile behind `overview.mtfView`; null when under two RTH sessions), `relativeVolume` (feat-094: per-intraday-slot volume medians from the export's own history, today's completed 30-min slots against them, cumulative RTH volume vs the time-of-day expectation, the day-level SessionVolume companion, all reduced to one `relativeVolume.participation` scalar with a band and a confidence gate the other order-flow facts are read through; per-slot reads degrade to null below the minimum history), `volatilityScale` (feat-095: Parkinson + Garman-Klass range estimators over the RTH 30-min bars — one RTH session's sigma in points, per-bar sigma, median bar/session ranges, and the distance from current price to the nearest Tier-1 and zone borders in points AND sigma with a noise/minor/meaningful/large band; the scale that says whether a point gap is meaningful; null under 3 complete RTH sessions), `atrProjections` (feat-108: the 30-min ATR in its PRICE-LEVEL role — projected from current price both ways (target rungs) and outward from the last confirmed swing high/low (reversal rungs) at 0.5/1/1.5/2x, each rung carrying its reference and multiple as a quotable attribution label plus a clearsSignificantMove flag resolved against feat-096's floor for THAT run; feeds engineAnchorPrices() so an ATR-derived price can host an entry, stop or target instead of appearing as freehand arithmetic in prose; null when `htfStructure` is null or its ATR is unmeasurable, and no swing rung is emitted for a side with no confirmed swing), `ibExtension` (feat-100: the IB→day-range extension distribution measured from the export's own RTH sessions, reconstructed via `lib/engine/rthSessions.ts` — `day_range / IB_range` at p25/median/p75/p90/max with the sample size behind them and the no-extension / one-sided / both-sides split, today's first-hour Initial Balance with the ratio it has reached and its band, and each quantile projected from that IB into a PRICE for target rungs; `distribution.source` reads "measured" above 20 complete sessions and falls back to review B7's pinned n=62 sample below it, and is the distribution feat-093's `tpo.classification` day type is cut at; null when the export holds no RTH bars); eval prompt: volatility-scale context line |
-| `mgi` | inline `mgi_json` (jsonb) | `lib/engine/mgiPriority.ts` (which also takes the prior completed session's value area from `daily_va` as Daily MGI Priority ranks 4-5 — feat-090), `lib/engine/staleness.ts`, `lib/engine/ripStatus.ts` | `currentPrice`, `mgiPriority`, `staleness`, plus the raw MGI JSON block |
+| `mgi` | inline `mgi_json` (jsonb) | `lib/engine/mgiPriority.ts` (which also takes the prior completed session's value area from `daily_va` as Daily MGI Priority ranks 4-5 — feat-090), `lib/engine/staleness.ts`, `lib/engine/ripStatus.ts` | `currentPrice`, `mgiPriority` (levels with tier + Daily MGI Priority rank, the Tier-1 subset, the daily priority sort, and FOUR distance reads — `nearestTier1Above/Below` for campaign borders plus `nearestDailyAbove/Below` for intraday structure, feat-109), `staleness`, plus the raw MGI JSON block |
 | (engine pass) | — cross-cutting | `lib/analyze/engineFacts.ts` | `warnings` |
 
 ## Per-task prompt assembly
