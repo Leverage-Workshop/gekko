@@ -4,7 +4,50 @@
 
 **Last Updated:** 2026-08-10
 
-**Latest change (branch `feat-109-mgi-band-rip-nearest`): feat-109 — three fixes to the MGI
+**Latest change (branch `feat-111-job-pivots`): feat-111 — Job Pivots (daily + weekly) added to
+the MGI level set, Sierra study through to doctrine.** Operator-supplied definitions, not a
+backlog item. The daily Job Pivot is the auction's line in the sand — the level directional bias
+flips across depending on which side price can hold, and where large rotations visibly start and
+stop. The weekly one is that same job at a weekly horizon, built from the PRIOR week's activity.
+
+Both levels were already plotted on the chartbook (OrderFlow Labs `scsf_JobPivots` /
+`scsf_JobWeeklyPivots_v2`) and simply never exported, so this starts in Sierra:
+`D:\SierraChart\ACS_Source\MgiDataExporter.cpp`, the only writer of `mgi_static_levels.json`,
+gained four inputs — Study ID **and Subgraph Index** for each pivot — and writes
+`daily.jobPivot` / `weekly.jobPivot`. The subgraph index is an input rather than a constant
+because these are third-party DLLs whose subgraph order cannot be verified from source; the
+default `2` (`Pivot`) was read off the DLL's own subgraph-name ordering (`0` Pivot High, `1`
+Pivot Low, `2` Pivot) and is correctable in the settings dialog if the exported number does not
+match the pivot drawn on the chart. **The study still needs a recompile and a re-export before
+the fields appear in a live bundle** — the app tolerates their absence by design.
+
+Tiering is the operator's call, and it deliberately inserts nothing new into the priority order:
+the **daily** pivot is Tier 2 at Daily MGI Priority **rank 1, shared with the Rip** (same
+functional class — an intraday bias filter, not a campaign border), so ONH/ONL stay at 2 and
+everything below is untouched; the **weekly** pivot is Tier 1 like every other weekly level, so
+it can hold a terrain partition and surface in `nearestTier1Above/Below`. Pivot LINE only — the
+studies also plot Pivot High / Pivot Low zone edges, and the operator declined the band, so the
+single-price shape every other MGI level has still holds.
+
+One engine change fell out of the rank decision. feat-109 gave the Rip a consolidation-survival
+exemption keyed on `code === 'rip'`, but its stated justification was always the RANK ("the Daily
+MGI Priority Order's rank-1 level, the immediate directional filter"). The Rip was simply the only
+rank-1 level at the time. `consolidationTier()` is now keyed on
+`group === 'daily' && dailyRank === 1`, so the Job Pivot earns the same partition protection for
+the same stated reason, and a test pins the other half of the rule (an UNRANKED daily level — OR
+Mid — still loses the identical contest).
+
+Doctrine: `MGI_STRUCTURE_RULE` (shared verbatim with the update task) now carries the order
+"1 Rip + Job Pivot" and how to read both pivots — price sitting ON a pivot is an undecided
+auction, not confirmation of either side. `knowledge/doctrine/glossary.md` gained a row in each
+glossary plus a pivots-are-bias-filters note. That growth pushed the cached analyze prefix to
+48_438, so the budget ceiling went 48k → 49k in the same diff, per the test's own instruction.
+
+`./init.sh` green: 1350 passed | 1 skipped, typecheck + lint + build clean. The `chart-data`
+fixture is a pre-feature export carrying neither pivot, which is why its 30-level counts are
+unchanged — that path (fields absent) is now covered by its own test.
+
+**Previous change (branch `feat-109-mgi-band-rip-nearest`): feat-109 — three fixes to the MGI
 importance hierarchy, from an operator review of it.** Not a bundle-review item; the operator
 asked to see where MGI importance is encoded and then to change it. It lives in exactly two
 places: `LEVEL_SPECS` / `PRIOR_DAY_VALUE_SPECS` in `lib/engine/mgiPriority.ts` (tier + Daily MGI
