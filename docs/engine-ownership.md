@@ -95,13 +95,23 @@ qualitatively and defers the numbers to the engine facts.
   statically — which multiples clear is a property of the regime, not of the multiple.
 - **Rip / Vanguard Protocol thresholds.** Green/Yellow/Red is resolved by
   `lib/engine/ripStatus.ts` from price-vs-Rip and Delta Intensity.
-- **The Rip holds its partition.** `borderRank`'s tier key is `consolidationTier`
-  (`lib/engine/terrainZones.ts`, feat-109): the Rip ranks WITH the campaign borders for spacing
-  consolidation only, so a Rip that promoted on real volume geometry no longer loses its border to
-  a Tier-1 level 16–60 pts away (too far to merge into one band, close enough to trip
-  consolidation). Deliberately not a tier promotion — the playbook classifies the Rip Tier 2, and
-  `mgi.tier1` feeds the Stratosphere/Abyss envelope, which the Rip would collapse by tracking
-  price. `border.tier` still reports the true tier.
+- **The rank-1 daily levels hold their partition.** `borderRank`'s tier key is `consolidationTier`
+  (`lib/engine/terrainZones.ts`, feat-109): a Daily MGI Priority **rank-1** level ranks WITH the
+  campaign borders for spacing consolidation only, so one that promoted on real volume geometry no
+  longer loses its border to a Tier-1 level 16–60 pts away (too far to merge into one band, close
+  enough to trip consolidation). Keyed on `dailyRank`, not a level code, so it covers the Rip and
+  the daily Job Pivot (feat-111) alike. Deliberately not a tier promotion — the playbook classifies
+  both Tier 2, and `mgi.tier1` feeds the Stratosphere/Abyss envelope, which a price-tracking level
+  would collapse. `border.tier` still reports the true tier.
+- **Job Pivots are pivots, not borders** (feat-111, `lib/engine/mgiPriority.ts`). The Sierra MGI
+  exporter now writes `daily.jobPivot` and `weekly.jobPivot` (OrderFlow Labs "Job Pivots" / "Job
+  Weekly Pivots" — the pivot line only, not the Pivot High/Low zone edges). The daily pivot is the
+  auction's line in the sand: **Tier 2, Daily MGI Priority rank 1 shared with the Rip** (same
+  functional class — which side price holds sets the session's bias), so it tiers and sorts beside
+  it and inserts no new rank. The Weekly Job Pivot is **Tier 1** like every other weekly level, so
+  it can hold a terrain partition and surface in `nearestTier1Above/Below`. Both fields are
+  optional: exports predating the study update, and charts without the study (the exporter writes
+  `0.00`), simply carry no pivot — and the `nearest*` reads already skip non-positive placeholders.
 - **Absorption candidates.** Stack detection thresholds are owned by `lib/engine/absorption.ts`.
 - **Delta telemetry reduction.** The compact window the model receives is produced by
   `lib/engine/deltaTelemetry.ts`.

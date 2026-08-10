@@ -439,7 +439,11 @@ describe('prompt-data sync gate (feat-054)', () => {
     // user message is paid every run, and that trade is exactly what let the
     // analyze user-prompt ceiling come DOWN 106k → 100k in the same diff.
     // Measured 47_248.
-    const PREFIX_BUDGET = { floor: 20_000, ceiling: 48_000 }
+    // Bumped 48k → 49k 2026-08-10 (feat-111): the two Job Pivot glossary rows
+    // and the pivots-are-bias-filters tiering note went into doctrine/glossary.md
+    // — definitions belong in the cached prefix; only the live read of the two
+    // levels is paid per run (MGI_STRUCTURE_RULE). Measured 48_438.
+    const PREFIX_BUDGET = { floor: 20_000, ceiling: 49_000 }
 
     it.each(['analyze', 'update', 'eval'] as const)(
       'the %s cached prefix stays inside budget',

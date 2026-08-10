@@ -28,6 +28,7 @@ computed in the engine facts; read the ranking from there, never re-derive it.
 | RTH Mid  | RTH Midpoint                   | Midpoint of RTH range                  |
 | 24 Mid   | 24-Hour Midpoint               | Midpoint of full day range             |
 | Rip      | Rolling Pivot                  | Dynamic intraday directional indicator |
+| Job Pivot | Daily Job Pivot               | Line in the sand for the volume-profile auction read — the level directional bias flips across depending on which side price can hold. Large rotations visibly start and stop here |
 
 ## Weekly MGI Glossary
 
@@ -41,6 +42,7 @@ computed in the engine facts; read the ranking from there, never re-derive it.
 | PW Open             | Prior Week Open                    | Previous week's opening price          |
 | CW Open             | Current Week Open                  | This week's opening price              |
 | CW VAH/VAL/Mid      | Current Week Value Area            | This week's developing value area      |
+| Weekly Job Pivot    | Weekly Job Pivot                   | Guide built from the PRIOR week's activity for navigating the current week — the Job Pivot's line-in-the-sand job at a weekly horizon |
 
 ## Monthly MGI Glossary
 
@@ -59,8 +61,13 @@ The Daily MGI Priority Order and the Structural Hierarchy (Tier 1 Campaign Borde
 Intraday Direction / Tier 3 Micro-Timing) arrive computed in the engine facts. The qualitative
 takeaways:
 
-- **Macro terrain overrides the micro skirmish** — Tier-1 HTF MGI (Weekly/Monthly levels, the
-  VRange expected-move levels, major composite edges, ONH/ONL) strictly dictate Primary/Secondary
-  planning, targets, and hard invalidations. Weekly Open is a very strong magnet.
+- **Macro terrain overrides the micro skirmish** — Tier-1 HTF MGI (Weekly/Monthly levels including
+  the Weekly Job Pivot, the VRange expected-move levels, major composite edges, ONH/ONL) strictly
+  dictate Primary/Secondary planning, targets, and hard invalidations. Weekly Open is a very
+  strong magnet.
+- **The pivots are bias filters, not borders** — the Rip and the daily **Job Pivot** are Tier 2:
+  which side of them price can hold sets the session's directional bias, and they share the top
+  rank of the Daily MGI Priority Order. The Weekly Job Pivot is the one pivot that tiers as a
+  campaign border.
 - **Leg VWAP is Tier 3** and may never be a primary structural target, an entry border, or a hard
   stop (see Constraints).

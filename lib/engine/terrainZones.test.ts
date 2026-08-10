@@ -25,7 +25,14 @@ function buildProfile(
   return rows
 }
 
-type AnchorSpec = { price: number; label: string; tier: MgiTier; code?: string; group?: MgiGroup }
+type AnchorSpec = {
+  price: number
+  label: string
+  tier: MgiTier
+  code?: string
+  group?: MgiGroup
+  dailyRank?: number
+}
 
 function makeMgi(currentPrice: number, specs: AnchorSpec[]): MgiPriority {
   const levels: MgiLevel[] = specs.map(s => ({
@@ -34,7 +41,7 @@ function makeMgi(currentPrice: number, specs: AnchorSpec[]): MgiPriority {
     price: s.price,
     group: s.group ?? 'weekly',
     tier: s.tier,
-    dailyRank: null,
+    dailyRank: s.dailyRank ?? null,
   }))
   const sorted = [...levels].sort((a, b) => b.price - a.price)
   return {
@@ -829,7 +836,7 @@ describe('assembleTerrain — class-aware spacing consolidation', () => {
       magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
       mgi: makeMgi(30250, [
         ...MAIN_ANCHORS,
-        { price: 30360, label: 'Rip', tier: 2, code: 'rip', group: 'daily' },
+        { price: 30360, label: 'Rip', tier: 2, code: 'rip', group: 'daily', dailyRank: 1 },
       ]),
     })
     const rip = r.borders.find(b => b.price === 30360)
@@ -838,6 +845,67 @@ describe('assembleTerrain — class-aware spacing consolidation', () => {
     // The exemption is survival-only: the border still REPORTS its true Tier 2.
     expect(rip!.tier).toBe(2)
     expect(r.demoted.map(d => d.price)).toContain(30325)
+  })
+
+  it('the daily Job Pivot holds its border on the same rank-1 footing (feat-111)', () => {
+    // The exemption is keyed on the Daily MGI Priority rank, not on the Rip's code: the daily
+    // Job Pivot shares rank 1 with it (both are lines in the sand whose held side sets bias),
+    // so identical geometry must produce an identical outcome.
+    const balance = buildProfile(
+      [
+        [30240, 30350, 1000],
+        [30370, 30460, 1000],
+      ],
+      30000,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        {
+          price: 30360,
+          label: 'Job Pivot',
+          tier: 2,
+          code: 'jobPivot',
+          group: 'daily',
+          dailyRank: 1,
+        },
+      ]),
+    })
+    const pivot = r.borders.find(b => b.price === 30360)
+    expect(pivot).toBeDefined()
+    expect(pivot!.significance).toBe('AAA')
+    expect(pivot!.tier).toBe(2)
+    expect(r.demoted.map(d => d.price)).toContain(30325)
+  })
+
+  it('an unranked daily level does NOT get the rank-1 survival exemption (feat-111)', () => {
+    // Guards the other half of the rule: the exemption is rank 1, not "any daily level". OR Mid
+    // carries no Daily MGI Priority rank, so it loses the same contest the Rip wins.
+    const balance = buildProfile(
+      [
+        [30240, 30350, 1000],
+        [30370, 30460, 1000],
+      ],
+      30000,
+      30500,
+    )
+    const r = assembleTerrain({
+      profile: MAIN_PROFILE,
+      lvn: MAIN_LVN,
+      balanceAreaProfile: balance,
+      magnets: collectMagnets({ summary: MAIN_SUMMARY, hvn: MAIN_LVN.hvn }),
+      mgi: makeMgi(30250, [
+        ...MAIN_ANCHORS,
+        { price: 30360, label: 'OR Mid', tier: 2, code: 'orMid', group: 'daily' },
+      ]),
+    })
+    expect(r.demoted.map(d => d.price)).toContain(30360)
+    expect(r.borders.map(b => b.price)).toContain(30325)
   })
 
   it('keeps AAA borders even when they sit closer than the span floor', () => {

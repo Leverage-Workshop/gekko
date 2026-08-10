@@ -305,3 +305,82 @@ describe('computeMgiPriority — prior-day value (RVAH/RVAL/RPOC)', () => {
     expect(r.levels.map(l => l.code)).not.toContain('rval')
   })
 })
+
+describe('computeMgiPriority — Job Pivots (feat-111)', () => {
+  const base: MgiStaticLevels = {
+    current: { price: 500 },
+    daily: { rip: 505, pdh: 520, pdl: 480, jobPivot: 497 },
+    weekly: { pwHigh: 560, pwLow: 440, jobPivot: 455 },
+  }
+
+  it('tiers the daily Job Pivot with the Rip: Tier 2, Daily MGI Priority rank 1', () => {
+    const r = computeMgiPriority(base)
+    expect(r.levels.find(l => l.group === 'daily' && l.code === 'jobPivot')).toEqual({
+      code: 'jobPivot',
+      label: 'Job Pivot',
+      price: 497,
+      group: 'daily',
+      tier: 2,
+      dailyRank: 1,
+    })
+  })
+
+  it('tiers the Weekly Job Pivot as a Tier-1 campaign border like every weekly level', () => {
+    const r = computeMgiPriority(base)
+    expect(r.levels.find(l => l.group === 'weekly' && l.code === 'jobPivot')).toEqual({
+      code: 'jobPivot',
+      label: 'Weekly Job Pivot',
+      price: 455,
+      group: 'weekly',
+      tier: 1,
+      dailyRank: null,
+    })
+    expect(r.tier1.map(l => l.label)).toContain('Weekly Job Pivot')
+  })
+
+  it('shares rank 1 with the Rip — a price tie-break, not a demotion of either', () => {
+    const r = computeMgiPriority(base)
+    // Both rank-1 levels lead the sort, ordered by price alone (the Rip is higher here).
+    expect(r.dailyPrioritySort.slice(0, 2).map(l => l.label)).toEqual(['Rip', 'Job Pivot'])
+    expect(r.dailyPrioritySort.slice(0, 2).every(l => l.dailyRank === 1)).toBe(true)
+    // Nothing below moved: PDH/PDL keep rank 3 behind them.
+    expect(r.dailyPrioritySort.slice(2).map(l => l.label)).toEqual(['PDH', 'PDL'])
+  })
+
+  it('leaves the daily pivot out of the campaign-border set (Tier 2 is not a border)', () => {
+    const r = computeMgiPriority(base)
+    expect(r.tier1.map(l => l.label)).not.toContain('Job Pivot')
+    // ...but it is live intraday structure, so the nearest-daily read can reach it.
+    expect(r.nearestDailyBelow?.level.label).toBe('Job Pivot')
+    expect(r.nearestDailyBelow?.distance).toBe(3)
+  })
+
+  it('carries the two pivots independently — the shared `jobPivot` code never collides', () => {
+    const dailyOnly = computeMgiPriority({ ...base, weekly: { pwHigh: 560, pwLow: 440 } })
+    expect(dailyOnly.levels.filter(l => l.code === 'jobPivot')).toHaveLength(1)
+    expect(dailyOnly.levels.find(l => l.code === 'jobPivot')?.group).toBe('daily')
+
+    const both = computeMgiPriority(base)
+    expect(both.levels.filter(l => l.code === 'jobPivot')).toHaveLength(2)
+  })
+
+  it('is absent from an export that predates the study update (both optional)', () => {
+    const r = computeMgiPriority({
+      current: { price: 500 },
+      daily: { rip: 505 },
+      weekly: { pwHigh: 560 },
+    })
+    expect(r.levels.some(l => l.code === 'jobPivot')).toBe(false)
+  })
+
+  it('skips the UNSET 0.00 placeholder the exporter writes when the study is off the chart', () => {
+    const r = computeMgiPriority({
+      current: { price: 500 },
+      daily: { rip: 505, jobPivot: 0 },
+      weekly: { pwLow: 440, jobPivot: 0 },
+    })
+    // The level still parses (0 is finite), but it can never be the nearest anything.
+    expect(r.nearestDailyBelow?.level.label).not.toBe('Job Pivot')
+    expect(r.nearestTier1Below?.level.label).not.toBe('Weekly Job Pivot')
+  })
+})

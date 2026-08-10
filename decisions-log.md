@@ -836,3 +836,42 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   at once — the targeted guard in `nearest()` is the minimal correct fix and terrain already
   guards itself); also feeding the new pair into `sigmaStructureRefs` (left narrow by design —
   its docstring says so, and 4 refs → 6 buries the "is the next thing inside the noise?" answer).
+
+- **Decision (feat-111):** the daily Job Pivot tiers at **Tier 2, Daily MGI Priority rank 1 shared
+  with the Rip**; the Weekly Job Pivot at **Tier 1**; and only the pivot LINE is exported, not the
+  study's Pivot High / Pivot Low zone edges. All three are operator calls, made against options.
+  **Why:** the daily pivot's stated job — the level directional bias flips across depending on
+  which side price can hold — is the Rip's job, so it belongs in the Rip's class rather than in a
+  new rank of its own. Sharing rank 1 also means nothing below moves: ONH/ONL stay at 2 and the
+  rest of the order is untouched, so the change cannot silently re-sort levels it was not about.
+  The weekly pivot is built from the PRIOR week's activity, which is exactly what makes every
+  other weekly level Tier 1, so it tiers with them and can hold a partition. The zone edges were
+  declined to keep the single-price shape every other MGI level has.
+  **Alternatives considered:** its own rank below the Rip (pushes ONH/ONL and everything under it
+  down one, for a level whose function duplicates the Rip's); Tier 1 for the daily pivot (it would
+  enter `mgi.tier1`, which feeds the Stratosphere/Abyss envelope — same collapse the feat-109 Rip
+  decision above refused, and for the same reason: a pivot tracks price intraday).
+
+- **Decision (feat-111):** `consolidationTier()` is re-keyed from `code === 'rip'` to
+  `group === 'daily' && dailyRank === 1`.
+  **Why:** feat-109's exemption was always argued from the RANK ("the Daily MGI Priority Order's
+  rank-1 level, the immediate directional filter") and written as a code check only because the
+  Rip was the only rank-1 level in existence. Now that a second level shares that rank on the same
+  reasoning, the code check would have quietly denied it the protection the rule already grants.
+  Writing the predicate the rule actually claims is the smaller change and removes the trap.
+  **Alternatives considered:** `code === 'rip' || code === 'jobPivot'` (the same latent bug, one
+  level later, and the `jobPivot` code is shared with the weekly level so the disjunct would have
+  been wrong-by-construction); leaving the Job Pivot unprotected (it would lose its border to any
+  Tier-1 neighbour 16–60 pts away — the exact failure feat-109 was raised to fix).
+
+- **Decision (feat-111):** the Job Pivot subgraph index is a Sierra study INPUT with a default,
+  not a constant like every other subgraph index in `MgiDataExporter.cpp`.
+  **Why:** the other exported studies' indices were established by working exports. These two are
+  third-party DLLs (`OrderFlowLabs.com_64.dll`) with no source available, and the chartbook does
+  not persist subgraph names, so the default `2` (`Pivot`) is inferred from the DLL's own
+  subgraph-name ordering — good evidence, not verification. An input makes a wrong inference a
+  settings-dialog fix instead of a recompile, and the debug log line prints the resolved study ID
+  and index so a mismatch is diagnosable from the Sierra message log.
+  **Alternatives considered:** hardcoding `2` (a wrong guess exports a plausible-looking number
+  from the wrong subgraph — the worst failure mode for this pipeline); looking the subgraph up by
+  name at runtime (more machinery, and the name is not guaranteed stable across study versions).

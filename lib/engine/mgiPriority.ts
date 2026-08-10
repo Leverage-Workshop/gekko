@@ -7,7 +7,8 @@
  *
  * Tiering is the `tactical-companion-playbook.md` `<mgi_reference>` "Structural Hierarchy
  * Rule" (the source of truth; the glossary doc only names levels):
- *   - Tier 1 (Campaign Borders): HTF MGI — Weekly/Monthly levels, VRange extremes, ONH/ONL.
+ *   - Tier 1 (Campaign Borders): HTF MGI — Weekly/Monthly levels (including the Weekly Job
+ *     Pivot, feat-111), VRange extremes, ONH/ONL.
  *     These are the true Acceptance Borders that dictate Primary/Secondary objectives,
  *     targets, and hard invalidations. Doctrine's Tier-1 list does NOT include ATR: the
  *     ATR projected high/low are volatility context, classified Tier 2 (gem-alignment
@@ -31,9 +32,9 @@
  *     pass demoted the far edge to Tier 2 to break that competition — reverted, because it cost
  *     a real partition wherever the acceptance sat at the far edge, which is where the fixture's
  *     actually was.
- *   - Tier 2 (Intraday Direction): the Rip and Session VWAPs plus the other intraday daily
- *     reference levels (PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low) and the ATR projections.
- *     These set daily bias.
+ *   - Tier 2 (Intraday Direction): the Rip, the daily Job Pivot (feat-111) and Session VWAPs
+ *     plus the other intraday daily reference levels (PDH/PDL/PDC, IBH/IBL, OR High/Mid/Low)
+ *     and the ATR projections. These set daily bias.
  *   - Tier 3 (Micro-Timing): Leg VWAP — lives in the exec CSV (see deltaTelemetry), not in
  *     this static JSON, so it never appears here.
  *
@@ -97,12 +98,24 @@ export type MgiStaticLevels = {
   current?: { time?: string; price?: number }
   daily?: Partial<
     Record<
-      'orHigh' | 'orLow' | 'orMid' | 'pdh' | 'pdl' | 'pdc' | 'onh' | 'onl' | 'ibh' | 'ibl' | 'rip' | 'vwap24',
+      | 'orHigh'
+      | 'orLow'
+      | 'orMid'
+      | 'pdh'
+      | 'pdl'
+      | 'pdc'
+      | 'onh'
+      | 'onl'
+      | 'ibh'
+      | 'ibl'
+      | 'rip'
+      | 'vwap24'
+      | 'jobPivot',
       number
     >
   >
   atr?: Partial<Record<'high' | 'low', number>>
-  weekly?: Partial<Record<'vwap' | 'pwHigh' | 'pwLow' | 'wkOpen', number>>
+  weekly?: Partial<Record<'vwap' | 'pwHigh' | 'pwLow' | 'wkOpen' | 'jobPivot', number>>
   monthly?: Partial<Record<'vwap' | 'pmHigh' | 'pmLow' | 'mthOpen' | 'pmVAH' | 'pmVAL', number>>
   vRange?: Partial<Record<'high' | 'low' | 'extPlus2' | 'extPlus3' | 'extMinus2' | 'extMinus3', number>>
 }
@@ -113,7 +126,7 @@ type LevelSpec = { label: string; tier: MgiTier; dailyRank?: number }
  * Declarative classification keyed by group → JSON code. The single place tiering and the
  * Daily MGI Priority Order ranks are encoded, so the mapping stays auditable.
  * Daily ranks follow the playbook's "Daily MGI Priority Order":
- *   1 Rip · 2 ONH/ONL · 3 PDH/PDL · 4 RVAH/RVAL · 5 RPOC · 6 IBH/IBL · 7 VWAP.
+ *   1 Rip + Job Pivot · 2 ONH/ONL · 3 PDH/PDL · 4 RVAH/RVAL · 5 RPOC · 6 IBH/IBL · 7 VWAP.
  * Ranks 4/5 are NOT in `mgi_static_levels.json` — they arrive from the daily value-area
  * export via `opts.priorDayValue` and are specified in {@link PRIOR_DAY_VALUE_SPECS}.
  * Daily levels without a rank (PDC, OR High/Mid/Low) sort after ranked.
@@ -121,6 +134,11 @@ type LevelSpec = { label: string; tier: MgiTier; dailyRank?: number }
 const LEVEL_SPECS: Record<MgiGroup, Record<string, LevelSpec>> = {
   daily: {
     rip: { label: 'Rip', tier: 2, dailyRank: 1 },
+    // Job Pivot (feat-111): the auction's line in the sand — the level directional bias flips
+    // across depending on which side price can hold, and where large rotations visibly start
+    // and stop. Same functional class as the Rip (an intraday bias filter, not a campaign
+    // border), so it shares Tier 2 and rank 1 with it rather than displacing anything below.
+    jobPivot: { label: 'Job Pivot', tier: 2, dailyRank: 1 },
     onh: { label: 'ONH', tier: 1, dailyRank: 2 },
     onl: { label: 'ONL', tier: 1, dailyRank: 2 },
     pdh: { label: 'PDH', tier: 2, dailyRank: 3 },
@@ -138,6 +156,10 @@ const LEVEL_SPECS: Record<MgiGroup, Record<string, LevelSpec>> = {
     pwHigh: { label: 'PW High', tier: 1 },
     pwLow: { label: 'PW Low', tier: 1 },
     wkOpen: { label: 'Week Open', tier: 1 },
+    // Weekly Job Pivot (feat-111): the prior week's activity distilled into a guide for the
+    // current week — the daily pivot's job at a weekly horizon. Tier 1 like every other weekly
+    // level, so it can hold a terrain partition and appear in nearestTier1Above/Below.
+    jobPivot: { label: 'Weekly Job Pivot', tier: 1 },
   },
   monthly: {
     vwap: { label: 'Monthly VWAP', tier: 1 },

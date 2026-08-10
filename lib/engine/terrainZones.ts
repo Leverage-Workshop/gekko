@@ -672,19 +672,24 @@ function mergePartitions(partitions: BorderVerdict[], tolerance: number): Compos
 }
 
 /**
- * Consolidation-only tier. The Rip ranks WITH the campaign borders here (operator 2026-08-10):
- * it is the Daily MGI Priority Order's rank-1 level, the immediate directional filter, and a
- * Rip that promoted on real volume geometry should not lose its partition to a Tier-1 neighbor
- * 16-60 pts away — too far to merge into one band, close enough to trip consolidation.
+ * Consolidation-only tier. The rank-1 DAILY levels rank WITH the campaign borders here (operator
+ * 2026-08-10): they are the Daily MGI Priority Order's immediate directional filters, and one that
+ * promoted on real volume geometry should not lose its partition to a Tier-1 neighbor 16-60 pts
+ * away — too far to merge into one band, close enough to trip consolidation.
  *
- * Deliberately NOT a tier promotion in `mgiPriority.ts`: the playbook classifies the Rip Tier 2
+ * Keyed on `dailyRank`, not a level code, so it stays the rule it claims to be: the Rip earned the
+ * exemption as rank 1, and the daily Job Pivot (feat-111) shares that rank for the same reason —
+ * both are lines in the sand whose side price holds sets the session's bias.
+ *
+ * Deliberately NOT a tier promotion in `mgiPriority.ts`: the playbook classifies both Tier 2
  * (Intraday Direction), and `mgi.tier1` feeds the Stratosphere/Abyss envelope and
- * `nearestTier1Above/Below`. The Rip tracks price intraday, so promoting it there would let it
+ * `nearestTier1Above/Below`. Both track price intraday, so promoting them there would let one
  * become the campaign ceiling or floor and collapse the map. This is a survival rule, not a
  * reclassification — `border.tier` itself is untouched and still reports what it always did.
  */
 function consolidationTier(border: CompositeBorder): number {
-  return border.members.some(m => m.level.code === 'rip') ? 1 : border.tier
+  const rankOne = border.members.some(m => m.level.group === 'daily' && m.level.dailyRank === 1)
+  return rankOne ? 1 : border.tier
 }
 
 /**
