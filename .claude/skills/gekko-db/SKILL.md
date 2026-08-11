@@ -6,8 +6,9 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-09 (28 applied migrations live;
-`20260809140000_volatility_scaled_gates.sql` is COMMITTED BUT NOT APPLIED — see below).
+the project's REST APIs. Schema snapshot updated 2026-08-11 (30 applied migrations live;
+nothing pending — `20260809140000_volatility_scaled_gates.sql` and feat-112's
+`20260811170000_significant_move_sigma_030.sql` were both applied 2026-08-11).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -103,7 +104,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | high_conviction_model_id | text | `'anthropic/claude-opus-4-8'` |
 | model_effort / triage_model_effort / high_conviction_model_effort | text, nullable | CHECK in ('none','minimal','low','medium','high','xhigh','max'); NULL = provider default (feat-055; 'max' added 2026-08-04) |
 | rr_min | numeric | 3.0 — display-only since feat-086 (no longer gates objectives) |
-| significant_move_sigma | numeric | 0.4 — feat-086 entry-first contract, feat-096 units: min reversal traverse a level must offer to anchor an objective entry, as a MULTIPLE of the measured Parkinson session sigma (`lib/engine/volatilityScale.ts`) rather than raw points; CHECK 0.05–2.0; resolved to points per run (~113 pts at the review's 283-pt sigma) and injected into analyze/update prompts in BOTH units, /settings-editable. **Replaced `significant_move_pts` (int, default 50, CHECK 10–500), which feat-096's migration converts and DROPS** — 50 pts was 0.18σ and filtered nothing (review D3) |
+| significant_move_sigma | numeric | **0.3** (feat-112, was 0.4) — feat-086 entry-first contract, feat-096 units: min reversal traverse a level must offer to anchor an objective entry, as a MULTIPLE of the measured recency-weighted Parkinson session sigma (`lib/engine/volatilityScale.ts`) rather than raw points; CHECK 0.05–2.0; resolved to points per run (~77 pts at bundle b6f71b2e's 257-pt sigma, ~85 at the review's 283-pt reference) and injected into analyze/update prompts in BOTH units, /settings-editable. **Replaced `significant_move_pts` (int, default 50, CHECK 10–500), dropped by the feat-096 migration on 2026-08-11** — 50 pts was 0.18σ and filtered nothing (review D3), while 0.4σ over-filtered once the regime widened (feat-112) |
 | proximity_window_seconds | int | 60 — recency window of exec bars feeding the eval near-entry gate |
 | execution_bar_volume | int | 750 — per-bar volume of the Sierra execution-chart bars (feat-079); CHECK 50–50000; injected into analyze/update prompts, /settings-editable |
 | updated_at | timestamptz | now() |
@@ -190,27 +191,28 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 
 ## Migrations & DDL
 
-- **PENDING (feat-096, 2026-08-09): `20260809140000_volatility_scaled_gates.sql` is in the
-  repo but was NOT applied to the live database** — DDL cannot go through PostgREST, and
-  no DB password or Supabase personal access token is available to the session (the
-  injected `SUPABASE_SERVICE_ROLE_KEY` authorizes PostgREST data access only, never DDL).
-  Verified still pending 2026-08-09: the live `config` row returns `significant_move_pts =
-  50` and no `significant_move_sigma` column. Until an operator applies it, `config` still carries `significant_move_pts` and the app degrades by design:
-  `fetchConfigRow` retries without the column, pads `significant_move_sigma` with the 0.4
-  default, sets `significantMoveColumnMissing`, and `/settings` shows "apply the
-  volatility_scaled_gates migration before saving". The migration adds
-  `significant_move_sigma`, converts each stored point value (an untouched 50 → the new 0.4
-  default; anything else → `points / 283` clamped to 0.05–2.0), then drops
-  `significant_move_pts`. It is idempotent — safe to re-run.
+- **Nothing is pending as of 2026-08-11.** `20260809140000_volatility_scaled_gates.sql`
+  had been committed-but-unapplied since 2026-08-09; it and feat-112's
+  `20260811170000_significant_move_sigma_030.sql` were both applied on 2026-08-11 via the
+  **claude.ai Supabase MCP `apply_migration` tool**, which IS reachable in Claude Code
+  sessions even though this skill exists because the MCP is normally left disabled. Reach
+  for it first when DDL is needed — it is far cheaper than the fallbacks below. Live
+  `config` now returns `significant_move_sigma = 0.3` and no `significant_move_pts`.
+  - Cost of letting that drift sit: for two days the operator's `/settings` value was
+    dead. `fetchConfigRow` degraded exactly as designed — retry without the column, pad
+    `significant_move_sigma` with the code default, set `significantMoveColumnMissing` —
+    but only `/settings` surfaces that flag, so the analyze path silently enforced a
+    ~146-pt floor while the stored row still said 50 pts. **A padded config default is
+    invisible to the pipeline that consumes it; apply the migration the same day.**
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (28 rows as of 2026-08-04; repo
+  `supabase_migrations.schema_migrations` (30 rows as of 2026-08-11; repo
   `20260802200000_revalidation_action.sql` applied via the claude.ai Supabase
   MCP, so its live timestamp differs from the filename).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has
   no corresponding repo file — it added the anon RLS policy above. And live version
   timestamps can differ from repo filenames when applied via the claude.ai Supabase
   MCP (repo `20260731030000_absorption_stack.sql` is live `20260731033446`). Don't be
-  surprised by count/name mismatches (27 repo files vs 28 live; repo `20260801090000_execution_bar_volume.sql`, `20260803190000_significant_move_pts.sql`, and `20260804000000_model_effort_max.sql` were applied live via the Supabase MCP, so their live timestamps differ).
+  surprised by count/name mismatches (29 repo files vs 30 live; repo `20260801090000_execution_bar_volume.sql`, `20260803190000_significant_move_pts.sql`, and `20260804000000_model_effort_max.sql` were applied live via the Supabase MCP, so their live timestamps differ. feat-112's two are the exception — `volatility_scaled_gates` and `significant_move_sigma_030` were applied under their own repo filenames' dates).
 - Check applied migrations:
   `curl -s -X POST "$URL/rest/v1/rpc/..."` won't work for this — `schema_migrations`
   isn't exposed via PostgREST. Instead compare repo filenames against the snapshot
@@ -221,7 +223,13 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
   connection string* — but no `SUPABASE_ACCESS_TOKEN` (`sbp_...`), `SUPABASE_DB_PASSWORD`
   or `postgresql://` URL is injected into the environment, so psql alone is not enough.
   Options, in order of preference:
-  1. Ask the user to re-enable the Supabase MCP server for the one migration.
+  1. **The claude.ai Supabase MCP `apply_migration` tool** — verified working from Claude
+     Code on 2026-08-11 (both feat-112 migrations went in this way). Load its schema with
+     `ToolSearch("select:mcp__claude_ai_Supabase__apply_migration")`, then call it with
+     `project_id: "qvhkqilizwozikpomxob"`, a snake_case `name` and the SQL. `list_migrations`
+     confirms before/after. **Try this first** — earlier sessions assumed the server was
+     disabled and escalated to the user unnecessarily, which is how a migration sat
+     unapplied for two days.
   2. `npx supabase db push --db-url "postgresql://..."` — requires the user to supply
      the DB password (Supabase dashboard → Database settings).
   3. Management API `POST https://api.supabase.com/v1/projects/qvhkqilizwozikpomxob/database/query`
