@@ -5,9 +5,11 @@ import {
   MIN_SIGMA_ESTIMATION_SESSIONS,
   PARKINSON_VARIANCE_SCALING,
   RTH_BARS_PER_SESSION,
+  SESSION_SIGMA_DECAY,
   SIGMA_ESTIMATION_SESSIONS,
   classifySigmaDistance,
   computeVolatilityScale,
+  ewMeanSigma,
   garmanKlassVariance,
   parkinsonVariance,
   pointsForSigma,
@@ -184,6 +186,107 @@ describe('computeVolatilityScale', () => {
     const scale = computeVolatilityScale({ bars, currentPrice: 29000 })!
     expect(scale.medianSessionRangePts).toBe(464)
     expect(scale.sessionSigmaPts).toBe(276.45)
+  })
+
+  /**
+   * feat-112. Every fixture above holds its sessions IDENTICAL, so a weighted
+   * mean and a flat RMS agree on them by construction — which is exactly why
+   * the hand-computed numbers above survived the change untouched. These cover
+   * the behaviour that only appears once sessions differ.
+   */
+  describe('recency weighting (feat-112)', () => {
+    /** One session whose range is `rangePts`, centred on 19900. */
+    const sessionOfRange = (date: string, rangePts: number): HtfBar[] =>
+      rthSession(date, RTH_BARS_PER_SESSION, NARROW, {
+        open: 19900,
+        high: 19900 + rangePts / 2,
+        low: 19900 - rangePts / 2,
+        close: 19900,
+      })
+
+    it('weights the newest session most and decays by SESSION_SIGMA_DECAY', () => {
+      // Three sessions, oldest widest: 600 / 400 / 200 pts. Hand-computed —
+      // σᵢ = ln(H/L)/(2·√ln2) · 20000, weights 0.75² / 0.75¹ / 0.75⁰:
+      //   600-pt: ln(20200/19600) = 0.03015330 → σ = 362.179 pts
+      //   400-pt: ln(20100/19700) = 0.02010130 → σ = 241.417 pts
+      //   200-pt: ln(20000/19800) = 0.01005034 → σ = 120.717 pts
+      //   (0.5625·362.179 + 0.75·241.417 + 1·120.717) / 2.3125 = 218.60
+      const bars = [
+        ...sessionOfRange('2026-08-05', 600),
+        ...sessionOfRange('2026-08-06', 400),
+        ...sessionOfRange('2026-08-07', 200),
+      ]
+      const scale = computeVolatilityScale({ bars, currentPrice: 20000 })!
+      expect(scale.sessionSigmaPts).toBe(218.6)
+      // The retired flat RMS read √((362.179² + 241.417² + 120.717²)/3) =
+      // 260.79 — 42 pts higher on a market contracting two sessions running.
+      expect(scale.sessionSigmaPts).toBeLessThan(260.79)
+    })
+
+    it('is order-sensitive — the same sessions reversed read higher', () => {
+      const contracting = computeVolatilityScale({
+        bars: [
+          ...sessionOfRange('2026-08-05', 600),
+          ...sessionOfRange('2026-08-06', 400),
+          ...sessionOfRange('2026-08-07', 200),
+        ],
+        currentPrice: 20000,
+      })!
+      const expanding = computeVolatilityScale({
+        bars: [
+          ...sessionOfRange('2026-08-05', 200),
+          ...sessionOfRange('2026-08-06', 400),
+          ...sessionOfRange('2026-08-07', 600),
+        ],
+        currentPrice: 20000,
+      })!
+      // Identical multisets of sessions; only the ORDER differs. A flat RMS
+      // cannot tell these two markets apart — that was the defect.
+      expect(expanding.sessionSigmaPts).toBeGreaterThan(contracting.sessionSigmaPts)
+      expect(expanding.medianSessionRangePts).toBe(contracting.medianSessionRangePts)
+    })
+
+    it('does not let one outsized session own the window', () => {
+      // Nine quiet 200-pt sessions and one 900-pt shock, the shock OLDEST.
+      // Under the flat RMS the shock's variance alone set the scale; under a
+      // weighted mean of sigma it decays out.
+      const quiet = Array.from({ length: 9 }, (_, i) =>
+        sessionOfRange(`2026-07-${String(i + 2).padStart(2, '0')}`, 200),
+      ).flat()
+      const withShock = [...sessionOfRange('2026-07-01', 900), ...quiet]
+      const scale = computeVolatilityScale({ bars: withShock, currentPrice: 20000 })!
+      const clean = computeVolatilityScale({
+        bars: [...sessionOfRange('2026-07-01', 200), ...quiet],
+        currentPrice: 20000,
+      })!
+      expect(scale.sessionsAnalyzed).toBe(10)
+      // Hand-computed: the 900-pt session's σ is 543.32 pts against the quiet
+      // 120.72, and at nine sessions old it carries 0.75⁹ = 7.5% weight, so it
+      // lifts the scale 129.13 − 120.72 = 8.4 pts. The retired flat RMS put the
+      // same shock at √((543.32² + 9·120.72²)/10) = 206.5, a 85.8-pt lift —
+      // ten times the distortion from one stale day.
+      expect(scale.sessionSigmaPts - clean.sessionSigmaPts).toBeLessThan(10)
+      expect(scale.sessionSigmaPts).toBeLessThan(206.5 - 50)
+    })
+
+    it('ewMeanSigma normalizes its own weights and handles the edges', () => {
+      expect(ewMeanSigma([])).toBe(0)
+      expect(ewMeanSigma([42])).toBe(42)
+      // Constant input is invariant to the weighting, at any decay.
+      expect(ewMeanSigma([7, 7, 7, 7], 0.5)).toBeCloseTo(7, 10)
+      // decay = 1 degenerates to the plain arithmetic mean.
+      expect(ewMeanSigma([1, 2, 3], 1)).toBeCloseTo(2, 10)
+      // Oldest-first ordering: the LAST element carries weight 1.
+      expect(ewMeanSigma([0, 1], 0.5)).toBeCloseTo(1 / 1.5, 10)
+      expect(SESSION_SIGMA_DECAY).toBe(0.75)
+    })
+
+    it('keeps 94% of the weight inside the estimation window', () => {
+      // Why SIGMA_ESTIMATION_SESSIONS was NOT widened for the new estimator:
+      // the truncated tail is worth 5.6% of the total weight.
+      const captured = 1 - SESSION_SIGMA_DECAY ** SIGMA_ESTIMATION_SESSIONS
+      expect(captured).toBeGreaterThan(0.94)
+    })
   })
 
   it('degrades to null below MIN_SIGMA_ESTIMATION_SESSIONS complete sessions', () => {

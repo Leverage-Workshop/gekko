@@ -75,7 +75,7 @@ const analysisPrompt = buildAnalysisPrompt({
     { label: 'TPO / Market Profile chart' },
     { label: 'Execution chart (short timeframe)' },
   ],
-  significantMoveSigma: 0.4,
+  significantMoveSigma: 0.3,
   executionBarVolume: 750,
 })
 
@@ -397,18 +397,19 @@ describe('prompt-data sync gate (feat-054)', () => {
       // feat-096: the floor is a sigma MULTIPLE, injected with the point value
       // it resolves to on this run's measured scale. The resolved points lead —
       // the model quotes points, so it must reason in them — and the multiple
-      // qualifies them. 0.4σ × the fixture bundle's 295.12-pt session sigma.
+      // qualifies them. 0.3σ (feat-112, was 0.4σ) × the fixture bundle's
+      // 300.92-pt recency-weighted session sigma (was 295.12 under the flat RMS).
       expect(analysisPrompt).toContain(
-        'SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): 118.05 pts (0.4σ of the measured 295.12-pt session sigma)',
+        'SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): 90.28 pts (0.3σ of the measured 300.92-pt session sigma)',
       )
       // Never the bare multiple with no points attached.
-      expect(analysisPrompt).not.toMatch(/floor[^.]{0,40}: 0\.4σ/)
+      expect(analysisPrompt).not.toMatch(/floor[^.]{0,40}: 0\.3σ/)
     })
 
     it('the entry standoff and chase gates are injected in BOTH units (feat-096)', () => {
-      // 0.005σ / 0.02σ of the fixture's 295.12-pt sigma = 1.48 / 5.9 pts.
-      expect(analysisPrompt).toContain('must sit at least 1.48 pts (0.005σ) away from it')
-      expect(analysisPrompt).toContain('more than 5.9 pts (0.02σ) beyond current price')
+      // 0.005σ / 0.02σ of the fixture's 300.92-pt sigma = 1.5 / 6.02 pts.
+      expect(analysisPrompt).toContain('must sit at least 1.5 pts (0.005σ) away from it')
+      expect(analysisPrompt).toContain('more than 6.02 pts (0.02σ) beyond current price')
       // The cached prefix must not restate either number.
       for (const prefix of briefingPrefixes) {
         expect(prefix).not.toMatch(/\b1[- ]pt standoff/i)

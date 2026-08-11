@@ -28,7 +28,7 @@ const FULL_ROW = {
   triage_model_effort: null,
   high_conviction_model_effort: 'xhigh' as const,
   execution_bar_volume: 750,
-  significant_move_sigma: 0.4,
+  significant_move_sigma: 0.3,
   updated_at: '2026-07-08T12:00:00Z',
 }
 
@@ -138,7 +138,7 @@ describe('fetchConfigRow', () => {
     expect(selects[0]).toContain('significant_move_sigma')
   })
 
-  it('falls back to the pre-significant-move column set on 42703 with the 0.4-sigma default padded (feat-096)', async () => {
+  it('falls back to the pre-significant-move column set on 42703 with the 0.3-sigma default padded (feat-096, feat-112)', async () => {
     const { client, selects } = selectClient((columns) =>
       columns.includes('significant_move_sigma')
         ? {
@@ -153,7 +153,7 @@ describe('fetchConfigRow', () => {
     expect(selects[1]).not.toContain('significant_move_sigma')
     expect(result.significantMoveColumnMissing).toBe(true)
     expect(result.barVolumeColumnMissing).toBe(false)
-    expect(result.row).toEqual({ ...PRE_SIGNIFICANT_MOVE_ROW, significant_move_sigma: 0.4 })
+    expect(result.row).toEqual({ ...PRE_SIGNIFICANT_MOVE_ROW, significant_move_sigma: 0.3 })
   })
 
   it('falls back to the pre-bar-volume column set on 42703 with the 750 default padded (feat-079)', async () => {
@@ -175,7 +175,7 @@ describe('fetchConfigRow', () => {
     expect(result.row).toEqual({
       ...PRE_BAR_VOLUME_ROW,
       execution_bar_volume: 750,
-      significant_move_sigma: 0.4,
+      significant_move_sigma: 0.3,
     })
   })
 
@@ -199,7 +199,7 @@ describe('fetchConfigRow', () => {
       triage_model_effort: null,
       high_conviction_model_effort: null,
       execution_bar_volume: 750,
-      significant_move_sigma: 0.4,
+      significant_move_sigma: 0.3,
     })
   })
 
@@ -225,7 +225,7 @@ describe('fetchConfigRow', () => {
       triage_model_effort: null,
       high_conviction_model_effort: null,
       execution_bar_volume: 750,
-      significant_move_sigma: 0.4,
+      significant_move_sigma: 0.3,
     })
   })
 
@@ -276,7 +276,7 @@ describe('updateConfigRow', () => {
     triage_model_effort: null,
     high_conviction_model_effort: null,
     execution_bar_volume: 750,
-    significant_move_sigma: 0.4,
+    significant_move_sigma: 0.3,
   }
 
   it('updates row id=1 with a fresh updated_at and returns the row', async () => {

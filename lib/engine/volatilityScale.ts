@@ -38,13 +38,50 @@ export type { Ohlc }
  * intraday ranges rotate rather than compound, and scaling a 30-min sigma up
  * to a session overstates it by ~25% on this data):
  *
- * - **bar sigma** — the per-30-min-bar statistic, averaged over the window.
+ * - **bar sigma** — the per-30-min-bar statistic, RMS-averaged over the window.
  * - **session sigma** — the same statistic applied to each RTH session's own
- *   OHLC (open of the first bar, session high/low, close of the last),
- *   averaged over the sessions. This is the headline
+ *   OHLC (open of the first bar, session high/low, close of the last), then
+ *   combined across sessions by {@link ewMeanSigma}. This is the headline
  *   {@link VolatilityScaleFacts.sessionSigmaPts}: how far this market normally
  *   travels in a day. The review measured a 283-pt median over the 61 RTH
  *   sessions reconstructed from bundle 1c15934a's own HTF export.
+ *
+ * **Why the session statistic is not an RMS (feat-112).** It was, through
+ * feat-095: `√(mean σ²)` over a flat window, the textbook variance estimator.
+ * That estimator assumes a stationary process and it is neither robust nor
+ * recency-aware, so it failed on both counts at once. Backtested over the 60
+ * RTH sessions in bundle b6f71b2e's own export — each estimator predicting the
+ * NEXT session's realized sigma, 40 test points:
+ *
+ * ```
+ *                        RMSE    bias   P(actual < predicted)
+ * flat RMS, 10 sessions  153.4   +58.6        65%
+ * median, 10 sessions    127.4    −6.9        50%
+ * EW mean of sigma λ.75  133.9   +27.6        60%
+ * ```
+ *
+ * The flat RMS was the WORST of the seventeen candidates swept: it overstated
+ * the next session by 58 points on average and two thirds of sessions came in
+ * under its forecast. Two compounding reasons, both fixed here:
+ *
+ * 1. **Squaring lets one day own the window.** RMS aggregates variance, so a
+ *    single 898-pt session carries ~27x the weight of a 181-pt one. Merely
+ *    exponentially weighting the *variance* could not undo that (it moved the
+ *    live estimate 364 → 271 at λ=0.70); weighting SIGMA does.
+ * 2. **A flat window cannot see a regime turn.** On 2026-08-11 the last three
+ *    sessions ranged 445 / 296 / 181 pts and the engine's own `dailyRanges`
+ *    read "contracting", while this module still reported 363.9 — a scale set
+ *    by the late-July expansion (898 / 748 / 651 / 646 / 601-pt days). Every
+ *    gate resolved against it, so the significant-move floor demanded 145.6 pts
+ *    of reversal room on a market whose whole prior session travelled 181.
+ *
+ * So the session statistic is a RECENCY-WEIGHTED MEAN OF SIGMA. It is not the
+ * lowest-RMSE candidate — the 10-session median is, and it is very nearly
+ * unbiased — but the median is a flat window wearing a robust hat: it read
+ * 352.8 on the same export, i.e. it does not turn either. Between an estimator
+ * that is best on average over a mixed sample and one that tracks the regime
+ * the operator is actually trading, this takes the second and accepts ~+27 pts
+ * of residual conservatism.
  *
  * With one scale number, a point distance also reads as a fraction of a
  * session's normal excursion: 29 pts is "0.10σ — inside the noise", not a
@@ -78,6 +115,25 @@ export const SIGMA_ESTIMATION_SESSIONS = 10
  * degrades to null.
  */
 export const MIN_SIGMA_ESTIMATION_SESSIONS = 3
+
+/**
+ * Per-session decay for {@link ewMeanSigma}: the newest session weighs 1 and
+ * each older one `0.75^age`, so the last three sessions carry 55% of the weight
+ * and the last five 68%.
+ *
+ * Chosen for the turn rate, not for RMSE — the sweep in the module doc is flat
+ * across 0.60–0.90 (RMSE 133 ± 3), so this end of the range costs nothing
+ * measurable and buys responsiveness. λ=0.75 has a ~2.4-session half-life,
+ * which is the shortest memory that still spans a long weekend without letting
+ * one quiet Friday set Monday's scale.
+ *
+ * The window is deliberately NOT widened to match: 1 − 0.75¹⁰ = 94.4% of the
+ * total weight already falls inside {@link SIGMA_ESTIMATION_SESSIONS}, and
+ * running the same estimator unbounded moved the live number 257.45 → 259.61
+ * (0.8%). Ten sessions stays the one window every statistic here is measured
+ * over — the medians and the bar sigma included.
+ */
+export const SESSION_SIGMA_DECAY = 0.75
 
 /** Parkinson's variance scaling: 1 / (4·ln2). */
 export const PARKINSON_VARIANCE_SCALING = 1 / (4 * Math.LN2)
@@ -119,9 +175,12 @@ export type SigmaDistance = {
 
 /** One estimator, measured at both granularities and converted to points. */
 export type EstimatorScale = {
-  /** Sigma of one 30-min bar, points. */
+  /** Sigma of one 30-min bar, points — RMS over the window's bars. */
   barSigmaPts: number
-  /** Sigma of one RTH session, points. */
+  /**
+   * Sigma of one RTH session, points — the window's per-session sigmas
+   * combined by {@link ewMeanSigma}, so recent sessions dominate.
+   */
   sessionSigmaPts: number
 }
 
@@ -138,8 +197,10 @@ export type VolatilityScaleFacts = {
   /** Price the log-space sigma was converted to points at. */
   referencePrice: number
   /**
-   * The engine's scale number: one RTH session's Parkinson sigma, in points.
-   * Every sigma-normalized distance below divides by this.
+   * The engine's scale number: one RTH session's Parkinson sigma, in points,
+   * recency-weighted across the window ({@link SESSION_SIGMA_DECAY}). Every
+   * sigma-normalized distance below divides by this, and every scaled gate in
+   * `scaledGates.ts` resolves against it.
    */
   sessionSigmaPts: number
   /** Which estimator {@link VolatilityScaleFacts.sessionSigmaPts} came from. */
@@ -211,6 +272,35 @@ export function garmanKlassVariance(period: Ohlc): number {
   const u = Math.log(period.high / period.low)
   const c = Math.log(period.close / period.open)
   return Math.max(0, GARMAN_KLASS_RANGE_COEFF * u * u - GARMAN_KLASS_CLOSE_OPEN_COEFF * c * c)
+}
+
+/**
+ * Recency-weighted mean of per-period SIGMA — the session aggregator (feat-112).
+ *
+ * Weights are `decay^age` with age 0 on the LAST element, so `sigmas` must be
+ * chronological (oldest first) exactly like the session window itself. The
+ * weights are normalized by their own sum, so a short window is not silently
+ * deflated and the function is scale-free in `decay`.
+ *
+ * Averaging SIGMA rather than variance is the point, not an implementation
+ * detail: it is what keeps one outsized session from owning the estimate. See
+ * the module doc for the backtest that chose it.
+ *
+ * @param sigmas Per-period sigma, chronological. Empty → 0 (no scale).
+ * @param decay  Per-period weight ratio; defaults to {@link SESSION_SIGMA_DECAY}.
+ */
+export function ewMeanSigma(
+  sigmas: readonly number[],
+  decay: number = SESSION_SIGMA_DECAY,
+): number {
+  let weighted = 0
+  let totalWeight = 0
+  for (let i = 0; i < sigmas.length; i++) {
+    const weight = decay ** (sigmas.length - 1 - i)
+    weighted += weight * sigmas[i]
+    totalWeight += weight
+  }
+  return totalWeight > 0 ? weighted / totalWeight : 0
 }
 
 /** Which band a sigma multiple falls in. Bounds are inclusive of the max. */
@@ -300,20 +390,27 @@ export function computeVolatilityScale(
       ? currentPrice
       : bars[bars.length - 1].close
 
-  /** RMS of a period statistic over the window, in points at the live price. */
-  const sigmaPts = (variances: number[]): number =>
+  /** RMS of a per-BAR variance over the window, in points at the live price. */
+  const barSigmaPts = (variances: number[]): number =>
     round2(
       Math.sqrt(variances.reduce((a, b) => a + b, 0) / variances.length) * referencePrice,
     )
 
+  /**
+   * Per-SESSION variances → the recency-weighted sigma, in points at the live
+   * price. Sessions are chronological, which is what {@link ewMeanSigma} needs.
+   */
+  const sessionSigmaPtsOf = (variances: number[]): number =>
+    round2(ewMeanSigma(variances.map(Math.sqrt)) * referencePrice)
+
   const sessionPeriods = sessionBars.map(sessionOhlc)
   const parkinson: EstimatorScale = {
-    barSigmaPts: sigmaPts(windowBars.map(parkinsonVariance)),
-    sessionSigmaPts: sigmaPts(sessionPeriods.map(parkinsonVariance)),
+    barSigmaPts: barSigmaPts(windowBars.map(parkinsonVariance)),
+    sessionSigmaPts: sessionSigmaPtsOf(sessionPeriods.map(parkinsonVariance)),
   }
   const garmanKlass: EstimatorScale = {
-    barSigmaPts: sigmaPts(windowBars.map(garmanKlassVariance)),
-    sessionSigmaPts: sigmaPts(sessionPeriods.map(garmanKlassVariance)),
+    barSigmaPts: barSigmaPts(windowBars.map(garmanKlassVariance)),
+    sessionSigmaPts: sessionSigmaPtsOf(sessionPeriods.map(garmanKlassVariance)),
   }
 
   const sessionSigmaPts = parkinson.sessionSigmaPts

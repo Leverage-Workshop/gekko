@@ -875,3 +875,65 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   **Alternatives considered:** hardcoding `2` (a wrong guess exports a plausible-looking number
   from the wrong subgraph — the worst failure mode for this pipeline); looking the subgraph up by
   name at runtime (more machinery, and the name is not guaranteed stable across study versions).
+
+## feat-112 — 2026-08-11
+
+- **Decision (feat-112):** the session volatility scale aggregates per-session **sigma** with
+  exponential recency weights (`ewMeanSigma`, decay 0.75), replacing feat-095's flat RMS of
+  per-session **variance**.
+  **Why:** the flat RMS is the right estimator for a stationary process and this series is not
+  one. It failed on two axes at once — squaring made it outlier-dominated (an 898-pt session
+  carries ~27x the weight of a 181-pt one), and a flat window is blind to a regime turn. On
+  2026-08-11 it read 363.9 while the prior three sessions ranged 445/296/181 and the engine's own
+  `dailyRanges` fact read "contracting". Backtested over the 60 RTH sessions in bundle b6f71b2e's
+  export (predicting the NEXT session's realized sigma, 40 test points) it was the worst of
+  seventeen candidates: RMSE 153.4, +58.6 pt bias, 65% of sessions landing under its forecast.
+  **Alternatives considered:** EW-weighted **variance** — tried first and rejected on measurement,
+  it moved the live estimate only 364 → 271 even at λ=0.70, because squaring dominates any
+  weighting scheme applied on top of it; the 10-session **median**, which actually scored BEST on
+  RMSE (127.4) and was nearly unbiased (-6.9, P(actual<pred) = 50%) but is a flat window wearing a
+  robust hat — it read 352.8 on the same export, so it fixes the outlier axis and not the lag axis,
+  and the operator's complaint was the lag. Accepting ~+27 pts of residual conservatism to get an
+  estimator that turns with the regime was the trade, and it is the one the operator chose.
+  Do not re-propose median-only or EW-on-variance without new measurement.
+
+- **Decision (feat-112):** `SIGMA_ESTIMATION_SESSIONS` stays at **10** rather than widening to 20
+  to give the exponential tail more room.
+  **Why:** 1−0.75¹⁰ = 94.4% of the total weight already falls inside 10 sessions, and running the
+  same estimator unbounded moved the live number 257.45 → 259.61 (0.8%) with a backtest difference
+  (RMSE 133.9 vs 131.0) well inside the noise of 40 test points. Widening would have changed
+  `barSigmaPts`, `medianBarRangePts` and `medianSessionRangePts` — all quoted to the model — onto a
+  20-session basis as a side effect, making the descriptive statistics laggier in the same feature
+  that exists to reduce lag.
+  **Alternatives considered:** 20 sessions (above); a separate longer window for the EW estimator
+  only (two windows in one module, and every reader would have to track which statistic used
+  which).
+
+- **Decision (feat-112):** the significant-move floor default moves 0.4σ → **0.3σ**, and this is a
+  re-tune of the MULTIPLE only — feat-096's units decision is untouched.
+  **Why:** 0.4σ was not chosen as a round number; feat-096 chose it *because* it equalled one
+  median 30-min bar range at the 283-pt reference sigma. That equivalence was a coincidence of one
+  regime. By 2026-08-11 the same multiple was ~1.5 bar ranges and 1.43x the operator's ~102-pt
+  average rotation — i.e. the gate was rejecting trades of exactly the size the operator normally
+  takes, which is the opposite of what a "is this worth trading" floor is for. 0.3σ is ~0.75 of a
+  rotation and 3.1x the 25-pt operational stop, and it stays ABOVE feat-095's 0.25σ noise band.
+  That last constraint is why it is 0.3 and not lower: a floor inside the band the engine already
+  calls "not a meaningful gap" could never filter anything, which is exactly how the retired 50-pt
+  (0.18σ) floor failed.
+  **Alternatives considered:** leaving 0.4σ and shipping the estimator alone (measured: the floor
+  would land ~103 pts on that bundle, still above the 87-pt span price sat in, so the reported
+  briefing would have come out unchanged — a fix that does not fix the complaint); anchoring the
+  gate to the operator's rotation size as `max(min-viable-trade, k·σ)` (defensible, but needs the
+  ~102-pt rotation number re-measured before it can carry a hard floor, and the operator chose the
+  simpler re-tune).
+
+- **Decision (feat-112):** both pending migrations were applied via the claude.ai Supabase MCP
+  `apply_migration` tool rather than escalated to the operator.
+  **Why:** the tool is reachable from Claude Code even though `.claude/skills/gekko-db/SKILL.md`
+  exists precisely because the MCP server is *normally* left disabled. An earlier session inferred
+  "disabled" and escalated, and `20260809140000_volatility_scaled_gates.sql` then sat unapplied for
+  two days — during which `config` carried `significant_move_pts = 50`, `fetchConfigRow` silently
+  padded the sigma default, and the pipeline enforced a ~146-pt floor nobody had selected. Only
+  `/settings` surfaces `significantMoveColumnMissing`; the analyze path does not. The general
+  lesson, now recorded in the skill: **a padded config default is invisible to the pipeline that
+  consumes it**, so a config migration must be applied the same day or the stored value is a lie.

@@ -2,9 +2,83 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-10
+**Last Updated:** 2026-08-11
 
-**Latest change (branch `fix-ai-sdk-system-in-messages-warning`): the doctrine prefix now travels
+**Latest change (branch `feat-112-recency-weighted-session-sigma`): feat-112 — the session
+volatility scale is now recency-weighted, and the significant-move floor drops 0.4σ → 0.3σ.**
+Operator-reported, not a backlog item: the 2026-08-11 briefing put its short entry 246 pts above
+the market and its long 203.5 pts below, on a day whose prior session ranged 181.25 pts in total.
+
+The model was compliant — this was the engine. Bundle `b6f71b2e` promoted exactly four terrain
+borders (29900 / 29718.75 / 29631.75 / 29450.5), spans of **181.25 / 87 / 181.25**, with price at
+29654 sitting inside the 87-pt one. The significant-move floor resolved to 145.56 pts, so the only
+entry→T2 pairs that cleared it were the outer two, and feat-086's "walk outward from price and
+anchor at the FIRST qualifying level" had nowhere nearer to stop. Both objectives got exiled to the
+walls. Two independent causes:
+
+**(1) The estimator was wrong for a non-stationary series.** feat-095 aggregated per-session
+Parkinson variance as a flat RMS — the textbook estimator, which assumes stationarity. It failed
+twice over: squaring let one 898-pt session carry ~27x the weight of a 181-pt one, and a flat
+window cannot see a regime turn. So it reported **363.9** while the last three sessions ranged
+445 / 296 / 181 and the engine's *own* `dailyRanges` fact read `"contracting"`. Backtested over
+the 60 RTH sessions in that bundle's own export — each candidate predicting the NEXT session's
+realized sigma, 40 test points — the flat RMS was the **worst of seventeen** candidates swept:
+
+```
+                       RMSE    bias   P(actual < predicted)
+flat RMS, 10 sessions  153.4   +58.6        65%
+median, 10 sessions    127.4    -6.9        50%
+EW mean of sigma λ.75  133.9   +27.6        60%
+```
+
+Now a recency-weighted mean of per-session **sigma** (`ewMeanSigma`, decay 0.75, ~2.4-session
+half-life). Two rejected alternatives worth not re-proposing: weighting the **variance** barely
+moved it (364 → 271 even at λ=0.70 — squaring dominates any weighting), and the 10-session
+**median**, though best on RMSE and nearly unbiased, is a flat window wearing a robust hat: it read
+352.8 on the same export, i.e. it does not turn either. The window stays at 10 sessions —
+1−0.75¹⁰ = 94.4% of the weight is already inside it, and running unbounded moved the live number
+257.45 → 259.61 (0.8%). Only the SESSION statistic changed; the per-bar sigma and both medians are
+still flat measures over that same window.
+
+**(2) The multiple had outgrown its own calibration.** feat-096 chose 0.4σ *because* it was one
+median 30-min bar range at the 283-pt reference sigma. That equivalence only held at that sigma —
+by 2026-08-11 it had drifted to ~1.5 bar ranges and to **1.43x the operator's ~102-pt average
+rotation**, so the engine was rejecting trades of exactly the size the operator normally takes.
+Now 0.3σ: ~0.75 of a rotation, 3.1x the 25-pt operational stop, and still above feat-095's 0.25σ
+noise band — which is the one property of the old default worth keeping and the reason it is 0.3
+and not lower. A re-tune of the multiple only; feat-096's units decision and the standoff/chase
+gates are untouched.
+
+Replaying `b6f71b2e` through `computeEngineFacts` before/after: **σ 363.9 → 257.45**, floor
+**145.56 → 77.24 pts** — under the 87-pt span, so both near borders now qualify as entry anchors.
+
+Every pre-existing hand-computed fixture in `volatilityScale.test.ts` survived untouched: those
+fixtures hold their sessions identical, and a weighted mean and a flat RMS agree by construction
+there. Five new tests cover what only appears once sessions differ, and `scaledGates.test.ts` pins
+the 2026-08-11 failure directly as a regression test. `./init.sh` green: 1359 passed | 1 skipped.
+
+**Both migrations are now applied to the live DB.** `20260809140000_volatility_scaled_gates.sql`
+had been committed-but-unapplied since 2026-08-09, which had a real cost: `config` still carried
+`significant_move_pts = 50` while `fetchConfigRow` silently padded the sigma default, so the
+operator's `/settings` value was dead and the pipeline enforced a ~146-pt floor nobody had chosen.
+Only `/settings` surfaces `significantMoveColumnMissing` — the analyze path does not. **A padded
+config default is invisible to the pipeline that consumes it.** They went in via the claude.ai
+Supabase **MCP `apply_migration` tool, which IS reachable from Claude Code** — earlier sessions
+assumed the server was disabled and escalated to the operator instead, which is why it sat for two
+days. `.claude/skills/gekko-db/SKILL.md` now says so at the top of the DDL options.
+
+**OPEN — tracked as feat-113 (`not-started`): `atrProjection`'s `significantMoveNote` lies when the
+ATR is far from the floor.** `buildNote()` picks a branch on `atr >= floor.pts` and then hardcodes
+the magnitude either way — the sub-floor branch always reads "at — just under — the N pts
+significant-move floor, so a 1x projection buys barely the minimum reversal room". True when it was
+written (ATR 116.23 vs floor 118.05, 1.8 pts apart); false on this bundle, where a 61.07-pt ATR sat
+84.5 pts short of a 145.56-pt floor and the model was still told it was "just under". feat-112 makes
+divergence *more* likely, since the floor now tracks the regime and the ATR does not. Same record
+carries a second finding: `computeAtr` runs over the full export **including overnight bars** while
+feat-095's sigma deliberately excludes them — 61.07 all-bars vs 74.67 RTH-only on this bundle, two
+scale measures disagreeing on what a session is.
+
+**Previous change (branch `fix-ai-sdk-system-in-messages-warning`): the doctrine prefix now travels
 via the AI SDK `system` option instead of a system-role entry in `messages`.** Not a feature —
 every analyze/eval/update run was printing `AI SDK Warning: System messages in the prompt or
 messages fields can be a security risk because they may enable prompt injection attacks.` in the

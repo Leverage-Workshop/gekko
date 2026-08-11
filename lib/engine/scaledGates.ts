@@ -50,26 +50,39 @@ export const REFERENCE_SESSION_SIGMA_PTS = 283
  * `significant_move_sigma` migration default; the operator edits it at
  * `/settings`).
  *
- * 0.4σ ≈ **113 pts** at the 283-pt reference sigma (118 pts at the 295-pt
- * sigma the repo's fixture export measures). Chosen against the measured
- * distribution rather than as a round number:
+ * **0.3σ since feat-112** (was 0.4σ). The units change in feat-096 was right
+ * and is untouched; the multiple was set too high, and the 2026-08-11 briefing
+ * is what measured it. On that map the promoted terrain borders sat at 29900 /
+ * 29718.75 / 29631.75 / 29450.5 — spans of 181.25, **87**, 181.25 — with price
+ * at 29654, inside the 87-pt span. The floor resolved to 145.56 pts, so the
+ * only border pairs that cleared it were the outer two, and both objectives
+ * were exiled to entries 246 pts above and 203 pts below a market whose prior
+ * session had a 181-pt range. The model followed the contract exactly; the
+ * contract was wrong.
  *
- * - it is one median 30-min bar range (110 pts) — a qualifying reversal must
- *   be worth at least one full bar of travel, where the old 50-pt floor asked
- *   for 0.45 of one;
- * - it is ~1.1 of the operator's average rotation (~102 pts, the 2026-07-27
- *   expectancy note) — the floor asks for a real rotation, not a scalp;
- * - it is 24% of a median day range (464 pts) and 4.5x the fixed 25-pt
- *   operational stop, so a qualifying level still leaves room for two or three
- *   of them in a session;
- * - it sits ABOVE feat-095's `SIGMA_NOISE_MAX` (0.25σ = 71 pts), which is the
- *   band the engine already calls "not a meaningful gap" — a floor inside the
- *   noise band could never filter anything.
+ * 0.3σ ≈ **77 pts** at the 257-pt sigma that bundle measures under feat-112's
+ * recency-weighted estimator, and ≈85 pts at the review's 283-pt reference.
+ * Re-argued against the same yardsticks feat-096 used, all of which the 0.4
+ * multiple had quietly outgrown once the regime widened:
  *
- * The old 50 pts is 0.18σ — below the noise band, which is exactly why it
- * rejected nothing.
+ * - it is ~0.75 of the operator's average rotation (~102 pts, the 2026-07-27
+ *   expectancy note), so the floor still rejects scalps but no longer rejects
+ *   a trade of exactly the size the operator normally takes — which is what
+ *   0.4σ did at a 364-pt sigma, where it demanded 1.43 rotations;
+ * - it is 3.1x the fixed 25-pt operational stop, so a qualifying level still
+ *   carries a sane stop-to-target relationship;
+ * - it is ~0.8 of a median 30-min bar range (96 pts on that export), against
+ *   the ~1.5 bars 0.4σ had drifted to — feat-096 chose 0.4 precisely BECAUSE
+ *   it was one bar range at the time, an equivalence that only held at the
+ *   283-pt sigma it was calibrated on;
+ * - it still sits ABOVE `SIGMA_NOISE_MAX` (0.25σ) — the band the engine calls
+ *   "not a meaningful gap" — which is the one property of the old default
+ *   worth keeping, and the reason this is 0.3 and not lower.
+ *
+ * The retired 50-pt fixed floor was 0.18σ: below the noise band, which is why
+ * it rejected nothing.
  */
-export const DEFAULT_SIGNIFICANT_MOVE_SIGMA = 0.4
+export const DEFAULT_SIGNIFICANT_MOVE_SIGMA = 0.3
 
 /** Pre-feat-096 fixed floor (feat-086), kept as the unmeasured-sigma fallback. */
 export const SIGNIFICANT_MOVE_FALLBACK_PTS = 50

@@ -135,22 +135,28 @@ describe('computeAtrProjections', () => {
   })
 
   /**
-   * The constraint this feature exists to surface (feat-096 / feat-108): one
-   * ATR is ~0.4σ, which is the significant-move floor itself, so the sub-1x
-   * rungs cannot host a target — and WHICH rungs clear is a per-run question,
-   * not a property of the multiple.
+   * The constraint this feature exists to surface (feat-096 / feat-108): the
+   * near rungs cannot host a target, and WHICH rungs clear is a per-run
+   * question, not a property of the multiple.
+   *
+   * feat-112 moved the floor 0.4σ → 0.3σ, which changes the answer here rather
+   * than the rule: at a 100-pt ATR against a 295-pt sigma the floor was 118 pts
+   * and BOTH the 0.5x and 1x rungs fell short; it is now 88.5 and a 1x
+   * projection clears. That is the intended direction — under 0.4σ the
+   * 2026-08-11 bundle disqualified all 16 of its rungs as targets, i.e. the
+   * gate had swallowed the whole feature.
    */
   describe('the significant-move relationship', () => {
     it('marks every rung under the resolved floor as unable to host a target', () => {
       const facts = computeAtrProjections(htf(), 20000, measuredGate)!
-      expect(measuredGate.pts).toBe(118)
+      expect(measuredGate.pts).toBe(88.5)
 
       for (const rung of facts.rungs) {
-        expect(rung.clearsSignificantMove, rung.label).toBe(rung.projectionPts >= 118)
+        expect(rung.clearsSignificantMove, rung.label).toBe(rung.projectionPts >= 88.5)
       }
-      // At a 100-pt ATR against a 118-pt floor, BOTH 0.5x and 1x fall short.
+      // At a 100-pt ATR against an 88.5-pt floor, only 0.5x falls short.
       const shortfall = facts.rungs.filter((r) => !r.clearsSignificantMove)
-      expect(new Set(shortfall.map((r) => Math.abs(r.multiple)))).toEqual(new Set([0.5, 1]))
+      expect(new Set(shortfall.map((r) => Math.abs(r.multiple)))).toEqual(new Set([0.5]))
     })
 
     it('re-resolves per run: the same multiples clear under the fixed fallback', () => {
@@ -168,7 +174,7 @@ describe('computeAtrProjections', () => {
       expect(facts.atrSigma).toBe(0.34)
       expect(facts.significantMoveNote).toContain('one 30-min ATR is 100 pts')
       expect(facts.significantMoveNote).toContain('significant-move floor')
-      expect(facts.significantMoveNote).toContain('8 of these rungs are flagged')
+      expect(facts.significantMoveNote).toContain('4 of these rungs are flagged')
       expect(facts.significantMoveNote).toContain('entry or stop structure only')
 
       const clean = computeAtrProjections(htf({ atrPoints: 400 }), 20000, measuredGate)!
