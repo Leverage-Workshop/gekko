@@ -151,9 +151,6 @@ export async function runUpdate(
     htfCsvContent: bundle.htfCsvContent,
     mgi: bundle.mgi,
     receivedAt: bundle.row.received_at,
-    // feat-108: the ATR projections mark each rung against the significant-move
-    // floor, so the engine needs the same configured multiple the prompt uses.
-    significantMoveSigma,
     now,
   })
   warnings.push(...facts.warnings)
@@ -200,7 +197,6 @@ export async function runUpdate(
       facts.lvn,
       facts.sessionIntraday,
       { tpo: facts.tpo, multiDayTpo: facts.multiDayTpo },
-      facts.atrProjections,
     ),
     fakeoutTails: facts.fakeoutTails,
     meta: {

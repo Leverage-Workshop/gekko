@@ -40,9 +40,6 @@ import { computeHtfFlow } from '@/lib/engine/htfFlow'
 import type { HtfFlowFacts } from '@/lib/engine/htfFlow'
 import { computeVolatilityScale } from '@/lib/engine/volatilityScale'
 import type { StructureReference, VolatilityScaleFacts } from '@/lib/engine/volatilityScale'
-import { computeAtrProjections } from '@/lib/engine/atrProjection'
-import type { AtrProjectionFacts } from '@/lib/engine/atrProjection'
-import { DEFAULT_SIGNIFICANT_MOVE_SIGMA, resolveGates } from '@/lib/engine/scaledGates'
 import { computeIbExtension } from '@/lib/engine/ibExtension'
 import type { IbExtensionFacts } from '@/lib/engine/ibExtension'
 import { computeOvernightSession } from '@/lib/engine/overnightSession'
@@ -99,13 +96,6 @@ export interface EngineFactsInput {
   receivedAt: string | null
   /** Evaluation instant; defaults to the wall clock. */
   now?: string | number | Date
-  /**
-   * `config.significant_move_sigma` (feat-096), needed here — not only in the
-   * prompt layer — because feat-108's ATR projections mark each rung against
-   * the floor as it RESOLVES THIS RUN. Defaults to
-   * {@link DEFAULT_SIGNIFICANT_MOVE_SIGMA} when config is unseeded.
-   */
-  significantMoveSigma?: number
 }
 
 export interface EngineFacts {
@@ -213,18 +203,6 @@ export interface EngineFacts {
    */
   volatilityScale: VolatilityScaleFacts | null
   /**
-   * Code-owned ATR-projected PRICE levels (feat-108) — ATR in its level role
-   * rather than its normalizer role: the 30-min ATR projected from current
-   * price (both directions — target rungs) and outward from the last confirmed
-   * swing high/low (reversal rungs), at {@link ATR_PROJECTION_MULTIPLES}, each
-   * carrying its reference and multiple as a quotable attribution label and a
-   * `clearsSignificantMove` flag resolved against feat-096's floor THIS RUN.
-   * Feeds `engineAnchorPrices()`. Null when `htfStructure` is null or its ATR
-   * is unmeasurable — the existing ATR-normalized distance fields are
-   * untouched.
-   */
-  atrProjections: AtrProjectionFacts | null
-  /**
    * Code-owned IB→day-range extension read (feat-100), measured from the same
    * 30-min bars: how far past the first hour's Initial Balance this market's
    * sessions actually go — the `day_range / IB_range` quantiles with their
@@ -320,17 +298,6 @@ export type AnchorableValueFacts = {
  * artifacts the doctrine forbids trading (feat-040 G2). Deduped,
  * price-descending. Feeds `ValidateOptions.anchorPrices`.
  *
- * `atrProjections` adds the ATR-projected price rungs (feat-108): current price
- * ± n·ATR (targets) and the last confirmed swings projected outward (reversals).
- * ATR reached the engine only as a normalizer, so an "entry at the swing low
- * minus one ATR" — a price the operator names directly — had no anchor to sit
- * on and could only appear as freehand arithmetic in prose. Like the VWAP rungs
- * it goes through THIS set and never through `engineZoneBorders`: a projection
- * is not a zone partition, and the zone stack is hard-enforced. The rungs are
- * additive only; a rung whose `clearsSignificantMove` is false is still a legal
- * anchor (it is entry/stop structure) — the significant-move gate is applied to
- * the objective downstream, not to membership here.
- *
  * `value` adds the TIME-based value levels (feat-090, review D5): today's TPO
  * POC and value-area edges and the multi-day composite POC. Terrain is built
  * from the volume profiles and the MGI levels alone, so before this the
@@ -346,7 +313,6 @@ export function engineAnchorPrices(
   lvn?: EngineFacts['lvn'],
   sessionIntraday?: SessionIntradayFacts,
   value?: AnchorableValueFacts,
-  atrProjections?: AtrProjectionFacts | null,
 ): number[] {
   const lvnNodes = lvn ? [...lvn.rotation.lvn, ...lvn.balanceArea.lvn] : []
   const anchors = [
@@ -365,11 +331,7 @@ export function engineAnchorPrices(
     ...(tpo ? [tpo.poc.price, tpo.valueArea.high, tpo.valueArea.low] : []),
     ...(value?.multiDayTpo ? [value.multiDayTpo.composite.poc.price] : []),
   ].filter((price) => Number.isFinite(price))
-  // Null (no HTF export / unmeasurable ATR) simply contributes nothing.
-  const atrRungs = atrProjections?.rungs.map((rung) => rung.price) ?? []
-  return [...new Set([...anchors, ...vwapRungs, ...valueLevels, ...atrRungs])].sort(
-    (a, b) => b - a,
-  )
+  return [...new Set([...anchors, ...vwapRungs, ...valueLevels])].sort((a, b) => b - a)
 }
 
 /**
@@ -759,23 +721,6 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     }
   }
 
-  // ATR-projected price levels (feat-108): ATR as a LEVEL, not a normalizer.
-  // Runs after the volatility scale because each rung is marked against the
-  // significant-move floor as it resolves for THIS run — one ATR is ~0.4σ, so
-  // whether a given multiple can host a target depends on the live regime.
-  const atrProjections = computeAtrProjections(
-    htfStructure,
-    currentPrice,
-    resolveGates(
-      volatilityScale,
-      input.significantMoveSigma ?? DEFAULT_SIGNIFICANT_MOVE_SIGMA,
-    ).significantMove,
-  )
-  if (htfStructure !== null && atrProjections === null) {
-    warnings.push(
-      'HTF export ATR is unmeasurable — ATR-projected price levels not computed',
-    )
-  }
   // Formation test on the rotation profile only (feat-075): the session-lens
   // doctrine says the trade-horizon profile governs where retests stall; the
   // balance-area composite is the lens that launders fakeout tails under
@@ -804,7 +749,6 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     htfStructure,
     htfFlow,
     volatilityScale,
-    atrProjections,
     ibExtension,
     overnightSession,
     multiDayTpo,

@@ -4,7 +4,64 @@
 
 **Last Updated:** 2026-08-12
 
-**Latest change (branch `feat-102-htf-order-flow`): feat-102 — the HTF bars' order flow finally
+**Latest change (branch `feat-113-retire-atr-rungs`): feat-113 — the ATR-projected rung anchor
+class is deleted; the engine carries ONE volatility measure.** Operator decision 2026-08-12, from a
+review of feat-113's original scope: "it doesn't make any sense to use two different volatility
+measures, especially if the Sigma one is way better", and on the rungs specifically, "I never asked
+for this ATR multiplication stuff". `lib/engine/atrProjection.ts` and its test are gone, along with
+`ATR_PROJECTION_RULE` in both prompts, the rung payload block, the anchor class in
+`knowledge/system/output-objective.md`, and `engineAnchorPrices()`'s 5th argument.
+
+**Removing the rungs made `EngineFactsInput.significantMoveSigma` dead** — the engine needed the
+configured multiple ONLY to mark each rung against the floor per run. It is removed with them, so
+`computeEngineFacts` no longer takes a gate at all and the floor lives purely in the prompt and
+validation layers where feat-086 put it. Both callers stop passing it to the engine and keep passing
+it to `buildPrompt` / `enforceCodeOwnedFacts` unchanged.
+
+**Note on provenance, because the record disagreed with the operator.** This log (below) and
+feat-108's decisions-log entries attribute the rungs to a 2026-08-09 operator directive — "current
+price plus one ATR is a target, swing low minus one ATR is where a reversal is expected". The
+operator states he never asked for ATR multiplication. Read as: an offhand chart remark was built
+into an engine fact class with a 16-price anchor surface. **A remark about how the operator reads a
+chart is not automatically a request for an engine fact.**
+
+The rungs were in live use when removed — 5 of the 40 briefings before 2026-08-12 anchored on them,
+every one as a STOP or invalidation and never as a target, most recently the 2026-08-12 11:32 PT
+morning briefing's stop at 29707.76 (last swing low 29818.5 −2× ATR). Those stops now have to land
+on observed structure or the objective abstains; that is the intended consequence.
+
+Deleting the module also closed the two defects feat-113 originally tracked, by removal rather than
+repair. `buildNote()`'s hardcoded "just under"/"just above" prose was **still lying after feat-112,
+in the opposite direction**: measured on `chart-data/htf_bar_data.rolling.csv` at the live 0.3σ
+config, ATR 116.23 against an 84.21-pt floor — 138% of it — was narrated as "at — just above — the
+floor, so a 1× projection buys barely the minimum reversal room the engine demands". And a defect
+never recorded: `clearsSignificantMove` measures travel from the RUNG'S OWN reference, while the
+prompt rule and `output-objective.md` stated its consequence absolutely ("never as a target"), which
+under the feat-086 entry-first contract wrongly forbade a 0.5× rung sitting well beyond an entry —
+the same target-derived filtering the retired rr gate did.
+
+**The MGI `ATR High` / `ATR Low` levels are untouched and are NOT part of this** — those are the
+operator's own Sierra chart levels arriving as exported data (`lib/engine/mgiPriority.ts`, tier 2,
+group `atr`), and three 2026-07-31 briefings exited on ATR Low. Only engine-COMPUTED ATR is retired.
+
+The normalizer half survives for now and is **feat-116**: `htfStructure.atrPoints`,
+`rotation.extentAtr` and `currentVsSwings.*Atr`, plus the eval prompt's "30-min ATR N pts" line.
+Measured while scoping it, the two measures disagree IN THE PAYLOAD — the analyze prompt ships
+`atrPoints` 116.23 (Wilder, 14 bars, ALL bars including overnight) beside
+`volatilityScale.medianBarRangePts` 96.13 (RTH-only), while `parkinson.barSigmaPts` 74.68 is computed
+and never shipped. They are the same quantity in different conventions: Parkinson converts a range to
+a sigma by dividing ~1.665, and 116.23/1.665 = 69.8 against 74.68 agrees within ~7%.
+
+The prompt-data sync gate (feat-054) earned its keep here: it caught two stale
+`docs/engine-ownership.md` rows the removal missed — a registry path pointing at the deleted module
+and the `atrProjections` fact still listed in the Bundle exports table. `./init.sh` green after the
+rebase onto feat-102: 1384 passed | 1 skipped.
+
+**Work was done in a separate git worktree** (`../gekko-feat-113` off `main`) because the primary
+checkout carried uncommitted feat-102 HTF-order-flow work in five of the same files. That WIP was
+left exactly as found, and feat-102 merged first (#156) — this branch rebased onto it.
+
+**Previous change (branch `feat-102-htf-order-flow`): feat-102 — the HTF bars' order flow finally
 feeds something, and a base-rate control study cut the feature's headline signal before it
 shipped.** `parseHtfBars` had produced `volume`/`bidVolume`/`askVolume`/`delta` since feat-049 with
 zero consumers; `lib/engine/htfFlow.ts` → `EngineFacts.htfFlow` now reads them, wired into analyze,
@@ -164,16 +221,10 @@ Supabase **MCP `apply_migration` tool, which IS reachable from Claude Code** —
 assumed the server was disabled and escalated to the operator instead, which is why it sat for two
 days. `.claude/skills/gekko-db/SKILL.md` now says so at the top of the DDL options.
 
-**OPEN — tracked as feat-113 (`not-started`): `atrProjection`'s `significantMoveNote` lies when the
-ATR is far from the floor.** `buildNote()` picks a branch on `atr >= floor.pts` and then hardcodes
-the magnitude either way — the sub-floor branch always reads "at — just under — the N pts
-significant-move floor, so a 1x projection buys barely the minimum reversal room". True when it was
-written (ATR 116.23 vs floor 118.05, 1.8 pts apart); false on this bundle, where a 61.07-pt ATR sat
-84.5 pts short of a 145.56-pt floor and the model was still told it was "just under". feat-112 makes
-divergence *more* likely, since the floor now tracks the regime and the ATR does not. Same record
-carries a second finding: `computeAtr` runs over the full export **including overnight bars** while
-feat-095's sigma deliberately excludes them — 61.07 all-bars vs 74.67 RTH-only on this bundle, two
-scale measures disagreeing on what a session is.
+**CLOSED by feat-113 (2026-08-12) — by deleting the module, not by fixing the prose.** The
+note was still wrong after feat-112, in the above-floor direction (ATR 116.23 against an 84.21-pt
+floor, narrated as "just above ... barely the minimum"), and the all-bars-vs-RTH ATR finding filed
+with it moved to feat-116, where it dissolves: `barSigmaPts` is RTH-only by construction.
 
 **Previous change (branch `fix-ai-sdk-system-in-messages-warning`): the doctrine prefix now travels
 via the AI SDK `system` option instead of a system-role entry in `messages`.** Not a feature —
