@@ -2,9 +2,32 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-11
+**Last Updated:** 2026-08-12
 
-**Latest change (branch `feat-112-recency-weighted-session-sigma`): feat-112 — the session
+**Latest change (branch `feat-114-full-width-briefing-tabs`): feat-114 — the dashboard tabs span
+the page, the latest eval moved under the Objectives tab, and the Danger Zones tab is gone.**
+Operator layout call, render-only. The body was a two-column grid whose RIGHT column alone carried
+the tab bar, so the tabs read as a widget on half the page and the Tactical Overview pane was
+confined to that same half while the EvalStrip sat outside the tabs entirely.
+
+`BriefingTabs` now wraps the whole body section: the tab row spans the content container, the
+Objectives pane holds the old two-column grid (eval left, objective cards right), and the Tactical
+Overview pane gets the full width. Its three prose groups became a 3-up grid at `xl` — at 1800px a
+stacked card is one ~200-character line per row, which is not readable. The Update / Briefing
+buttons moved out of the objectives pane into a new right-aligned `actions` slot on the tab row
+(second operator call, same session: as a row inside the pane they pushed the objective cards
+down). `role="tablist"` stays on a wrapper around the tab buttons only, so those trigger buttons
+are never invalid tablist children.
+
+**`dangerZones` was NOT removed from the pipeline** — only from the UI. The schema field, both
+prompts, `composeBriefing` and the persisted `danger_zones` column are untouched, so nothing about
+briefing generation changed and the data is still there if the tab ever comes back.
+
+`./init.sh` green (1359 passed | 1 skipped). Also checked against the live dashboard through
+headless Chromium: two tabs only, no "Danger Zones" string in the served HTML, and DOM order
+tablist → tabpanel(objectives) → 2-col grid → `id="eval"` → Primary Objective.
+
+**Previous change (branch `feat-112-recency-weighted-session-sigma`): feat-112 — the session
 volatility scale is now recency-weighted, and the significant-move floor drops 0.4σ → 0.3σ.**
 Operator-reported, not a backlog item: the 2026-08-11 briefing put its short entry 246 pts above
 the market and its long 203.5 pts below, on a day whose prior session ranged 181.25 pts in total.
