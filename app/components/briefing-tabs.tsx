@@ -4,14 +4,16 @@ import { useState, type ReactNode } from 'react'
 
 /**
  * Tab shell for the whole briefing body, spanning the full page width:
- * Objectives (the latest entry eval beside the objective cards) and Tactical
- * Overview. Content arrives as ReactNode props so the panes stay
- * server-rendered; this island only owns which pane is visible.
+ * Objectives (the latest entry eval beside the objective cards), Tactical
+ * Overview, and Features (the harness's feature_list.json as a table). Content
+ * arrives as ReactNode props so the panes stay server-rendered; this island
+ * only owns which pane is visible.
  */
 
 const TABS = [
   { id: 'objectives', label: 'Objectives' },
   { id: 'overview', label: 'Tactical Overview' },
+  { id: 'features', label: 'Features' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -19,10 +21,12 @@ type TabId = (typeof TABS)[number]['id']
 export function BriefingTabs({
   objectives,
   overview,
+  features,
   actions,
 }: {
   objectives: ReactNode
   overview: ReactNode
+  features: ReactNode
   /** Trigger buttons parked at the right end of the tab row (feat-020 / feat-038). */
   actions?: ReactNode
 }) {
@@ -30,6 +34,7 @@ export function BriefingTabs({
   const panes: { id: TabId; content: ReactNode }[] = [
     { id: 'objectives', content: objectives },
     { id: 'overview', content: overview },
+    { id: 'features', content: features },
   ]
 
   return (

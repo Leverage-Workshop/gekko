@@ -17,8 +17,10 @@ import {
   type DashboardData,
 } from '@/lib/briefing'
 import type { PersistedBriefing } from '@/knowledge/schema/briefing.schema'
+import { loadFeatureList, type FeatureRow } from '@/lib/features/featureList'
 import { BriefingTabs } from './components/briefing-tabs'
 import { EvalStrip } from './components/eval-strip'
+import { FeatureTable } from './components/feature-table'
 import { Footer } from './components/footer'
 import { HighlightedText } from './components/highlighted-text'
 import { MStripe } from './components/m-stripe'
@@ -523,6 +525,17 @@ export default async function Home() {
   const payload = briefing?.payload ?? null
   const terms = payload ? buildHighlightTerms(payload) : []
 
+  // The Features tab reads the harness file off disk at request time, so it
+  // tracks feature_list.json without a rebuild. Its failure is independent of
+  // the database load above.
+  let featureRows: FeatureRow[] = []
+  let featureError: string | null = null
+  try {
+    featureRows = await loadFeatureList()
+  } catch (error) {
+    featureError = error instanceof Error ? error.message : 'Failed to read feature_list.json'
+  }
+
   return (
     <>
       <TopNav />
@@ -622,6 +635,13 @@ export default async function Home() {
                     <UpdateGlow updateKey={briefing.id}>
                       <OverviewPane overview={payload.overview} terms={terms} />
                     </UpdateGlow>
+                  }
+                  features={
+                    featureError ? (
+                      <p className="text-sm font-light text-m-red">{featureError}</p>
+                    ) : (
+                      <FeatureTable rows={featureRows} />
+                    )
                   }
                 />
               </div>
