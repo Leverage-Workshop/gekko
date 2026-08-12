@@ -937,3 +937,55 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   `/settings` surfaces `significantMoveColumnMissing`; the analyze path does not. The general
   lesson, now recorded in the skill: **a padded config default is invisible to the pipeline that
   consumes it**, so a config migration must be applied the same day or the stored value is a lie.
+
+## feat-102 — 2026-08-12
+
+- **Decision:** `htfFlow.divergence` is COMPUTED by the engine, unit-tested, and **withheld from
+  every prompt payload** (analyze, update, eval), pinned by gate tests rather than left to review
+  discipline.
+  **Why:** the feature spec's own scope caveat required controlling against the unconditional base
+  rate before surfacing a directional claim, so a base-rate study ran in parallel with the
+  implementation on 3,559 union'd HTF bars — three live Supabase bundles, 2026-04-26..2026-08-12,
+  78 trading days, 6x the 593-bar repo fixture. Swing-level delta divergence produced 89 events
+  whose fade thesis *underperformed* the unconditional base rate by 6.7 / 5.6 / 6.7 / 11.3 pp at
+  h=4/8/16/34 bars; every 95% CI (day-clustered) contained the base rate; nothing survived Holm
+  correction; 1 of 64 grid cells reached raw p<0.05 against 3.2 expected by chance. The
+  like-for-like control — divergent vs delta-CONFIRMED fresh extremes — flips sign between
+  horizons, so the fresh price extreme is doing the work and the delta is not. Direction matches
+  the 2026-08-07 day-level rejection: divergence tilts CONTINUATION, the opposite of what the label
+  implies, which is exactly the inference an unqualified "delta diverged" would invite next to a
+  hold-or-exit decision.
+  **Alternatives considered:** shipping it with a verbatim caveat (rejected by the operator — it
+  spends eval-prefix budget, capped ~25k, on a fact whose honest description is "ignore this");
+  deleting it from the engine entirely (rejected — keeping it computed and tested means a future
+  study can license it with a one-line change at the marked seam, and the field documents the
+  negative result at the point of use).
+  **Do not re-propose without new data:** divergent swings arrive at 1.14/trading day, so a 5 pp
+  lift needs ~800 events ≈ 700 trading days (~2.8 yr) and 0.25 ATR at h=34 needs ~1,700. The live
+  export is a 90-day rolling window, so it cannot accumulate that sample — this is unanswerable
+  from Gekko's data, not merely unanswered. Full study, power table and reproduction scripts:
+  `docs/htf-delta-divergence-study-2026-08-12.md`, `scripts/studies/htf-delta-divergence/`.
+
+- **Decision (feat-102):** cumulative delta carries NO bare signed total — every net delta names
+  its anchor bar (chart time + open) and ships paired with the price change over that same window,
+  per RTH session as well.
+  **Why:** the same study measured HTF cumulative delta running OPPOSITE to realised price
+  direction on 60 of 78 trading days (77%); over the window price rose +2,491 pts while cumulative
+  delta fell to −53,901 contracts. corr(ΔPrice, ΔCumDelta) decays 0.62 (1 bar) → 0.46 (136), so
+  per-bar delta tracks its own bar's move near-tautologically while the multi-day *level* is
+  dominated by an arbitrary start point — wherever the rolling export happens to begin. A model
+  handed "cumulative delta: −53,901" would plausibly narrate distribution into a tape that rose
+  2,491 points. The repo fixture reproduces the hazard on sight: net delta +9277 (rising) against
+  price −642.25 pts over the same 138 bars, 4 of 5 sessions disagreeing in sign. Both prompt rules
+  therefore state the 77% figure as the reason never to read delta as direction.
+
+- **Decision (feat-102):** no Sierra Chart study change was made.
+  **Why:** the session opened on the assumption that `GekkoHtfBarDataExporter.cpp` needed work.
+  It does not — the export has carried `Volume,BidVolume,AskVolume` since feat-049, `parseHtfBars`
+  has computed `delta = Ask − Bid` since then, and `rthSessions.ts` already reconstructs sessions
+  from those bars; the gap was entirely downstream, exactly as D4/B5 of
+  `docs/data-bundle-review-2026-08-07.md` described. The only additive Sierra change available is a
+  `NumberOfTrades` column (it would enable an HTF analogue of `barFlow.recentAvgTradeSize`, the one
+  barFlow field HTF cannot reproduce). Deferred, and note the ordering constraint if it is ever
+  taken: `parseHtfBars` hard-rejects header drift, so the DLL rebuild has to reach the running
+  pipeline before the parser change does.
