@@ -1184,6 +1184,20 @@
       ],
       "status": "not-started",
       "evidence": ""
+    },
+    {
+      "id": "feat-114",
+      "name": "Dashboard: full-width briefing tabs, eval under Objectives, Danger Zones retired",
+      "description": "Operator layout call 2026-08-12. The dashboard body was a two-column grid whose RIGHT column alone carried the tab bar (Objectives / Tactical Overview / Danger Zones) while the EvalStrip sat outside the tabs in the left column \u2014 so the tabs read as a widget on half the page, and the Tactical Overview pane was confined to that same half. Three changes: (1) the tab bar spans the full content width and BriefingTabs now wraps the whole body section; (2) the latest entry eval moves INSIDE the first tab, beside the objective cards it evaluates (Objectives pane = the same two-column grid, eval left / objectives right); (3) the Danger Zones tab is removed from the UI \u2014 dangerZones stays in the schema, the prompt and the persisted payload, it is simply no longer rendered. Follow-on: with the panes now full width the Tactical Overview's three prose groups became a 3-up grid at xl (a single 1800px-wide paragraph is unreadable), and the Update / Briefing trigger buttons moved out of the objectives pane into the right end of the tab row so they no longer push the objective cards down.",
+      "dependencies": [
+        "feat-019",
+        "feat-020",
+        "feat-025",
+        "feat-038",
+        "feat-068"
+      ],
+      "status": "done",
+      "evidence": "2026-08-12: `app/components/briefing-tabs.tsx` \u2014 TABS drops the `danger` entry (two tabs left), the tab row becomes a flex row (`justify-between`) holding the `role=\"tablist\"` group on the left and a new optional `actions` ReactNode slot on the right; the tablist role stays on a wrapper around the tab buttons only, so the trigger buttons are never invalid tablist children. `app/page.tsx` \u2014 `<BriefingTabs>` moved up to wrap the whole body section inside the existing `mx-auto max-w-[1800px] px-6` container; the `objectives` pane now holds the `xl:grid-cols-2` grid (EvalStrip + its UpdateGlow on the left, objective cards on the right), `overview` carries its own UpdateGlow, `actions` carries RunUpdateButton + RunBriefingButton, and the `DangerZones` component plus its `DangerZone` type import are deleted. OverviewPane's stack became `grid items-start gap-6 xl:grid-cols-3`. The UPDATE chip tooltip no longer names danger zones. No schema, task or DB change \u2014 this is render only; `payload.dangerZones` is still produced and persisted (analyze + update prompts and composeBriefing untouched). Verified with `./init.sh` green (typecheck, eslint --max-warnings 0, 1359 passed | 1 skipped, next build) and by rendering the live dashboard at localhost:3000 through headless Chromium: DOM order is tablist \u2192 tabpanel(objectives) \u2192 2-col grid \u2192 `id=\"eval\"` \u2192 Primary Objective, then tabpanel(overview) \u2192 3-col grid \u2192 HTF View; only two tabs exist and no 'Danger Zones' string is in the served HTML."
     }
   ]
 }

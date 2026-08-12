@@ -1,6 +1,5 @@
 import type {
   BulletOverview,
-  DangerZone,
   NoTradeObjective,
   NoTradeReasonCode,
   ObjectiveSlot,
@@ -33,12 +32,12 @@ import { UpdateGlow } from './components/update-glow'
  * briefing, eval result, and bundle freshness via the service-role client,
  * then renders the briefing as a dense tool view: a full-width meta strip
  * (price/rip/intraday-trend/HTF-trend/run-meta cells in one row, with the Tactical Read in
- * an expander) above two equal body columns (left = EvalStrip: verdict +
- * targets with the condition checks always visible; right = the tabbed
- * briefing: objective cards, tactical overview, danger zones). The trigger
- * buttons live in the sections they act on: "Briefing" (feat-020) and
- * "Update" (feat-038) at the top of the Objectives pane, "Eval" (feat-025)
- * inside the EvalStrip. Update briefings additionally
+ * an expander) above a full-width tab bar. The Objectives tab holds two equal
+ * body columns (left = EvalStrip: the latest verdict with the condition checks
+ * always visible; right = the objective cards); the Tactical Overview tab holds
+ * the three prose groups. The trigger buttons live in the sections they act on:
+ * "Briefing" (feat-020) and "Update" (feat-038) right-aligned in the tab row,
+ * "Eval" (feat-025) inside the EvalStrip. Update briefings additionally
  * carry an UPDATE chip and an Immediate Tactical Read strip.
  */
 
@@ -139,8 +138,11 @@ function OverviewPane({ overview, terms }: { overview: PersistedOverview; terms:
           { title: 'Structural Architecture', items: overview.structuralArchitecture },
           { title: 'Order Flow Context', items: overview.orderFlowContext },
         ]
+  // Now that the tabs span the page, the three groups read as columns rather
+  // than a full-width stack: HTF → MTF → Current left to right, each keeping a
+  // readable measure instead of one 1800px-wide paragraph.
   return (
-    <div className="flex flex-col gap-6">
+    <div className="grid items-start gap-6 xl:grid-cols-3">
       {groups.map((group) => (
         <article
           key={group.title}
@@ -270,7 +272,7 @@ function MetaColumn({
             {briefing.kind === 'update' && (
               <span
                 className="ml-3 border border-bmw-blue px-2 py-0.5 text-xs font-bold uppercase tracking-[1.5px] text-bmw-blue"
-                title="Update briefing — objectives and danger zones regenerated; overview and terrain inherited from the previous briefing"
+                title="Update briefing — objectives regenerated; overview and terrain inherited from the previous briefing"
               >
                 Update
               </span>
@@ -508,28 +510,6 @@ function ObjectiveCard({
   )
 }
 
-/** Danger Zones tab: one card per no-trade area. */
-function DangerZones({ zones, terms }: { zones: DangerZone[]; terms: string[] }) {
-  if (zones.length === 0) {
-    return <p className="text-sm font-light text-muted">None flagged.</p>
-  }
-  return (
-    <ul className="flex flex-col gap-6">
-      {zones.map((zone) => (
-        <li
-          key={`${zone.area}-${zone.why}`}
-          className="border border-hairline border-t-2 border-t-m-red bg-surface-card p-6"
-        >
-          <p className="text-sm font-bold uppercase tracking-wide text-m-red">Avoid: {zone.area}</p>
-          <p className="mt-2 text-sm font-light leading-relaxed text-body">
-            <HighlightedText text={zone.why} terms={terms} />
-          </p>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 export default async function Home() {
   let data: DashboardData | null = null
   let loadError: string | null = null
@@ -588,26 +568,30 @@ export default async function Home() {
 
             <section className="border-b border-hairline">
               <div className="mx-auto max-w-[1800px] px-6 py-8">
-                <div className="grid items-start gap-6 xl:grid-cols-2">
-                  {/* Eval column: verdict, targets and always-visible conditions */}
-                  <UpdateGlow updateKey={data?.evalResult?.id ?? 'no-eval'}>
-                    <EvalStrip
-                      evalResult={data?.evalResult ?? null}
-                      unavailable={false}
-                      superseded={data?.evalSuperseded ?? false}
-                      terms={terms}
-                    />
-                  </UpdateGlow>
+                {/* Full-width tab bar over the whole body: the latest eval sits
+                    with the objectives it evaluates under the first tab. */}
+                <BriefingTabs
+                  actions={
+                    <>
+                      <RunUpdateButton size="sm" />
+                      <RunBriefingButton size="sm" />
+                    </>
+                  }
+                  objectives={
+                    <div className="grid items-start gap-6 xl:grid-cols-2">
+                      {/* Eval column: verdict, targets and always-visible conditions */}
+                      <UpdateGlow updateKey={data?.evalResult?.id ?? 'no-eval'}>
+                        <EvalStrip
+                          evalResult={data?.evalResult ?? null}
+                          unavailable={false}
+                          superseded={data?.evalSuperseded ?? false}
+                          terms={terms}
+                        />
+                      </UpdateGlow>
 
-                  {/* Tabbed column */}
-                  <UpdateGlow updateKey={briefing.id}>
-                    <BriefingTabs
-                      objectives={
+                      {/* Objective column */}
+                      <UpdateGlow updateKey={briefing.id}>
                         <div className="flex flex-col gap-6">
-                          <div className="flex items-center justify-end gap-3">
-                            <RunUpdateButton size="sm" />
-                            <RunBriefingButton size="sm" />
-                          </div>
                           <ObjectiveCard
                             heading="I · Primary Objective"
                             objective={payload.primary}
@@ -631,12 +615,15 @@ export default async function Home() {
                             }
                           />
                         </div>
-                      }
-                      overview={<OverviewPane overview={payload.overview} terms={terms} />}
-                      danger={<DangerZones zones={payload.dangerZones} terms={terms} />}
-                    />
-                  </UpdateGlow>
-                </div>
+                      </UpdateGlow>
+                    </div>
+                  }
+                  overview={
+                    <UpdateGlow updateKey={briefing.id}>
+                      <OverviewPane overview={payload.overview} terms={terms} />
+                    </UpdateGlow>
+                  }
+                />
               </div>
             </section>
           </>
