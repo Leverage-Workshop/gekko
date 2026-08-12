@@ -5,6 +5,7 @@ import type { ExecBar } from '@/lib/engine/parseExecBars'
 import type { StalenessAssessment } from '@/lib/engine/staleness'
 import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import type { HtfFlowFacts } from '@/lib/engine/htfFlow'
 import type { VolatilityScaleFacts } from '@/lib/engine/volatilityScale'
 import { sigmaOfPoints } from '@/lib/engine/volatilityScale'
 import type { IntradayTrendFacts } from '@/lib/engine/intradayTrend'
@@ -67,6 +68,14 @@ export interface EvalPromptInput {
    * an adverse move can be judged as rotation noise vs trend break.
    */
   htfStructure?: HtfStructureFacts | null
+  /**
+   * Code-owned HTF order-flow read from the same 30-min bar export (feat-102);
+   * null when the bundle carries no usable export. Rendered as one context
+   * line — multi-day cumulative delta and the NEUTRAL divergence observation.
+   * Context only: day-level HTF delta divergence was tested as a fade signal
+   * and rejected, so the line says so and licenses no hold/exit decision.
+   */
+  htfFlow?: HtfFlowFacts | null
   /**
    * Code-owned relative-volume read from the 30-min bar export (feat-094);
    * null when the bundle carries no usable export. Rendered as one context
@@ -243,6 +252,48 @@ function htfContextLine(htf: HtfStructureFacts | null | undefined): string {
     ? ` — integrity ${htf.trend.integrity.toUpperCase()} (${htf.trend.integrityBasis})`
     : ''
   return `Code-owned (30-min chart): trend ${htf.trend.state.toUpperCase()} (${htf.trend.basis})${integrity}; 30-min ATR ${htf.atrPoints} pts${rotation}${swings}. An adverse move well inside 1 rotation/a few ATR is rotation noise; beyond the last swing against the trade is a structure break. The swing state lags by 2.5 h — weigh the integrity qualifier, not the raw state.`
+}
+
+/**
+ * One code-owned HTF order-flow line (feat-102): the window-anchored cumulative
+ * delta paired with the price change over that same window, and the per-session
+ * delta walk.
+ *
+ * `flow.divergence` is COMPUTED but deliberately NOT rendered — the same seam
+ * as `modelHtfFlow` in lib/analyze/prompt.ts, and for the same reason: the
+ * 2026-08-12 base-rate control study found no support for swing-level delta
+ * divergence (89 divergent swings, every 95% CI containing the base rate,
+ * nothing surviving Holm correction), replicating the 2026-08-07 day-level
+ * rejection. An unqualified "delta diverged" landing next to a hold-or-exit
+ * decision reads as "get out", which is precisely the inference the data does
+ * not support. Adding it back is one line here plus a verbatim caveat, and it
+ * is the operator's call.
+ *
+ * The sign caveat IS rendered every run: over 78 trading days HTF cumulative
+ * delta ran opposite to the realised price direction on 77% of them.
+ */
+function htfFlowLine(flow: HtfFlowFacts | null | undefined): string {
+  if (!flow) {
+    return 'No HTF order-flow read is attached to this bundle.'
+  }
+  const cd = flow.cumulativeDelta
+  const walk = cd.sessions
+    .map(
+      (s) =>
+        `${s.date} delta ${signedNum(s.netDelta)} / price ${signedNum(s.pricePts)} pts${s.complete ? '' : ' so far'}`,
+    )
+    .join(' · ')
+  const sessions = walk.length > 0 ? ` Per RTH session, newest first: ${walk}.` : ''
+  return (
+    `Code-owned (30-min chart): since ${cd.anchor.dateTime} (${cd.anchor.price}) cumulative delta is ` +
+    `${signedNum(cd.netDelta)} contracts (${cd.trend.toUpperCase()}) while price moved ${signedNum(cd.pricePts)} pts over the same ${cd.windowBars} bars.${sessions} ` +
+    'The sign of delta does NOT predict the sign of price — measured over 78 trading days the two disagreed on 77% of them. ' +
+    'Never hold, exit or flip a verdict on this line; it describes how hard the tape worked for a move the level evidence already frames.'
+  )
+}
+
+function signedNum(n: number): string {
+  return n > 0 ? `+${n}` : String(n)
 }
 
 /**
@@ -442,6 +493,7 @@ export function buildEvalPrompt(input: EvalPromptInput): string {
     '',
     '# HTF structure context (code-owned, from the 30-min HTF bar export)',
     htfContextLine(input.htfStructure),
+    htfFlowLine(input.htfFlow),
     '',
     '# Volatility scale (code-owned, range estimators over the 30-min HTF bars)',
     volatilityContextLine(input.volatilityScale, input.proximity),

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { buildAnalysisPrompt, computeEngineFacts, loadDoctrine } from '@/lib/analyze'
-import { factsPayload } from '@/lib/analyze/prompt'
+import { HTF_FLOW_RULE, factsPayload } from '@/lib/analyze/prompt'
 import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
 import { FILE_FIELDS, MGI_FIELD } from '@/lib/ingest/manifest'
 
@@ -293,6 +293,59 @@ describe('prompt-data sync gate (feat-054)', () => {
       } else {
         expect(analysisPrompt).toMatch(/execution chart shows price STALLED/)
       }
+    })
+  })
+
+  describe('the HTF divergence read stays out of every prompt (feat-102)', () => {
+    // The 2026-08-12 base-rate control study (3,559 union'd HTF bars, 78 trading
+    // days) found swing-level delta divergence has NO empirical support: across
+    // 89 divergent swings the fade thesis underperformed the unconditional base
+    // rate by 6.7 / 5.6 / 6.7 / 11.3 pp at 4 / 8 / 16 / 34 bars ahead, every 95%
+    // CI contained the base rate, and nothing survived Holm correction — a
+    // swing-level replication of the 2026-08-07 day-level rejection. The engine
+    // still COMPUTES it (testable, and the operator may choose to expose it
+    // behind a verbatim caveat); the model must not see it until then. This gate
+    // is what makes that a deliberate one-line decision instead of a drift.
+    const modelFlow = payload.htfFlow as Record<string, unknown> | null
+
+    it('the engine still computes the divergence read', () => {
+      expect(facts.htfFlow, 'the fixture bundle should produce an HTF flow fact').not.toBeNull()
+      expect(facts.htfFlow!.divergence.state === null || typeof facts.htfFlow!.divergence.state === 'string').toBe(true)
+      expect(facts.htfFlow!.divergence.basis.length).toBeGreaterThan(0)
+    })
+
+    it('the model payload omits it', () => {
+      expect(modelFlow).not.toBeNull()
+      expect(
+        'divergence' in modelFlow!,
+        'htfFlow.divergence reached the model payload — the control study found no support for ' +
+          'it; exposing it is an operator decision at the seam in lib/analyze/prompt.ts',
+      ).toBe(false)
+    })
+
+    it('no built prompt or prompt builder renders the divergence basis', () => {
+      expect(analysisPrompt).not.toContain(facts.htfFlow!.divergence.basis)
+      for (const source of ['lib/analyze/prompt.ts', 'lib/update/prompt.ts', 'lib/eval/prompt.ts']) {
+        expect(
+          read(source).includes('divergence.basis'),
+          `${source} renders htfFlow.divergence.basis — see the seam comment before changing this`,
+        ).toBe(false)
+      }
+    })
+
+    it('cumulative delta never reaches the model as a bare signed total', () => {
+      // Study finding 2: over the window price rose +2,491 pts while cumulative
+      // delta fell to −53,901 contracts, and the running total carried the
+      // OPPOSITE sign to realised direction on 60 of 78 days (77%). Every net
+      // delta must therefore be anchored and paired with its price change.
+      const cd = modelFlow!.cumulativeDelta as Record<string, unknown>
+      expect(cd).toHaveProperty('anchor')
+      expect(cd).toHaveProperty('pricePts')
+      expect('total' in cd, 'a bare export-wide cumulative-delta total reached the model').toBe(false)
+      for (const line of cd.sessions as string[]) {
+        expect(line, 'a session delta shipped without its own price change').toMatch(/price [-+]/)
+      }
+      expect(HTF_FLOW_RULE).toContain('77%')
     })
   })
 

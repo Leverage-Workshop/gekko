@@ -22,6 +22,8 @@ import type { ValueMigrationFacts } from '@/lib/engine/valueMigration'
 import { parseHtfBars } from '@/lib/engine/parseHtfBars'
 import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import { computeHtfFlow } from '@/lib/engine/htfFlow'
+import type { HtfFlowFacts } from '@/lib/engine/htfFlow'
 import { computeRelativeVolume } from '@/lib/engine/relativeVolume'
 import type { RelativeVolumeFacts } from '@/lib/engine/relativeVolume'
 import { computeVolatilityScale } from '@/lib/engine/volatilityScale'
@@ -150,28 +152,42 @@ function computeEvalValueMigration(
 }
 
 /**
- * Code-owned HTF context (feat-049 structure + feat-095 volatility scale) from
- * ONE parse of the bar export, best-effort like the value history: a bundle
- * without the export (pre-study) stays silent; malformed content degrades to
- * nulls + a warning — HTF context must never block a check.
+ * Code-owned HTF context (feat-049 structure + feat-095 volatility scale +
+ * feat-102 order flow) from ONE parse of the bar export, best-effort like the
+ * value history: a bundle without the export (pre-study) stays silent;
+ * malformed content degrades to nulls + a warning — HTF context must never
+ * block a check.
  */
+type EvalHtfContext = {
+  htfStructure: HtfStructureFacts | null
+  htfFlow: HtfFlowFacts | null
+  volatilityScale: VolatilityScaleFacts | null
+}
+
+const NO_HTF_CONTEXT: EvalHtfContext = {
+  htfStructure: null,
+  htfFlow: null,
+  volatilityScale: null,
+}
+
 function computeEvalHtfContext(
   content: string | null,
   currentPrice: number,
   warnings: string[],
-): { htfStructure: HtfStructureFacts | null; volatilityScale: VolatilityScaleFacts | null } {
-  if (content === null) return { htfStructure: null, volatilityScale: null }
+): EvalHtfContext {
+  if (content === null) return NO_HTF_CONTEXT
   try {
     const bars = parseHtfBars(content)
     return {
       htfStructure: computeHtfStructure(bars, currentPrice),
+      htfFlow: computeHtfFlow(bars),
       volatilityScale: computeVolatilityScale({ bars, currentPrice }),
     }
   } catch (error) {
     warnings.push(
       `failed to parse the HTF bar data: ${error instanceof Error ? error.message : String(error)}`,
     )
-    return { htfStructure: null, volatilityScale: null }
+    return NO_HTF_CONTEXT
   }
 }
 
@@ -426,7 +442,7 @@ export async function runEval(
     warnings,
   )
   const valueMigration = computeEvalValueMigration(dailyVaPartition, currentPrice)
-  const { htfStructure, volatilityScale } = computeEvalHtfContext(
+  const { htfStructure, htfFlow, volatilityScale } = computeEvalHtfContext(
     bundle.htfCsvContent,
     currentPrice,
     warnings,
@@ -552,6 +568,7 @@ export async function runEval(
       recentBars,
       valueMigration,
       htfStructure,
+      htfFlow,
       relativeVolume,
       volatilityScale,
       intradayTrend,

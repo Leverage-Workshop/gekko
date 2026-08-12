@@ -36,6 +36,8 @@ import { parseHtfBars } from '@/lib/engine/parseHtfBars'
 import type { HtfBar } from '@/lib/engine/parseHtfBars'
 import { computeHtfStructure } from '@/lib/engine/htfStructure'
 import type { HtfStructureFacts } from '@/lib/engine/htfStructure'
+import { computeHtfFlow } from '@/lib/engine/htfFlow'
+import type { HtfFlowFacts } from '@/lib/engine/htfFlow'
 import { computeVolatilityScale } from '@/lib/engine/volatilityScale'
 import type { StructureReference, VolatilityScaleFacts } from '@/lib/engine/volatilityScale'
 import { computeAtrProjections } from '@/lib/engine/atrProjection'
@@ -185,6 +187,20 @@ export interface EngineFacts {
    * `htf_bar_data.rolling.csv` — flagged in `warnings`.
    */
   htfStructure: HtfStructureFacts | null
+  /**
+   * Code-owned HTF ORDER-FLOW read (feat-102), computed from the bid/ask volume
+   * columns of the same 30-min export that `htfStructure` reads OHLC from — the
+   * per-bar delta that had been parsed, typed and consumed by nothing (bundle
+   * review 2026-08-07, B5/D4): multi-day cumulative delta (export total, the
+   * 3-day lookback's net change and trend, a per-RTH-session net-delta walk),
+   * the delta/volume/running-CD at each confirmed swing `htfStructure` reports,
+   * and a NEUTRAL divergence observation at the lookback's fresh price extreme.
+   * CONTEXT ONLY: day-level HTF delta divergence was tested as a fade signal
+   * (2026-08-07 review) and rejected — nothing here is a directional trigger.
+   * Null when the bundle has no (or a malformed) `htf_bar_data.rolling.csv` —
+   * flagged in `warnings`.
+   */
+  htfFlow: HtfFlowFacts | null
   /**
    * Code-owned volatility SCALE read (feat-095), computed from the same 30-min
    * bars: Parkinson (high/low) and Garman-Klass (OHLC) range estimators — ~5x
@@ -573,6 +589,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
   const staleness = assessStaleness({ receivedAt: input.receivedAt, now: input.now })
 
   let htfStructure: HtfStructureFacts | null = null
+  let htfFlow: HtfFlowFacts | null = null
   let overnightSession: OvernightSessionFacts | null = null
   let multiDayTpo: MultiDayTpoFacts | null = null
   let relativeVolume: RelativeVolumeFacts | null = null
@@ -584,6 +601,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
       if (htfParseError !== null) throw htfParseError
       if (htfBars === null) throw new Error('HTF bars did not parse')
       htfStructure = computeHtfStructure(htfBars, currentPrice)
+      htfFlow = computeHtfFlow(htfBars)
       relativeVolume = computeRelativeVolume({
         bars: htfBars,
         completedSessions,
@@ -608,12 +626,12 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
       }
     } catch (error) {
       warnings.push(
-        `htf_bar_data.rolling.csv failed to parse — HTF structure and relative volume not computed: ${error instanceof Error ? error.message : String(error)}`,
+        `htf_bar_data.rolling.csv failed to parse — HTF structure, order flow and relative volume not computed: ${error instanceof Error ? error.message : String(error)}`,
       )
     }
   } else {
     warnings.push(
-      'bundle has no HTF bar data — HTF structure and relative volume not computed',
+      'bundle has no HTF bar data — HTF structure, order flow and relative volume not computed',
     )
   }
 
@@ -784,6 +802,7 @@ export function computeEngineFacts(input: EngineFactsInput): EngineFacts {
     dailyRanges,
     developingSession,
     htfStructure,
+    htfFlow,
     volatilityScale,
     atrProjections,
     ibExtension,

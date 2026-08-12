@@ -93,6 +93,60 @@ function modelTerrain(terrain: EngineFacts['terrain']): Record<string, unknown> 
 }
 
 /**
+ * The MODEL's copy of the HTF order-flow read (feat-102).
+ *
+ * ── DIVERGENCE SEAM — READ BEFORE CHANGING ─────────────────────────────────
+ * `flow.divergence` is COMPUTED by the engine and deliberately NOT included
+ * here. The 2026-08-12 base-rate control study (3,559 union'd HTF bars, 78
+ * trading days) found swing-level delta divergence has no empirical support:
+ * across 89 divergent swings the fade thesis underperformed the unconditional
+ * base rate by 6.7 / 5.6 / 6.7 / 11.3 pp at 4 / 8 / 16 / 34 bars ahead, every
+ * 95% CI contained the base rate, nothing survived Holm correction, and the
+ * delta's own contribution flipped sign between horizons once "fresh price
+ * extreme" was held fixed. It replicates the 2026-08-07 day-level rejection.
+ * Exposing it later is a ONE-LINE change — add `divergence: flow.divergence`
+ * below and the verbatim caveat to HTF_FLOW_RULE — and it is the OPERATOR's
+ * call, not a cleanup. `tests/prompt-data-sync.test.ts` pins the omission.
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * The rest gets the same trim as `atrProjections.rungs` and `mgiPriority.tier1`:
+ * each annotated swing and each session in the delta walk becomes ONE labelled
+ * string instead of four JSON keys. Every field survives in the text the model
+ * quotes, at ~60% of the characters — which is how this fact landed inside the
+ * analyze user-prompt budget without raising it. `facts.htfFlow` itself keeps
+ * the structured shape for code consumers.
+ */
+function modelHtfFlow(flow: NonNullable<EngineFacts['htfFlow']>): Record<string, unknown> {
+  const { divergence, ...shipped } = flow
+  void divergence // withheld — see the seam above
+  return {
+    ...shipped,
+    cumulativeDelta: {
+      ...shipped.cumulativeDelta,
+      // Net delta NEVER travels without the price change over the same span:
+      // the study measured the two disagreeing in sign on 77% of trading days.
+      sessions: shipped.cumulativeDelta.sessions.map(
+        (s) =>
+          `${s.date} · net delta ${signed(s.netDelta)} · price ${signed(s.pricePts)} pts · ${s.volume} vol` +
+          (s.complete ? '' : ' · in progress'),
+      ),
+    },
+    swings: {
+      highs: shipped.swings.highs.map(swingFlowLine),
+      lows: shipped.swings.lows.map(swingFlowLine),
+    },
+  }
+}
+
+function signed(n: number): string {
+  return n > 0 ? `+${n}` : String(n)
+}
+
+function swingFlowLine(swing: NonNullable<EngineFacts['htfFlow']>['swings']['highs'][number]): string {
+  return `${swing.price} · ${swing.dateTime} · bar delta ${signed(swing.delta)} on ${swing.volume} vol`
+}
+
+/**
  * Compact, model-facing projection of the engine facts (no bulky raw rows).
  * Shared with the update-task prompt (lib/update/prompt.ts).
  */
@@ -136,6 +190,7 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
     dailyRanges: facts.dailyRanges,
     developingSession: facts.developingSession,
     htfStructure: facts.htfStructure,
+    htfFlow: facts.htfFlow === null ? null : modelHtfFlow(facts.htfFlow),
     volatilityScale: facts.volatilityScale,
     atrProjections:
       facts.atrProjections === null
@@ -172,6 +227,19 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
  */
 export const ATR_PROJECTION_RULE =
   "- `atrProjections` is the code-owned ATR PRICE-LEVEL read (feat-108): the 30-min ATR projected into concrete anchorable prices — from current price both ways (targets) and outward from the last confirmed swing high/low (reversals) — at 0.5/1/1.5/2x. Each `rungs` entry reads `PRICE · label · travel`; anchor only on that price and quote the label with it (\"30061.98 (current price (29945.75) +1× ATR)\"). Never do ATR arithmetic yourself — a price that is not a rung is not structure. A rung marked UNDER the significant-move floor is legal as an entry or stop but NEVER as a target; `significantMoveNote` says why (one ATR is ~0.4σ — the floor itself). Null = no HTF export; say the projections are unavailable rather than estimating them. These are DERIVED prices; `htfStructure.atrPoints` and the `*Atr` distances keep their separate normalizer job."
+
+/**
+ * HTF order-flow read (feat-102). Shared verbatim with the update-task prompt so
+ * the two tasks cannot read the same flow differently — and, more importantly,
+ * so the MEASURED LIMIT on this fact is stated identically in both. The
+ * 2026-08-12 base-rate control study found HTF cumulative delta carries the
+ * opposite sign to realised price direction on 77% of trading days, so the rule
+ * spends its words teaching the model NOT to read the delta as a direction.
+ * Divergence is not documented here because it is not shipped — see the seam in
+ * {@link modelHtfFlow}.
+ */
+export const HTF_FLOW_RULE =
+  "- `htfFlow` is the code-owned HTF ORDER-FLOW read (feat-102), from the bid/ask volume of the same 30-min bars `htfStructure` reads OHLC from. `htfFlow.cumulativeDelta` is WINDOW-ANCHORED: it names the anchor bar (time + open) and reports the net delta from it, the price change over that same window, and a rising/falling/flat label on the delta — plus a per-RTH-session walk, newest first, each entry reading `DATE · net delta N · price P pts · V vol` with the live day marked in progress. THE SIGN OF DELTA DOES NOT PREDICT THE SIGN OF PRICE: measured over 78 trading days, HTF cumulative delta ran OPPOSITE to the realised price direction on 77% of them, so never narrate net delta as buyers/sellers \"winning\", never infer direction, bias or an objective from it, and never quote a cumulative-delta level as a size — it is anchor-dependent by construction. Read it only next to the price change printed beside it, as a description of how hard the tape worked for that move. `htfFlow.swings` annotates the SAME confirmed swings `htfStructure` reports, each entry reading `PRICE · TIME · bar delta N on V vol` — the pivot bar's own prints. That is a measurement, not a signal: swings routinely print ~55% more volume than an ordinary bar, and swing-high delta skews mildly positive while swing-low delta skews negative, so an extreme carrying heavy two-sided volume is normal and says nothing on its own. Use these numbers to describe HOW a level was made when the structure already earns the mention. When `htfFlow` is null the bundle carried no HTF bar export."
 
 /**
  * MGI structural read (feat-109). Shared verbatim with the update-task prompt — the sole home
@@ -317,6 +385,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- `multiDayTpo` is the code-owned multi-day TPO composite (feat-071), reconstructed from the 30-min HTF bars (each 30-min bar = one TPO period; RTH sessions only): the last ~5 sessions merged into one profile — composite POC with prominence, 70% value area, HVN shelves and interior LVN valleys (multi-day acceptance gaps) — plus the per-session POC/range walk (`multiDayTpo.perSession`, newest-first) and where current price sits vs the composite value (`multiDayTpo.currentVsComposite`). This is the numeric multi-day Market Profile behind `overview.mtfView` — narrate the multi-day balance FROM these numbers, never from the Market Profile chart image. When `multiDayTpo` is null the bundle carried no HTF bar export (or under two RTH sessions) — say so instead of guessing the multi-day structure.',
     '- `overnightSession` is the code-owned overnight read (feat-060): the Globex session\'s high/low/range and times (`overnightSession.overnight`), the RTH session-so-far extremes (`overnightSession.rthSoFar`, null before the open) and current price vs the overnight extremes (`overnightSession.currentVsOvernight`). Anchor the overview\'s `current` section on these numbers, and narrate overnight-level tests/rejections from them plus the execution bars — prefer them over `mgiPriority` ONH/ONL entries, which can export as 0.00 placeholders. When `overnightSession` is null the HTF export carried no overnight bars — say so.',
     "- `htfStructure` is the code-owned HTF structure read (feat-049), computed from the 30-min planning chart's bars: trend state from the confirmed swing sequence (`htfStructure.trend`), the recent swing highs/lows, the current rotation extent (`htfStructure.rotation`) and the measured 30-min ATR (`htfStructure.atrPoints`, with ATR-normalized distances in `htfStructure.currentVsSwings`). The swing state is a LAGGING read (pivots confirm 2.5 h late) — `htfStructure.trend.integrity` (feat-064) squares it with the live price: 'intact', 'under-test' (counter-move retraced most of the defining rotation) or 'broken' (price has traded through the defining swing). NEVER state a directional HTF trend without its integrity qualifier — \"down, but broken in real time\" and \"down, intact\" are different battlefields. Ground meta.htfTrend and every HTF narrative in these numbers — the planning-chart screenshot adds distribution shape only, never the trend call. When `htfStructure` is null the bundle carried no HTF bar export — say so and mark the trend read as vision-only.",
+    HTF_FLOW_RULE,
     "- `volatilityScale` is the code-owned VOLATILITY SCALE (feat-095), measured from the same 30-min bars with the Parkinson (high/low) and Garman-Klass (OHLC) range estimators: `volatilityScale.sessionSigmaPts` is one RTH session's sigma in points — how far this market normally travels in a day — alongside `volatilityScale.medianBarRangePts` and `volatilityScale.medianSessionRangePts`. `volatilityScale.distancesToStructure` gives the distance from current price to the nearest Tier-1 borders and zone borders in points AND in sigma, each with a `band`: 'noise' (inside a quarter of a session sigma — NOT a meaningful gap, do not narrate it as one), 'minor', 'meaningful', 'large'. Use it to size every claim about distance: a level 29 pts away on a 283-pt sigma is 0.10 sigma, i.e. touching distance, not room. Points stay the quoting unit — sigma is the qualifier you attach to them, never a replacement (never quote an entry, stop or target in sigma). When `volatilityScale` is null the bundle carried no HTF bar export (or under 3 complete RTH sessions) — judge distance from points alone and say the scale is unmeasured.",
     "- `intradayTrend` is the code-owned COMPOSITE intraday trend (feat-064) — the trend read at the operator's trade horizon (minutes), senior to the HTF swing state for session narration: `direction` (majority of the structural votes: 15-min one-timeframing, micro swing structure with a real-time Dow break rule, the multi-window momentum stack), `conviction` (how many confirming reads agree: session cumulative delta, the Rip condition, session-VWAP position), `character` (trending / transitioning / rotational) and `disagreements` (explicit component conflicts). Narrate the session's trend FROM this fact — quote `intradayTrend.basis` in substance and surface every entry in `intradayTrend.disagreements` rather than smoothing them over; a directional call with `conviction: 'weak'` or open conflicts is a contested tape, not a trend to lean on. The Law of Asymmetric Initiative awards the PRIMARY objective off `intradayTrend.direction` (never the lagging HTF swing state); on `neutral` award it to the structurally superior setup and say the tape is rotational.",
     "- `sessionIntraday` is the code-owned session-anchored intraday read (feat-063), computed from the full-session exec bars: the session VWAP with slope and current-price position (`sessionIntraday.vwap.globex` / `.rth` — Globex- and RTH-anchored), the session cumulative delta (`sessionIntraday.cumulativeDelta`, same two anchors) and 15-minute one-timeframing (`sessionIntraday.oneTimeframing`: state, bars held, the `breakLevel` that flips it, and whether the developing bar already broke it). This is the INTRADAY trend read at the operator's trade horizon — weigh it alongside the Rip condition when narrating who controls the session, and quote the VWAP with attribution like any other level (e.g. \"27810 (session VWAP)\"). One-timeframing 'none' is two-timeframing: rotational, both sides trading. When `sessionIntraday.vwap` is null the export started mid-session (partial coverage) — say so rather than inventing a session average.",
