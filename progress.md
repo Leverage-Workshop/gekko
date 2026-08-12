@@ -4,7 +4,39 @@
 
 **Last Updated:** 2026-08-12
 
-**Latest change (branch `feat-114-full-width-briefing-tabs`): feat-114 — the dashboard tabs span
+**Latest change (branch `feat-115-features-tab`): feat-115 — a third dashboard tab renders
+`feature_list.json` as a sortable, filterable TanStack table.** Operator ask: feature state should
+be readable from the app, not only from the file. ID sorts ascending, the Status column opens
+pre-filtered to `not-started` (the work that is left), grid descriptions truncate at 100 characters,
+and a row click opens a modal with the full description.
+
+**The installed table library is TanStack Table v9 (`@tanstack/react-table` ^9.1.2) and v8 examples
+do not transfer.** Features are registered explicitly through `tableFeatures` (each row-model slot
+after its feature), the hook is `useTable` not `useReactTable`, and header/cell rendering goes
+through `table.FlexRender`. CLAUDE.md's intent block now routes this: `npx @tanstack/intent list`
+then `load @tanstack/react-table#getting-started`, `#table-state`, `@tanstack/table-core#sorting`,
+`#column-filtering` — worth doing, since the v9 shape is not what training memory produces.
+
+Two behaviors that are easy to get wrong and are now pinned in code comments: `resetColumnFilters()`
+resets to `initialState`, i.e. straight back to the default `not-started` filter, so Clear Filters
+passes `resetColumnFilters(true)` for the blank state; and table state stays INTERNAL because
+`useTable` without a selector subscribes to every registered slice, so sort clicks and filter
+keystrokes re-render on their own — controlled React state would be redundant ownership.
+
+The grid truncates descriptions but **filtering still runs against the full text**, so shortening a
+cell never narrows what a search can find. The dialog is the native `<dialog>` element with
+`showModal()`: TanStack ships no dialog package, and the element already owns the top layer,
+backdrop, focus trap and Escape. `@tanstack/react-form` was considered and rejected — not installed,
+the filter inputs' state is already owned by the table's column-filtering feature, and the dialog is
+read-only.
+
+`lib/features/featureList.ts` reads the file off disk at request time (so the tab tracks it without
+a rebuild) and is deliberately permissive: `status` is a plain string because the file is hand-edited
+and an unseen status must render rather than blank the tab. `evidence` is parsed off and dropped —
+nothing renders it and it is half the file's 274 KB. `./init.sh` green: 1365 passed | 1 skipped,
+including 6 new loader tests, one of which parses the real `feature_list.json`.
+
+**Previous change (branch `feat-114-full-width-briefing-tabs`): feat-114 — the dashboard tabs span
 the page, the latest eval moved under the Objectives tab, and the Danger Zones tab is gone.**
 Operator layout call, render-only. The body was a two-column grid whose RIGHT column alone carried
 the tab bar, so the tabs read as a widget on half the page and the Tactical Overview pane was
