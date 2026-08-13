@@ -367,6 +367,40 @@ describe('runEval', () => {
     expect(harness.getCaptured()!.prompt).toContain(
       'No HTF bar data is attached to this bundle',
     )
+    expect(harness.getCaptured()!.prompt).toContain(
+      'No HTF order-flow read is attached to this bundle',
+    )
+  })
+
+  it('feeds anchored HTF cumulative delta with its price change, and NEVER the divergence (feat-102)', async () => {
+    const encoder = new TextEncoder()
+    const htfCsv = readFileSync(
+      join(process.cwd(), 'chart-data', 'htf_bar_data.rolling.csv'),
+      'utf-8',
+    )
+    const harness = makeDeps()
+    const base = harness.deps.fetchLatestBundle
+    const download = harness.deps.downloadObject
+    harness.deps.fetchLatestBundle = async () => ({
+      ...(await base())!,
+      htf_csv_ref: 'b1/htf_bars.csv',
+    })
+    harness.deps.downloadObject = async (bucket, path) =>
+      path === 'b1/htf_bars.csv' ? encoder.encode(htfCsv) : download(bucket, path)
+
+    await runEval(harness.deps)
+    const prompt = harness.getCaptured()!.prompt
+
+    // Anchored, and never a bare signed total: the 2026-08-12 control study
+    // measured cumulative delta disagreeing in sign with realised price
+    // direction on 77% of trading days.
+    expect(prompt).toMatch(/since 2026-07-\d\d \d\d:\d\d \(\d+(\.\d+)?\) cumulative delta is/)
+    expect(prompt).toContain('while price moved')
+    expect(prompt).toContain('The sign of delta does NOT predict the sign of price')
+    // The swing-level divergence read has no empirical support (same study) and
+    // must not reach a hold-or-exit decision.
+    expect(prompt).not.toMatch(/BULLISH divergence|BEARISH divergence/)
+    expect(prompt).not.toContain('did not carry matching')
   })
 
   it('feeds the code-owned participation context and its gate (feat-094)', async () => {

@@ -4,7 +4,49 @@
 
 **Last Updated:** 2026-08-12
 
-**Latest change (branch `feat-115-features-tab`): feat-115 — a third dashboard tab renders
+**Latest change (branch `feat-102-htf-order-flow`): feat-102 — the HTF bars' order flow finally
+feeds something, and a base-rate control study cut the feature's headline signal before it
+shipped.** `parseHtfBars` had produced `volume`/`bidVolume`/`askVolume`/`delta` since feat-049 with
+zero consumers; `lib/engine/htfFlow.ts` → `EngineFacts.htfFlow` now reads them, wired into analyze,
+update and eval.
+
+**The divergence half of the spec was measured and withheld.** A parallel study on 3,559 union'd
+HTF bars — three live Supabase bundles spanning 2026-04-26..2026-08-12, 78 trading days, 6x the
+593-bar repo fixture — found swing-level delta divergence has no empirical support: 89 divergent
+swings, the fade thesis **underperforming** the unconditional base rate by 6.7 / 5.6 / 6.7 / 11.3 pp
+at h=4/8/16/34 bars, every 95% CI containing the base rate, nothing surviving Holm, and 1 of 64 grid
+cells at raw p<0.05 against 3.2 expected by chance. Holding "fresh price extreme" fixed, the delta's
+own contribution flips sign between horizons — the extreme does the work, not the order flow. This
+**replicates the 2026-08-07 day-level rejection at swing level**; the only replicable direction is
+continuation, i.e. opposite to what the label implies. Operator call: `divergence` is computed and
+unit-tested but withheld from every prompt payload, pinned by gates in `tests/prompt-data-sync.test.ts`
+and `tests/eval.runEval.test.ts`. Re-enabling is one line at a marked seam in `lib/analyze/prompt.ts`
+and `lib/eval/prompt.ts`. **Do not re-propose it without new data**: divergent swings arrive at
+1.14/trading day, so a 5 pp lift needs ~700 trading days and the export is a 90-day rolling window —
+this question is unanswerable from Gekko's data, not merely unanswered.
+
+**Cumulative delta ships anchored or not at all.** The same study found HTF cumulative delta ran
+opposite to realised price direction on 60 of 78 trading days (77%) — over the window price rose
++2,491 pts while cumulative delta fell to −53,901 contracts — and the level's origin is arbitrary,
+set by wherever the rolling export begins. So there is no bare signed total in the fact: every net
+delta names its anchor bar (time + open) and travels paired with the price change over that same
+window, per RTH session too. Both prompt rules state the 77% figure as the reason never to read
+delta as direction. On the repo fixture the hazard shows immediately — net delta +9277 (rising)
+while price moved −642.25 pts over the same 138 bars, 4 of 5 sessions disagreeing in sign.
+
+What ships as the real deliverable is per-swing delta/volume annotation on the same confirmed swings
+`htfStructure` reports (`findPivots` is now exported so there is one definition of "confirmed swing",
+not two that can drift). Measured and non-directional: swings print ~55% more volume than an
+ordinary bar, swing-high delta skews mildly positive (median +44), swing-low negative (median −121).
+Per-swing *running* cumulative delta was deliberately left out — comparing one swing's running total
+to the next is swing-level divergence by another name.
+
+Study, power table and reproduction: `docs/htf-delta-divergence-study-2026-08-12.md` +
+`scripts/studies/htf-delta-divergence/`. No Sierra Chart change was needed — the export has carried
+bid/ask volume since feat-049; the gap was entirely downstream. `./init.sh` green: 1395 passed |
+1 skipped, including 25 new `htfFlow` tests.
+
+**Previous change (branch `feat-115-features-tab`): feat-115 — a third dashboard tab renders
 `feature_list.json` as a sortable, filterable TanStack table.** Operator ask: feature state should
 be readable from the app, not only from the file. ID sorts ascending, the Status column opens
 pre-filtered to `not-started` (the work that is left), grid descriptions truncate at 100 characters,

@@ -136,14 +136,20 @@ export function computeAtr(bars: readonly HtfBar[], period: number = ATR_PERIOD_
   return round2(atr)
 }
 
-type Pivot = { index: number; price: number; dateTime: Date }
+/** A confirmed fractal pivot: its bar index in the series, price and bar time. */
+export type Pivot = { index: number; price: number; dateTime: Date }
 
 /**
  * Confirmed fractal pivots: a swing high's High strictly exceeds the Highs of
  * `strength` bars on BOTH sides (mirror for lows), so the last `strength` bars
  * — including the in-progress bar — can never carry an unconfirmed swing.
+ *
+ * Exported (feat-102) so the HTF order-flow read annotates the SAME swings this
+ * module reports rather than re-implementing pivot detection with rules that
+ * can drift — the single-definition precedent `rthSessions.ts` records for
+ * "one RTH session".
  */
-function findPivots(
+export function findPivots(
   bars: readonly HtfBar[],
   side: 'high' | 'low',
   strength: number,
