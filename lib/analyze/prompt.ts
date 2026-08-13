@@ -109,7 +109,8 @@ function modelTerrain(terrain: EngineFacts['terrain']): Record<string, unknown> 
  * call, not a cleanup. `tests/prompt-data-sync.test.ts` pins the omission.
  * ───────────────────────────────────────────────────────────────────────────
  *
- * The rest gets the same trim as `atrProjections.rungs` and `mgiPriority.tier1`:
+ * The rest gets the same trim as `mgiPriority.tier1` (and as the ATR rungs did
+ * before feat-113 retired them):
  * each annotated swing and each session in the delta walk becomes ONE labelled
  * string instead of four JSON keys. Every field survives in the text the model
  * quotes, at ~60% of the characters — which is how this fact landed inside the
@@ -192,22 +193,6 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
     htfStructure: facts.htfStructure,
     htfFlow: facts.htfFlow === null ? null : modelHtfFlow(facts.htfFlow),
     volatilityScale: facts.volatilityScale,
-    atrProjections:
-      facts.atrProjections === null
-        ? null
-        : {
-            ...facts.atrProjections,
-            // Rungs as "PRICE · label · travel [· floor warning]" strings —
-            // the feat-090 `mgiPriority.tier1` trim. Every field survives in
-            // the text the model quotes; six JSON keys per rung do not.
-            rungs: facts.atrProjections.rungs.map(
-              (rung) =>
-                `${rung.price} · ${rung.label} · ${rung.projectionPts} pts` +
-                (rung.clearsSignificantMove
-                  ? ''
-                  : ' · UNDER the significant-move floor — entry/stop only, never a target'),
-            ),
-          },
     ibExtension: facts.ibExtension,
     overnightSession: facts.overnightSession,
     multiDayTpo: facts.multiDayTpo,
@@ -217,16 +202,6 @@ export function factsPayload(facts: EngineFacts): Record<string, unknown> {
     warnings: facts.warnings,
   }
 }
-
-/**
- * ATR-projection rule (feat-108). Shared verbatim with the update-task prompt:
- * both tasks anchor objectives on the same set, so a rung that is a legal
- * target in a briefing must be a legal target in the update that revises it.
- * Interpretive half (how to READ a projection vs observed structure) lives in
- * the cached `output-objective.md` prefix, per the feat-080/096/097 split.
- */
-export const ATR_PROJECTION_RULE =
-  "- `atrProjections` is the code-owned ATR PRICE-LEVEL read (feat-108): the 30-min ATR projected into concrete anchorable prices — from current price both ways (targets) and outward from the last confirmed swing high/low (reversals) — at 0.5/1/1.5/2x. Each `rungs` entry reads `PRICE · label · travel`; anchor only on that price and quote the label with it (\"30061.98 (current price (29945.75) +1× ATR)\"). Never do ATR arithmetic yourself — a price that is not a rung is not structure. A rung marked UNDER the significant-move floor is legal as an entry or stop but NEVER as a target; `significantMoveNote` says why (one ATR is ~0.4σ — the floor itself). Null = no HTF export; say the projections are unavailable rather than estimating them. These are DERIVED prices; `htfStructure.atrPoints` and the `*Atr` distances keep their separate normalizer job."
 
 /**
  * HTF order-flow read (feat-102). Shared verbatim with the update-task prompt so
@@ -371,7 +346,6 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- `absorptionCandidates` are code-detected stacks of one-sided bins on the execution delta profiles, each carrying a code-owned `stall` confirmation computed from the enriched execution bars (bars that traded at the stack, volume and trades there, net price progress). A candidate with `stall.confirmed` IS absorption — price stalled at the stack on heavy participation; do not re-derive the stall from the screenshots. An unconfirmed candidate is a stack with no stall visible in the rolling bar window (possibly aged out, not refuted) — call absorption on it only if the recent bar data itself shows the stall.',
     `- \`deltaTelemetry.flow\` is the code-owned raw order-flow read from the enriched bars: engine-computed cumulative delta (\`deltaTelemetry.flow.cumulativeDelta\`), delta divergence at the fresh price extreme (\`deltaTelemetry.flow.divergence\`), climax prints and average trade size. The execution chart trades ${input.executionBarVolume}-VOLUME bars — per-bar volume is flat by construction, so weigh participation by bar count at a price, trade count and delta magnitude, never by the Volume column.`,
     RELATIVE_VOLUME_RULE,
-    ATR_PROJECTION_RULE,
     MGI_STRUCTURE_RULE,
     `- \`terrain.zones\` in your output MUST reproduce the engine zone stack exactly — same contiguous top/bottom border prices (${borders.join(', ')}). You supply only each zone's color and narrative label.`,
     '- `terrain.levels` MUST carry the engine border verdicts (price + kind verbatim); you supply the label wording.',
@@ -394,7 +368,7 @@ export function buildAnalysisPrompt(input: AnalysisPromptInput): string {
     '- ACTIVE PATTERN SCAN (required): scan the execution chart and fill `patternScan` per the Active Pattern Scan contract in the system prompt — never guess a pattern into existence. Mirror the verdict as one of `overview.current.keyPoints`.',
     '- The three `overview` sections follow the Tactical Overview contract in the system prompt: a TIME-ORDERED `narrative` plus 2–4 distilled `keyPoints` per section, the same storytelling register throughout, names before prices, MGI/volume/TPO vocabulary only.',
     `- SIGNIFICANT-MOVE FLOOR (the binding number for entry selection): ${describeGate(gates.significantMove)}. An entry level qualifies only when the reversal it hosts has at least ${gates.significantMove.pts} pts of room to the nearest realistic opposing structure (entry→T2 ≥ ${gates.significantMove.pts} pts). Walk the map outward from current price and anchor at the FIRST qualifying level — never skip a qualifying nearer level for a deeper one, and never move an entry to manufacture target distance. Abstain (noTrade) only when no qualifying level exists on that side. \`Objective.rr\` is recomputed and overwritten by the engine after you answer; still populate it honestly per the Constraints formula — it is informational, never a gate.`,
-    '- Entries, stops and T1 anchor on engine-supplied structure per the Objective contract in the system prompt — a zone border, a `terrain.levels` price, a `lvnHvnNodes` LVN node (the fakeout-formed-extreme anchor) a `sessionIntraday.vwapRungs` session-VWAP rung or an `atrProjections.rungs` ATR-projected rung. Entry priority, stop placement and the one-or-two-rung target ladder follow that contract.',
+    '- Entries, stops and T1 anchor on engine-supplied structure per the Objective contract in the system prompt — a zone border, a `terrain.levels` price, a `lvnHvnNodes` LVN node (the fakeout-formed-extreme anchor) or a `sessionIntraday.vwapRungs` session-VWAP rung. Entry priority, stop placement and the one-or-two-rung target ladder follow that contract.',
     '- Each objective slot (primary AND secondary) carries EITHER a full trade OR the explicit no-trade abstention, per the Objective contract. The secondary is the best available counter-scenario; when it is real but waiting, express that in its entry `trigger` conditions — abstain only when no genuine scenario exists, never fabricate entries, stops or targets to fill the slot.',
     DISTINCT_ANCHORS_RULE,
     entryStandoffRule(input.facts, gates),

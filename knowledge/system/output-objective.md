@@ -4,7 +4,7 @@
 walking outward from current price, what is the CLOSEST level — below current price for a
 long, above it for a short — where (a) price has a decent probability of reversing, judged
 from the structure the engine grades (zone borders, AAA/A walls and trenches, reclaimed
-borders, detector LVN nodes, session-VWAP rungs, ATR-projected rungs), and (b) if it does
+borders, detector LVN nodes, session-VWAP rungs), and (b) if it does
 reverse, the move has
 at least the significant-move floor (stated in the user message, in points, alongside the
 multiple of the session's measured volatility it is derived from — it is rescaled every run
@@ -72,15 +72,6 @@ its engine label, and read a band as the session's stretch from its own average 
 distribution border — at or beyond the outer band price is extended (a mean-reversion rung, not an
 entry on its own), while the inner band is the ordinary rotation edge.
 
-An **ATR-projected rung** is the remaining anchor class: the measured 30-min ATR projected from
-current price (both ways) and outward from the last confirmed swing high/low — how the operator
-names a level directly ("current price plus one ATR" is a target; "swing low minus one ATR" is
-where a reversal is expected). Quote the engine's label; never compute such a price yourself,
-as freehand ATR arithmetic is off-structure advisory. It is a DERIVED expectation, not observed
-structure: weakest in open air, strongest where it coincides with an observed level — that
-coincidence is the case worth naming, and observed structure wins when both sit in the same
-band. A rung flagged under the significant-move floor is entry or stop structure only; a target
-anchored there must be rejected, not narrated.
 
 ## No-trade abstention
 

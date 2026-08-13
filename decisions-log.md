@@ -989,3 +989,31 @@ Newest entries are added at the bottom. Per-session stdout lives in `logs/auto-r
   barFlow field HTF cannot reproduce). Deferred, and note the ordering constraint if it is ever
   taken: `parseHtfBars` hard-rejects header drift, so the DLL rebuild has to reach the running
   pipeline before the parser change does.
+## feat-113 — 2026-08-12
+
+- **Decision:** Retire the ATR-projected rung anchor class by DELETING `lib/engine/atrProjection.ts`
+  rather than fixing the `significantMoveNote` prose feat-113 was originally filed against.
+  **Why:** operator decision on review — "it doesn't make any sense to use two different volatility
+  measures, especially if the Sigma one is way better", and on the rungs, "I never asked for this ATR
+  multiplication stuff". The note existed to state a scale relationship ("one 30-min ATR is almost
+  exactly the significant-move floor") that was a 2026-08-09 fixture coincidence: 0.394σ against a
+  0.4σ floor. feat-112 moved the floor to 0.3σ and the coincidence is gone, so banding the note's
+  language would have meant tuning the precision of a sentence that should not be said at all.
+  **Alternatives considered:** ratio bands instead of the binary branch (feat-113's original fix —
+  keeps a superseded measure narrated against the current one); keeping the rungs on a sigma-derived
+  unit so the operator's spoken multiples survive (rejected by the operator, who does not recognize
+  the vocabulary as a request); session-sigma rungs at 0.25/0.5/0.75/1σ (same rejection, plus
+  multiples nobody says out loud).
+- **Decision:** `EngineFactsInput.significantMoveSigma` is removed along with the rungs.
+  **Why:** the engine took the configured multiple for exactly one purpose — resolving the floor per
+  run to mark each rung's `clearsSignificantMove`. With the rungs gone it was a dead input that still
+  looked load-bearing. The floor now lives only in the prompt and validation layers, which is where
+  feat-086 put the entry-first contract it serves.
+- **Note, recorded because the artifacts and the operator disagree:** `progress.md` and the feat-108
+  entries above attribute the rungs to a 2026-08-09 operator directive; the operator states he never
+  asked for ATR multiplication. **A remark about how the operator reads a chart is not automatically
+  a request for an engine fact** — feat-108 built a 16-price anchor surface out of one.
+- **Not in scope, verified untouched:** the MGI `ATR High` / `ATR Low` levels
+  (`lib/engine/mgiPriority.ts`, tier 2, group `atr`) are the operator's own Sierra chart levels
+  arriving as exported data, not an engine computation — three 2026-07-31 briefings exited on ATR Low.
+  Only engine-COMPUTED ATR is being retired, and the normalizer half is deferred to feat-116.
