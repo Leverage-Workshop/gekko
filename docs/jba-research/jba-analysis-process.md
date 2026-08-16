@@ -15,7 +15,7 @@ Rules are not equally established — treat `C` as a hypothesis to test, not a f
 
 | Term | What it is |
 | --- | --- |
-| **JBA** | Job Balance Area — zone where session pivot ranges overlap. Re-evaluates at RTH open, stable intraday |
+| **JBA** | Job Balance Area — zone where session pivot ranges overlap. Dynamic: forms, expands, branches, and can shift overnight |
 | **G line** | The **weekly open**. Tier 1. Captions garble it; it is the primary bias gate |
 | **RP** | Rolling Pivot. Secondary gate and change-detector |
 | **1A / 2A / 1B / 2B** | Extension targets off the **weekly pivot** — `A` positive, `B` negative, digit = multiple |
@@ -121,7 +121,7 @@ Six observed plays, in rough order of frequency.
 
 - **Never trades through purgatory** — the band between two close references. `A`
 - **Never chases.** Every entry is a pullback into a pre-marked band. `A`
-- **Never states a stop-loss.** Zero across nine videos. `A`
+- **Never states a stop-loss.** Zero across all 25 videos and six months. `A`
 - **Never assigns a level a permanent direction.** `B`
 - **Never counters a one-sided move** without exhaustion *and* cross-instrument agreement. `B`
 - **Never fades acceptance.** Once price is holding beyond a level, that level is only tradeable
