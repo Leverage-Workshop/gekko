@@ -34,3 +34,7 @@ langsmith-prompt-review/
 # checkout with its own node_modules (~900 MB) and is removed when the agent
 # finishes — never commit them.
 .claude/worktrees/
+
+# Python bytecode from the JBA research helper
+__pycache__/
+*.pyc

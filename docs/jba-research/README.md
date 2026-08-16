@@ -11,7 +11,7 @@ that produced it.
 
 | File | What it is |
 | --- | --- |
-| [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 26 rules across six phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
+| [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 31 rules across six phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
 | [`jba-prep-video-notes.md`](./jba-prep-video-notes.md) | **The evidence log.** Per-video findings, resolved and open questions, and the corrections made along the way |
 | `transcripts/` | Raw auto-caption transcripts for the 25 videos, named `YYYY-MM-DD_<youtube-id>.txt` |
 
@@ -31,11 +31,21 @@ Both documents are also published as artifacts (private):
 - **The 16 priority videos** listed in `priority-videos.json`, pulled since — two full FOMC cycles,
   quad witching, the March correction block, and the pre-release NFP recording.
 
-**The 16 are downloaded but not yet analyzed.** Every rule in `jba-analysis-process.md` and every
-finding in `jba-prep-video-notes.md` still rests on the original nine only. Nothing in those two
-documents has been re-checked against the new material — treat the gaps they describe (short-bias
-rules inferred rather than observed, five rules resting on a single video, no FOMC or opex session)
-as still open until the new transcripts are actually worked through.
+All 25 are analyzed; both documents reflect the full corpus.
+
+**Headline finding: the method is event-agnostic.** Fourteen of the 25 videos fall on a scheduled
+event — two FOMC decisions, four CPI/NFP releases, two quad-witching sessions, an ordinary opex and
+two post-holiday sessions. **Eleven never name the event at all.** The 03-18 FOMC decision gets one
+sentence, placed after the finished plan and attached only to range width; the 06-17 decision gets
+nothing. Neither quad witching mentions expiry.
+
+So a JBA-mode implementation needs **no event-day branch and no economic calendar**. The one
+observed adaptation runs opposite to intuition: on the single video recorded *before* its release,
+he simplified — fewer levels, one binary.
+
+The batch also closed the short-bias gap (the March correction block runs the template downward,
+structurally identical with roles mirrored), and revealed that **JBAs are dynamic** — they form
+mid-session, expand to forecastable edges, branch when price leaves, and can shift overnight.
 
 ## Pulling more transcripts
 
