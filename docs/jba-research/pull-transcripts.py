@@ -48,18 +48,30 @@ def to_text(json3_path: Path) -> str:
     return re.sub(r"\s+", " ", " ".join(words))
 
 
-def fetch(vid: str, browser: str | None, tmp_dir: Path) -> Path | None:
-    cmd = [
-        "yt-dlp", "--skip-download",
-        "--write-auto-subs", "--sub-langs", "en", "--sub-format", "json3",
-        "-o", str(tmp_dir / "%(id)s.%(ext)s"),
-        f"https://www.youtube.com/watch?v={vid}",
-    ]
-    if browser:
-        cmd[1:1] = ["--cookies-from-browser", browser]
-    subprocess.run(cmd, capture_output=True, text=True)
+def fetch(vid: str, browser: str | None, tmp_dir: Path,
+          clients: list[str] | None = None) -> Path | None:
+    """Try each player client in turn, returning the first json3 file produced.
+
+    `clients` of `[None]` means "let yt-dlp choose", which is what a cookied local
+    run wants. Without cookies the default web client fails the bot check, so the
+    caller passes explicit clients to fall back through.
+    """
     produced = tmp_dir / f"{vid}.en.json3"
-    return produced if produced.exists() else None
+    for client in clients or [None]:
+        cmd = [
+            "yt-dlp", "--skip-download",
+            "--write-auto-subs", "--sub-langs", "en", "--sub-format", "json3",
+            "-o", str(tmp_dir / "%(id)s.%(ext)s"),
+            f"https://www.youtube.com/watch?v={vid}",
+        ]
+        if browser:
+            cmd[1:1] = ["--cookies-from-browser", browser]
+        if client:
+            cmd[1:1] = ["--extractor-args", f"youtube:player_client={client}"]
+        subprocess.run(cmd, capture_output=True, text=True)
+        if produced.exists():
+            return produced
+    return None
 
 
 def main() -> int:
@@ -69,9 +81,14 @@ def main() -> int:
                     help="browser profile for cookies (chrome/firefox/safari/edge); "
                          "pass 'none' to try anonymously")
     ap.add_argument("--limit", type=int, help="stop after N new transcripts")
+    ap.add_argument("--player-clients", default="",
+                    help="comma-separated yt-dlp player clients to try in order "
+                         "(e.g. 'android,tv'). Leave empty to let yt-dlp choose. "
+                         "Only needed when running without cookies.")
     args = ap.parse_args()
 
     browser = None if args.browser == "none" else args.browser
+    clients = [c.strip() for c in args.player_clients.split(",") if c.strip()] or None
     entries = json.loads(Path(args.videos).read_text())
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     tmp_dir = OUT_DIR / ".raw"
@@ -92,7 +109,7 @@ def main() -> int:
         if args.limit and pulled >= args.limit:
             break
 
-        raw = fetch(vid, browser, tmp_dir)
+        raw = fetch(vid, browser, tmp_dir, clients)
         if raw is None:
             print(f"FAIL  {day} {vid}", file=sys.stderr)
             failed += 1

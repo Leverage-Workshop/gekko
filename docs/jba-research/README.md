@@ -13,7 +13,7 @@ that produced it.
 | --- | --- |
 | [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 26 rules across six phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
 | [`jba-prep-video-notes.md`](./jba-prep-video-notes.md) | **The evidence log.** Per-video findings, resolved and open questions, and the corrections made along the way |
-| `transcripts/` | Raw auto-caption transcripts for the nine videos, named `YYYY-MM-DD_<youtube-id>.txt` |
+| `transcripts/` | Raw auto-caption transcripts for the 25 videos, named `YYYY-MM-DD_<youtube-id>.txt` |
 
 Keep the split: **evidence lands in the notes first, then the process is updated.** A rule whose
 provenance has evaporated is not worth having.
@@ -24,8 +24,18 @@ Both documents are also published as artifacts (private):
 
 ## Corpus
 
-Nine videos, 2026-06-02 → 2026-08-11. Includes one CPI day (06-10) and one jobs-report day (08-07);
-no FOMC, opex or holiday session yet.
+25 videos, 2026-02-13 → 2026-08-11, in two blocks:
+
+- **The original nine**, 2026-06-02 → 2026-08-11 — the basis of every rule in the process doc.
+  Includes one CPI day (06-10) and one jobs-report day (08-07).
+- **The 16 priority videos** listed in `priority-videos.json`, pulled since — two full FOMC cycles,
+  quad witching, the March correction block, and the pre-release NFP recording.
+
+**The 16 are downloaded but not yet analyzed.** Every rule in `jba-analysis-process.md` and every
+finding in `jba-prep-video-notes.md` still rests on the original nine only. Nothing in those two
+documents has been re-checked against the new material — treat the gaps they describe (short-bias
+rules inferred rather than observed, five rules resting on a single video, no FOMC or opex session)
+as still open until the new transcripts are actually worked through.
 
 ## Pulling more transcripts
 
@@ -37,13 +47,23 @@ Takes the JSON list exported from YouTube (objects with `url` and `date`), write
 `transcripts/YYYY-MM-DD_<id>.txt`, and skips anything already downloaded — safe to re-run after
 an interruption.
 
-**Run it locally, with cookies.** YouTube hard-blocks anonymous caption pulls once a single IP has
-fetched a few dozen — `HTTP 429` plus "Sign in to confirm you're not a bot", and backoff does not
-clear it. A logged-in browser profile avoids this. Frame extraction needs a local run for the same
-reason.
+**Prefer a local run with cookies.** YouTube hard-blocks anonymous caption pulls once a single IP
+has fetched a few dozen — `HTTP 429` plus "Sign in to confirm you're not a bot", and backoff does
+not clear it. A logged-in browser profile avoids this. Frame extraction still needs a local run.
+
+**Without cookies**, pass `--browser none --player-clients android,tv,web`. The default web client
+fails the bot check on a datacenter IP, but the `android` client still serves captions; the script
+tries each client in turn and takes the first that produces a file. This is how the 16 priority
+videos were pulled from a remote container, and it survived all 16 without a single failure. It
+depends on client-specific behaviour that YouTube can change without notice — if it stops working,
+fall back to the cookied local run rather than adding more clients.
+
+Verify short transcripts rather than assuming truncation: several prep videos are genuinely 60–90
+seconds. Compare the last caption timestamp in `transcripts/.raw/<id>.en.json3` against the video's
+duration — if they match, the pull is complete.
 
 `priority-videos.json` holds the 16 highest-value dates identified by cross-referencing the corpus
-gaps against the 2026 economic calendar and the Feb–Mar 2026 correction:
+gaps against the 2026 economic calendar and the Feb–Mar 2026 correction (**all 16 now downloaded**):
 
 - **Two full FOMC cycles** — Mar 16-20 (mid-selloff, and Mar 20 is quad witching) and Jun 15-18
   (calm). Same event shape in opposite regimes, so differences are attributable to regime.
