@@ -27,15 +27,31 @@ Both documents are also published as artifacts (private):
 Nine videos, 2026-06-02 → 2026-08-11. Includes one CPI day (06-10) and one jobs-report day (08-07);
 no FOMC, opex or holiday session yet.
 
-Transcripts were pulled with:
+## Pulling more transcripts
 
 ```bash
-yt-dlp --skip-download --write-auto-subs --sub-langs en --sub-format json3 \
-  -o "<id>.%(ext)s" "https://www.youtube.com/watch?v=<id>"
+python3 docs/jba-research/pull-transcripts.py <videos.json> --browser chrome
 ```
 
-YouTube rate-limits this — retry with backoff. Video/audio bytes are blocked from datacenter IPs
-but captions are not; frame extraction needs a local run with browser cookies.
+Takes the JSON list exported from YouTube (objects with `url` and `date`), writes
+`transcripts/YYYY-MM-DD_<id>.txt`, and skips anything already downloaded — safe to re-run after
+an interruption.
+
+**Run it locally, with cookies.** YouTube hard-blocks anonymous caption pulls once a single IP has
+fetched a few dozen — `HTTP 429` plus "Sign in to confirm you're not a bot", and backoff does not
+clear it. A logged-in browser profile avoids this. Frame extraction needs a local run for the same
+reason.
+
+`priority-videos.json` holds the 16 highest-value dates identified by cross-referencing the corpus
+gaps against the 2026 economic calendar and the Feb–Mar 2026 correction:
+
+- **Two full FOMC cycles** — Mar 16-20 (mid-selloff, and Mar 20 is quad witching) and Jun 15-18
+  (calm). Same event shape in opposite regimes, so differences are attributable to regime.
+- **2026-03-06** — the only data-day video in 70 recorded *before* its 8:30 release (7:37 ET).
+  Every other one is recorded after, which is why the method never plans around a pending event.
+- **Short-bias coverage** — the March block sits inside the correction. The current corpus is
+  8-of-9 long-bias, so every short-side rule is inferred rather than observed.
+- Opex vs quad witching, two post-holiday sessions, and five Mondays (against one today).
 
 ## Two known traps
 
