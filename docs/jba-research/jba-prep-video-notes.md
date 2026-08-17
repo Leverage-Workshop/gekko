@@ -273,12 +273,156 @@ long case with the roles mirrored. **No separate short-side rule set is needed.*
 
 ---
 
+## The Job Pivot deep dive — construction, from the author
+
+Source: `reference/job-pivots-deep-dive.txt` (~29 min, externally transcribed). **Incomplete** — it
+cuts off mid-sentence and the Balance Zone section, promised twice, is never reached. Everything
+below concerns the *pivot*, which the JBAs are built from.
+
+### The pivot has three components `[stated]`
+
+1. **The pivot** — derived from the volume profile; "a certain amount of volume was needed in order
+   to create that and protect that."
+2. **The value zone** around it — **70% of that volume**.
+3. **The targets** — "the expansion points from that value zone."
+
+**The targets are stacked multiples of the value-zone width.** In his words: "we could start
+stacking that zone, that distance… moving out in either direction… we get this compounding effect."
+
+So `1A` is one value-zone width above the value zone, `2A` two, `1B`/`2B` the same below. This makes
+the A/B ladder **computable** rather than an opaque study output — and it explains the running joke
+about needing "a 12B" on an expansion day.
+
+### Which resolves the "dynamic zone" question — the operator's reading was right
+
+I had written the zone behaviour up as emergent (forming, expanding, branching, shifting overnight)
+and given it rule status. The author describes something much more mundane:
+
+> "The distance between the targets… vary based upon the activity. So it's consistently adapting
+> based upon the actual volume traded throughout the day in and day out sessions… there's no
+> arbitrary sense of where the inventory is. And so it's constantly updating."
+
+It is **recomputation as new session volume arrives**, not zone behaviour to be modelled. The
+operator's hypothesis — that separate overnight and RTH session pivots recompute, and "expansion" is
+just the new pivot resolving the overlap differently — fits every observation I had collected, and
+fits the prep videos' own language better: 03-06 says the JBAs will "expand a little bit here **at
+the open**", which is exactly when a new RTH session pivot would enter the calculation.
+
+It also explains something I had flagged as unexplained — that he forecasts expansion targets with
+confidence ("into the mid 60s", "the 500 area"). The basis isn't intuition. It's arithmetic he can
+do from the value-zone width.
+
+**Consequence, and it is the operator's point:** for a point-in-time analysis this changes almost
+nothing. You take the zones as they stand at the moment of the briefing. It matters only when
+scoring a plan across an RTH boundary, where the edges a premarket plan referenced may no longer be
+the edges in force.
+
+### The weekly Job Pivot `[stated]`
+
+Built on **the prior week's volume profile**; "indicates a controller bias for the current week."
+Same components — value zone and targets — at a wider timeframe. One handling difference matters:
+
+> "With a wider timeframe, what you get is more fluctuation around its own… On a weekly aspect, you
+> have to view this as a **zone**. It's a wider zone. It's going to take some digestion around."
+
+Intraday targets get tagged to the tick; weekly ones are areas. Any scoring should use a tolerance
+band on weekly references and a tight one on session references.
+
+### Mechanical vs emotional — the regime classifier, and a partial answer to the effort read
+
+The clearest new framework in the deep dive, and it bears directly on what I had called the
+unbridgeable gap.
+
+- **Mechanical:** price pushes into an MGI level, the expected response occurs, it pauses.
+- **Emotional:** the response does not occur — "not only does it not occur, instead of it pausing,
+  it accelerates." His conclusion: "there's no point in countering this. There's another player at
+  hand and we're just slapping through some levels."
+- "For the most part we're going to have a lot of mechanical activity."
+
+I had written that the traverse-vs-expansion fork was decided purely by DOM and Time & Sales tempo
+and therefore unreachable from bar data. **That was too strong.** This classifier is stated in terms
+of *level interaction* — does price pause at MGI or slice through it — which is substantially
+measurable from 1-minute bars. The DOM read sharpens the call in real time; it is not the only input.
+
+### Three nuances of the open `[stated]`
+
+A decision framework the prep videos use implicitly and never spell out:
+
+| Open location | Read |
+| --- | --- |
+| At top of pivot value, above pivot, not extended | Productive/bullish — but **don't buy it**; gauge the interaction first |
+| Directly at the pivot | Must gauge the volume build around the pivot itself |
+| Well outside range (at/beyond 1A/2A), inventory far away | Expect that inventory to be tested — but **don't fade immediately**; wait for a return inside a zone of initiation "that way I have structure to lean upon" |
+
+**The pivot acts as a magnet** — off the open and through midday, and the same is said of other MGI
+"such as 24-hour VWAP, the IB high/low, overnight high/low, previous day high/low, **the weekly
+open**." When price is in the vicinity: "let's complete the auction up to that to gauge and assess
+response."
+
+### Traverse value, defined precisely `[stated]`
+
+> "If we are to step outside of a target, we can't progress. Instead, we step back inside. We seek
+> the opposite target."
+
+Step outside value → fail to progress → return inside → that is rejection → target the traversal to
+the other side. This is a single rule, and it is what my separate "failed break re-entry" and
+"failure to progress" plays were both describing. They should be merged.
+
+### Areas of initiation stop trends `[stated]`
+
+Areas of initiation are LVNs — where price "jams out of there," leaving little volume. A directional
+move ends when those are **breached back through**: "that's where something can be changing. First
+we expect balance. Balance can lead to continuation." Targets themselves tend to land at high-volume
+nodes built on the current session.
+
+### Compression precedes expansion, and the only risk statement in the corpus
+
+"If we get a lot of compression, then simply what that means is… prepare for expansion." No fixed
+threshold — he defers to the ATR study and relative volume for how much expansion to expect.
+
+Then, notably: **"If you're not comfortable with the read, reduce size or pause, allow for a move to
+begin."** This is the first and only position-sizing guidance anywhere in the corpus. It does not
+contradict the never-states-a-stop finding — that finding is about the prep videos, and this is
+teaching material — but it does mean the *method* has risk management; the preps simply aren't where
+it lives.
+
+### Exhaustion has three named tells `[stated]`
+
+1. **Profile:** a spike with volume build, then a traverse back across — "it moves away and
+   aggressively," leaving a small build above. Expect that player back in command, targeting the
+   pivot and traversing the zone.
+2. **LVN return.**
+3. **Leg-to-leg delta:** large one-sided delta making no progress, then a "pull stack flip" — offer
+   stepping down, aggressive orders underneath the buy delta, then acceleration.
+
+### Two corrections to the record
+
+**MGI means "Market Generated Information."** Stated outright: *"MGI is market generating
+information… The pivot is also a piece of MGI."* The repo has it as **"Macro Geography
+Intelligence"** at `lib/engine/mgiPriority.ts:2`. That is a doc/comment fix outside this research
+branch's scope — flagged, not applied.
+
+**The studies are a multi-author stack, and the prep videos may not be by this speaker.** He refers
+to *"Leo in the Autoplot section"* as someone else's material, and says *"I know that **Cap**
+discusses this as well in **his morning preps**"* — plus "Cap has been great enough to put some of
+the stats into the Discord." If the morning preps are Cap's, then the prep-video speaker is not the
+Job-studies author, and attribution in these notes needs correcting. **Worth confirming with the
+operator.**
+
+He also states the whole thing is deliberately fractal: *"I view the weekly pivots, the balance
+zones, autoplot and so forth as a top-down approach… as a fractal"*, and the pivots are "a smaller
+fractal" of autoplot.
+
+---
+
 ## Still open
 
-- **How a JBA is constructed from pivot ranges** — the published definition gives the concept, not
-  the arithmetic. Needed if zones are ever computed rather than exported.
-- **What determines expansion magnitude** — he forecasts where a zone will expand to
-  (*"mid 60s"*, *"the 500 area"*) with apparent confidence. The basis is never stated.
+- **How a JBA is constructed from pivot ranges** — the deep dive gives the *pivot's* construction
+  (value zone = 70% of volume; targets = stacked value-zone widths) but **cuts off before the
+  Balance Zone section**. How overlapping pivot ranges resolve into a JBA is still unknown. Getting
+  the rest of that video is now the single highest-value item.
+- ~~What determines expansion magnitude~~ **Resolved:** targets are stacked multiples of the pivot's
+  value-zone width, recomputed as volume updates. The forecasts are arithmetic, not intuition.
 - **The "yellow light" zone's construction** — drawn or computed, and how it differs from purgatory.
 - **The effort read** — traverse vs. expansion is still never verbalized in any of the 25. It
   belongs to execution, not prep. This is now firmly a structural property of the source, not a

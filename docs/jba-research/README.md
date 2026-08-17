@@ -11,9 +11,10 @@ that produced it.
 
 | File | What it is |
 | --- | --- |
-| [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 31 rules across six phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
+| [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 33 rules across six phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
 | [`jba-prep-video-notes.md`](./jba-prep-video-notes.md) | **The evidence log.** Per-video findings, resolved and open questions, and the corrections made along the way |
-| `transcripts/` | Raw auto-caption transcripts for the 25 videos, named `YYYY-MM-DD_<youtube-id>.txt` |
+| `transcripts/` | Raw auto-caption transcripts for the 25 prep videos, named `YYYY-MM-DD_<youtube-id>.txt` |
+| `reference/` | The author's own Job Pivot deep dive — the construction the prep videos assume |
 
 Keep the split: **evidence lands in the notes first, then the process is updated.** A rule whose
 provenance has evaporated is not worth having.
@@ -43,9 +44,18 @@ So a JBA-mode implementation needs **no event-day branch and no economic calenda
 observed adaptation runs opposite to intuition: on the single video recorded *before* its release,
 he simplified — fewer levels, one binary.
 
-The batch also closed the short-bias gap (the March correction block runs the template downward,
-structurally identical with roles mirrored), and revealed that **JBAs are dynamic** — they form
-mid-session, expand to forecastable edges, branch when price leaves, and can shift overnight.
+The batch also closed the short-bias gap: the March correction block runs the template downward,
+structurally identical with the roles mirrored, so no separate short-side rule set is needed.
+
+**The author's Job Pivot deep dive** (`reference/`) supplies the construction the prep videos assume:
+a pivot from the volume profile, a **value zone = 70% of that volume**, and **targets stacked outward
+in multiples of that value-zone width** — which is what 1A/2A/1B/2B are. Zone edges recompute as new
+session volume arrives; that is all "expansion" means. It also gives the **mechanical vs emotional**
+classifier — does price pause at MGI or accelerate through it — which is largely readable from bar
+data and partly closes the gap the process doc describes at the end.
+
+That transcript is **incomplete**: it cuts off before the Balance Zone section, so how overlapping
+pivot ranges resolve into a JBA is still unknown.
 
 ## Pulling more transcripts
 
