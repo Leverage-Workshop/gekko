@@ -29,9 +29,11 @@ size and the live read, so trade replays are the only source for it.
 recorded where they arose — contract roll on 03-16, levels rolling across a session boundary, weekly
 references needing a tolerance band — but no scoring work is planned or in progress.
 
-Both documents are also published as artifacts (private):
-[process](https://claude.ai/code/artifact/8438bfb9-b04a-41cb-a4db-b296749303e1) ·
-[notes](https://claude.ai/code/artifact/46957b20-7ea1-4784-ae9c-62337ad78cd2).
+All four documents are also published as artifacts (private):
+[planning process](https://claude.ai/code/artifact/8438bfb9-b04a-41cb-a4db-b296749303e1) ·
+[planning notes](https://claude.ai/code/artifact/46957b20-7ea1-4784-ae9c-62337ad78cd2) ·
+[execution process](https://claude.ai/code/artifact/bcebab65-9d8f-4ba8-8e31-16e4b85c896c) ·
+[execution notes](https://claude.ai/code/artifact/010913d6-4d0e-4f14-9b19-754087079ebd).
 
 ## Corpus
 
