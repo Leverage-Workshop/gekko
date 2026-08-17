@@ -13,11 +13,21 @@ that produced it.
 | --- | --- |
 | [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 35 rules across seven phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
 | [`jba-prep-video-notes.md`](./jba-prep-video-notes.md) | **The evidence log.** Per-video findings, resolved and open questions, and the corrections made along the way |
+| [`execution-process.md`](./execution-process.md) | **Scaffold.** The rule set for acting on a plan once the session is live — v0, no replays analyzed yet |
+| [`execution-notes.md`](./execution-notes.md) | **Evidence log for execution.** Pre-replay hypotheses drawn from the planning corpus, and what replays need to settle |
 | `transcripts/` | Raw auto-caption transcripts for the 25 prep videos, named `YYYY-MM-DD_<youtube-id>.txt` |
 | `reference/` | The author's own Job Pivot deep dive — the construction the prep videos assume |
 
 Keep the split: **evidence lands in the notes first, then the process is updated.** A rule whose
 provenance has evaporated is not worth having.
+
+**Two tracks.** *Planning* (where and what if) is complete at n=25 plus the deep dive. *Execution*
+(which, when, how much) is scaffolded but unevidenced — the prep format deliberately omits stops,
+size and the live read, so trade replays are the only source for it.
+
+**Scoring plans against price data is parked.** The incidental caveats it would need are still
+recorded where they arose — contract roll on 03-16, levels rolling across a session boundary, weekly
+references needing a tolerance band — but no scoring work is planned or in progress.
 
 Both documents are also published as artifacts (private):
 [process](https://claude.ai/code/artifact/8438bfb9-b04a-41cb-a4db-b296749303e1) ·

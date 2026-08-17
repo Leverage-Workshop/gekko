@@ -237,9 +237,9 @@ method.
 
 ### 8. Contract roll changes the series `[stated, n=1]`
 
-03-16: *"this is the **M contract**"* — the March→June roll, during expiration week. Any backtest
-joining these dates to continuous data needs the same roll convention he uses, or the level
-arithmetic will silently drift by the roll gap.
+03-16: *"this is the **M contract**"* — the March→June roll, during expiration week. Level
+arithmetic across a roll boundary compares two different contracts, so any date-joined comparison
+needs his roll convention or it drifts silently by the roll gap.
 
 ### 9. He names MGI out loud
 
@@ -313,7 +313,7 @@ do from the value-zone width.
 
 **Consequence, and it is the operator's point:** for a point-in-time analysis this changes almost
 nothing. You take the zones as they stand at the moment of the briefing. It matters only when
-scoring a plan across an RTH boundary, where the edges a premarket plan referenced may no longer be
+carrying levels across an RTH boundary, where the edges a premarket plan referenced may no longer be
 the edges in force.
 
 ### RESOLVED — a JBA is overlapping Job Pivots on a rolling 5-day lookback `[stated]`
@@ -428,8 +428,8 @@ Same components — value zone and targets — at a wider timeframe. One handlin
 > "With a wider timeframe, what you get is more fluctuation around its own… On a weekly aspect, you
 > have to view this as a **zone**. It's a wider zone. It's going to take some digestion around."
 
-Intraday targets get tagged to the tick; weekly ones are areas. Any scoring should use a tolerance
-band on weekly references and a tight one on session references.
+Intraday targets get tagged to the tick; weekly ones are areas. Weekly references need a tolerance
+band; session references do not.
 
 ### Mechanical vs emotional — the regime classifier, and a partial answer to the effort read
 
