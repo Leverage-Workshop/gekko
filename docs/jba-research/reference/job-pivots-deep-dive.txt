@@ -1,8 +1,7 @@
 # Job Pivots — Deep Dive (transcript)
 # Source: https://youtu.be/CoKoCpLYnC8 — author's own walkthrough of the Job Pivot,
 # its value zone and targets, and the weekly pivot. Transcribed externally.
-# INCOMPLETE: cuts off ~29 min, mid-sentence. The Balance Zone (JBA) section is
-# promised twice and never reached.
+# COMPLETE (38:44). The Balance Zone section runs from 30:16.
 
 (0:10 - 0:29)
 Okay, good evening. Thank you for everybody hopping on tonight for the deep dive of the Job Pivots. We're going to go through the description, the utilization, some analysis, and some application of the Job Pivots, the Balance Zones, and also the Weekly Pivots themselves.
@@ -288,3 +287,90 @@ And so with a pivot on the intraday aspect, how many times have you seen a targe
 
 (29:46 - 29:59)
 And so it's going to take some digestion around. And it's gonna take our read from left to right. The reason why we do the ED recaps, the reason why we do the morning preps and always start out from.
+
+
+=== BALANCE ZONES (30:16 - 38:44) ===
+Appended from the complete transcript; the earlier capture ended mid-sentence at ~29:55.
+
+(29:51 - 30:14) The reason why we do the EOD recaps, the reason why we do the morning preps, and
+always start out from a higher time frame and then build down to a smaller time frame, is that we
+have to continue to review the higher time frame activity that occurred around the higher time
+frame MGI and the higher time frame pivots. That will help us assess the activity that occurs
+intraday.
+
+(30:16 - 30:53) What about the balance area? When we have overlapping pivots -- and I use a 5-day
+lookback; that time frame you can change however you'd like, I'm going to be sticking with a 5-day
+-- that offers actionable insights to auction changes. Anything within a 5-day lookback that is
+overlapping like this is going to grant me a box of the auction. It's going to be rolling and
+moving forward.
+
+(30:54 - 31:40) The way I look at this: think about it in the same way as a pivot zone. We have a
+lot of interest in this area. This is a value zone -- an overlapping value zone. We look outside of
+value and come back in and we're holding it. On an intraday aspect you would look at this on your
+TPO and say, okay, let's traverse value. I would do the same.
+
+(31:43 - 31:53) When it comes to planning with respect to the balance zones, I like to gauge this
+against the 5-day rolling volume profile or a 4-hour volume profile, to see where I have some
+overlap.
+
+(32:03 - 32:20) Not to fade: if we look outside, come back in, and we're holding in here, nothing in
+my right mind is telling me to short that. If this wants to slam from there, by all means -- that's
+fine.
+
+(32:21 - 32:47) Example: we come down, tag the bottom, push up, hit here, then sell. Now we're out
+of zone. We can reoffer that zone until it stops -- until you take a stop into that.
+
+(32:45 - 33:07) If this pushes, doesn't provide an opportunity, and winds up granting a new balance
+zone, now we have this area of thin volume on the profile to gauge as a new build: if we get above
+this, I am no longer interested in shorting anything down here. But while we're down here in
+balance -- short that, buy that, and do that until we build outside of this range.
+
+(33:14 - 33:44) We have balance through this. Want to be active on the edges -- not only the edges
+of the balance range themselves; they'll give us an idea of what the range edge is, what the
+overnight activity is. If we have a primary LVN right here and this comes down and pauses, that
+grants you context of where you are. If you're jumping off a trampoline and you do a backflip, you
+want to know where your feet are going to land.
+
+(33:44 - 34:19) One of the best things that grants that, as far as balance within the market, is
+autoplot. With respect to autoplot, Job pivots are a tighter time frame -- so you're going to have
+more zones, they're smaller, they're not going to traverse the entire zone of autoplot. But within
+autoplot itself you're going to see this sliced and diced based upon how pivots have been built.
+That context, from a top-down approach, grants understanding.
+
+(34:20 - 34:33) We looked down underneath of this and pushed up in here -- I don't want to
+necessarily sell this. I want to rebid this and try to work our way across. Here we failed, that's
+fine.
+
+(34:40 - 35:14) TESTING VALUE FROM OUTSIDE. If we move outside of value and come back in, we want to
+be aware of that -- come back in, reoffer that. We move up into a prior zone, we look back in: that
+tells me the above look is a fail, and therefore I need to lean on this, between the two, in order
+to push down and across this zone. If we look outside here and come back in, we need to do the same.
+
+(35:15 - 35:42) TESTING VALUE FROM INSIDE. If we're inside, dead center, pushing up and finding
+exhaustion -- we might not be able to set our stop loss directly at the top of the balance zone.
+That's fine. You should have a look of exhaustion or some sort of structural component to lean on up
+there. But you know that you're at the top of a zone if you're getting that look.
+
+(35:44 - 36:32) RESTING IN VALUE, NOT DOING ANYTHING: let it move. This looks like it can do this,
+but where I'm at right now it's a coin flip -- let it move, and then it moves, and now we have the
+opportunity to work with it. If it's resting in value and not doing anything -- no particular setup,
+not moving towards the edge -- pause. Keep that context in mind, because there are going to be
+plenty of setups along the way. Nobody wants to be full size in the middle of a balance zone. We
+patiently wait to exploit the edges.
+
+(36:33 - 37:12) From the top-down, left-to-right approach -- that's how the Job pivots, the balance
+areas and the weekly pivots help me approach planning and execution day to day. You look at this and
+say: we're in balance, where do I want to be looking for reoffer, where do I want to be looking for
+rebid? And from left to right: are there multiple zones, how is this changing, are we within
+vicinity or dead center?
+
+(37:25 - 38:23) Where does the auction change? As soon as we're no longer respecting this zone. If
+we come out here and start to do this -- not looking to bid that; would look to bid that, because
+this sell here shows potential change. Push up -- okay, no change, balance. Bid this. Testing value
+from inside, offering, reoffer, pushing down and in. If it does something like this -- no need to
+bid. You're going to get updates in the inventory and the activity at hand, but no need to
+anticipate. Allow it to move, show its hand.
+
+(38:24 - 38:44) So: top-down, left-to-right. Top-down meaning high time frame, from the weekly
+aspect, moving down and in. Left-to-right meaning where did we come from -- did we just reject the
+above or the below -- and then going from there.

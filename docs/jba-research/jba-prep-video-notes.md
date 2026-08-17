@@ -275,9 +275,8 @@ long case with the roles mirrored. **No separate short-side rule set is needed.*
 
 ## The Job Pivot deep dive — construction, from the author
 
-Source: `reference/job-pivots-deep-dive.txt` (~29 min, externally transcribed). **Incomplete** — it
-cuts off mid-sentence and the Balance Zone section, promised twice, is never reached. Everything
-below concerns the *pivot*, which the JBAs are built from.
+Source: `reference/job-pivots-deep-dive.txt` (38:44, complete). The author's own walkthrough of the
+Job Pivot, its value zone and targets, the weekly pivot, and — from 30:16 — the balance zones.
 
 ### The pivot has three components `[stated]`
 
@@ -316,6 +315,110 @@ do from the value-zone width.
 nothing. You take the zones as they stand at the moment of the briefing. It matters only when
 scoring a plan across an RTH boundary, where the edges a premarket plan referenced may no longer be
 the edges in force.
+
+### RESOLVED — a JBA is overlapping Job Pivots on a rolling 5-day lookback `[stated]`
+
+The balance-zone section finally arrives at 30:16, and it is simpler than anything I had inferred:
+
+> "When we have overlapping pivots — and **I use a 5-day lookback**; that time frame you can change
+> however you'd like, I'm going to be sticking with a 5-day… **anything within a 5-day lookback that
+> is overlapping is going to grant me a box of the auction. It's going to be rolling and moving
+> forward.**"
+
+That is the whole construction. Take the daily Job Pivots' value zones over a rolling 5-day window;
+where they overlap, you get a box. **This settles the dynamic-zone question conclusively in the
+operator's favour** — a rolling window means the oldest pivot drops out and a new one enters each
+day, so the overlap recomputes and the edges move. Mechanical, deterministic, and nothing to model
+as behaviour.
+
+It also explains the odds and ends: "once this JBA forms" (overlap criterion not yet met), zones
+that "branch off, create a couple" (the window no longer produces one contiguous overlap),
+"standalone" and "overlapping" zones, and the overnight shift on 03-18.
+
+**The lookback is user-configurable.** He states he sticks to 5 days, but the study allows otherwise
+— so any historical reproduction must pin the lookback to what he was running, and 5-day is the
+value to assume.
+
+**And the zone is treated exactly like a pivot's value zone**, just aggregated: *"think about it in
+the same way as a pivot zone… this is a value zone, an overlapping value zone. We look outside of
+value and come back in and we're holding it… let's traverse value."* Every rule that applies to
+value applies to a JBA.
+
+### The master framework: top-down, left-to-right `[stated]`
+
+Stated twice, and it is the organising principle behind every prep video's structure:
+
+> "**Top-down** meaning high time frame, from the weekly aspect, moving down and in. **Left-to-right**
+> meaning where did we come from — did we just reject the above or the below — and then going from
+> there."
+
+And the explicit rationale for the video format itself:
+
+> "The reason why we do the EOD recaps, the reason why we do the morning preps and always start out
+> from a higher time frame and then build down to a smaller time frame, is that we have to continue
+> to review the higher time frame activity… that will help us assess the activity that occurs
+> intraday."
+
+So the prep videos' shape — weekly reference first, then the zone, then the intraday bands — is not
+stylistic habit. It is the method. **Left-to-right is path dependence**, and it was entirely absent
+from my process document: the read depends on which side price arrived from.
+
+### Autoplot and the JBAs nest `[stated]`
+
+> "With respect to autoplot, Job pivots are a tighter time frame — so you're going to have more
+> zones, they're smaller, **they're not going to traverse the entire zone of autoplot. But within
+> autoplot itself you're going to see this sliced and diced based upon how pivots have been built.**"
+
+Autoplot is the larger balance construct; JBAs subdivide its interior. That confirms the operator's
+read that autoplot is the other balance-area type, and adds the containment relationship. Autoplot
+is Leo's material, referenced as a separate section of the course.
+
+### Two named plays that were missing
+
+**Testing value from OUTSIDE** — move outside value, come back in → the outside look is a fail →
+lean between the two references to push back down and across the zone.
+
+**Testing value from INSIDE** — pushing from dead centre toward an edge and finding exhaustion.
+Here he addresses stop placement directly: *"we might not be able to set our stop loss directly at
+the top of the balance zone. That's fine. You should have a look of exhaustion or some sort of
+structural component to lean on up there."*
+
+### The stop-loss finding needs qualifying
+
+`[correction]` Two passages in the deep dive discuss stops — the one above, and *"we can reoffer
+that zone until it stops — until you take a stop into that."*
+
+So the method **does** have stops, and they are structural: leaning on exhaustion or a structural
+component rather than a fixed distance. The zero-stops count across 25 prep videos stands, but the
+conclusion drawn from it was too broad. **Stops are absent from the prep format, not from the
+method.** Same for size — see below.
+
+### Position sizing, stated plainly
+
+> "If it's resting in value and not doing anything — no particular setup, not moving towards the
+> edge — **pause**… there are going to be plenty of setups along the way. **Nobody wants to be full
+> size in the middle of a balance zone. We patiently wait to exploit the edges.**"
+
+This is the definitive version of the two-way-trade rule, and it is about *size and patience*, not
+just direction. Paired with the compression guidance ("if you're not comfortable with the read,
+reduce size or pause"), the method has a coherent risk posture that the preps simply never voice.
+
+### Never fade a hold-back-inside
+
+> "If we look outside, come back in, and we're holding in here, **nothing in my right mind is telling
+> me to short that.**"
+
+The strongest phrasing yet of the never-fade-acceptance rule, and it applies specifically to the
+failed-break-re-entry case.
+
+### The auction-change trigger
+
+> "Where does the auction change? **As soon as we're no longer respecting this zone.**"
+
+Plus the anticipation ban: *"no need to bid… no need to anticipate. Allow it to move, show its
+hand."*
+
+---
 
 ### The weekly Job Pivot `[stated]`
 
@@ -417,10 +520,8 @@ fractal" of autoplot.
 
 ## Still open
 
-- **How a JBA is constructed from pivot ranges** — the deep dive gives the *pivot's* construction
-  (value zone = 70% of volume; targets = stacked value-zone widths) but **cuts off before the
-  Balance Zone section**. How overlapping pivot ranges resolve into a JBA is still unknown. Getting
-  the rest of that video is now the single highest-value item.
+- ~~How a JBA is constructed~~ **Resolved:** overlapping Job Pivot value zones on a **rolling 5-day
+  lookback**. The lookback is configurable; 5-day is what he runs.
 - ~~What determines expansion magnitude~~ **Resolved:** targets are stacked multiples of the pivot's
   value-zone width, recomputed as volume updates. The forecasts are arithmetic, not intuition.
 - **The "yellow light" zone's construction** — drawn or computed, and how it differs from purgatory.

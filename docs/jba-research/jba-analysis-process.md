@@ -3,7 +3,7 @@
 A rule-based reconstruction of the premarket planning method used in the OrderFlow Labs prep
 videos, derived from 25 transcripts spanning 2026-02-13 → 2026-08-11.
 
-**Version 3 (n=25 prep videos + the author's Job Pivot deep dive).** Evidence, per-video findings and open questions live in the companion
+**Version 4 (n=25 prep videos + the author's complete Job Pivot deep dive).** Evidence, per-video findings and open questions live in the companion
 [JBA Prep Video Notes](./jba-prep-video-notes.md).
 
 **Confidence:** `A` = stated in 5+ videos · `B` = stated in 2–4 · `C` = single instance or inferred.
@@ -15,13 +15,13 @@ Rules are not equally established — treat `C` as a hypothesis to test, not a f
 
 | Term | What it is |
 | --- | --- |
-| **JBA** | Job Balance Area — where session pivot ranges overlap. Edges recompute as new session volume arrives; not emergent behaviour |
+| **JBA** | Job Balance Area — the box where daily Job Pivot **value zones overlap on a rolling 5-day lookback**. Rolls forward daily; treated as a value zone in its own right |
 | **Pivot** | Volume-profile-derived line in the sand, with a **value zone** = 70% of that volume around it |
 | **G line** | The **weekly open**. Tier 1. Captions garble it; it is the primary bias gate |
 | **RP** | Rolling Pivot. Secondary gate and change-detector |
 | **1A / 2A / 1B / 2B** | Targets stacked outward in **multiples of the pivot's value-zone width** — `A` above, `B` below. Computable, not opaque |
 | **LVN** | Low-volume node, cited from a named profile and ranked by depth. Where entries live. Captioned "LVN", "LBN", "VM", "OBN" |
-| **Auto plot** | A second balance-area type running alongside the JBAs — has a top and a bottom, acts as S/R |
+| **Auto plot** | The larger balance construct (Leo's material). JBAs are tighter and **subdivide autoplot's interior** |
 | **Profile stack** | Rolling profiles at 4-hour, 5-day and four-week lookbacks, plus last week's and the overnight profile |
 | **Yellow light** | A drawn caution band where the read is degraded — distinct from purgatory |
 | **Rebid / reoffer** | Pullback entry, long / short respectively |
@@ -30,6 +30,16 @@ Rules are not equally established — treat `C` as a hypothesis to test, not a f
 | **Mechanical / emotional** | Whether price *pauses* at MGI (mechanical) or *accelerates through* it (emotional). MGI = Market Generated Information |
 
 ---
+
+## Phase 0 — Orient: top-down, left-to-right
+
+The method's own organising principle, stated twice in the deep dive. Every prep video follows it,
+and it is why they open on weekly references and narrow from there.
+
+- **Top-down** — start at the weekly aspect and move down and in. Higher-timeframe MGI and pivots
+  frame what intraday activity means. `A`
+- **Left-to-right** — *where did price come from?* Did it just reject from above, or from below? The
+  read is path-dependent, and the same price carries a different meaning depending on the approach. `A`
 
 ## Phase 1 — Build the frame
 
@@ -50,56 +60,61 @@ No direction yet. Establish geometry first; everything downstream references it.
     with the A/B extensions and with LVNs. `B`
 9. **Mark every confluence** — two or more references within a few points. Confluence sets
    narrative priority: lead with the tightest stack. He calls a dense stack "a lot of MGI". `A`
-10. **Take zone edges as of now, and know they recompute.** Zone edges move as new session volume
-    enters the calculation — typically at the RTH open — because the pivot and its value zone are
-    recomputed, not because zones behave organically. For a point-in-time plan this changes nothing;
-    it matters only when carrying levels across an RTH boundary. `A`
-11. **Collapse near-coincident references.** Where two levels nearly overlap he names the simpler one
+10. **Take zone edges as of now, and know they roll.** A JBA is the overlap of daily Job Pivot value
+    zones across a **rolling 5-day window**, so each new session drops the oldest pivot and adds a
+    new one and the box recomputes. Nothing organic to model. For a point-in-time plan this changes
+    nothing; it matters only when carrying levels across a session boundary, or when reproducing
+    history — where the lookback must be pinned to 5 days. `A`
+11. **Gauge the JBA against the 5-day and 4-hour rolling profiles** to find where the overlap sits
+    relative to actual volume. `B`
+12. **Place the JBA inside autoplot.** Autoplot is the larger balance; JBAs subdivide its interior
+    and will not traverse the whole of it. `B`
+13. **Collapse near-coincident references.** Where two levels nearly overlap he names the simpler one
     and trades it — "essentially the JBA low, but let's keep it real simple, just say previous day's
     low." Treating both as distinct over-counts the structure. `B`
 
 ## Phase 2 — Set bias
 
-12. **The primary gate is the nearest live weekly reference.** Above → long bias, below → short
+14. **The primary gate is the nearest live weekly reference.** Above → long bias, below → short
    bias.
    - Use the **weekly open** when price is near it. `A`
    - When price has extended past it, fall through to the **weekly pivot and its extension
      targets**. `B`
    - **Never gate on a weekly level price has left behind.** `C`
-13. **The RP confirms.** Building below it means *something has changed* — demote or invert the
+15. **The RP confirms.** Building below it means *something has changed* — demote or invert the
     read. `B`
-14. **A setup can be conditioned on the zone's formation context** — "open to a rebid at top of the
+16. **A setup can be conditioned on the zone's formation context** — "open to a rebid at top of the
      JBA as long as we're above the RP when that formed." Validity depends on where price was when
      the zone built, not only where it is now. `C`
-15. **Price inside a narrow band between two references means no directional bias.** Declare
+17. **Price inside a narrow band between two references means no directional bias.** Declare
     two-way trade and play the edges only. `A`
-16. **A narrow zone implies escape** from one end during the session, direction unspecified. `C`
-17. **Expansion targets are arithmetic.** Where a zone will expand to is derivable from the pivot's
+18. **A narrow zone implies escape** from one end during the session, direction unspecified. `C`
+19. **Expansion targets are arithmetic.** Where a zone will expand to is derivable from the pivot's
     value-zone width, which is why he forecasts it confidently. Plan against zones that have not
     formed yet on the same basis. `B`
-18. **Classify the tape as mechanical or emotional.** Price pauses at MGI → mechanical, the level
+20. **Classify the tape as mechanical or emotional.** Price pauses at MGI → mechanical, the level
     set is tradeable as written. Price accelerates *through* MGI without responding → emotional:
     "there's no point in countering this." Do not fade an emotional tape. `B`
-19. **Read the open against the pivot.** Opening above pivot near the top of value is productive but
+21. **Read the open against the pivot.** Opening above pivot near the top of value is productive but
     not a buy — gauge the interaction. Opening at the pivot demands a volume-build read. Opening
     well outside range implies the distant inventory gets tested, but only after price returns
     inside a zone of initiation, "that way I have structure to lean upon." `B`
 
 ## Phase 3 — Locate entry bands
 
-20. **Entries are bands, not points** — roughly 2–5 ES points, 20–30 NQ points. `A`
-21. **Bands form at** an LVN, a JBA edge, a high-volume edge, or a confluence of two
+22. **Entries are bands, not points** — roughly 2–5 ES points, 20–30 NQ points. `A`
+23. **Bands form at** an LVN, a JBA edge, a high-volume edge, or a confluence of two
     references. `A`
-22. **Entries sit inside the zone or at its edge; targets are the frame** — the opposite JBA
+24. **Entries sit inside the zone or at its edge; targets are the frame** — the opposite JBA
     boundary, the adjacent JBA, or a weekly target. `A`
-23. **Entry is always a pullback into the band** — rebid for longs, reoffer for shorts. Never a
+25. **Entry is always a pullback into the band** — rebid for longs, reoffer for shorts. Never a
     breakout chase at the band itself. `A`
-24. **A band carries no fixed direction.** Held → entry with bias. Accepted through → entry
+26. **A band carries no fixed direction.** Held → entry with bias. Accepted through → entry
     *against* the prior bias, from the same price. `B`
 
 ## Phase 4 — Select the play
 
-Five observed plays, in rough order of frequency. The last is the author's own formulation and
+Seven observed plays, in rough order of frequency. The last is the author's own formulation and
 subsumes what earlier versions of this document listed separately as "failed break re-entry" and
 "failure to progress" — both were describing it: *"if we are to step outside of a target, we can't
 progress. Instead, we step back inside. We seek the opposite target."*
@@ -111,21 +126,23 @@ progress. Instead, we step back inside. We seek the opposite target."*
 | **Expansion / acceptance** | build above/below a boundary and hold | adjacent JBA, weekly target | `A` |
 | **Two-way trade from the edges** | price inside a narrow inter-reference band | the band's own edges | `A` |
 | **Traverse value** | steps outside a target, cannot progress, returns inside | **the opposite target** | `A` |
+| **Testing value from outside** | exits value, returns inside | the outside look is a fail — lean between the two references and push across the zone | `A` |
+| **Testing value from inside** | pushes from centre toward an edge and finds exhaustion | the edge, leaning on the exhaustion or a structural component | `B` |
 
 ## Phase 5 — Cross-instrument pass
 
-25. **Plan ES first, then NQ.** `A`
-26. **State the relationship explicitly** — same template, or divergent. `B`
-27. **A counter-trend trade requires confirmation from the other instrument**, plus exhaustion. `B`
-28. **Expect lead/lag** — NQ "walks the dog"; an ES bid gives NQ its rotation. `B`
+27. **Plan ES first, then NQ.** `A`
+28. **State the relationship explicitly** — same template, or divergent. `B`
+29. **A counter-trend trade requires confirmation from the other instrument**, plus exhaustion. `B`
+30. **Expect lead/lag** — NQ "walks the dog"; an ES bid gives NQ its rotation. `B`
 
 ## Phase 6 — Output shape
 
-29. **One primary lean, stated first**, conditional branches after it. `A`
-30. **Never state a stop, size, or R/R.** Invalidation is carried by the branch structure. `A`
-31. **Targets are named structures** — never round numbers or measured moves. `A`
-32. **Everything is conditional** — "if/then", "want to see", "I'd expect". No predictions. `A`
-33. **Close with the acceleration read** where relevant: what happens if the boundary gives. `B`
+31. **One primary lean, stated first**, conditional branches after it. `A`
+32. **Never state a stop, size, or R/R.** Invalidation is carried by the branch structure. `A`
+33. **Targets are named structures** — never round numbers or measured moves. `A`
+34. **Everything is conditional** — "if/then", "want to see", "I'd expect". No predictions. `A`
+35. **Close with the acceleration read** where relevant: what happens if the boundary gives. `B`
 
 ---
 
@@ -133,12 +150,22 @@ progress. Instead, we step back inside. We seek the opposite target."*
 
 - **Never trades through purgatory** — the band between two close references. `A`
 - **Never chases.** Every entry is a pullback into a pre-marked band. `A`
-- **Never states a stop-loss.** Zero across all 25 videos and six months. `A`
+- **Never states a stop-loss *in the prep format*.** Zero across all 25 videos and six months —
+  but the method does have stops. The deep dive places them structurally, leaning on a look of
+  exhaustion or a structural component rather than a fixed distance: "you should have a look of
+  exhaustion or some sort of structural component in order to lean on up there." `A`
 - **Never assigns a level a permanent direction.** `B`
 - **Never counters a one-sided move** without exhaustion *and* cross-instrument agreement. `B`
 - **Never fades acceptance.** Once price is holding beyond a level, that level is only tradeable
   again if price comes *back inside* — "don't want to fight that; I only want to fight that as a
   reoffer if we come back inside." `A`
+- **Never fades a hold-back-inside.** If price looks outside value, returns, and holds — "nothing in
+  my right mind is telling me to short that." `A`
+- **Never anticipates.** "No need to bid… no need to anticipate. Allow it to move, show its
+  hand." `B`
+- **Never carries full size through the middle of a zone.** "Nobody wants to be full size in the
+  middle of a balance zone. We patiently wait to exploit the edges." Resting in value with no setup
+  and no move toward an edge is a **pause**, not a trade. `A`
 
 ---
 
@@ -199,6 +226,14 @@ The one observed adaptation runs opposite to intuition. On the single video reco
 release (03-06, 7:37 ET against an 8:30 print) he **simplified** — fewer levels, one binary, "let's
 keep it real simple." A pending catalyst reduces the number of references in play rather than adding
 caveats. `C`
+
+---
+
+## When the auction changes
+
+"As soon as we're no longer respecting this zone." That is the stated trigger — a zone stops being
+the frame the moment price stops honouring its edges, at which point the level set is rebuilt rather
+than adjusted. `B`
 
 ---
 

@@ -11,7 +11,7 @@ that produced it.
 
 | File | What it is |
 | --- | --- |
-| [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 33 rules across six phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
+| [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 35 rules across seven phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
 | [`jba-prep-video-notes.md`](./jba-prep-video-notes.md) | **The evidence log.** Per-video findings, resolved and open questions, and the corrections made along the way |
 | `transcripts/` | Raw auto-caption transcripts for the 25 prep videos, named `YYYY-MM-DD_<youtube-id>.txt` |
 | `reference/` | The author's own Job Pivot deep dive — the construction the prep videos assume |
@@ -47,15 +47,23 @@ he simplified — fewer levels, one binary.
 The batch also closed the short-bias gap: the March correction block runs the template downward,
 structurally identical with the roles mirrored, so no separate short-side rule set is needed.
 
-**The author's Job Pivot deep dive** (`reference/`) supplies the construction the prep videos assume:
-a pivot from the volume profile, a **value zone = 70% of that volume**, and **targets stacked outward
-in multiples of that value-zone width** — which is what 1A/2A/1B/2B are. Zone edges recompute as new
-session volume arrives; that is all "expansion" means. It also gives the **mechanical vs emotional**
-classifier — does price pause at MGI or accelerate through it — which is largely readable from bar
-data and partly closes the gap the process doc describes at the end.
+**The author's complete Job Pivot deep dive** (`reference/`) supplies the construction the prep
+videos assume:
 
-That transcript is **incomplete**: it cuts off before the Balance Zone section, so how overlapping
-pivot ranges resolve into a JBA is still unknown.
+- A pivot from the volume profile, a **value zone = 70% of that volume**, and **targets stacked
+  outward in multiples of that value-zone width** — which is what 1A/2A/1B/2B are.
+- **A JBA is the box where daily pivot value zones overlap on a rolling 5-day lookback.** The
+  lookback is configurable; 5 days is what he runs. Because the window rolls, the box recomputes
+  daily — that is all "expansion" means, and nothing organic needs modelling.
+- **Autoplot is the larger balance; JBAs subdivide its interior.**
+- The **top-down, left-to-right** framework that every prep video follows: weekly aspect first,
+  narrowing inward, and always accounting for which side price arrived from.
+- **Mechanical vs emotional** — does price pause at MGI or accelerate through it — which is largely
+  readable from bar data.
+
+It also qualifies the zero-stops finding: stops and sizing are absent from the *prep format*, not
+from the method. The deep dive places stops structurally and states the sizing rule outright —
+nobody carries full size through the middle of a balance zone.
 
 ## Pulling more transcripts
 
