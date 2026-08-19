@@ -9,6 +9,12 @@ videos, derived from 25 transcripts spanning 2026-02-13 → 2026-08-11.
 **Confidence:** `A` = stated in 5+ videos · `B` = stated in 2–4 · `C` = single instance or inferred.
 Rules are not equally established — treat `C` as a hypothesis to test, not a finding.
 
+**Scope: one instrument.** The source videos plan ES and NQ together and cross-reference them
+constantly — lead/lag, divergence, using one as a confirmation gate for the other. That material is
+deliberately **excluded** here so the process runs on a single instrument without a second symbol to
+track. The evidence for it is preserved in the companion notes under cross-instrument findings, and
+can be reinstated as an optional overlay if it is ever wanted.
+
 ---
 
 ## Vocabulary this process assumes
@@ -102,7 +108,9 @@ No direction yet. Establish geometry first; everything downstream references it.
 
 ## Phase 3 — Locate entry bands
 
-22. **Entries are bands, not points** — roughly 2–5 ES points, 20–30 NQ points. `A`
+22. **Entries are bands, not points.** The band is the width of the structure it is drawn on — an
+    LVN's span, a zone edge's thickness — so it scales with the instrument and the feature, not a
+    fixed point count. `A`
 23. **Bands form at** an LVN, a JBA edge, a high-volume edge, or a confluence of two
     references. `A`
 24. **Entries sit inside the zone or at its edge; targets are the frame** — the opposite JBA
@@ -129,20 +137,13 @@ progress. Instead, we step back inside. We seek the opposite target."*
 | **Testing value from outside** | exits value, returns inside | the outside look is a fail — lean between the two references and push across the zone | `A` |
 | **Testing value from inside** | pushes from centre toward an edge and finds exhaustion | the edge, leaning on the exhaustion or a structural component | `B` |
 
-## Phase 5 — Cross-instrument pass
+## Phase 5 — Output shape
 
-27. **Plan ES first, then NQ.** `A`
-28. **State the relationship explicitly** — same template, or divergent. `B`
-29. **A counter-trend trade requires confirmation from the other instrument**, plus exhaustion. `B`
-30. **Expect lead/lag** — NQ "walks the dog"; an ES bid gives NQ its rotation. `B`
-
-## Phase 6 — Output shape
-
-31. **One primary lean, stated first**, conditional branches after it. `A`
-32. **Never state a stop, size, or R/R.** Invalidation is carried by the branch structure. `A`
-33. **Targets are named structures** — never round numbers or measured moves. `A`
-34. **Everything is conditional** — "if/then", "want to see", "I'd expect". No predictions. `A`
-35. **Close with the acceleration read** where relevant: what happens if the boundary gives. `B`
+27. **One primary lean, stated first**, conditional branches after it. `A`
+28. **Never state a stop, size, or R/R.** Invalidation is carried by the branch structure. `A`
+29. **Targets are named structures** — never round numbers or measured moves. `A`
+30. **Everything is conditional** — "if/then", "want to see", "I'd expect". No predictions. `A`
+31. **Close with the acceleration read** where relevant: what happens if the boundary gives. `B`
 
 ---
 
@@ -155,7 +156,7 @@ progress. Instead, we step back inside. We seek the opposite target."*
   exhaustion or a structural component rather than a fixed distance: "you should have a look of
   exhaustion or some sort of structural component in order to lean on up there." `A`
 - **Never assigns a level a permanent direction.** `B`
-- **Never counters a one-sided move** without exhaustion *and* cross-instrument agreement. `B`
+- **Never counters a one-sided move** without exhaustion. `B`
 - **Never fades acceptance.** Once price is holding beyond a level, that level is only tradeable
   again if price comes *back inside* — "don't want to fight that; I only want to fight that as a
   reoffer if we come back inside." `A`
@@ -189,7 +190,7 @@ will not read as his.
 
 ---
 
-## Worked example — 2026-08-11 ES
+## Worked example — 2026-08-11, one instrument
 
 How the phases resolve on a real session.
 
@@ -199,10 +200,9 @@ How the phases resolve on a real session.
 | **2 — Bias** | Inside the zone, not exited → balance regime, "treat this very mechanically until it changes" |
 | **3 — Bands** | 7779–82 (mid-zone LVN) — a 3-point band, inside the zone |
 | **4 — Play** | Rebid to boundary: bid the band, target the upper boundary at 7804, expect re-offer there |
-| **5 — Cross** | NQ same template: rebid ~29,800 → 29,949, ONL 29,680 as the session reference |
-| **6 — Output** | Primary lean stated first; PDL branch after it; expansion case last. No stop |
+| **5 — Output** | Primary lean stated first; PDL branch after it; expansion case last. No stop |
 
-The secondary branch reads straight off rule 17 — PDL holds → traverse up to 7804; PDL accepted
+The secondary branch reads straight off rule 26 — PDL holds → traverse up to 7804; PDL accepted
 through → down to the lower boundary and possibly the next JBA. Same level, both directions,
 decided by acceptance.
 

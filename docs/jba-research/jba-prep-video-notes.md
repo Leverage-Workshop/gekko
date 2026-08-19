@@ -518,6 +518,26 @@ fractal" of autoplot.
 
 ---
 
+## Cross-instrument findings (kept here, excluded from the process)
+
+The prep videos plan ES and NQ together and cross-reference them constantly. At the operator's
+request the process document is now **single-instrument**, so this material lives here only. It is
+evidence, not a retraction — reinstate it as an optional overlay if two-symbol tracking is ever
+wanted.
+
+- **ES is always planned first, NQ second.** No exceptions in 25 videos. `[stated, A]`
+- **Divergence is called out explicitly** when present — 07-07: ES doing the opposite of NQ. `[stated]`
+- **Lead/lag is expected** — NQ "walks the dog" on the RP; an ES bid gives NQ its rotation. `[stated, B]`
+- **A counter-trend trade wanted confirmation from the other instrument**, plus exhaustion — 07-23
+  requires ES back above a level before countering on NQ. `[stated, C]`
+- **Levels convert between instruments by the current range ratio** — 04-08 (replay) converts an ES
+  level into its NQ equivalent by how the two are coupled that week. `[stated, C]`
+- **He questions his own use of it:** in the 04-24 replay he says ES weakness as a "canary" kept him
+  out of too many trades. That self-critique is the strongest argument for leaving it out of a
+  single-instrument process.
+
+---
+
 ## Still open
 
 - ~~How a JBA is constructed~~ **Resolved:** overlapping Job Pivot value zones on a **rolling 5-day

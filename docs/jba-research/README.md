@@ -11,9 +11,9 @@ that produced it.
 
 | File | What it is |
 | --- | --- |
-| [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 35 rules across seven phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
+| [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 31 rules across five phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
 | [`jba-prep-video-notes.md`](./jba-prep-video-notes.md) | **The evidence log.** Per-video findings, resolved and open questions, and the corrections made along the way |
-| [`execution-process.md`](./execution-process.md) | **The execution deliverable.** 33 rules across six phases for acting on a plan once the session is live — v1, grounded in 9 trade replays |
+| [`execution-process.md`](./execution-process.md) | **The execution deliverable.** 39 rules across seven phases for acting on a plan once the session is live — v1, grounded in 9 trade replays |
 | [`execution-notes.md`](./execution-notes.md) | **Evidence log for execution.** Replay-by-replay findings, tool inventory, and the data/studies an implementation would need |
 | `transcripts/` | Raw auto-caption transcripts for the 25 prep videos, named `YYYY-MM-DD_<youtube-id>.txt` |
 | `replays/` | 9 trade-replay transcripts (~5.4 hrs), the execution evidence base |

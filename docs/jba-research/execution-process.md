@@ -7,7 +7,7 @@ The planning document ([JBA Analysis Process](./jba-analysis-process.md)) produc
 branches and a primary lean. This document produces the rest: which branch is live, when to act,
 where to lean, and how much.
 
-**Version 1 (n=9 trade replays + 2 education videos + 3 course PDFs).** Every rule below is now
+**Version 1.1 (n=9 trade replays + 2 education videos + 3 course PDFs).** Every rule below is now
 grounded in observed trading, not inferred from planning material.
 
 **Confidence:** `A` = stated in 5+ sources · `B` = 2–4 · `C` = single instance or inferred.
@@ -26,6 +26,7 @@ grounded in observed trading, not inferred from planning material.
 | **Liquidity Zone (LZ)** | Absorption marker carrying a transacted lot count |
 | **Velocity-logic event** | Acceleration out of a zone that skips volume; working brackets can be removed |
 | **Trade thesis** | The structural condition the trade rests on — tracked separately from the stop |
+| **POC shift** | The volume point of control moving within a period — tracked on the 30-min candle, the TPO period and the RTH profile |
 
 ---
 
@@ -41,64 +42,80 @@ grounded in observed trading, not inferred from planning material.
 4. **Mechanical or emotional?** Price pausing at MGI → the level set is tradeable as written. Price
    accelerating through MGI without responding → counter nothing. `B`
 
-## Phase E2 — Approach
+## Phase E2 — Read the POC
 
-5. **Away from a level, do not watch the DOM.** Structure precedes execution; there is nothing to
+The main execution filter, tracked on three horizons at once: the 30-minute candle, the TPO period
+(A period, B period…) and the RTH profile.
+
+5. **POC at an extreme means crowded.** Expect a push away from it and a move toward the next logical
+   location. `B`
+6. **POC central means two-way trade.** No directional commitment while it sits mid-distribution. `B`
+7. **The prior POC is the next logical target.** Where POC was is where it tends to go back to. `B`
+8. **A POC flip is the gate, not the trigger.** Engaging before the flip is early — he names his own
+   entry "preemptive" when he does it. Combine the flip with an exhaustive look before acting. `B`
+9. **Hold on POC, not on price.** An open position stays on while POC remains on the favourable side
+   of its period; a shift against is the cue to reduce. `C`
+10. **Use volume bars, not time bars, to anticipate the shift** — time spent is volume built, and
+    volume is what moves POC. `C`
+
+## Phase E3 — Approach
+
+11. **Away from a level, do not watch the DOM.** Structure precedes execution; there is nothing to
    read until price arrives. `A`
-6. **Switch to the DOM only on approach**, and only for the one price in question — not the whole
+12. **Switch to the DOM only on approach**, and only for the one price in question — not the whole
    ladder. `A`
-7. **Proximity gate: be at the level, not near it.** Ten points away is not actionable. `B`
-8. **Do not counter into a level on the way there.** Let price arrive first. `B`
+13. **Proximity gate: be at the level, not near it.** Ten points away is not actionable. `B`
+14. **Do not counter into a level on the way there.** Let price arrive first. `B`
 
-## Phase E3 — The trigger
+## Phase E4 — The trigger
 
-9. **Wait for your opponent to stop defending.** For a long: the offer stops refreshing, thins, and
+15. **Wait for your opponent to stop defending.** For a long: the offer stops refreshing, thins, and
    pulls. This is necessary but **not sufficient**. `A`
-10. **Require your side to take the level.** The bid must step *above* where the offer had been
+16. **Require your side to take the level.** The bid must step *above* where the offer had been
     refreshing, and hold it. That flip is the entry. `A`
-11. **Never enter while the opponent is active.** `A`
-12. **It must go your way immediately.** No immediate accommodation → the read was wrong. `B`
-13. **A pause at a target is not an entry in the direction of the move** — it is where you gauge
+17. **Never enter while the opponent is active.** `A`
+18. **It must go your way immediately.** No immediate accommodation → the read was wrong. `B`
+19. **A pause at a target is not an entry in the direction of the move** — it is where you gauge
     absorption, and if anything where you look for a counter-scalp. `B`
-14. **A Dominator print only counts at a structural reference.** Print + structural confluence is the
+20. **A Dominator print only counts at a structural reference.** Print + structural confluence is the
     combination; the print alone is not a setup. `B`
-15. **Prefer being late to being first.** *"Make sure you're not the first one to the party."* A
+21. **Prefer being late to being first.** *"Make sure you're not the first one to the party."* A
     missed move goes to the next zone; do not chase into the middle. `B`
 
-## Phase E4 — Size and stop
+## Phase E5 — Size and stop
 
-16. **Size scales with location.** Full size is an edge-of-zone privilege. Mid-zone, outside-zone, or
+22. **Size scales with location.** Full size is an edge-of-zone privilege. Mid-zone, outside-zone, or
     unconfirmed setups get a **starter** to be built on. Full clip observed at 7 contracts on NQ,
     with 5 a normal working size. `B`
-17. **Stop is structural but capped in points.** Place it just beyond the level being leaned on — but
+23. **Stop is structural but capped in points.** Place it just beyond the level being leaned on — but
     if that implies more risk than the cap (~20–25 pts NQ observed), take the tighter stop or pass. `B`
-18. **The entry needs something to lean on.** No exhaustion or structure behind it means no stop,
+24. **The entry needs something to lean on.** No exhaustion or structure behind it means no stop,
     which means no trade. `B`
-19. **A stop can be a behaviour**: cut if refreshing reappears at the level you leaned on. `C`
-20. **Stop-run tolerance:** run out and back in → re-entry viable. Run out and *settle* beyond → do
+25. **A stop can be a behaviour**: cut if refreshing reappears at the level you leaned on. `C`
+26. **Stop-run tolerance:** run out and back in → re-entry viable. Run out and *settle* beyond → do
     not fight it. `B`
 
-## Phase E5 — Management
+## Phase E6 — Management
 
-21. **Once in position, stop watching the DOM.** Management is on the profile and execution chart. `A`
-22. **Switch which side you watch.** Now read your opponent as the side you would need for the exit. `A`
-23. **Take mandatory partials at structure** — every structural re-entry or roadblock, regardless of
+27. **Once in position, stop watching the DOM.** Management is on the profile and execution chart. `A`
+28. **Switch which side you watch.** Now read your opponent as the side you would need for the exit. `A`
+29. **Take mandatory partials at structure** — every structural re-entry or roadblock, regardless of
     what the tape says. Leave a runner. `A`
-24. **Adds go on pullbacks into a respected reference**, never on strength. `A`
-25. **An add must work immediately or come off** — including when it is flat but not progressing. `B`
-26. **LIFO**: the most recent add is always the first out. `B`
-27. **After a burst, invert:** take the original position off and treat pullbacks as adds. `C`
-28. **Track the trade thesis separately from the stop.** A position can be underwater with the thesis
+30. **Adds go on pullbacks into a respected reference**, never on strength. `A`
+31. **An add must work immediately or come off** — including when it is flat but not progressing. `B`
+32. **LIFO**: the most recent add is always the first out. `B`
+33. **After a burst, invert:** take the original position off and treat pullbacks as adds. `C`
+34. **Track the trade thesis separately from the stop.** A position can be underwater with the thesis
     intact, and can be scratched with the thesis alive. `A`
 
-## Phase E6 — Exit
+## Phase E7 — Exit
 
-29. **Velocity-logic / acceleration out of a zone → flatten immediately**, then verify the log is
+35. **Velocity-logic / acceleration out of a zone → flatten immediately**, then verify the log is
     clear before reassessing. Do not manage through it; brackets may not survive it. `A`
-30. **Exit when the leg's read is complete**, not when the chart looks finished. `B`
-31. **The prior POC is a target** — take it off the table on the shift back. `B`
-32. **Take something off on early weakness**: building a node then coming back through an LVN. `B`
-33. **Do not hold through a scheduled data release.** `C`
+36. **Exit when the leg's read is complete**, not when the chart looks finished. `B`
+37. **The prior POC is a target** — take it off the table on the shift back. `B`
+38. **Take something off on early weakness**: building a node then coming back through an LVN. `B`
+39. **Do not hold through a scheduled data release.** `C`
 
 ---
 
@@ -139,7 +156,7 @@ Implementing these naively will get them backwards.
 ## What this process still cannot supply
 
 The trigger is now known, but it rests on a primitive no bar dataset contains: **is resting size at
-this price replenishing after fills, or vanishing?** Everything in Phase E3 depends on it.
+this price replenishing after fills, or vanishing?** Everything in Phase E4 depends on it.
 
 That makes order-book data the gating requirement for any implementation — book state over time, not
 bars. The Execution Notes list the specific data and studies this implies, including a refresh/pull
