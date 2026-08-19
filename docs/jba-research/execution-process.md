@@ -161,12 +161,75 @@ Implementing these naively will get them backwards.
 
 ---
 
-## What this process still cannot supply
+## Data, studies and exports this process needs
 
-The trigger is now known, but it rests on a primitive no bar dataset contains: **is resting size at
-this price replenishing after fills, or vanishing?** Everything in Phase E4 depends on it.
+**Level 2 is available in Sierra Chart, which removes the one blocker.** Earlier drafts of this
+document said the trigger rested on a primitive no dataset contained. That is no longer true — market
+depth is exactly the primitive, and it is in hand. What follows is what the 39 rules require.
 
-That makes order-book data the gating requirement for any implementation — book state over time, not
-bars. The Execution Notes list the specific data and studies this implies, including a refresh/pull
-detector, a session-relative aggression anomaly in the Dominator mould, a POC-shift tracker and a
-profile-completion classifier.
+Export filenames follow the existing bundle convention: files in the Sierra export folder, watched by
+`scripts/uploader.ts`, mapped to an ingest field in `lib/uploader/bundle.ts`.
+
+### The critical primitive
+
+**Rule 15 and 16 — the entry trigger — reduce to one question at one price: is resting size
+replenishing after fills, or vanishing?**
+
+Everything else in Phase E4 is downstream of that. It cannot be computed from bars at any resolution,
+because a bar cannot distinguish a level that absorbed 500 lots and reloaded from one that absorbed
+500 lots and emptied. It requires **book state over time**:
+
+| Field | Why |
+| --- | --- |
+| Resting size per price level, sampled or event-driven | The raw quantity being tracked |
+| Additions and cancellations, separately | "Pulling" is cancellation; "refreshing" is replenishment after a fill. Netting them destroys the distinction |
+| Fills at that price with aggressor side | Distinguishes absorbed-and-reloaded from simply-not-hit |
+| Timestamps at the resolution the book actually changes | Refresh/pull is a sub-second behaviour |
+
+Sierra records market depth when depth recording is enabled. **Confirm the depth history retained is
+deep enough and long enough** before building on it — the studies below need history, not just live
+state.
+
+### Studies to build
+
+| Study | Feeds | What it must emit |
+| --- | --- | --- |
+| **Refresh/pull detector** | rules 15, 16, 25 | Per price level: a refreshing/pulling/neutral classification and a confidence. The highest-value single artefact — it *is* the trigger |
+| **Opponent-side state** | rules 15–17, 28 | Same detector, but reported for the side that matters given position and direction. Long → offer before entry, bid after |
+| **POC tracker** | Phase E2 (rules 5–10) | POC per period on three horizons — 30-min candle, TPO period, RTH profile — as a time series, with shift events. Position within the distribution (extreme vs central), not just the price |
+| **Profile-completion classifier** | rule 3 | Building vs done; exhaustive node; parabolic taper; "two LVNs behind". This is the counter-trade gate |
+| **Velocity / volume-skip detector** | rule 35 | Acceleration that transacts through prices thinly or not at all. Drives an immediate flatten, so it needs to be fast and it needs to be right |
+| **Session-relative aggression anomaly** | rule 20 | A Dominator analogue if the study's own output cannot be exported: pace, size and intensity judged against **the same clock window on prior days**, not a 24-hour roll |
+| **Liquidity-zone detector** | context | Absorption with a transacted lot count, **normalised to the current regime** — a raw count is meaningless without a baseline, which he says outright |
+
+### Exports needed
+
+| Export | Notes |
+| --- | --- |
+| **Dominator 2.0 prints** | The study is already owned. Export arrow prints with timestamp, side, price, and which setting produced them — he runs several settings simultaneously and colour-codes by setting |
+| **Pull stack state** | If the existing study can export rather than only render. Its 4-tick compression is set to match the DOM; that setting has to travel with the data |
+| **POC series** per period and horizon | See tracker above |
+| **Depth history** | Whatever Sierra's recorded depth format is, at a retention long enough to build and validate the detector |
+| **Volume-based bars** | Rule 10 — volume bars anticipate the POC shift better than time bars. The execution export is already volume-based; confirm the bar size matches what the rules assume |
+
+### Configuration, not data
+
+These are personal settings the process refers to but cannot derive:
+
+- **Full clip** — the personal maximum position size.
+- **Working size and starter size** as fractions of it.
+- **Maximum risk per trade** — the cap that overrides structural stop placement (rule 23).
+- **Daily loss limit** — referenced once in the corpus, never quantified.
+
+### One thing the planning process does not need but this one does
+
+**A scheduled-release calendar**, for rule 39 alone (do not hold through a data release). The
+planning research established that the method is event-agnostic and needs no calendar; execution has
+exactly one rule that wants one. Worth noting so the two requirement sets are not merged carelessly.
+
+### Sequencing
+
+The detector is the whole project. Build it first, validate it against the replays — every one of
+them narrates the book at a named price, in order, with the outcome visible — and only then wire the
+rest. The replays are effectively a labelled test set for this exact primitive, which is unusual and
+worth exploiting.

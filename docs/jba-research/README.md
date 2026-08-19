@@ -30,8 +30,14 @@ provenance has evaporated is not worth having.
 where the offer had been refreshing, and holds). Step one alone is necessary but not sufficient.
 
 That trigger rests on a primitive no bar dataset contains — whether resting size at a price is
-replenishing after fills or vanishing — which makes **order-book data the gating requirement** for
-any implementation. `execution-notes.md` lists the data and studies that implies.
+replenishing after fills or vanishing. **Level 2 in Sierra Chart supplies it**, so the blocker is
+gone; what remains is building the detector.
+
+**Both process documents carry a "Data, studies and exports" section** listing what they need,
+split into what already ships in the bundle, what needs new exports, what has to be built as a
+study, and what is personal configuration rather than data. The two requirement sets are
+deliberately separate — planning needs no order-book data and no economic calendar; execution needs
+both (the calendar for one rule only).
 
 **Scoring plans against price data is parked.** The incidental caveats it would need are still
 recorded where they arose — contract roll on 03-16, levels rolling across a session boundary, weekly

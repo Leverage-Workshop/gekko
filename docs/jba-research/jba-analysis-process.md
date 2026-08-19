@@ -147,6 +147,7 @@ progress. Instead, we step back inside. We seek the opposite target."*
 
 ---
 
+
 ## Negative rules — what the method never does
 
 - **Never trades through purgatory** — the band between two close references. `A`
@@ -234,6 +235,59 @@ caveats. `C`
 "As soon as we're no longer respecting this zone." That is the stated trigger — a zone stops being
 the frame the moment price stops honouring its edges, at which point the level set is rebuilt rather
 than adjusted. `B`
+
+---
+
+## Data, studies and exports this process needs
+
+What the 31 rules above actually require, split by whether Gekko already has it. Export filenames
+follow the existing bundle convention — files dropped in the Sierra export folder, watched by
+`scripts/uploader.ts`, mapped to an ingest field in `lib/uploader/bundle.ts`.
+
+### Already shipping
+
+| Need | Where it comes from |
+| --- | --- |
+| Weekly open (the bias gate) | `mgi_static_levels.json` → `weekly.wkOpen`, already Tier 1 in `mgiPriority.ts` |
+| Rolling Pivot (RP) | `mgi_static_levels.json`, tiered as the Rip |
+| Weekly pivot | `mgi_static_levels.json` (Weekly Job Pivot, Tier 1) |
+| Weekly VWAP, session VWAPs | `mgi_static_levels.json` |
+| ONH/ONL, PDH/PDL/PDC, IB levels | `mgi_static_levels.json` |
+| Prior week high/low, prior week value | `mgi_static_levels.json` |
+| Prior day value area (RVAH/RVAL/RPOC) | `daily-value-areas.csv` |
+| LVN/HVN nodes on two profiles | engine facts — rotation and balance-area profiles |
+| Bar data | `htf_bar_data.rolling.csv`, `execution_bar_data.globex.csv` |
+
+**The single most load-bearing input is already in place.** The weekly open gates direction in every
+rule in Phase 2 and it needs no new work.
+
+### New exports required
+
+| Need | Rule(s) | What the export must carry |
+| --- | --- | --- |
+| **JBA zones** | 1, 2, 10 | Top and bottom of the active zone **plus the adjacent zones above and below** — rule 2 targets them once a boundary goes. Not just the zone price is currently inside |
+| **Zone formation context** | 16 | When each zone formed, and where price sat relative to the RP at that moment. Rule 16 conditions a setup on it, so current edges alone are insufficient |
+| **Auto plot zones** | 12 | Top and bottom. JBAs subdivide autoplot's interior, so the containment relationship needs both |
+| **Weekly pivot value zone + A/B ladder** | 5, 19 | The pivot's value zone (70% of volume) and the stacked targets 1A/2A/1B/2B. The pivot itself ships; the ladder does not. Derivable from the value-zone width if that is exported |
+| **Profile stack** | 7 | LVNs and high-volume edges from each named lookback — 4-hour rolling, 5-day rolling, four-week rolling, last week's, and the overnight profile. Two profiles ship today; the method cites five |
+| **LVN depth ranking** | 7 | "Deepest LVN" is his term for the primary one. Depth must be a field, not inferred from the node list |
+
+### Configuration that must be pinned
+
+- **JBA lookback = 5 days.** Configurable in the study; 5 is what he runs. Any historical
+  reproduction that uses a different lookback produces different zones.
+- **Value zone = 70% of volume** around the pivot.
+- **Session definition** — the JBA re-evaluates at the RTH open, so the export's session boundary
+  must match the one the analysis assumes.
+
+### Not needed
+
+- **No economic calendar.** The method is event-agnostic; eleven of fourteen event days in the corpus
+  never name the event. (The *execution* process has one rule that does want a release schedule —
+  see its requirements section.)
+- **No second instrument.** This process is single-instrument by design.
+- **No order-book data.** Everything above is levels and profiles. Level 2 is an execution
+  requirement, not a planning one.
 
 ---
 
