@@ -15,6 +15,15 @@ deliberately **excluded** here so the process runs on a single instrument withou
 track. The evidence for it is preserved in the companion notes under cross-instrument findings, and
 can be reinstated as an optional overlay if it is ever wanted.
 
+**Source column.** Links point at the passage each rule was drawn from.
+
+- **Deep-dive links are timestamped** (`@m:ss`) and land a few seconds early.
+- **Prep-video links are not timestamped.** The 25 prep transcripts were flattened to plain prose
+  before this column existed, and the caption timings were not retained. Those videos run 1.5–3.5
+  minutes, so the video link is close to the moment anyway — but if exact timestamps are wanted,
+  re-running `pull-transcripts.py` locally restores them into `transcripts/.raw/`.
+- A dash means the rule rests on an **absence** rather than a statement.
+
 ---
 
 ## Vocabulary this process assumes
@@ -51,74 +60,47 @@ and it is why they open on weekly references and narrow from there.
 
 No direction yet. Establish geometry first; everything downstream references it.
 
-1. **Locate the active JBA** — top, bottom, width. `A`
-2. **Locate adjacent JBAs** above and below. These become targets once a boundary goes. `B`
-3. **Locate the weekly open** and its position relative to the JBA edges. `A`
-4. **Locate the RP.** `B`
-5. **Locate weekly references** — weekly pivot and its extension targets (1A/2A up, 1B/2B down),
-   weekly VWAP. `A`
-6. **Locate session references** — ONH, ONL, PDH, PDL, prior week high/low/value, prior month
-   low. `A`
-7. **Locate internal structure** — LVNs and high-volume edges, each from a *named* profile in the
-   stack (4-hour, 5-day, four-week, last week's, overnight). Rank LVNs by depth within a
-   profile. `A`
-8. **Locate auto plot's top and bottom** — the second balance-area type, which stacks in confluence
-    with the A/B extensions and with LVNs. `B`
-9. **Mark every confluence** — two or more references within a few points. Confluence sets
-   narrative priority: lead with the tightest stack. He calls a dense stack "a lot of MGI". `A`
-10. **Take zone edges as of now, and know they roll.** A JBA is the overlap of daily Job Pivot value
-    zones across a **rolling 5-day window**, so each new session drops the oldest pivot and adds a
-    new one and the box recomputes. Nothing organic to model. For a point-in-time plan this changes
-    nothing; it matters only when carrying levels across a session boundary, or when reproducing
-    history — where the lookback must be pinned to 5 days. `A`
-11. **Gauge the JBA against the 5-day and 4-hour rolling profiles** to find where the overlap sits
-    relative to actual volume. `B`
-12. **Place the JBA inside autoplot.** Autoplot is the larger balance; JBAs subdivide its interior
-    and will not traverse the whole of it. `B`
-13. **Collapse near-coincident references.** Where two levels nearly overlap he names the simpler one
-    and trades it — "essentially the JBA low, but let's keep it real simple, just say previous day's
-    low." Treating both as distinct over-counts the structure. `B`
+| # | Rule | Conf | Source |
+| ---: | --- | :---: | --- |
+| 1 | **Locate the active JBA** — top, bottom, width. | `A` | [02-20](https://youtu.be/yjv7fJnkwTA) · [03-06](https://youtu.be/5EAXvm36rbA) |
+| 2 | **Locate adjacent JBAs** above and below. These become targets once a boundary goes. | `B` | [07-20](https://youtu.be/66ryWxqne8k) |
+| 3 | **Locate the weekly open** and its position relative to the JBA edges. | `A` | [03-02](https://youtu.be/zRU22muRdlI) · [03-19](https://youtu.be/h4oc2xoEMlY) |
+| 4 | **Locate the RP.** | `B` | [06-10](https://youtu.be/uvanT97KEpk) · [06-17](https://youtu.be/Y400TUvIH_A) |
+| 5 | **Locate weekly references** — weekly pivot and its extension targets (1A/2A up, 1B/2B down), weekly VWAP. | `A` | [Job Pivots DD @1:41](https://youtu.be/CoKoCpLYnC8?t=98) · [07-07](https://youtu.be/X0NpbKM2KUA) · [02-13](https://youtu.be/deqIr8DaydA) |
+| 6 | **Locate session references** — ONH, ONL, PDH, PDL, prior week high/low/value, prior month low. | `A` | [02-13](https://youtu.be/deqIr8DaydA) · [02-20](https://youtu.be/yjv7fJnkwTA) |
+| 7 | **Locate internal structure** — LVNs and high-volume edges, each from a *named* profile in the stack (4-hour, 5-day, four-week, last week's, overnight). Rank LVNs by depth within a profile. | `A` | [02-17](https://youtu.be/TAn4ly-3MDw) · [03-16](https://youtu.be/1h_JeSgR9_A) |
+| 8 | **Locate auto plot's top and bottom** — the second balance-area type, which stacks in confluence with the A/B extensions and with LVNs. | `B` | [03-17](https://youtu.be/KNxA1k-RL94) · [03-19](https://youtu.be/h4oc2xoEMlY) |
+| 9 | **Mark every confluence** — two or more references within a few points. Confluence sets narrative priority: lead with the tightest stack. He calls a dense stack "a lot of MGI". | `A` | [03-20](https://youtu.be/_X30tjUvddc) · [07-10](https://youtu.be/XItRia6NPbQ) |
+| 10 | **Take zone edges as of now, and know they roll.** A JBA is the overlap of daily Job Pivot value zones across a **rolling 5-day window**, so each new session drops the oldest pivot and adds a new one and the box recomputes. Nothing organic to model. For a point-in-time plan this changes nothing; it matters only when carrying levels across a session boundary, or when reproducing history — where the lookback must be pinned to 5 days. | `A` | [Job Pivots DD @29:51](https://youtu.be/CoKoCpLYnC8?t=1788) |
+| 11 | **Gauge the JBA against the 5-day and 4-hour rolling profiles** to find where the overlap sits relative to actual volume. | `B` | [Job Pivots DD @30:54](https://youtu.be/CoKoCpLYnC8?t=1851) · [03-20](https://youtu.be/_X30tjUvddc) |
+| 12 | **Place the JBA inside autoplot.** Autoplot is the larger balance; JBAs subdivide its interior and will not traverse the whole of it. | `B` | [Job Pivots DD @33:14](https://youtu.be/CoKoCpLYnC8?t=1991) |
+| 13 | **Collapse near-coincident references.** Where two levels nearly overlap he names the simpler one and trades it — "essentially the JBA low, but let's keep it real simple, just say previous day's low." Treating both as distinct over-counts the structure. | `B` | [03-06](https://youtu.be/5EAXvm36rbA) |
+
 
 ## Phase 2 — Set bias
 
-14. **The primary gate is the nearest live weekly reference.** Above → long bias, below → short
-   bias.
-   - Use the **weekly open** when price is near it. `A`
-   - When price has extended past it, fall through to the **weekly pivot and its extension
-     targets**. `B`
-   - **Never gate on a weekly level price has left behind.** `C`
-15. **The RP confirms.** Building below it means *something has changed* — demote or invert the
-    read. `B`
-16. **A setup can be conditioned on the zone's formation context** — "open to a rebid at top of the
-     JBA as long as we're above the RP when that formed." Validity depends on where price was when
-     the zone built, not only where it is now. `C`
-17. **Price inside a narrow band between two references means no directional bias.** Declare
-    two-way trade and play the edges only. `A`
-18. **A narrow zone implies escape** from one end during the session, direction unspecified. `C`
-19. **Expansion targets are arithmetic.** Where a zone will expand to is derivable from the pivot's
-    value-zone width, which is why he forecasts it confidently. Plan against zones that have not
-    formed yet on the same basis. `B`
-20. **Classify the tape as mechanical or emotional.** Price pauses at MGI → mechanical, the level
-    set is tradeable as written. Price accelerates *through* MGI without responding → emotional:
-    "there's no point in countering this." Do not fade an emotional tape. `B`
-21. **Read the open against the pivot.** Opening above pivot near the top of value is productive but
-    not a buy — gauge the interaction. Opening at the pivot demands a volume-build read. Opening
-    well outside range implies the distant inventory gets tested, but only after price returns
-    inside a zone of initiation, "that way I have structure to lean upon." `B`
+| # | Rule | Conf | Source |
+| ---: | --- | :---: | --- |
+| 14 | **The primary gate is the nearest live weekly reference.** Above → long bias, below → short bias. - Use the **weekly open** when price is near it. `A` - When price has extended past it, fall through to the **weekly pivot and its extension targets**. `B` - **Never gate on a weekly level price has left behind.** | `C` | [03-19](https://youtu.be/h4oc2xoEMlY) · [06-10](https://youtu.be/uvanT97KEpk) |
+| 15 | **The RP confirms.** Building below it means *something has changed* — demote or invert the read. | `B` | [08-04](https://youtu.be/jvSf2rtihWY) |
+| 16 | **A setup can be conditioned on the zone's formation context** — "open to a rebid at top of the JBA as long as we're above the RP when that formed." Validity depends on where price was when the zone built, not only where it is now. | `C` | [06-17](https://youtu.be/Y400TUvIH_A) |
+| 17 | **Price inside a narrow band between two references means no directional bias.** Declare two-way trade and play the edges only. | `A` | [02-13](https://youtu.be/deqIr8DaydA) · [02-17](https://youtu.be/TAn4ly-3MDw) |
+| 18 | **A narrow zone implies escape** from one end during the session, direction unspecified. | `C` | [07-20](https://youtu.be/66ryWxqne8k) |
+| 19 | **Expansion targets are arithmetic.** Where a zone will expand to is derivable from the pivot's value-zone width, which is why he forecasts it confidently. Plan against zones that have not formed yet on the same basis. | `B` | [Job Pivots DD @2:20](https://youtu.be/CoKoCpLYnC8?t=137) |
+| 20 | **Classify the tape as mechanical or emotional.** Price pauses at MGI → mechanical, the level set is tradeable as written. Price accelerates *through* MGI without responding → emotional: "there's no point in countering this." Do not fade an emotional tape. | `B` | [Job Pivots DD @9:31](https://youtu.be/CoKoCpLYnC8?t=568) |
+| 21 | **Read the open against the pivot.** Opening above pivot near the top of value is productive but not a buy — gauge the interaction. Opening at the pivot demands a volume-build read. Opening well outside range implies the distant inventory gets tested, but only after price returns inside a zone of initiation, "that way I have structure to lean upon." | `B` | [Job Pivots DD @9:31](https://youtu.be/CoKoCpLYnC8?t=568) |
+
 
 ## Phase 3 — Locate entry bands
 
-22. **Entries are bands, not points.** The band is the width of the structure it is drawn on — an
-    LVN's span, a zone edge's thickness — so it scales with the instrument and the feature, not a
-    fixed point count. `A`
-23. **Bands form at** an LVN, a JBA edge, a high-volume edge, or a confluence of two
-    references. `A`
-24. **Entries sit inside the zone or at its edge; targets are the frame** — the opposite JBA
-    boundary, the adjacent JBA, or a weekly target. `A`
-25. **Entry is always a pullback into the band** — rebid for longs, reoffer for shorts. Never a
-    breakout chase at the band itself. `A`
-26. **A band carries no fixed direction.** Held → entry with bias. Accepted through → entry
-    *against* the prior bias, from the same price. `B`
+| # | Rule | Conf | Source |
+| ---: | --- | :---: | --- |
+| 22 | **Entries are bands, not points.** The band is the width of the structure it is drawn on — an LVN's span, a zone edge's thickness — so it scales with the instrument and the feature, not a fixed point count. | `A` | [03-17](https://youtu.be/KNxA1k-RL94) · [07-23](https://youtu.be/j3B0BuFxT_E) |
+| 23 | **Bands form at** an LVN, a JBA edge, a high-volume edge, or a confluence of two references. | `A` | [06-15](https://youtu.be/LnFBIc8V168) · [06-18](https://youtu.be/kSTzKPQFCC4) |
+| 24 | **Entries sit inside the zone or at its edge; targets are the frame** — the opposite JBA boundary, the adjacent JBA, or a weekly target. | `A` | [08-07](https://youtu.be/TpIyLl3_aVY) · [08-11](https://youtu.be/G-4-sVT_uok) |
+| 25 | **Entry is always a pullback into the band** — rebid for longs, reoffer for shorts. Never a breakout chase at the band itself. | `A` | [Job Pivots DD @0:29](https://youtu.be/CoKoCpLYnC8?t=26) · [03-19](https://youtu.be/h4oc2xoEMlY) · [08-11](https://youtu.be/G-4-sVT_uok) |
+| 26 | **A band carries no fixed direction.** Held → entry with bias. Accepted through → entry *against* the prior bias, from the same price. | `B` | [08-04](https://youtu.be/jvSf2rtihWY) |
+
 
 ## Phase 4 — Select the play
 
@@ -139,11 +121,14 @@ progress. Instead, we step back inside. We seek the opposite target."*
 
 ## Phase 5 — Output shape
 
-27. **One primary lean, stated first**, conditional branches after it. `A`
-28. **Never state a stop, size, or R/R.** Invalidation is carried by the branch structure. `A`
-29. **Targets are named structures** — never round numbers or measured moves. `A`
-30. **Everything is conditional** — "if/then", "want to see", "I'd expect". No predictions. `A`
-31. **Close with the acceleration read** where relevant: what happens if the boundary gives. `B`
+| # | Rule | Conf | Source |
+| ---: | --- | :---: | --- |
+| 27 | **One primary lean, stated first**, conditional branches after it. | `A` | [08-04](https://youtu.be/jvSf2rtihWY) |
+| 28 | **Never state a stop, size, or R/R.** Invalidation is carried by the branch structure. | `A` | — *(an absence: no video states it)* |
+| 29 | **Targets are named structures** — never round numbers or measured moves. | `A` | [05-26](https://youtu.be/rAwVpIPlpro) · [06-18](https://youtu.be/kSTzKPQFCC4) |
+| 30 | **Everything is conditional** — "if/then", "want to see", "I'd expect". No predictions. | `A` | [02-13](https://youtu.be/deqIr8DaydA) · [02-17](https://youtu.be/TAn4ly-3MDw) |
+| 31 | **Close with the acceleration read** where relevant: what happens if the boundary gives. | `B` | [03-19](https://youtu.be/h4oc2xoEMlY) · [07-20](https://youtu.be/66ryWxqne8k) |
+
 
 ---
 
