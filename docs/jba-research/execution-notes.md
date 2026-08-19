@@ -87,6 +87,16 @@ afterwards.
 
 ---
 
+## Calibration lives here, not in the process
+
+The process document is deliberately instrument-agnostic and states every quantity relative to
+structure or to a personal maximum. The concrete numbers below are what was actually observed — on
+ES and NQ, on his account, in the volatility regime of those sessions. **They are calibration, not
+rules.** Treat them as evidence that a cap exists and roughly where he set his, not as values to
+transfer.
+
+---
+
 ## Stops
 
 **Structural, and sized in points.** `[stated]`

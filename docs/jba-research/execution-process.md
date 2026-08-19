@@ -12,6 +12,12 @@ grounded in observed trading, not inferred from planning material.
 
 **Confidence:** `A` = stated in 5+ sources · `B` = 2–4 · `C` = single instance or inferred.
 
+**Scope: one instrument, no absolute magnitudes.** The replays are traded on ES and NQ and quote
+concrete point counts and contract sizes. Those are calibration, not rules — they belong to an
+instrument, an account and a volatility regime, and none of them transfers. This document states
+every quantity **relative** to the instrument's own structure or to your own fixed maximum. The
+observed numbers are preserved in the companion notes.
+
 ---
 
 ## Vocabulary this process assumes
@@ -64,7 +70,8 @@ The main execution filter, tracked on three horizons at once: the 30-minute cand
    read until price arrives. `A`
 12. **Switch to the DOM only on approach**, and only for the one price in question — not the whole
    ladder. `A`
-13. **Proximity gate: be at the level, not near it.** Ten points away is not actionable. `B`
+13. **Proximity gate: be at the level, not near it.** If closing the remaining distance would take
+    another leg of its own, there is nothing to read yet — wait for arrival. `B`
 14. **Do not counter into a level on the way there.** Let price arrive first. `B`
 
 ## Phase E4 — The trigger
@@ -85,10 +92,11 @@ The main execution filter, tracked on three horizons at once: the 30-minute cand
 ## Phase E5 — Size and stop
 
 22. **Size scales with location.** Full size is an edge-of-zone privilege. Mid-zone, outside-zone, or
-    unconfirmed setups get a **starter** to be built on. Full clip observed at 7 contracts on NQ,
-    with 5 a normal working size. `B`
-23. **Stop is structural but capped in points.** Place it just beyond the level being leaned on — but
-    if that implies more risk than the cap (~20–25 pts NQ observed), take the tighter stop or pass. `B`
+    unconfirmed setups get a **starter** to be built on. Full clip is a fixed personal maximum;
+    routine working size sits meaningfully below it, and a starter is a fraction of that again. `B`
+23. **Stop is structural but capped.** Place it just beyond the level being leaned on — but hold a
+    fixed personal maximum risk per trade, and if the structural stop implies more than that, take
+    the tighter stop or pass on the trade entirely. The cap overrides the structure. `B`
 24. **The entry needs something to lean on.** No exhaustion or structure behind it means no stop,
     which means no trade. `B`
 25. **A stop can be a behaviour**: cut if refreshing reappears at the level you leaned on. `C`
