@@ -1,0 +1,184 @@
+# OFL 101 Time and Sales
+# https://www.youtube.com/watch?v=3sNu2TIfae8  |  490s  |  uploaded 20250202
+# Auto-captions, timestamped [mm:ss].
+
+[00:02] [Music]
+[00:10] welcome to trading the time and sales
+[00:12] here in the one1 section where we're
+[00:13] going to discuss the basics of this
+[00:14] activity that way you can engage more
+[00:17] clearly and understand the vernacular
+[00:19] discussed in general chat as well as any
+[00:22] reviews webinars or preps so the time in
+[00:26] sales what is this displaying and where
+[00:29] is it it's all way on the right here all
+[00:31] right and so hopefully you've gone
+[00:33] through the Dom section on this first
+[00:36] but what I want to get through um to
+[00:39] everybody is that we have to understand
+[00:43] that all of this depth here on the
+[00:47] book consists of limit
+[00:49] orders so there's order types ask versus
+[00:53] bid above ask below
+[00:56] bid here is a bid order of six at
+[01:01] 21937 all right in order to fill that
+[01:03] order we have to sell it at bid okay
+[01:09] that's why bid is marked as red and so
+[01:11] in order to fill that order on the time
+[01:13] in sales you're going to get a red sell
+[01:16] order of six in order to fill this ask
+[01:20] here of
+[01:21] one if you buy at Market a single lot
+[01:25] it'll fill that come through as a single
+[01:28] lot above asked versus below bed so we
+[01:32] have six and six here so let's say that
+[01:36] we sell 12 at
+[01:39] Market okay if we sell 12 at market and
+[01:43] there's only six available here then
+[01:46] that's going to take all those orders
+[01:48] and this one and therefore it's going to
+[01:49] be highlighted on the time in sales to
+[01:52] let you know that we have pushed through
+[01:56] um below the bid so it hit the first bid
+[01:59] hit the next one so it went below the
+[02:02] bid if we
+[02:04] buy um if we buy 12 okay one five and
+[02:09] six right here if we buy 12 at Market
+[02:11] it's going to hit this this and this and
+[02:13] fill up through that it's going to be
+[02:14] highlighted as blue so it'll look like
+[02:18] this as you're watching the time and
+[02:21] sales now the Dom sequences that you
+[02:25] want to see when we talk about pull
+[02:27] stack flips and and um and replacing of
+[02:30] orders viewing absorption and so forth
+[02:33] when you're seeing the interaction on
+[02:35] the depth of market then having this
+[02:38] right next to it is going to Grant you
+[02:40] information on what is actually
+[02:43] transacting because the resting order
+[02:45] book is not transacted and so if we come
+[02:49] down into a zone that is replenishing
+[02:51] and refilling and we're seeing a bunch
+[02:54] of sweeps like cell
+[02:56] sweeps all right cell sweeps cell sweeps
+[02:59] but price is not moving at all and we're
+[03:01] seeing replenishing of the bid then
+[03:03] we're looking at that as potential
+[03:05] absorption so size and ORD type coupling
+[03:09] with the Dom volume profile top and
+[03:11] bottom range activity for reversion
+[03:14] absorption initiative activity and
+[03:16] breakout activity so this here is an LVN
+[03:19] return watch the
+[03:25] offer we'll let this reset essentially
+[03:28] and I know it's sped up a little bit so
+[03:31] we start
+[03:32] to it's already showing it so we're
+[03:35] starting to show weakness into that
+[03:36] essentially you want see that heavy
+[03:38] heavy heavy red and then it pulls away
+[03:42] and the bid begins to step up the ladder
+[03:45] that's an example I can bring in a
+[03:47] slower example to to uh discuss with
+[03:49] that but that was just for the
+[03:50] background of this here um top and
+[03:53] bottom of range activity and so it's
+[03:56] essential to be able to pay attention to
+[04:00] um to what is transacted at the edges of
+[04:05] range so um I mentioned this through
+[04:07] here whole stack getting heavy into this
+[04:10] mix and primarily what you're seeing
+[04:12] you're seeing a lot of cell sweeps
+[04:13] without a lot of progress so I don't I'm
+[04:16] not too concerned about these buy buyers
+[04:18] stepping in I'm great I'm great with
+[04:21] that uh when we're in that zone I do
+[04:24] want to see that that cell below the bid
+[04:28] down here right here like
+[04:31] this in order to then be able to place
+[04:33] my eyes when that bid becomes heavy to
+[04:36] get on board and jam through
+[04:41] this so absorption initiation um
+[04:45] initiative activity is going to be when
+[04:48] we begin to step out of that zone of
+[04:50] absorption where we'd like to see the
+[04:51] counter type of look counter type of
+[04:53] look what do I mean by that down here um
+[04:56] we were seeing saleside Market orders
+[04:59] coming in
+[05:00] okay and some bids coming in but
+[05:02] essentially replenishing on the
+[05:04] Dom when we start to push up we just see
+[05:07] it Go Blue buy a market buy a market buy
+[05:10] a market buy a market but it's also
+[05:12] making
+[05:14] progress yes this is fast I understand
+[05:16] that you will get the hang of this it's
+[05:19] okay to slow it down buy it Market buy
+[05:21] it Market buy it Market that's
+[05:22] initiative
+[05:24] activity because it's also making
+[05:27] progress you're going to see that also
+[05:30] on breakouts sweep example so we get up
+[05:34] to a zone of Interest up here at the
+[05:36] highs what I want you see is this large
+[05:38] block of red come
+[05:42] through that's a sweep in order to
+[05:45] create a sweep we have to step down
+[05:46] below all of these orders and when it
+[05:48] occurs like this at the edge of range
+[05:49] that's very aggressive that's initiative
+[05:51] so that's simply the opposite of the
+[05:53] example that we looked at just
+[05:55] before so this would be selling below
+[05:58] the bid for from the initiative side
+[06:00] before that a precursor would be these
+[06:03] buy orders coming in not making any
+[06:05] progress and then boom match with the
+[06:07] cells side order so same concept
+[06:11] opposite side buy side order sweeping
+[06:13] coming in not making any progress and
+[06:14] then boom cell absorption watch these
+[06:19] replenished orders we stepping below the
+[06:21] bid stepping below the
+[06:23] bid below the
+[06:26] bed got some got some bid stepping up
+[06:29] there but we're still getting these
+[06:30] sweeps here larger one
+[06:32] there and
+[06:34] now watch
+[06:36] when watch how much progress it makes
+[06:39] doing a lot of work there in
+[06:41] replenishing
+[06:43] orders ultimately what we get is when we
+[06:46] start to step up then those buy side
+[06:48] sweeps are making progress along the
+[06:51] way so what's getting act what's
+[06:55] actually getting filled and how much
+[06:57] progress is it making putting these two
+[07:00] things together is going to be Paramount
+[07:02] and don't be too
+[07:04] concerned about picking this up
+[07:07] immediately be sure to go into the
+[07:09] market replay section and we go into
+[07:11] detail with the Dom activity buy
+[07:14] sequences sell sequences what you want
+[07:17] to see along the way how to engage when
+[07:20] to engage and you're going to create
+[07:23] that pattern that look for you and as
+[07:25] long as you're structurally sound as far
+[07:27] as reading structure first
+[07:30] then these zones you'll be able to Def
+[07:33] uh differentiate what is actually going
+[07:36] to respond and what is not the
+[07:38] difference between an emotional and a
+[07:40] and a mechanical level if we came down
+[07:43] to a zone of interest and there is no
+[07:46] reason to get in because there's no um
+[07:49] presence of a buide sequence or backing
+[07:52] off of the offer there's no reason to
+[07:56] engage but how do you see that you can
+[07:59] see that through this or at least put
+[08:01] yourself in a better position for it
+[08:05] [Music]

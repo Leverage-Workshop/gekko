@@ -1,0 +1,947 @@
+# Market Replay_5.19.2026_Job (ES PW_LO fail, RP change of auction for longs)
+# https://www.youtube.com/watch?v=RaJRUnHR_Rg  |  2364s  |  uploaded 20260522
+# Auto-captions, timestamped [mm:ss].
+
+[00:01] All right, today's market replay is
+[00:03] based upon a submission that we had and
+[00:06] said, "Hey Joe, replay request for 12:25
+[00:10] Eastern on the breakout on ES. I was
+[00:12] looking to long, but this but then I
+[00:15] missed it." Uh where do you see a valid
+[00:17] entry in
+[00:19] where and how do you manage this
+[00:20] breakout with stops and OFL tools and
+[00:25] reads so forth? So, let's go through
+[00:27] this. And so, what we're looking at
+[00:30] specifically
+[00:31] is this through here.
+[00:33] And this is after that has occurred.
+[00:37] Okay?
+[00:38] Have a good one, Kim. Yep, no problem.
+[00:41] So, we were pitted against the RP and
+[00:43] the previous week's low. We had already
+[00:45] tagged through the IB low
+[00:48] and we were not finding any more
+[00:50] sell-side activation or any type of
+[00:52] initiation down through previous week's
+[00:55] low.
+[00:57] Getting bids through there and we're
+[00:58] also getting hit here at the RP
+[01:01] back and forth. And so, what we're going
+[01:03] to look at is the video starts
+[01:06] right about here after we come back
+[01:08] through this and begin to push down into
+[01:10] previous week's low. We're going to
+[01:11] discuss these zones along the way with
+[01:13] the ES and look at the DOM activity
+[01:16] >> [snorts]
+[01:16] >> and how that relates to what we're
+[01:18] looking at as this comes back through
+[01:22] stepwise
+[01:24] into your MGI.
+[01:28] So, right here, what we can see is yeah,
+[01:32] we're going sideways and then we finally
+[01:34] tagged the RP
+[01:36] twice
+[01:38] and we see sell-side activity coming
+[01:40] into play.
+[01:42] Coming into play and just absolutely
+[01:45] doing its thing, pressing down.
+[01:48] I'm going to leave my cursor off the
+[01:49] screen that way it doesn't
+[01:51] that way it's not too dark.
+[01:55] So, watch us push down the previous
+[01:56] week's low. Watch the offer.
+[01:59] Okay? If we're going to respond again, I
+[02:01] want to see the offer disappear. We have
+[02:02] a We have -270
+[02:04] delta on that leg um that's pressing
+[02:07] down in.
+[02:08] So, essentially,
+[02:11] a lot of sell-side activity needs to
+[02:13] make progress.
+[02:14] And it's still there. Sell-side activity
+[02:17] still there. Watch these 66s.
+[02:21] They're refreshing.
+[02:22] Refreshing.
+[02:26] Refreshing.
+[02:28] When we ultimately step above the 66s
+[02:31] and the offer steps away, you're going
+[02:33] to see the opposite where the bid begins
+[02:36] to step in and refresh. But right now,
+[02:39] we have not seen the offer step away.
+[02:42] Look at your tape reader.
+[02:44] Yeah, it's still pretty sell.
+[02:50] And we're between the RP and previous
+[02:52] week's low.
+[02:53] And so, being that we're under the RP,
+[02:56] yeah, I still expect some pressure on
+[02:58] this, right? We're pitted between the
+[03:01] two and we slapped down one more time.
+[03:04] Test down into the waters below the
+[03:06] previous week's low.
+[03:07] And this is where I want to look at this
+[03:09] and say, "All right. So, in that zone,
+[03:13] 67 is where we have all that negative
+[03:14] delta. Um
+[03:17] but we haven't seen the offer pull away
+[03:18] yet.
+[03:20] Still refreshing in that zone.
+[03:23] Instead of viewing that as a starts to
+[03:25] pull away here.
+[03:28] A little bit.
+[03:31] And then look at your 66s.
+[03:36] Willing
+[03:38] to take in orders.
+[03:40] Refresh.
+[03:43] Refresh. And so, at this point, I need
+[03:45] to see bid step above those 66s in order
+[03:48] to
+[03:49] um be able to view this as having some
+[03:51] strength into this next leg that could
+[03:53] potentially go up. If we're not going to
+[03:55] go up, then we can sit here and just
+[03:58] tighten up, tighten up, tighten up, but
+[04:00] as long as the offer is refreshing,
+[04:04] I'm expecting this
+[04:06] to find continuation. We're finding
+[04:07] interest.
+[04:16] Now, I'd look at your bid in 64 halves.
+[04:21] And now look at your offer.
+[04:23] So, the bid begins to step up,
+[04:25] neutralize that delta essentially in
+[04:27] order to
+[04:28] negate some of that delta initially, you
+[04:30] have to have a market order, market buy
+[04:33] order, right? In order to bring it down
+[04:35] a little bit.
+[04:36] But, when we begin to push up and out of
+[04:38] this zone, now
+[04:40] we see the hand. And so, now we have a
+[04:42] zone there that's of interest. And it's
+[04:46] that 66
+[04:48] 67 level.
+[04:50] Right? But, we're still pivoted between
+[04:52] the RP and the previous week's low. We
+[04:54] need to see the bid refreshing in the
+[04:57] 66s
+[04:59] on a pullback here and the offer move
+[05:01] away. So, we're down in the 67s.
+[05:06] Offer's heavy.
+[05:09] Offer's heavy.
+[05:16] They're refreshing pretty well above the
+[05:18] 66s.
+[05:19] We're still pivoted between the previous
+[05:21] week's low and the RP.
+[05:26] Offer lightens up and the bid begins to
+[05:28] step up. This is still not something
+[05:31] that I'd be looking to
+[05:33] find some sort of primary type of move
+[05:36] with. Now, we sweep out of this zone.
+[05:39] Great. Next
+[05:40] level step wise the RP up here.
+[05:44] Pay attention to where that is.
+[05:49] 78s
+[05:53] Now we know we have a 66 and 78s.
+[05:56] So we have a zone to be able to lean
+[05:57] upon and we also have an LVN in the 60
+[06:00] or we have high volume edge in 68s.
+[06:09] So we're testing back into RP, we're not
+[06:11] able to build below previous week's low.
+[06:18] Stepping down in the 76s, you see the
+[06:20] offer.
+[06:28] Doing its thing there, refreshing a
+[06:30] little bit. It's when we step above the
+[06:32] 78s.
+[06:34] Look at these 78s.
+[06:37] A little bit of pulling above them and
+[06:39] then stepping in front just underneath
+[06:41] of them.
+[06:42] So we have that area there.
+[06:44] We lift out of that zone, then by all
+[06:46] means
+[06:48] gangbusters. Pullbacks into that 6667
+[06:53] zone
+[06:54] is viable as long as the offer pulls
+[06:56] away. If we don't get a pullback, then
+[07:00] in my opinion a trade, but looking at
+[07:03] the um MGI that we have at hand here and
+[07:06] I keep it very minimal.
+[07:09] I want to see these rotations bounce
+[07:12] back and forth and play stepwise
+[07:15] like a ladder.
+[07:22] I'm not a breakout trader.
+[07:24] And so this is not something that I
+[07:25] would be diving in on marketing long, so
+[07:29] forth.
+[07:30] And so this might surprise you a little
+[07:32] bit, but um
+[07:34] look at these 78s. Refreshing,
+[07:36] refreshing, refreshing on the offer.
+[07:38] Watch
+[07:40] the activity
+[07:43] in that bull stag.
+[07:46] Stepping in, stepping in, stepping in.
+[07:50] This will be ultimately an RP fail.
+[07:54] We want to be able to know what that
+[07:55] looks like.
+[07:57] See how thin is out. Right there. Bid
+[08:00] steps up in the 78s. Bid steps up in the
+[08:02] 78s for quarter.
+[08:04] Bid steps in. This here is off.
+[08:08] In my opinion.
+[08:09] Now, we have the potential to change
+[08:11] hands and we sweep outside of this zone.
+[08:15] So, this is where
+[08:17] I'll be looking at
+[08:18] where do we have What what type of
+[08:20] references we have next?
+[08:21] Bottom of the JBA is 73
+[08:24] um 83 half.
+[08:26] Okay?
+[08:27] So, I want to pay attention to what's
+[08:28] happening into that area. And we're
+[08:31] going to watch the 84s because the 84s
+[08:33] provide a nice response up and out of
+[08:35] this.
+[08:40] Offer stepping in.
+[08:42] Do we pull back to the 78s?
+[08:45] Let's see.
+[08:47] Cuz now we have the 66 67 zone.
+[08:51] The 78 zone.
+[08:53] Instead, now we step up.
+[08:56] We try to step up into the 84s. Not
+[08:59] quite there. They're still refreshing
+[09:01] the 85s.
+[09:05] In order to get along,
+[09:07] honestly, I would like an RP test.
+[09:15] Watching these 85s,
+[09:18] still there.
+[09:21] So, we can have a little pressure here,
+[09:22] but now it unlocks the ability to step
+[09:25] in at that lower structure where we saw
+[09:28] activity come in and step above that
+[09:30] offer.
+[09:34] I know this sped up. It's on purpose.
+[09:38] I think if ES was a little faster, I'd
+[09:40] probably trade it more.
+[09:47] The offer dwindles a little bit. We get
+[09:49] some assimilation of absorption here
+[09:53] into this leg to leg delta. You can see
+[09:55] it on the execution chart. Uh and you
+[09:57] see refreshing on this. So, I want to
+[09:59] watch those 84s where this started.
+[10:03] At the bottom of the JBAs.
+[10:06] I'm going to push out of that.
+[10:08] Or is the offer going to shy away?
+[10:21] Refreshing a little bit in the 87s.
+[10:31] Come back into the 84s.
+[10:34] Now, watch your offer.
+[10:36] Still there. Still there. Underneath you
+[10:38] have your 78s.
+[10:41] Offer still there.
+[10:54] Binning.
+[10:57] Binning out, but that 87 and 87 half
+[11:00] not moving. Once filled.
+[11:05] Change a little bit.
+[11:06] Right here.
+[11:09] We fill that sucker. We get this
+[11:11] positive delta through this mix.
+[11:21] The offer tries to press back.
+[11:28] There's no clean let off of the offer
+[11:32] through this sequence other than what we
+[11:34] saw around the 6667 zone.
+[11:38] We see this coming up and through here.
+[11:41] And now we're back into the JBA.
+[11:43] Which leads us into the next
+[11:45] piece of MGI which is pivot.
+[11:58] A lot of buy Delta down there at the uh
+[12:01] 5-minute or mid.
+[12:03] At this point my rebid locations I'd be
+[12:07] looking at are around the 84s at the
+[12:10] bottom portion of the JBAs.
+[12:13] The offer is still present. They haven't
+[12:15] just absolutely left the market here.
+[12:20] They pulsed out.
+[12:22] Haven't left the market.
+[12:23] But we've seen weakness and so now
+[12:26] that we're above the RP, I want to be
+[12:28] able to gauge this activity as far as
+[12:29] rebid opportunity.
+[12:33] And so now as we're coming to the 87s,
+[12:35] watch your offer.
+[12:39] Primarily looking at that 84 zone where
+[12:42] we saw that flip.
+[12:44] That's stepping above.
+[13:04] Smack me in the face
+[13:07] is what I'm looking at with this. So the
+[13:09] offer has been present even through this
+[13:11] stepwise type of activity.
+[13:13] Which means we can still have two-way
+[13:15] trade now. We're stepping back into the
+[13:17] 84s.
+[13:19] This is where I'm looking at this. We're
+[13:20] at the bottom of the JBAs. Want to see
+[13:22] that responsive. Want to see the offer
+[13:24] step away. There's
+[13:28] Somebody 86 quarter.
+[13:38] Some positioning stepping in front of
+[13:39] them.
+[13:47] They're not off the table yet.
+[13:55] Not off the table yet.
+[13:59] There we go.
+[14:00] Being thin. Now, this is where it's See
+[14:02] how See how that change occurs in the
+[14:05] offer here? So, this zone right here
+[14:09] is
+[14:10] potentially leading into the
+[14:12] acceleration.
+[14:16] To be able to pit risk against an 84
+[14:18] zone.
+[14:21] Because we saw that offer step away.
+[14:23] We're utilizing that bottom of the JBA
+[14:25] to gauge response. How much effort are
+[14:27] you willing to put in to be able to
+[14:29] press down through that JBA to go back
+[14:32] to a previous week's low? Well, we
+[14:33] weren't seeing that step-wise. Yeah, do
+[14:35] we leave a lot of meat on the bone?
+[14:37] Absolutely. But, being under the RP and
+[14:40] at previous week's low, we could flush.
+[14:43] We could.
+[14:44] Right? But, I'd like to see something
+[14:46] like this where we can minimize risk and
+[14:49] step into this where it can accelerate.
+[14:52] And so, there's a meaningful
+[14:53] characteristic to the offer
+[14:56] when it removes
+[14:59] versus when it's going to acquiesce to
+[15:02] price coming up
+[15:04] and so forth.
+[15:05] So,
+[15:07] I'm not somebody who's going to be
+[15:08] looking for perfection.
+[15:11] However,
+[15:13] with that
+[15:14] through this replay,
+[15:16] with that refreshing, we're seeing that
+[15:18] response, that response, response. Now,
+[15:20] as we get back in in the
+[15:22] this is where you want to see those 84s
+[15:25] respected or back down to the 5-minute
+[15:28] or mid. Um it's a natural response here
+[15:30] from the pivot. And so, you see that
+[15:32] refreshing here at the 93 halves.
+[15:35] And um from that
+[15:38] we'll go stepwise now to IB high and so
+[15:42] forth and do the same type of process
+[15:44] along the way. Once you're in position,
+[15:46] and so my personal answer to the
+[15:49] question is, "Where would you be
+[15:50] positioning on this?" It was right up in
+[15:53] here.
+[15:55] Where that flip occurred.
+[15:57] Um on ES. And so, based upon this review
+[16:00] and looking in through this through
+[16:02] here, yeah, we're failing at previous
+[16:04] six low. Great. All right, we can have
+[16:06] two-way trade through here indefinitely
+[16:08] and tighten up. But once we give up
+[16:10] here,
+[16:12] that's
+[16:13] ultimately a sign
+[16:15] that we can accelerate.
+[16:18] And so, I don't wish to be sitting in
+[16:20] absorption indefinitely.
+[16:23] But I'd like to see that
+[16:25] um especially as we move outside of his
+[16:27] own, I'd like to see that uh type of
+[16:29] response where the offer shies away and
+[16:33] begins to get a little get really
+[16:36] gun-shy.
+[16:38] So, I sped this up quite a bit.
+[16:41] Cuz this is where you'd be risking
+[16:43] against that current low down there at
+[16:45] the 84s, bottom of the JBAs,
+[16:48] um or even utilize into OBians back.
+[16:52] But ultimately targeting back into the
+[16:54] upper structure. Um next piece of MGIs
+[16:57] weekly VWAP
+[16:59] or weekly open.
+[17:08] And there we have it.
+[17:19] All right.
+[17:22] Go for it. Any questions?
+[17:26] You just mentioned that you would have
+[17:28] gotten up near the upper end of that
+[17:31] that move. You would not have been
+[17:33] looking long at previous week's low.
+[17:36] I
+[17:37] with NQ, it was a little bit different.
+[17:41] So, I did have longs from NQ's
+[17:45] um zone where we're failing at ES's
+[17:49] previous week's low.
+[17:52] When I go back through and review this,
+[17:54] what is textbook? What is
+[17:57] highest probability?
+[17:58] On the fly,
+[18:00] I'm also human and going to make
+[18:02] mistakes,
+[18:03] right? And that was a happy mistake
+[18:04] because it went in favor. Um but to be
+[18:08] honest, what does it What does it look
+[18:10] like to have
+[18:12] uh the setup that is ready to expand in
+[18:15] your favor versus
+[18:18] working into that absorption? NQ had a
+[18:21] similar response down at uh when ES is
+[18:23] at previous week's low.
+[18:36] But with regard to the question today,
+[18:41] how do you manage a breakout?
+[18:43] How do you manage your breakout?
+[18:47] Utilizing the OFL tools.
+[18:50] So, that's what I was focused on.
+[19:00] Need more clarity, Brian?
+[19:03] No, can you can you put that uh
+[19:06] replay back up by chance? Yeah.
+[19:10] Where do you want it? Um, towards the
+[19:12] end.
+[19:17] Yeah, that's perfect right there. Let's
+[19:19] say you had gotten long somewhere on
+[19:21] this leg higher. Uh-huh.
+[19:23] Does the appearance of developing
+[19:26] pinches affect your management of the
+[19:29] trade at all?
+[19:31] When we I I place that as a lower
+[19:33] priority on my execution chart versus
+[19:36] the structure we're looking at. So, in
+[19:38] testing the GBA low, coming back for a
+[19:41] little back test for continuation,
+[19:44] um, that in itself
+[19:46] is showing me those developing pinches.
+[19:48] Yeah, let's get that back test and move
+[19:50] into that
+[19:52] for continuation.
+[19:54] But, if you were in a long and you had
+[19:57] you had contracts to trim, would you
+[19:59] take some
+[20:00] >> Yes.
+[20:00] Immediately.
+[20:01] Yes. Okay.
+[20:04] Absolutely. Okay. Thank you.
+[20:06] >> So, if if you were hawking this down
+[20:08] here at previous six low, jam up and out
+[20:10] and you get a developing pinch, take it
+[20:12] off. And then,
+[20:14] or
+[20:15] try to leave a runner. And where where
+[20:17] do you want to place ads stepwise for
+[20:19] MGI? You know, you get a little pullback
+[20:21] through here,
+[20:23] uh, place some small on for
+[20:24] continuation.
+[20:28] Yeah, and finally, you mentioned briefly
+[20:30] during your your
+[20:32] replay narrative
+[20:35] after we pushed up through RP, that you
+[20:38] would be looking to rebid RP.
+[20:41] Yes.
+[20:41] >> Um, just anecdotally, that's probably
+[20:44] become my favorite setup.
+[20:47] That is That's more of mine.
+[20:49] >> hard when we push really hard through RP
+[20:54] and it doesn't have to go through very
+[20:55] far.
+[20:57] I mean, in this case, if we would have
+[20:58] pushed if if we pushed through RP in
+[21:01] this example and then backed off a
+[21:03] little bit at 24-hour VWAP, Mhm.
+[21:07] I would have been long at RP if it
+[21:08] pulled back there. Yeah, yeah. So,
+[21:10] there's a few locations here. One is
+[21:14] Sorry.
+[21:15] I coughed and I drew a
+[21:18] terrible line there. So, in this zone we
+[21:20] have confluence 24-hour Vwap.
+[21:22] Um just below us we know the overnight
+[21:24] low
+[21:25] um was respected quite a bit. And so, we
+[21:27] have these three in that zone. And so,
+[21:29] this zone here
+[21:31] based upon that activity coming up
+[21:33] through with the DOM want to be able to
+[21:35] see the bid continually stepping in
+[21:38] specifically around those 84s where it
+[21:41] was refreshed from the offer and then
+[21:44] the offer stepped back from that and the
+[21:46] bid began to step back up into it. And
+[21:49] so, that helps me on a smallest time
+[21:51] frame be able to look at this and say,
+[21:53] "All right, from this through here we
+[21:54] have support, right?" And so, if you
+[21:57] place stop in there
+[21:59] and get swept
+[22:02] thesis is not off the table from my end
+[22:04] because I would still rebid this.
+[22:07] We've gone back through replays where we
+[22:10] pull back into a zone. Yep, I would bid
+[22:13] that and then boom, it stops.
+[22:16] I would still do it every single time
+[22:19] if I have the right environment and I
+[22:21] need to make sure that my opponent is
+[22:23] off table.
+[22:25] So, if they're off table at that time,
+[22:27] that's the very last thing and
+[22:29] that's where I'm entering.
+[22:32] If we begin to sweep and find further
+[22:35] interest
+[22:36] and press down into this through here,
+[22:39] then
+[22:40] RP
+[22:42] certainly.
+[22:43] Otherwise, if we fail through that then
+[22:48] to me that's uh
+[22:50] a mis- that's a further misread. You
+[22:53] You've misread the characteristic of the
+[22:56] environment and we have not changed
+[22:57] hands.
+[22:58] Whereas
+[23:00] um
+[23:02] if we look at the characteristics of the
+[23:04] day, if you remember this, hm
+[23:08] we're just walking the dog in the RP all
+[23:10] the way down, and then we finally get
+[23:11] down here.
+[23:13] I'm been talking through the overnight.
+[23:15] We finally get down here and we have a
+[23:16] change of hands
+[23:18] through that. And so now we have this
+[23:20] range from the prior week.
+[23:22] You know, are we going to really
+[23:24] like hit the gas pedal on this? And so
+[23:26] we didn't, so it showed its hands. So
+[23:28] that gives me confidence up here to be
+[23:30] able to use some finite zones of
+[23:33] information when we see that DOM
+[23:35] activity come into play, whether it's
+[23:37] the RP
+[23:39] on a rebid.
+[23:41] But this uh the arrow is here just
+[23:43] essentially to show that's an RP fail.
+[23:48] This down here is no interest further
+[23:51] below previous six low. And then up here
+[23:54] is to show us that all right, we didn't
+[23:57] get interest here at the 5-minute or mid
+[24:01] because we've been stepwise from here
+[24:05] the 78s to the 84s
+[24:08] back and forth in each rotation that we
+[24:10] had through that,
+[24:12] we're seeing that protection of that
+[24:13] activity on on the DOM.
+[24:20] Hey Joe, can I ask you something real
+[24:21] quick? It has to do with this right
+[24:22] here.
+[24:23] >> Yeah.
+[24:24] On this picture specifically that the
+[24:27] the visual of that of that picture that
+[24:30] would probably steer me down that alley
+[24:32] um it is
+[24:36] you notice how the slope of of price is,
+[24:39] you know, in a classic, you know, up
+[24:42] trend kind of slope, you know.
+[24:45] Uh from, you know, bottom left to uh
+[24:48] to top right. Right. Okay. And
+[24:51] >> So higher lows. Right. Yeah, so so it's
+[24:54] making that move after and it and it
+[24:56] crosses but you can also see
+[25:00] the the slope. So there's this So you
+[25:03] have a linear slope right there
+[25:05] per se and then yeah then you have the
+[25:07] gradient slope of the RP
+[25:10] and you see how it's how it's flattening
+[25:12] out and starting to curve up.
+[25:15] Mhm. That to me that's signaling in a
+[25:16] larger sense there's
+[25:18] momentum to the upside and that's what
+[25:21] would kind of
+[25:23] not necessarily make me a bias that I
+[25:25] get married to that I I don't really do
+[25:28] that But at least rotate around it.
+[25:30] Yeah, I'm with you on that. So when it
+[25:32] is
+[25:32] >> would send me down that. Yeah, that's
+[25:35] >> When it's when it's vertical when it's
+[25:36] vertical to the downside and price does
+[25:39] something like this and then comes back
+[25:42] and tests it. Yeah, I'm looking for
+[25:44] something like that, right? Yeah, I was
+[25:46] wondering if you think that those kind
+[25:47] of shapes and looking at it like that Do
+[25:48] you think that's valid? I think it's
+[25:50] valid even when RP is doing
+[25:54] this
+[25:55] Yeah. then I'm looking at okay, we can
+[25:58] potentially balance and come back out of
+[25:59] this sucker at least for the time being.
+[26:02] Where is that trade thesis off? But when
+[26:04] it's like this
+[26:07] I look at that and go all right, I don't
+[26:08] want to fight it
+[26:10] but pullbacks into that Yeah, you don't
+[26:12] want to trust it either. Yeah. Yeah,
+[26:14] pullbacks into that I want to see it
+[26:17] either
+[26:18] so pullback aggressively into it and bid
+[26:21] or Yeah.
+[26:23] or
+[26:25] go sideways like this
+[26:28] Yeah. we cross it and then we
+[26:31] come out.
+[26:32] Right.
+[26:33] >> And then you see the RP do this.
+[26:36] Yeah. Yes.
+[26:37] >> Yeah, exactly. Yep. So those are nuances
+[26:40] that I pay attention to especially with
+[26:42] the RP. Yep. Okay. All right, cool man.
+[26:44] Thanks. I was Yeah, it's a it's a it's a
+[26:47] modified VWAP and so understand that
+[26:49] your VWAP is going to be moving and
+[26:51] doing the thing. Um
+[26:54] uh you know, I actually reach out
+[26:56] recently to Corey cuz I've been looking
+[26:58] over the past few months at the standard
+[27:00] deviations from the RP and oh man,
+[27:03] they're
+[27:04] not so bad. I mean, [laughter] you're
+[27:07] probably within a pretty good band.
+[27:09] Yeah. Yeah, yeah. So, um that's
+[27:11] something that uh you can potentially
+[27:13] see show up here
+[27:15] in short term in OFA.
+[27:19] And I'll discuss I'll discuss
+[27:21] uh what I've viewed on that and how to
+[27:23] utilize it to open up uh let's say
+[27:27] You don't want to go and take it with
+[27:28] extensions. Yeah, yeah. So, let's say we
+[27:31] got an extension up here
+[27:33] and we have the RP down here. All right,
+[27:36] well, does that mean we're not bullish
+[27:37] any No, but it means that we can come
+[27:40] into that RP and find continuation and
+[27:43] you can pretty much time it up um Yeah.
+[27:47] upon those.
+[27:49] So, it's it's it is pretty nice. And so,
+[27:52] we'll go ahead. I'll let I'll let you
+[27:54] know when that update comes.
+[27:57] Yeah, that'll be cool. Static levels,
+[27:59] moving levels, and
+[28:02] and volume profile together.
+[28:04] Yeah, they're
+[28:06] they're pretty powerful as a group.
+[28:07] Yeah. But Brian, did I answer your
+[28:09] question there?
+[28:11] Yeah, you did. I I guess my the purpose
+[28:13] of my first question or maybe just kind
+[28:16] of a uh
+[28:18] a reason for my first question about not
+[28:21] maybe not considering getting long at
+[28:23] previous week low. It looked like we had
+[28:25] a pretty noticeable failure at the IB
+[28:28] low in the ES that day.
+[28:29] >> Mhm.
+[28:31] Yeah, so giving it some time to show its
+[28:32] hand.
+[28:33] Yeah.
+[28:34] >> Especially when the overnight was
+[28:35] walking dog of the RP all the way down
+[28:37] through. And when I say that, I hope
+[28:39] everybody understands that what I mean
+[28:41] is the RP was like this and price
+[28:45] activity was like this.
+[28:47] Yeah.
+[28:49] Okay, walking the dog down and then we
+[28:51] tighten up against previous week's low.
+[28:54] And you look at this and go, "Okay,
+[28:56] well, that's a try No, what I'm getting
+[28:58] at is we're coming into some important
+[28:59] MGI and we can offset stops if we get
+[29:03] above this sucker and we can begin to
+[29:05] move.
+[29:09] So, I don't I'm not somebody who looks
+[29:11] at
+[29:12] shapes and
+[29:14] Right. things,
+[29:16] you know.
+[29:23] It's funny though cuz Was that your
+[29:24] attempt at a stop sign?
+[29:27] We're not going to talk about that,
+[29:28] okay, Brian?
+[29:31] >> [laughter]
+[29:32] >> Hey, everybody has different uh things
+[29:34] that make them special. Yes.
+[29:36] And uh I've been told before, I'm not
+[29:39] sure if it's positive or negative, that
+[29:41] I am special. Um you know, but I love my
+[29:44] mom, you know.
+[29:46] I think
+[29:46] >> [laughter]
+[29:47] >> I think we all are special in our Yeah,
+[29:49] we're a little special, a little bit.
+[29:51] But um what I'm get what I'm getting at
+[29:53] is look, there's going to be different
+[29:55] styles trading. When you incorporate
+[29:56] order flow activity, then you can help
+[29:59] refine um
+[30:01] the finite area of where risk is on or
+[30:03] risk is off.
+[30:05] Yeah.
+[30:06] And so um I I think that I can speak for
+[30:09] Fat Fish here
+[30:11] uh in that you when you came to OFL,
+[30:14] you weren't trading this stuff with
+[30:15] volume profiles and stuff like that. But
+[30:18] along the way with what that system that
+[30:20] you were using, you started to see some
+[30:23] confluence, some ways to refine and be
+[30:25] more efficient.
+[30:27] Right, exactly. And remove the heart
+[30:30] palpitations.
+[30:32] Yeah.
+[30:33] Yep. Yeah. Where where you Yeah. where
+[30:36] you step back into the heart
+[30:38] palpitations is when you get married to
+[30:40] something and you decide, "Okay, no, I'm
+[30:42] right. I got to be right. I got to be
+[30:44] right." And I'm going to
+[30:45] you know, add one more here or things
+[30:47] like that. And this is why I continually
+[30:49] say, "Don't do that. Take your loss."
+[30:55] >> Take your loss if you're wrong.
+[30:57] Yeah, I think it all comes down to I
+[31:00] mean, it
+[31:01] I know this may sound silly, and there's
+[31:03] always going to be somebody that's going
+[31:04] to go, "Well, I see it like this."
+[31:07] But
+[31:08] it I mean, throughout this whole thing
+[31:10] ever since I first started getting into
+[31:11] trading and like figuring out how to do
+[31:14] it,
+[31:15] it always seems to come down to what is
+[31:17] the quality of your entry into the
+[31:20] market.
+[31:21] Yep.
+[31:22] You know, I mean, that's the point.
+[31:24] After that, then you can start figuring
+[31:26] out, "Okay, how do I look at risk and
+[31:27] volatility, and how do I play this as
+[31:29] it's going?" But you have to have
+[31:33] a quality entry. Right. And also, when
+[31:36] when it comes to reading DOM activity,
+[31:40] uh and I've been asked this a lot, "Can
+[31:42] we go more in-depth?"
+[31:46] "Can we go more in-depth with DOM
+[31:48] activity?" Yes, you can.
+[31:50] Absolutely.
+[31:52] And will that serve you?
+[31:56] No.
+[31:58] Yeah, it's yeah. How much do you want to
+[32:01] think about when you're trading?
+[32:03] Right? And so, this is naturally
+[32:06] what I go back to and gravitate back to.
+[32:08] And yeah, it you know, try to simplify
+[32:10] things as much as possible. But you can
+[32:13] look at
+[32:14] um
+[32:15] these orders and impact and how it goes
+[32:18] with
+[32:19] the delta on on
+[32:22] different aspects of the
+[32:24] you know, the the
+[32:25] MBO orders and things like that.
+[32:28] For me,
+[32:29] those are not setups that I'm willing to
+[32:31] engage with.
+[32:34] Because I I want I want to keep things
+[32:37] more simplified.
+[32:39] You can go into depth.
+[32:41] Uh
+[32:42] but anytime you change your variables,
+[32:44] understand
+[32:45] before you take three steps forward,
+[32:47] you're going to take two steps back.
+[32:51] Yep.
+[32:53] And simple is so much better. It is
+[32:55] simple
+[32:57] simplifying things has probably changed
+[32:59] my game recently more than anything,
+[33:02] honestly.
+[33:05] Yeah, so keep it simple, especially when
+[33:07] it comes to DOM stuff. Don't try to
+[33:09] interp- interpret, you know, what is
+[33:11] happening on the global stage versus the
+[33:14] uh
+[33:15] activity coming through the time and
+[33:16] sales. In fact, just turn off whatever
+[33:19] feed you have with that and just trade
+[33:22] structure first. Hell, I don't know what
+[33:24] >> come into that zone,
+[33:26] if it's amenable to your positioning,
+[33:28] engage. If it's not, don't.
+[33:31] And if it moves away and you miss a
+[33:33] move, wait. Just because there's
+[33:37] I mean, futures are open indefinitely,
+[33:39] all right? Um and so
+[33:42] allow for it to set up and smack in the
+[33:44] face
+[33:45] and try not to be
+[33:46] uh or try not to
+[33:48] convince [clears throat] yourself that
+[33:49] you need to become the quants, right?
+[33:52] >> Yeah. Be simple. Be your simple guy and
+[33:55] then or Yeah. lady
+[33:57] and uh like for me, it's like, okay, all
+[34:00] right, want to extract some moves and
+[34:02] then I want to go
+[34:04] outside.
+[34:06] Yeah.
+[34:07] Yeah, let yourself lose.
+[34:09] Yep.
+[34:10] You know. Let loose.
+[34:11] And be okay be okay with uh try not to
+[34:14] spend the If you're having a tough day
+[34:17] and you're not making good reads, but
+[34:19] you have had days where you've had good
+[34:21] reads, then
+[34:23] be okay with the fact that, all right,
+[34:25] well, I guess I'm not seeing it today.
+[34:28] Be okay with that.
+[34:30] And step away. Have
+[34:32] and this is why DLLs exist, right?
+[34:36] And so those types of things.
+[34:39] Another thing I've set in place and I've
+[34:40] talked about it before is after a
+[34:42] certain amount of
+[34:45] extraction from the market after a
+[34:47] certain amount of points
+[34:48] pulled from the market then
+[34:51] I have it hard set that I'm not allowed
+[34:54] to give back more than 50% of that.
+[34:58] At which point to me that's kind of like
+[34:59] a red day.
+[35:02] It keeps me safe though
+[35:04] because if you're seeing it seeing it
+[35:05] seeing it and then all of a sudden
+[35:06] something flips maybe into the afternoon
+[35:08] and you're not reading it well into the
+[35:10] afternoon then boom now
+[35:13] You've already done yourself a favor.
+[35:17] Yeah.
+[35:18] But
+[35:20] it it it definitely is a pit in your
+[35:22] stomach to be able to give back half of
+[35:25] what you already worked for throughout
+[35:26] the morning or anything like that but
+[35:29] yeah with the Sierra Chart Global Profit
+[35:31] Loss Management you can do that very
+[35:32] easily. Um You can set the
+[35:36] I haven't I haven't checked that out.
+[35:38] You can set Can you set that in there?
+[35:40] Yeah, you can. You can set it to
+[35:42] automatically liquidate or
+[35:44] stop you out. Like
+[35:46] but what about the
+[35:47] rule about like a no give back rule or a
+[35:49] give back limit? Yes.
+[35:52] You can also set it to lock you out for
+[35:54] a specific period of time too
+[35:57] or for the entire day if you want.
+[35:58] >> Yep and you can you can set it and say
+[36:00] hey if I've if I've made X amount then
+[36:03] that's going to lock it and keep you
+[36:05] just right at what you made but I don't
+[36:07] like to put caps on what I can pull from
+[36:10] the day. I do like to put that 50% on
+[36:16] I like to have that on there to just
+[36:18] make sure that okay I'm getting
+[36:20] confident I'm getting overconfident now
+[36:22] I'm getting really overconfident okay
+[36:24] now
+[36:25] I was a dumb ass and you need to away.
+[36:29] I like certain things.
+[36:30] >> set it up to trail. If let's say you
+[36:32] have a two grand profit target or
+[36:35] trigger Mhm. and you want to protect a
+[36:37] thousand you can also designate that
+[36:40] trigger to move up.
+[36:42] You can say okay, if I get to 2500, I
+[36:44] want my protection to move up to 15.
+[36:47] Yes. You can set up the increments under
+[36:49] which that adjusts. Oh, so like a
+[36:51] rolling BE. Yes.
+[36:53] Oh.
+[36:55] So that's those are like little tidbits
+[36:57] I don't think a lot of people use, but
+[36:58] um I like them because you know, it kind
+[37:01] of just gives me a little nudge
+[37:04] hey, you know what?
+[37:06] Why did you give that back? You know,
+[37:09] because you don't want to look at this
+[37:10] and go okay, well I still have half of
+[37:12] this left and you know, naturally I try
+[37:16] not to do those things at all.
+[37:18] I give back half
+[37:20] but it's still trading.
+[37:23] And you can you can find yourself in a
+[37:25] position where you're like okay, all
+[37:26] right, all right.
+[37:27] You know, I'm sized [clears throat]
+[37:29] this much I took a stop. Okay, all
+[37:31] right. Well, I'm I'm going to try to
+[37:33] reset this position took another stop
+[37:35] and now well, I find myself at 50% of
+[37:37] what I made this morning and
+[37:40] now
+[37:41] step away. Yeah, let yourself Yeah,
+[37:44] yeah, let yourself not But don't be
+[37:46] don't be so
+[37:48] what I would say with the 50% aspect,
+[37:50] don't be too tight on it. Right. Okay?
+[37:55] Because if you're looking at this going
+[37:57] okay, I made 20 points and I'm not going
+[37:59] to give back 10. Come on, that's not
+[38:00] realistic. Yeah. You know,
+[38:03] but if you get to that 150 point range,
+[38:06] that 200 point range on NQ or something
+[38:08] like that, then by all means, yeah. And
+[38:12] you can have it set up that way um once
+[38:16] you meet a certain threshold on a daily
+[38:18] target and it doesn't have to be 150
+[38:20] points, right? That's not realistic
+[38:22] every single day.
+[38:24] Let's say. Then um
+[38:26] then you set it up to to trail or step
+[38:30] wise like Brian was talking about.
+[38:33] Yeah.
+[38:35] Yeah, if that's I mean and that's a
+[38:37] style.
+[38:38] Yep. And And so if you if it's step wise
+[38:41] based on let's say that you made 25
+[38:43] points and on your given day, you're not
+[38:45] willing give back 50 points or your DLL
+[38:49] is 50 points or something like that.
+[38:51] Then um at 25 points right there now
+[38:55] your DLL is negative 25 points.
+[38:58] Right?
+[38:59] And you could damn near build a strategy
+[39:01] around that.
+[39:03] Okay, go for it. That's
+[39:04] >> That's a strategy, you know? That's what
+[39:06] I'm getting at.
+[39:07] That's
+[39:10] Haha.
+[39:11] Okay.
+[39:15] So I hope everybody had fun today.
+[39:17] I have snatched the pebble from master
+[39:19] say.
+[39:21] >> [laughter]
+[39:23] >> Hey.

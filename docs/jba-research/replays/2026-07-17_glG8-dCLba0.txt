@@ -1,0 +1,576 @@
+# Market Replay_7.17.2026_Job (Exhaustive Node at Edge of Range)
+# https://www.youtube.com/watch?v=glG8-dCLba0  |  1642s  |  uploaded 20260717
+# Auto-captions, timestamped [mm:ss].
+
+[00:02] All right. So, this is a market replay
+[00:03] from yesterday. Um 716 2026. And what
+[00:08] we're looking at is the step outside of
+[00:10] the JBAS, step back and in. And based on
+[00:13] the morning prep was talking about
+[00:16] inability to build below the overnight
+[00:18] low. We had a nice little pause here to
+[00:22] begin with and we jam up and out. I was
+[00:25] not on hands for that. And even in the
+[00:27] chat, Cap and I I think CAP was able to
+[00:30] scalp out of that, but I was waiting for
+[00:32] this to take out the overnight low and
+[00:35] gauge that activity. And so with this
+[00:38] down at the bottom in the edge of the
+[00:40] JBAS, we had a very nice uh build that
+[00:44] was occurring and creating that primary
+[00:46] LVN at the 370s. We're going to see this
+[00:49] on the replay, but in creating that on
+[00:51] the 370s, it was very well respected.
+[00:54] And so if we're tagging into the bottom
+[00:56] of the range, we have a nice build, then
+[00:59] where do we create our exhausted node
+[01:02] and we have to come back into a prior
+[01:04] distribution. If we create a nice little
+[01:06] distribution like that and it's being
+[01:08] respected left and right, we're pausing,
+[01:10] pausing, pausing. Can you scalp that for
+[01:13] a handful of uh handful of points?
+[01:16] Absolutely. um but would would have been
+[01:20] looking for this. If we tagged the
+[01:22] bottom of the JBAS and jammed above the
+[01:25] 370s into about the 410s, then this here
+[01:28] would have been longs for the rest of
+[01:30] the day on my end from this. Instead, we
+[01:35] um we don't find any activity that's
+[01:38] able to build above those 370s. Instead,
+[01:41] we we come up in we dip our toe a little
+[01:43] bit above the 370s. We jammed down into
+[01:46] here. We're building out, building out,
+[01:47] building out. And then we get something.
+[01:50] It's not a ledge. It's not a volume
+[01:52] ledge, but it's pretty darn close where
+[01:55] 310's built in. And in looking at that,
+[01:58] the previous PAC was set at 410 right up
+[02:02] here, 100 points above.
+[02:04] At which point in that flip, that pock
+[02:07] flip, uh, from my end, you still have an
+[02:11] execution trigger. And so you still want
+[02:14] to be able to see is the volume profile
+[02:17] finished.
+[02:19] And so down underneath here, if we're
+[02:21] outside of the overnight low and outside
+[02:23] of the JBA low, uh, one of my
+[02:26] requirements from the prep on that day
+[02:28] was I want to see an exhausted look in
+[02:30] order to get on board to be able to step
+[02:32] in and um see my opponent shy away. And
+[02:36] so we'll take a look at this here. And
+[02:39] so right here where it starts,
+[02:45] make sure you can see the clock on this.
+[02:49] We have those 370 build building out um
+[02:53] below and we have the primary LVN right
+[02:56] there at the 370s. So below the 370s we
+[02:59] have this building out and made
+[03:02] reference to this as being not the not
+[03:05] the best node uh primary LVN's above us
+[03:10] 370s and then much higher in the 400s.
+[03:14] And so this right here we have 410 as
+[03:17] the PAC but we're pushing and building
+[03:19] pushing building. This is pretty
+[03:21] ambiguous. And so when I see a node
+[03:22] building out like this, um, naturally
+[03:25] you have your primary LVN, but
+[03:27] essentially I look at this and say, "All
+[03:29] right, can we fill this through here?"
+[03:32] And if we do, then bids above that 370.
+[03:37] Otherwise, if we continue to build down
+[03:39] into that direction and we're
+[03:41] approaching the level of volume that is
+[03:44] from PAC where it previously came from
+[03:47] just above, you can see that faint blue
+[03:48] line above us. um then I want to pay
+[03:51] attention to that for a shift of that
+[03:53] pock or even shift of value where we're
+[03:57] at the edge of a range and we get an
+[03:59] exhaustive look. Now, on this day, the
+[04:02] bottom of the JBA is at the 2930 or
+[04:05] 332s, and the previous day was at the
+[04:08] 272s. And so, in the morning prep, I was
+[04:12] paying attention to all right, the fact
+[04:14] that yes, we have a 5day rolling look
+[04:16] back. Um, but we had that reference at
+[04:20] the 272s for a little while. Want to be
+[04:22] able to see what is occurring down here
+[04:24] into that. And so, as we're pushing and
+[04:27] building into this, is this volume
+[04:28] profile done? Anybody?
+[04:31] Is it done?
+[04:34] It's not.
+[04:37] I mean, that is,
+[04:40] you know, you can almost qualify that as
+[04:42] a ledge.
+[04:45] I I don't qualify this as a ledge, but
+[04:48] um yeah, it's it's right about there.
+[04:50] It's not finished. If anything,
+[04:54] when we push down in, we have the 310s
+[04:57] there. We have this little notch and we
+[04:59] know that above the 370s that's where
+[05:02] longs are on board. But through here we
+[05:04] can have two-way trade through this
+[05:06] distribution. Got a lot of sellside uh
+[05:09] delta into this and we're auctioning
+[05:12] back in and across this returns quite a
+[05:15] bit.
+[05:26] So, I'm still looking at this thinking
+[05:28] we're not done. If you look at the uh
+[05:31] delta map on the volume candles, these
+[05:33] are 10,000 volume candles on on uh NQ.
+[05:37] What you can see is that we are just
+[05:39] sell cell. We're not making progress
+[05:41] over local highs or anything like that.
+[05:44] And I'll expand that video screen there
+[05:46] a little bit. Be able to see tape
+[05:48] reader. we start to dwindle a little bit
+[05:52] as we push up and respect the JBA low.
+[05:59] From my end, I wasn't looking to extend
+[06:02] the activity from the overnight and find
+[06:05] continuation at that point, but instead
+[06:07] looking for bid out of this zone. If we
+[06:11] have an exhaustive look, we flip and we
+[06:14] have accommodation from the opponent,
+[06:16] which would be the offer. And so pock
+[06:18] flips down. We had a question from Brian
+[06:21] early on in the chat and said, "Okay, my
+[06:23] pock flipped down now. Yours did not
+[06:26] yet." And um that's based
+[06:28] [clears throat] upon compression. And so
+[06:30] if you have a single tick compression,
+[06:32] may not get that immediately. If you
+[06:34] have multiple tick, this is set on a
+[06:37] four tick compression in order to match
+[06:39] the DOM. It has four tick compression on
+[06:41] the pull stack activity. So, I'm trying
+[06:44] to frontr run that question, but does
+[06:46] that answer that for you, Brian?
+[06:53] Take that as a maybe. Um, also,
+[06:56] >> Brian,
+[06:57] >> yeah,
+[06:59] >> I don't think I asked a question.
+[07:01] >> Oh, are you sure?
+[07:04] Okay, I'll I'll take a look back at the
+[07:07] chat, but uh we had that pull we had
+[07:09] that pock shift down and um and I'm not
+[07:13] trying to call you out or give you a
+[07:14] hard time or anything with that, but we
+[07:16] still have unfinished business at the
+[07:18] bottom of that volume profile. We don't
+[07:20] have either a parabolic taper. We don't
+[07:22] have an exhaustive node. Pock has
+[07:24] shifted down. So now this invites the
+[07:27] opportunity to be able to see some sort
+[07:29] of exhaustive look and parabolic taper
+[07:33] off
+[07:35] scary aggressive come back into prior
+[07:38] distribution which provides a long
+[07:40] potentially across this distribution
+[07:42] into the 370s to fill this out and do
+[07:45] its work in that. So at this point
+[07:48] there's no reason for me to have my eyes
+[07:51] on the dom. Now, even up until this
+[07:54] point, we have this primary LVN at 370
+[07:57] range up here and we have this muddled
+[08:01] distribution. We have PAC at the bottom.
+[08:03] So, I'm waiting to be able to see if we
+[08:05] can get some sort of scary exhaustive
+[08:07] look. Give me a blowoff. Something like
+[08:09] that. Um, in order to come back into
+[08:11] that distribution and work back across
+[08:15] it because if we look at the ranges on
+[08:17] this, uh, that's pretty nice range on
+[08:20] that distribution. we can be able to
+[08:22] maximize that. And so we begin to push
+[08:24] down into the 300s.
+[08:28] Oh, now we start to build or start to
+[08:31] show some assimilation of acceleration
+[08:34] and building a new distribution. Great
+[08:37] under the 300's into the 87 range and
+[08:41] pressing down.
+[08:44] And this is a counter type of read that
+[08:47] I'm going through. So, we're pushing
+[08:49] down the 70s7s,
+[08:53] get down the 72s, previous JBA low,
+[08:58] building out a nice little node. At this
+[08:59] point, you're looking at your volume
+[09:00] profile saying, "All right, we have this
+[09:02] muddled profile. If we come back into
+[09:04] this distribution, we'd expect at least
+[09:07] to spend a little bit of time and
+[09:08] filling this out, but this here is where
+[09:11] it's hands off for shorts up into the
+[09:14] 370s. Down here, we're building a new
+[09:16] distribution. If we come back up into
+[09:19] this, then we have the potential to come
+[09:20] back into that prior distribution being
+[09:22] that we're escaping those JBAs. So,
+[09:24] we're pushing and building, pushing and
+[09:26] building.
+[09:29] Still, at this point, I have no concern
+[09:32] looking at the DOM with the exception of
+[09:36] the 87s. Watch your 87s
+[09:39] at the top of that lower distribution.
+[09:47] the red pulsing in, pulsing in. Are we
+[09:50] are we actually able to take the bid up
+[09:52] and above that nope, pulsing in, and
+[09:55] then um extending that downward,
+[09:57] stepping down, stepping away a little
+[10:00] bit, filling out this node, but those
+[10:02] 87s
+[10:04] where we're at the edge of that small
+[10:06] distribution is where it initially
+[10:09] started pulse in on that first rotation
+[10:11] back. So, it gets a little light here on
+[10:13] the offer.
+[10:17] And when we step back into the 87s,
+[10:19] that's where we want to pay attention to
+[10:21] that because there's no need to counter
+[10:23] this. If we can't overcome this current
+[10:26] distribution, we have a really nice
+[10:27] build down here. And this could be
+[10:30] completed.
+[10:31] Watch those 87s.
+[10:34] So, I'm going to back this up a little
+[10:35] bit.
+[10:38] Watch the 87s. And if we can't refresh,
+[10:46] then we could step back up up up.
+[10:50] We pulse up into the 93s into that LVN.
+[10:56] How do we leave a distribution behind?
+[10:57] We have to engage and con and actually
+[11:00] transact in the prior. We have a
+[11:02] dominator 2.0 showing up. We have delta
+[11:04] map exhaustive look occurring at the
+[11:07] lowest. And so we still have the
+[11:09] potential to push up into this here. And
+[11:12] this is where we come back into the 87s
+[11:15] again.
+[11:18] And after that first sign of weakness,
+[11:19] we step into that LVN.
+[11:25] Watch your 87s. It's all blue right now.
+[11:27] The blue means it's pulled off.
+[11:31] You see a little blip in through here
+[11:34] around 8384.
+[11:36] And now you see the bid holding or
+[11:40] stepping up into those 87s with the
+[11:43] potential to press this delta that we
+[11:46] have seen come in around the 300 range.
+[11:50] So um shortly after this is where I
+[11:54] mentioned to the group, hey, you know,
+[11:56] with the pock flip and so forth, I'm
+[11:58] engaging. And so I want to be able to
+[12:00] see this press and step above that zone
+[12:04] and not just tickle this 87 back and
+[12:07] forth.
+[12:08] So as we're going back and forth, we're
+[12:10] getting buy sweeps, buy sweeps. If we're
+[12:13] going to fill in on this 87s with the
+[12:15] offer,
+[12:17] then let it be so. But I want to see
+[12:20] this engage up into this range through
+[12:23] here
+[12:25] with the bid stepping up and blowing out
+[12:28] those offers to be able to dive in like
+[12:32] a dragon with a hemorrhoid to be able to
+[12:33] risk against the high volume edge here
+[12:35] down on this lower volume profile.
+[12:41] We have orders stepping in at the 84s.
+[12:45] The offer is off the 87s. You see the
+[12:47] stacking there at the 84s. So at the 84s
+[12:51] at that point, this is showing me
+[12:53] strength from the bid side and weakness
+[12:56] from the offer. Is this a primary step
+[12:59] in full size for Maya? Absolutely not.
+[13:03] But if if this is willing to engage or
+[13:06] at least step up and bring us up into
+[13:08] this zone, then we put pressure on this
+[13:10] delta there.
+[13:14] And so we step up and we get 96 delta
+[13:17] because those orders filled here at 93
+[13:20] at which point um that's where I
+[13:23] mentioned into the group. All right, I'm
+[13:25] engaging with this because I want to see
+[13:27] this move across this zone through here.
+[13:30] And so based upon my rules, I want it to
+[13:32] be as I want to minimize risk as much as
+[13:35] possible. But we have this distribution
+[13:37] down below us. And so the high volume uh
+[13:41] node of that distribution is right here
+[13:43] in the low 80s. And so understanding
+[13:46] what we're seeing at the 87s, I want to
+[13:49] see that respected and rebid give it a
+[13:52] little bit of wiggle room down here into
+[13:53] the low 80s and not be able to cut that
+[13:56] trade unless we refreshing either at the
+[13:59] 87s or into the low 80s.
+[14:07] And this is the uh anatomy of an
+[14:10] exhausted node.
+[14:14] So we push up and in through this mixer
+[14:17] here where we have pl shift down to the
+[14:19] now where value shifted down to the
+[14:21] bottom and you have this primary LVN um
+[14:25] and it's a little bit wide. So let's say
+[14:27] primary OVN right here at the upper 90s,
+[14:29] low 90s right here and squint and look
+[14:34] at that zone as saying that needs to be
+[14:37] respected but also that lower
+[14:38] distribution. If we dip our toe into
+[14:40] that, we should not be engaging too much
+[14:43] through those 87s where we saw that
+[14:45] activity. From here it's gauge and
+[14:49] manage. If we pull back into those 300s
+[14:52] in the 90s zone,
+[14:56] then we want to be able to assume that
+[14:59] the trade thesis is still on unless we
+[15:02] get down into this distribution down
+[15:04] here above us targets along the way.
+[15:08] Naturally, bottom of the JBAS right here
+[15:10] around 32s. We also have the overnight
+[15:13] low which is just below this um LVN up
+[15:17] here at 370s. And so up here, begin
+[15:21] protecting anything from um uh pulling
+[15:26] back and respecting the bottom of the
+[15:27] JBAS for continuation. We're seeing the
+[15:30] assimilation of a potential or low or um
+[15:34] exhaustive node. And I know we come back
+[15:36] down into it, but let's talk about the
+[15:37] anatomy of how this is forming. Um we're
+[15:40] coming up into this area, begin to
+[15:42] protect some profit, take something off
+[15:43] and try to leave runner. Trathe thesis
+[15:45] is off. If we get back through the mid
+[15:47] part of that distribution below us and
+[15:50] then if we are able to burst out into
+[15:53] the overnight low or into the 370s, then
+[15:56] take more off or even flatten.
+[16:01] So, we get this move up into the mid
+[16:03] part of that distribution above us. We
+[16:05] pull down into um the 90s right here,
+[16:10] right? And so into those 90s, we know
+[16:13] the 87 mark is where they were
+[16:16] refreshing previously. And we'd like to
+[16:18] see like a little wick down into that
+[16:25] right there.
+[16:29] At which point are we refreshing?
+[16:31] Because now we're at we got I mean now
+[16:34] it's all on the table. Is this trade
+[16:36] thesis accurate or is it negated?
+[16:42] Is the offer stepping down underneath
+[16:44] those 87s? If not, we wick down into
+[16:46] that add to that position. I know cap
+[16:49] did. I did not.
+[16:52] But that was a nice little flip there
+[16:54] back into that zone of the 87s. We're
+[16:56] beginning to push up and out. At which
+[16:58] point, you're looking at this saying,
+[16:59] I've confirmed an exhausted look at this
+[17:02] time. How long does that have to exist?
+[17:04] It doesn't have to exist for any
+[17:07] specific period of time. It's just about
+[17:10] rotating this zone. And so if we do
+[17:13] traverse this zone up into this area,
+[17:16] then we have the potential to retest
+[17:20] back into this area, dip our toe into
+[17:23] that node, and if it fails again, come
+[17:26] back across.
+[17:34] Do we zoom up into the bottom of the
+[17:36] JBAS? At which point you can expect um
+[17:41] some sort of profit take from my end.
+[17:43] I'm not looking to be a hero and take
+[17:45] everything for 100 200 points, but you
+[17:48] can see that refreshing in the 20s.
+[17:54] As long as we are holding those 87s,
+[18:00] then we can we should engage with the
+[18:03] bottom portion of that zone.
+[18:08] Stepping up.
+[18:11] Getting a little trouble there in the
+[18:12] low 20s.
+[18:18] A lot of buy side delta at the upper
+[18:21] portion of this particular rotation. we
+[18:24] burst into the 32s. That's where um I
+[18:27] would certainly be looking to take
+[18:29] something off
+[18:35] regardless of activity, not manually
+[18:37] reading that. Um in order to look at
+[18:40] this and say, well, did they step away?
+[18:42] No, I'm going to take something off
+[18:44] every single time. If we come back into
+[18:47] if we stepped out of a wide zone from
+[18:50] the JBAS and we come back into this test
+[18:52] that take something off to try to leave
+[18:55] some to rotate that node.
+[18:58] Trathe thesis is still on above these
+[19:00] 87s.
+[19:07] We have overnight low. We have the 70s
+[19:10] above us
+[19:12] pushing up. Pushing up. Pushing up.
+[19:16] Look at your 40s
+[19:18] refreshing
+[19:23] right here.
+[19:29] Let that stick out in your mind.
+[19:31] Overnight low 370s. If we get if we
+[19:34] begin to offer and uh sustain uh
+[19:38] stacking below the 40s, then that should
+[19:41] be off immediately.
+[19:43] Here
+[19:46] we are below the 40s down into the 28s.
+[19:51] It's fast. This is This is real time
+[19:54] speed. Come back into the 40s
+[20:00] because you're going to get a little
+[20:01] pause there.
+[20:05] You want to rotate back to the bottom of
+[20:07] that distribution. Be able to get some
+[20:09] sort of look at that.
+[20:11] Now, uh, the one thing this fails to
+[20:14] display is that here towards the end of
+[20:17] the recording, we rotate down into here
+[20:22] and we actually push down through this
+[20:25] node
+[20:26] at which point we find pretty much the
+[20:30] same setup again. We exhaust, we come
+[20:32] back up and out above those 87s, and
+[20:34] then boom, off we are again.
+[20:38] But on the fly with a directional move
+[20:42] down and through this, this is what I'm
+[20:45] looking for as far as pock flip. Give me
+[20:47] some sort of exhaustive look on this to
+[20:50] be able to get in and extract with
+[20:52] minimal risk, as minimal as possible.
+[20:55] Um, and and work across this node and as
+[20:59] a step letter work into my MGI above us.
+[21:07] So the silent recording is available in
+[21:11] uh the replay section for anybody who uh
+[21:15] either cannot replay or doesn't wish to
+[21:18] do so.
+[21:20] Doesn't want to hear any chat. But
+[21:27] you don't have to catch the entire leg
+[21:30] of the entire day in order to make
+[21:33] something work on this. You have to have
+[21:35] a repeatable aspect for what you're
+[21:38] looking with the setup. And if we're
+[21:40] outside of a zone like this, yeah,
+[21:42] naturally it's going to be smaller size
+[21:45] and you're looking to rotate a wider
+[21:46] zone. But um this is what it looks like.
+[21:49] This is the anatomy of seeing an
+[21:51] exhaustive look for a push back into a
+[21:54] primary OVN into those 370s
+[21:58] to be able to gauge if the entire tempo
+[22:00] of the day has changed to be able to get
+[22:03] above that. at the latter portion of
+[22:05] this once it reset and we're able to um
+[22:09] find a sustained bid above those 8790
+[22:12] area then um next logical place of a
+[22:16] pock was back to where it was the 410s
+[22:18] [snorts]
+[22:19] and so the 410s is ultimate is
+[22:22] ultimately a target on that get there
+[22:26] especially when that puck shifts um take
+[22:30] it take it off the table because at that
+[22:34] point shifting pock back to the upper
+[22:36] portion of value.
+[22:38] Yeah. Now you potentially enter two-way
+[22:40] trade before we escape a zone and we
+[22:42] find direction again.
+[22:51] I do feel the replay section um has
+[22:54] already created a library of uh
+[22:57] meaningful reads and setups and
+[23:00] understanding around this type of
+[23:02] activity. But uh please if you have any
+[23:05] questions if not we'll go ahead and shut
+[23:08] it down.
+[23:10] >> Hey Joe, I have a quick question for
+[23:12] you.
+[23:13] >> Yeah.
+[23:13] >> Um when we were building below the JBA
+[23:17] there
+[23:17] >> and the pot shifted to 310,
+[23:21] >> there was a a pinch that formed there.
+[23:24] >> I assume that's what that green dot is.
+[23:26] >> Yep. Um, if instead
+[23:30] price had pushed up, instead of
+[23:32] continuing lower, if price had pushed up
+[23:35] into that LBN at 370, would you have
+[23:37] been looking to offer that
+[23:41] >> weak structure below?
+[23:42] >> Yes. Yes. And so that's that's a
+[23:45] scenario on on that end, which is the
+[23:48] it's unfinished. And so in order to get
+[23:50] long, I want to see an exhaustive node
+[23:52] or a parabolic taper or something like
+[23:54] that. Um, but if we had jammed up and
+[23:58] out of this after this pinch straight to
+[24:00] the 370s, then from my end, that would
+[24:03] be a a very clean short to be able to
+[24:08] take this out and extend it.
+[24:11] >> Okay, cool. Thanks.
+[24:12] >> Yep.
+[24:16] Can you see the difference between the
+[24:18] lower build versus what it looks like
+[24:21] when it's exhaustive?
+[24:23] with
+[24:26] a taper or an exhausted node.
+[24:29] >> Absolutely. Yeah, it happened twice.
+[24:31] >> Mhm.
+[24:33] And so it essentially speaks to you,
+[24:35] says it's not time yet.
+[24:38] And if you miss any type of move up and
+[24:40] out of that, then allow it to just go to
+[24:43] the next zone.
+[24:46] And don't harp on, oh man, I missed
+[24:49] that. Now I have to
+[24:52] meander my way in on this because we're
+[24:55] up at the 360. No,
+[24:57] when I say I don't trade breakouts, it's
+[25:00] not that uh
+[25:02] it's not that I don't trade
+[25:05] um well essentially I don't trade moves
+[25:09] that are like right here to break out
+[25:12] and create that exhausted node. So
+[25:14] that's what I mean by that. So, I'm not
+[25:16] going to short this here at the lows in
+[25:18] order to finish this node. Not at all.
+[25:21] Because if we just reverse from here,
+[25:23] then we get a nice short from here and
+[25:25] that completes that distribution.
+[25:28] However, if we push down first and we
+[25:31] come back in that prior distribution,
+[25:34] then that's where we get a nice little
+[25:36] rotation out of that.
+[25:41] And if we just go to zero and we don't
+[25:44] come up come back in and above those 87s
+[25:48] and we just keep going straight down
+[25:50] builder node push down builder node push
+[25:53] down leave pock there I will wait for
+[25:57] that value and pock shift in order to be
+[26:00] able to consider any type of counter on
+[26:02] this
+[26:05] instead of just continually taking
+[26:07] breakout trades on it. I think breakout
+[26:09] trades
+[26:11] um feed just enough [snorts] to keep
+[26:14] people hungry
+[26:18] instead of looking at this saying all
+[26:20] right are we building if we're building
+[26:22] volume she ain't done right so we built
+[26:24] volume we shifted pock down here I'm
+[26:27] expecting a rotation right do we have to
+[26:29] go to all-time highs no along the way we
+[26:31] have to gauge the MGI above us but we
+[26:33] have a very secure way of looking at
+[26:35] this saying I can gauge um risk against
+[26:38] that distribution below us on this
+[26:41] rotation and it's repeatable. Um, but if
+[26:44] you're looking at this going, "All
+[26:46] right, we're pushing and building. If
+[26:48] we're still building, she ain't done."
+[26:50] If we get two LVN's behind, then
+[26:53] something's changed, right? And so we
+[26:56] get up here
+[26:59] before building any type of distribution
+[27:02] down here
+[27:04] then yeah absolutely that would be an
+[27:07] offer from my end.
+[27:18] So, I'll go ahead and uh pause the

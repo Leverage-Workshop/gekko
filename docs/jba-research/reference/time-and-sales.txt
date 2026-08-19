@@ -1,0 +1,30 @@
+# OFL course material: time-and-sales (text extracted from PDF)
+
+-------------------------------------------------- 
+**TIME & SALES** 
+-------------------------------------------------- 
+Time and Sales is a record that documents every transaction or trade executed (filled). It provides the following 
+details: 
+-------------------------------------------------- 
+**INFORMATION DISPLAYED** 
+-------------------------------------------------- 
+Time 
+- The precise moment the trade was executed. 
+
+Price 
+- The price at which the transaction occurred. 
+
+Size 
+- The volume of the trade, typically measured in lots. 
+
+Direction 
+- An indication of whether the trade was a buy or a sell, often shown through color coding or highlighting to 
+signify whether it's filling or sweeping the order book. 
+-------------------------------------------------- 
+**REAL-TIME MARKET INFORMATION** 
+-------------------------------------------------- 
+This offers an immediate reflection of market activity compared to the Depth of Market (DOM), illustrating what 
+transactions are actually occurring and the extent of price movement. 
+
+Together with the dynamics of orders being added or removed from the DOM, this information sheds light on 
+potential market absorption or initiative activities, based on actual order fills and observed price progression.

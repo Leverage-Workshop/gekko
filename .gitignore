@@ -38,3 +38,6 @@ langsmith-prompt-review/
 # Python bytecode from the JBA research helper
 __pycache__/
 *.pyc
+
+# Derived reading copies of replay transcripts
+docs/jba-research/replays/.condensed/

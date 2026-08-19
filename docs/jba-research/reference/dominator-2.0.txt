@@ -1,0 +1,38 @@
+# OFL course material: dominator-2.0 (text extracted from PDF)
+
+-------------------------------------------------- 
+**DOMINATOR 2.0** 
+-------------------------------------------------- 
+**Definition:**   
+This study reflects the original Dominator function but incorporates session-aware activity. 
+
+It evaluates behavior within the same period from prior days (for example, Initial Balance vs. prior Initial 
+Balance activity). This provides insight into whether aggression in the current session is truly anomalous 
+relative to historical context, rather than relative to unrelated periods. 
+
+Even within RTH hours, there are distinct changes in pace and volume between morning, midday, and 
+end-of-day activity. By assessing each period against its own unique distribution, Dominator 2.0 enhances 
+precision and provides signals calibrated to the true behavior of that session type. 
+
+Usage: 
+
+Dominator 2.0 paints an arrow on your chart when it detects disproportionate strength on the buy side (up 
+arrow) or sell side (down arrow). 
+
+The pace, size, and intensity required to signify disproportionate strength are calculated using our proprietary 
+algorithm, which now compares analogous session behavior rather than 24-hour response. 
+
+Like all execution tools, Dominator 2.0 should be leveraged alongside key structural references to maximize 
+efficacy. 
+
+**Summary:**   
+It is recommended to place emphasis on structural references when prints occur, as this minimizes risk during 
+the identification of market participation. 
+
+Dominator 2.0 plays a critical role by highlighting when aggression aligns with structural levels. By combining 
+structural confluence with anomaly detection, the probability of continuation or reversal is heightened, leading 
+to more confident and disciplined decision-making. 
+
+**Nuance:**   
+Within the recommended settings for Dominator 2.0, prints will be more abundant and will display highlighted 
+outlier responses relative to the timeframe traded.

@@ -1,0 +1,446 @@
+# Market Replay_4.24.2026_Job (Rebid and DOM discussion)
+# https://www.youtube.com/watch?v=JMWo4IpN8yA  |  1161s  |  uploaded 20260424
+# Auto-captions, timestamped [mm:ss].
+
+[00:00] All
+[00:01] right, today's market replay. Um, after
+[00:04] some balance in the morning, uh, the one
+[00:07] location
+[00:09] with that wide LVN from the overnight
+[00:11] portion of the session that I was really
+[00:12] looking at is the 760s. And, um, and so
+[00:15] essentially, I'm going to talk about a
+[00:16] rebid long from that overnight LVN area,
+[00:19] what MGI we had in the area, but also I
+[00:22] want to pay attention to
+[00:25] um, this through here. So, as we were
+[00:28] rotating back and forth in balance, we
+[00:30] did a couple things. One is that we
+[00:33] opened up the day and I had literally
+[00:35] every single Dominator 2.0 setting that
+[00:38] I have on my charts lit up right here
+[00:40] and we just burst up and out of it. I
+[00:42] wasn't quick on the trigger active at
+[00:45] all until right here. But once we did
+[00:47] that and we were kind of walking the dog
+[00:48] against the RP by staying below it and
+[00:50] seeing that uh seeing the offer stay
+[00:52] pretty strong there um between that and
+[00:55] the fiveminute or mid, we jam to the
+[00:57] downside and we get a nice exhaustive
+[00:59] look um down through here and that's
+[01:01] through that uh 27160 area and um
+[01:06] essentially creates the IB below at
+[01:09] which point we're at we come back above
+[01:12] and respect the previous day's high.
+[01:14] Now, now I have the context. Okay, we
+[01:17] have init we have um initial interest in
+[01:20] bid through here. Uh offer wants to
+[01:22] protect this area. Bid is trying to step
+[01:25] up and then we boom, we're going to get
+[01:26] a liquidation, but instead of being able
+[01:28] to stay below the previous day's high,
+[01:31] um we V straight up and out. And we have
+[01:33] this through here. Now, it's looking
+[01:35] good. It's looking strong. I still
+[01:36] didn't take it through here. I was just
+[01:38] kind of hanging out waiting for this
+[01:41] type of activity. So once we move up and
+[01:44] out of that zone, we get into here
+[01:45] naturally after testing outside of the
+[01:47] um fiveminute ore. We have the potential
+[01:50] to catch a bid from the fiveminute or
+[01:53] mid. But I'm going to show you today
+[01:55] where the video starts is how we're kind
+[01:57] of lingering here and the bid is trying.
+[01:59] We didn't quite get down to here, but
+[02:00] we've been in balance and just
+[02:02] traversing that zone. So what we see um
+[02:04] upon a fail is that the offer doesn't
+[02:06] even provide an opportunity for that.
+[02:09] They just stay heavy all the way through
+[02:11] and then be begin protecting this uh
+[02:14] five minute or mid from here. All right.
+[02:17] And it's not until we get that thrust
+[02:20] down through very aggressive type of
+[02:22] sweep down through the 24hour VWOP into
+[02:24] the high volume edge that we actually
+[02:26] get a um we get bids stepping back above
+[02:30] the 80s through here. And when we target
+[02:33] back into the 5minute or mid, the offer
+[02:35] steps back in
+[02:37] and attempts. Once the bid is able to
+[02:40] step above the 5minute or mid, we magnet
+[02:42] straight to the RP. And I know that was
+[02:44] long-winded, but identifying failed
+[02:46] activity around MGI and then rebid long
+[02:48] from that area. So a little bit bigger
+[02:50] picture here so you could see it. Let's
+[02:52] sweep down through previous days high
+[02:54] back up in. We build it out. Now we've
+[02:56] seen where we initiate from. We
+[02:58] initiated from through here. And so we
+[02:59] want to be able to test down into this
+[03:01] area into the high volume edge, get a
+[03:03] bid from there, and then along the way
+[03:05] as we step ladder back through the MGI
+[03:07] that we came through, we're going to see
+[03:09] the offer um try to defend along the
+[03:11] way. So, let me go ahead and cue this up
+[03:14] and I'll put the silent version in, too.
+[03:16] And so, this isn't too it's not going to
+[03:18] take too long. On the left here, we have
+[03:19] ES. Um in the middle, we have NQ. And on
+[03:23] the right, we have the DOM.
+[03:27] All right. So, what we could see is keep
+[03:30] your eyes don't don't be uh drilling
+[03:33] your eyes to the dome right now. So, I'd
+[03:35] be looking at the execution chart and um
+[03:37] we could see we're just kind of
+[03:38] oscillating back and forth between that
+[03:41] fiveminute or mid and underneath RP. But
+[03:44] as we get close to that fiveminute or
+[03:46] mid, we get close to tagging it, then we
+[03:48] want to flip the eyes over to the dom.
+[03:50] We want to watch the offer
+[03:57] tape reader negative delta map showing
+[04:00] us that sellside activity.
+[04:03] We start to press down and in little
+[04:05] temp there. Now watch when we get
+[04:08] closer. So the 5minute mid is down at
+[04:10] around 27210. Okay. So, as we begin to
+[04:13] progress down through there, you're
+[04:15] going to see attempts right here in the
+[04:17] 20s. And um it's still 10 points away. I
+[04:20] honestly when I'd like to see this
+[04:22] interacted with, I want to be pretty
+[04:23] much at it or right over top of it in
+[04:27] order to um
+[04:29] in order to engage any type of long
+[04:31] through this as a rebbit to RP. So, we
+[04:34] press down into the 10s and the offer
+[04:36] doesn't even shy away. We switch
+[04:37] straight to the O2s and 200s. And with
+[04:41] the silent version on this, you can
+[04:42] always slow things down. So, we come
+[04:44] into the VWOP. Now, watch the offer.
+[04:47] They shy away right there. So, if you
+[04:50] did take that long off the 24-hour VWOP,
+[04:52] no harm, no foul because now you just
+[04:54] got to clear the 210s. We get up into
+[04:56] the 210s and
+[04:59] what the offer steps back in and we get
+[05:01] that rotation back and forth. Not only
+[05:04] the offer step back in, but the bid is
+[05:06] not stepping up to um accommodate any
+[05:08] type of push through that 210. So each
+[05:10] rotation down here into that 24-hour
+[05:12] VWOP. We're getting a response. Passive
+[05:14] bid there. You see the offer shy away.
+[05:20] Passive bid kept collecting that
+[05:21] negative delta. Doesn't look bad. So if
+[05:24] you stepped in on this then all all
+[05:26] fine. I mean you're at the bottom of
+[05:28] value as well.
+[05:30] But you got to clear that 210 where we
+[05:32] saw that we swept the five minute or
+[05:34] mid. Now it's being protected. So the
+[05:35] pressure is still to that downside. So,
+[05:38] in order for um or what I was looking
+[05:41] for from here was not necessarily um
+[05:44] just stepping in on that 24-hour VWOP,
+[05:46] but had the bid stepped above the 210s
+[05:48] and we begin to build there, then I'd be
+[05:50] looking for continuation to the IB high.
+[05:52] At this point, the IB was open.
+[05:56] You'll see it when it prints. But um in
+[05:59] a minute here, less than a minute, but
+[06:04] thrusting up and um holding and building
+[06:06] back above the 5minute or mid would have
+[06:07] been a rebid from that 5m minute or mid
+[06:09] to cross value. But instead, the offer
+[06:12] continues to respect um that zone. Step
+[06:16] in, step in. So now I want to see a
+[06:18] flush
+[06:24] as we go stepwise down through this MGI.
+[06:27] We're seeing like a ladder each one.
+[06:31] Then the offer gets underneath, begins
+[06:34] to protect,
+[06:36] and then we get our little sweep.
+[06:44] So the IB now has been set. This is C
+[06:47] period. And we're going to take out one
+[06:49] of the sides. Which side do we want to
+[06:51] take out? Well, we want to get on board
+[06:53] with something to go in that direction.
+[06:55] We have a nice taper tail down
+[06:57] underneath the 160s. Okay, we have
+[06:59] previous days high that's been
+[07:01] protected. And if we get underneath that
+[07:03] previous day high, underneath the 160
+[07:05] area, then the rubber meets the road. So
+[07:07] we get a sweep down into here. Now watch
+[07:10] watch the offer when we get to the low
+[07:12] 80s. Okay. Want to see this breach down
+[07:15] through. Want to see it go quickly. Get
+[07:17] a little scary.
+[07:19] But they're already getting a little bit
+[07:21] toothy. Getting a little thin there in
+[07:23] the 80s. Stepping down. Stepping down.
+[07:26] That's the sweep.
+[07:28] And that little whip saw back through.
+[07:31] Now watch these 80s.
+[07:37] So where that sweep occurred, we start
+[07:39] to see ah shine away a little bit. a
+[07:42] little bit of refreshing here in the 87
+[07:44] to 89 90 area,
+[07:46] but overall each time we press down now,
+[07:49] kind of like the 24-hour VWOP, um, now
+[07:53] they're really pulling off, not just
+[07:54] temporarily, but also if you look at the
+[07:57] bottom there, your tape reader, it's
+[07:59] tapering, tapering on that sellside
+[08:00] activity, looking for this to get caught
+[08:03] um, and catch that offer on the wrong
+[08:05] side, wrong side of the tracks, and just
+[08:08] run them north. And so each time we're
+[08:11] pressing down into that low 80 area,
+[08:14] they're not making any further progress.
+[08:16] Uh uh and here we are.
+[08:25] So now we want to see
+[08:29] now we want to see a little bit of
+[08:30] change in compression through here
+[08:33] before we jam up and out right here. and
+[08:38] I want to see the bid step up into the
+[08:40] 185s right in there. That particular
+[08:44] area was where my initial entry was.
+[08:51] tagged on a few more um through that
+[08:54] mid80 zone
+[08:57] initially targeting a press up into the
+[09:00] five and mid because that's where we
+[09:02] previously saw the offer stepping down
+[09:03] below and protecting it
+[09:07] and Delta Map starting to change a
+[09:09] little bit but we're still getting a
+[09:11] little bit of pressure but you can see
+[09:12] it's a little bit thinner giving so we
+[09:15] get up into the 210 area here shortly
+[09:21] and right where we saw the offer
+[09:22] previously.
+[09:27] You'll see it arrive again.
+[09:33] My initial profit takes were into that
+[09:35] area. As we begin to reclaim some MGI,
+[09:39] um then I want to hold runners and
+[09:42] utilize that for other MGI as magnets.
+[09:46] And it's going a little slow here, but
+[09:48] pressing up into the 210s.
+[09:58] I'm looking at this going, did it really
+[09:59] take this long this morning? Here we
+[10:02] are. 210.
+[10:06] Stepping back in. Stepping back in. And
+[10:10] the bid is not stepping above that yet.
+[10:14] You could see offers get a little
+[10:17] thinner up there. But now the bid, this
+[10:19] is where started taking off some some
+[10:21] contracts through here.
+[10:24] Um because I want to see the bid now
+[10:26] breach that and begin to hold it and
+[10:28] protect it on the other side in order to
+[10:31] press up into the RP.
+[10:36] It ain't happening yet.
+[10:39] and pull back into the 85s.
+[10:44] Watch the offer and when we get to that
+[10:46] area, trade thesis would be off on this
+[10:48] with a new low underneath that most
+[10:51] recent low
+[10:53] because then we would ultimately be
+[10:54] looking to target IB low. I know Cam was
+[10:57] talking about if we can't take out the
+[10:58] overnight low. What's your offer? What's
+[11:01] your offer?
+[11:03] Where are they at?
+[11:09] not extremely present. You see this
+[11:12] quite quite a bit different. We get to
+[11:14] the lower portion of that range and just
+[11:15] shy away. And so when we come back up,
+[11:19] what's the difference between getting
+[11:21] above that 5minute or mid and building
+[11:24] versus how it was protected previously.
+[11:27] So passive sell. And now we press up and
+[11:29] sweep that passive sell and we unload
+[11:32] those buyers or that that offer that's
+[11:34] been in here. This is sped up because at
+[11:36] at no point am I too concerned about
+[11:38] looking at the DOM during this this part
+[11:41] of the sequence until we get to the RP.
+[11:44] At the RP, I expect that same type of
+[11:46] thing. So, I slow it down a little bit
+[11:47] more. We'll get up there. But that's the
+[11:49] next logical place to act like a magnet
+[11:51] where coming to the top of value RP. We
+[11:54] should be targeting the IB high
+[11:57] and get a little bit of absorption there
+[11:59] um initially, but we're close to RP. So,
+[12:01] we want to kind of push through it and
+[12:02] see if we can just if we build out a
+[12:04] little bit more absorption, it begins to
+[12:05] protect. Watch your bid here.
+[12:10] Okay. Now, we're coming the other
+[12:11] direction, right? So, when we get up
+[12:13] into that area, I want to watch the bid.
+[12:17] Treating it as a short. So, when they
+[12:20] shy away here, I believe this is next
+[12:22] push.
+[12:26] I'm looking at this going, "Okay, the
+[12:28] bid, they're getting thinned. Where are
+[12:29] they going? Where are they going? So,
+[12:31] I'm going to start peeling more off.
+[12:34] Get down to a runner.
+[12:42] Where's the bit? Where's the bit? It's
+[12:45] still getting We're not making progress
+[12:46] now. Holding above value high and so
+[12:49] forth. So, it was into those mid30s that
+[12:52] um it's peeling off the rest of the
+[12:54] position. And then I just sped this up
+[12:56] to show um you know logical
+[13:01] uh part of the auction would be to
+[13:03] continue and hit that IB high. But in
+[13:05] order to get there, well, we do a little
+[13:07] zigzag. So we wait through here, we
+[13:09] press up above the RP, we get up close
+[13:13] and we sweep, we come back, we respect
+[13:16] the RP through here, and then we find
+[13:19] the continuation through it. So it's
+[13:20] like it's it's stepwise going from one
+[13:23] piece of MGI that is responsive to the
+[13:25] next piece that then responds and you're
+[13:27] working your way through this like a
+[13:29] ladder. And that's also how I visualize
+[13:31] the JBA when we do have multiple zones
+[13:33] like that.
+[13:45] All right. So I think we have a question
+[13:47] here. Hey, new member. As we can see, ES
+[13:49] is negative uh delta is rising but for
+[13:52] NQ it's going down. How come ES can move
+[13:56] up with negative delta buildup? Um if
+[14:00] you can teach something about that that
+[14:02] would be very helpful. Yeah, absolutely.
+[14:04] So you can have negative delta and price
+[14:07] can be going up. essentially uh what
+[14:11] that's telling negative delta is um
+[14:15] displaying passive buying right in order
+[14:18] to have negative delta you have to have
+[14:19] market sell orders right so if those
+[14:22] orders are coming in and price is moving
+[14:23] up and so is the bid if the bid's not
+[14:26] crossing the spread but they're but the
+[14:28] limit orders are stepping up the book
+[14:30] and continually getting sold into yeah
+[14:32] you have negative delta while price is
+[14:34] going against that negative delta and
+[14:36] that's a very uh no pun intended
+[14:38] negative negative thing for for the
+[14:41] offer hitting those market orders. Does
+[14:43] it make sense?
+[14:52] Clear as mud
+[14:56] kind of. Okay. So, um do you understand
+[14:59] the difference between passive and
+[15:01] aggressive orders? Correct? Passive
+[15:03] being a limit order, aggressive being a
+[15:05] market order. In order to have negative
+[15:08] delta, we have to have an aggressive
+[15:10] sell order
+[15:12] fill a passive buy order. When that
+[15:16] happens, you have negative delta. So, as
+[15:19] we were watching the dom, you saw them
+[15:20] pulsing in, pulsing out, and so forth.
+[15:23] If if price is moving up even just a
+[15:27] little bit, okay, if the offer is kind
+[15:30] of shying away, allowing the bid to step
+[15:32] up the ladder and then hits more market
+[15:36] orders, but it's not going anywhere.
+[15:38] Instead, it's going against the the um
+[15:42] intended action of a sell order is is
+[15:46] essentially going to give you negative
+[15:48] delta and price showing that the sell
+[15:51] side's not making progress.
+[15:54] and that's absorption.
+[15:59] But we do have another webinar that goes
+[16:01] through that in in detail. Um
+[16:05] but so please reach out to me either in
+[16:06] a support ticket or through a DM and
+[16:09] I'll and I'll uh direct you to that and
+[16:11] answer any further questions that. Okay.
+[16:17] >> Brian, everybody everybody good?
+[16:19] >> Hey, what was your risk on that trade,
+[16:21] Joe?
+[16:22] uh to the low.
+[16:26] So it was when we burst up through here.
+[16:30] We burst up through here. Uh let me go
+[16:32] to the bigger one.
+[16:35] So we initially came down into here when
+[16:38] we first started to jam to the upside.
+[16:41] We had to come through the 85s and
+[16:43] that's where our marketed in.
+[16:45] >> Well, so your risk was that just below
+[16:47] the the low there
+[16:49] >> for to the low? Yes. Yeah. Okay. I
+[16:52] thought you meant the low of the day.
+[16:53] >> Oh, no, no, no, no. This Yeah.
+[16:56] >> Yeah. That wouldn't In fact, it's it's
+[16:58] logical to put it at even 60s, but I
+[17:00] didn't want to go 25 point risk on on
+[17:03] that.
+[17:04] >> Yeah. I I was I was stalking a pullback
+[17:09] long somewhere in that zone
+[17:12] >> and I was looking a little closer down
+[17:14] towards previous day high again.
+[17:16] >> Yeah, I don't disagree with that.
+[17:19] The relative weakness in ES had me just
+[17:23] I I think sometimes I get too
+[17:28] too hung up on
+[17:31] >> having it as a canary, but I I let it
+[17:35] keep me out of too many trades.
+[17:39] >> Yeah. Okay. Yeah. I mean, um,
+[17:43] it's it's not always going to be
+[17:45] perfect, but, uh, it's certainly helpful
+[17:47] when they're aligned.
+[17:50] >> I mean, they they were pretty close, but
+[17:52] ES was noticeably a bit weaker.
+[17:55] >> Mhm.
+[17:56] >> And yeah, that just kind of
+[17:58] >> Yeah.
+[17:59] >> Yeah. I think uh because at the time, I
+[18:01] don't believe that I was paying as close
+[18:03] attention to that and I was more so
+[18:05] looking at that tail underneath uh
+[18:06] previous day high on NQ,
+[18:08] >> right? And what was going through my
+[18:10] head was because we hadn't taken out
+[18:12] over net high or low. I'm looking at
+[18:14] this going which side of the IB is more
+[18:17] logical if we've already seen exhaustion
+[18:18] on one.
+[18:22] >> Yeah. No, that makes sense. I mean the
+[18:23] low on NQ looked really good. I mean I
+[18:27] >> Yeah.
+[18:27] >> I mean given the given the way the
+[18:30] market's traded in the last two weeks.
+[18:33] >> Yeah.
+[18:34] >> Yeah. Downside bets are not probable.
+[18:39] Yeah, it's been a little tricky with
+[18:41] that. But um anyway, I hope even with
+[18:45] the other reviews that are available, I
+[18:47] hope especially for anybody new here,
+[18:49] they've been uh something you've been
+[18:51] diving into. Just a little discussion on
+[18:53] them, getting a perspective. Is it the
+[18:55] only perspective that is necessary in
+[18:57] the world? Yes, because it's mine. No,
+[19:00] I'm kidding. Uh, look, you're going to
+[19:02] there's a lot of ways to skin a cat, but
+[19:04] um but the way that I look at things um
+[19:09] trying to convey that clearly, but um
+[19:14] if there's nothing else, everybody enjoy
+[19:15] your weekend. Great job this week.
+[19:19] >> Hey, have a good one, Joe. Thanks. Yes,
+[19:21] having

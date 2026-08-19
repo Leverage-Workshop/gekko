@@ -13,17 +13,25 @@ that produced it.
 | --- | --- |
 | [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 35 rules across seven phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
 | [`jba-prep-video-notes.md`](./jba-prep-video-notes.md) | **The evidence log.** Per-video findings, resolved and open questions, and the corrections made along the way |
-| [`execution-process.md`](./execution-process.md) | **Scaffold.** The rule set for acting on a plan once the session is live — v0, no replays analyzed yet |
-| [`execution-notes.md`](./execution-notes.md) | **Evidence log for execution.** Pre-replay hypotheses drawn from the planning corpus, and what replays need to settle |
+| [`execution-process.md`](./execution-process.md) | **The execution deliverable.** 33 rules across six phases for acting on a plan once the session is live — v1, grounded in 9 trade replays |
+| [`execution-notes.md`](./execution-notes.md) | **Evidence log for execution.** Replay-by-replay findings, tool inventory, and the data/studies an implementation would need |
 | `transcripts/` | Raw auto-caption transcripts for the 25 prep videos, named `YYYY-MM-DD_<youtube-id>.txt` |
-| `reference/` | The author's own Job Pivot deep dive — the construction the prep videos assume |
+| `replays/` | 9 trade-replay transcripts (~5.4 hrs), the execution evidence base |
+| `reference/` | Job Pivot deep dive, Dominator 2.0 deep dive, OFL 101 Time & Sales, and the DOM / Time & Sales / Dominator course PDFs |
 
 Keep the split: **evidence lands in the notes first, then the process is updated.** A rule whose
 provenance has evaporated is not worth having.
 
 **Two tracks.** *Planning* (where and what if) is complete at n=25 plus the deep dive. *Execution*
-(which, when, how much) is scaffolded but unevidenced — the prep format deliberately omits stops,
-size and the live read, so trade replays are the only source for it.
+(which, when, how much) is now evidenced at n=9 replays plus the Dominator and DOM material.
+
+**The execution trigger is a two-part flip at a pre-marked level:** the opponent stops defending
+(resting size stops refreshing and pulls), and then your side takes the level (the bid steps above
+where the offer had been refreshing, and holds). Step one alone is necessary but not sufficient.
+
+That trigger rests on a primitive no bar dataset contains — whether resting size at a price is
+replenishing after fills or vanishing — which makes **order-book data the gating requirement** for
+any implementation. `execution-notes.md` lists the data and studies that implies.
 
 **Scoring plans against price data is parked.** The incidental caveats it would need are still
 recorded where they arose — contract roll on 03-16, levels rolling across a session boundary, weekly
