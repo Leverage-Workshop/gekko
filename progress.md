@@ -3518,3 +3518,92 @@ S. Grant):
 Read `CLAUDE.md` → `docs/agent-architecture-plan.md` → `feature_list.json`, then run `./init.sh`
 (it will report "no package.json yet" until feat-001 lands). Work one feature at a time; only pick
 a feature whose dependencies are all `done`. Record evidence in `feature_list.json` when marking done.
+
+---
+
+## Research track: distilling Job's planning and execution processes (2026-08-20)
+
+**Not a feature.** No `feature_list.json` entry, nothing wired into the engine. This is source
+research toward a possible alternative analysis mode, kept in `docs/jba-research/` so it survives
+the sessions that produced it. Branch: `claude/trading-plan-youtube-analysis-izig3g`.
+
+**The goal.** Reconstruct, as an explicit rule set, the method the OrderFlow Labs author ("Job" —
+author of the Job Pivot and Job Balance Area studies) uses. It splits cleanly in two: **planning**
+(where, and what if — done premarket) and **execution** (which, when, how much — done live). Each
+track has a *process* document (the deliverable) and a *notes* document (the evidence log). The
+split is deliberate: evidence lands in the notes first, then the process is updated. A rule whose
+provenance has evaporated is not worth having.
+
+### Planning process — `jba-analysis-process.md` (14 rules, five phases)
+
+Documents referenced:
+
+- `docs/jba-research/transcripts/` — **25 premarket prep transcripts**, 2026-02-13 → 2026-08-11,
+  named `YYYY-MM-DD_<youtube-id>.txt`. The sole basis for every rule in the process.
+- `docs/jba-research/reference/job-pivots-deep-dive.txt` — the author's complete Job Pivot
+  walkthrough (38:44). **Background, not process**: it supplies the study construction (pivot,
+  70% value zone, A/B ladder as stacked value-zone widths, JBA = overlapping value zones on a
+  rolling 5-day lookback). Rules sourced *solely* from it were removed — it teaches how the
+  studies are built, which is not the same as how they are used.
+- `docs/jba-research/priority-videos.json` — the 16 dates chosen by cross-referencing corpus gaps
+  against the 2026 economic calendar and the Feb–Mar 2026 correction. All downloaded.
+- `docs/jba-research/jba-prep-video-notes.md` — companion evidence log.
+- `docs/jba-research/pull-transcripts.py` — the puller (`--browser chrome` locally; without
+  cookies use `--browser none --player-clients android,tv,web`).
+
+### Execution process — `execution-process.md` (39 rules, seven phases)
+
+Documents referenced:
+
+- `docs/jba-research/replays/` — **9 trade-replay transcripts** (~5.4 hrs) with `[mm:ss]`
+  timestamps. The evidence base for every execution rule.
+- `docs/jba-research/reference/dominator-2-0-deep-dive.txt` and `dominator-2.0.txt` — the
+  session-aware aggression-anomaly detector.
+- `docs/jba-research/reference/ofl-101-time-and-sales.txt` and `time-and-sales.txt`.
+- `docs/jba-research/reference/dom.txt`.
+- `docs/jba-research/execution-notes.md` — companion evidence log.
+
+### Where we are: reviewing and fine-tuning the process documents
+
+Both process documents are drafted and evidenced. The current pass is **review and fine-tuning**,
+not new extraction. Completed so far:
+
+- Timestamped source links added to every rule (replay rules land within ~15s; the 25 prep
+  transcripts lost their caption timings, so those links are bare — re-runnable locally).
+- Cross-instrument (ES/NQ) material removed from both documents; they are now instrument-agnostic.
+- A "Data, studies and exports this process needs" section added to each, split into what already
+  ships in the bundle, what needs new Sierra exports, what must be built as a study, and what is
+  personal configuration. Level 2 in Sierra Chart unblocks the execution track's gating primitive
+  (whether resting size at a price is replenishing or vanishing).
+- **Planning document consolidated 31 → 14 rules** (commits `2ff5044`, `0d3b1bc`): deep-dive-only
+  rules removed, duplicate rules merged (confluence marking + collapse; six "locate X" rules into
+  one rule plus a reference-set table; five band rules into three; seven plays into four, since
+  look-above-and-fail / traverse value / testing-value-from-outside are one play at different
+  references). The negative-rules list now carries only what is not stated positively above.
+- Corrected the weekly open's role throughout: it is the most-cited reference in the corpus but
+  gates direction **only while price is near it** — four lines had called it the primary bias gate
+  unconditionally.
+- Dropped the zone formation-context rule by operator decision (single instance, and the only
+  `C`-confidence rule driving a new export). Evidence retained in the notes, marked excluded.
+
+### Open / next
+
+1. **Same consolidation pass on the execution document** — 39 rules, likely the same duplication.
+2. **Classify each rule by owner** before any feature work. Proposed policy: `A`-confidence rules
+   that are *arithmetic over inputs* may become engine facts in `lib/engine/`; `A` rules that are
+   *judgment* and all `B` rules become prompt doctrine in `knowledge/doctrine/`; `C` rules stay in
+   the notes or ship behind a flag, never as a hard engine gate. `feature_list.json` has no field
+   for a confidence tag, so the tag has to survive the transfer as a *destination*. The repo has
+   already been burned once by the alternative — feat-113 retired the ATR-projected rungs after an
+   offhand chart remark became a 16-price anchor surface.
+3. Doctrine reconciliation — a JBA (overlapping session pivot value zones) is a different study
+   from the balance area already in `knowledge/doctrine/chart-reading.md` (overlapping daily value
+   areas). He runs both; this is not drift to reconcile.
+4. The Phase 4 plays table has a `Conf` column but no `Source` column.
+5. Scoring plans against price data is **parked**, deliberately.
+
+**Artifacts** (private mirrors of the four documents):
+[planning process](https://claude.ai/code/artifact/8438bfb9-b04a-41cb-a4db-b296749303e1) ·
+[planning notes](https://claude.ai/code/artifact/46957b20-7ea1-4784-ae9c-62337ad78cd2) ·
+[execution process](https://claude.ai/code/artifact/bcebab65-9d8f-4ba8-8e31-16e4b85c896c) ·
+[execution notes](https://claude.ai/code/artifact/010913d6-4d0e-4f14-9b19-754087079ebd)
