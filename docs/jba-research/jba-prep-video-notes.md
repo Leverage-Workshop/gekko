@@ -124,7 +124,7 @@ wrote up a finding that LVNs carry an expected side. They don't — the phrase w
 
 | Reference | Mentions | Videos | Role |
 | --- | ---: | :---: | --- |
-| **G line** (weekly open) | 88 | 18/25 | **Primary bias gate** |
+| **G line** (weekly open) | 88 | 18/25 | Most-cited reference; gates direction **only while price is near it** |
 | Overnight high / low | 62 | 18/25 | Session probe levels |
 | **JBA** high/low | 60 | 24/25 | The frame — targets and structure |
 | Weekly pivot | 54 | 14/25 | Target, secondary gate |
