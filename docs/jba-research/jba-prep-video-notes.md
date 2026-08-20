@@ -194,6 +194,11 @@ haven't formed yet.
 formed**."* The validity of an entry depends on the zone's formation context, not just current
 price. This is the most structurally demanding rule in the corpus.
 
+**Excluded from the process document by operator decision** — too far in the weeds for the value it
+adds, and it rests on a single instance. It would have required an export carrying each zone's
+formation time and where price sat relative to the RP at that moment. Recorded here as evidence;
+do not re-import it into the process without a much stronger corroboration base.
+
 ### 3. The "yellow light" caution zone `[stated, n=1]`
 
 03-02: *"we're currently auctioning below the 6830s. And so that's into that **caution area, that

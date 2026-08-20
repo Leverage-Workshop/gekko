@@ -3,7 +3,7 @@
 A rule-based reconstruction of the premarket planning method used in the OrderFlow Labs prep
 videos, derived from 25 transcripts spanning 2026-02-13 → 2026-08-11.
 
-**Version 5 (n=25 prep videos).** Consolidated from 31 rules to 15: deep-dive-only rules removed,
+**Version 5 (n=25 prep videos).** Consolidated from 31 rules to 14: deep-dive-only rules removed,
 duplicate rules merged. Evidence, per-video findings and open questions live in the companion
 [JBA Prep Video Notes](./jba-prep-video-notes.md).
 
@@ -77,7 +77,6 @@ No direction yet. Establish geometry first; everything downstream references it.
 | 5 | **The primary gate is the nearest *live* weekly reference.** Above → long bias, below → short bias. Use the **weekly open** while price is near it; once price has extended past it, fall through to the **weekly pivot and its extension targets**. Never gate on a weekly level price has left behind — proximity is a required argument, not a refinement. | `C` | [03-19](https://youtu.be/h4oc2xoEMlY) · [06-10](https://youtu.be/uvanT97KEpk) |
 | 6 | **The RP confirms.** Building below it means *something has changed* — demote or invert the read. | `B` | [08-04](https://youtu.be/jvSf2rtihWY) |
 | 7 | **Price inside a narrow band between two references means no directional bias.** Declare two-way trade, play the edges only, and take nothing through the middle — the middle is purgatory. | `A` | [02-13](https://youtu.be/deqIr8DaydA) · [02-17](https://youtu.be/TAn4ly-3MDw) |
-| 8 | **A setup can be conditioned on the zone's formation context** — "open to a rebid at top of the JBA as long as we're above the RP when that formed." Validity depends on where price was when the zone built, not only where it is now. | `C` | [06-17](https://youtu.be/Y400TUvIH_A) |
 
 ## Phase 3 — Locate entry bands
 
@@ -85,9 +84,9 @@ A band is the entry area. Three things are true of it and nothing else is.
 
 | # | Rule | Conf | Source |
 | ---: | --- | :---: | --- |
-| 9 | **A band sits on a structure and inherits its width.** The structures are an LVN, a JBA edge, a high-volume edge, or a collapsed confluence. Width is the span of that feature — never a fixed point count — so it scales with the instrument. | `A` | [03-17](https://youtu.be/KNxA1k-RL94) · [06-15](https://youtu.be/LnFBIc8V168) · [06-18](https://youtu.be/kSTzKPQFCC4) · [07-23](https://youtu.be/j3B0BuFxT_E) |
-| 10 | **Entry is always a pullback into the band** — rebid for longs, reoffer for shorts. Never a chase at the band itself. | `A` | [Job Pivots DD @0:29](https://youtu.be/CoKoCpLYnC8?t=26) · [03-19](https://youtu.be/h4oc2xoEMlY) · [08-11](https://youtu.be/G-4-sVT_uok) |
-| 11 | **A band carries no fixed direction.** Held → entry with bias. Accepted through → entry *against* the prior bias, from the same price. No level is permanently a buy or a sell. | `B` | [08-04](https://youtu.be/jvSf2rtihWY) |
+| 8 | **A band sits on a structure and inherits its width.** The structures are an LVN, a JBA edge, a high-volume edge, or a collapsed confluence. Width is the span of that feature — never a fixed point count — so it scales with the instrument. | `A` | [03-17](https://youtu.be/KNxA1k-RL94) · [06-15](https://youtu.be/LnFBIc8V168) · [06-18](https://youtu.be/kSTzKPQFCC4) · [07-23](https://youtu.be/j3B0BuFxT_E) |
+| 9 | **Entry is always a pullback into the band** — rebid for longs, reoffer for shorts. Never a chase at the band itself. | `A` | [Job Pivots DD @0:29](https://youtu.be/CoKoCpLYnC8?t=26) · [03-19](https://youtu.be/h4oc2xoEMlY) · [08-11](https://youtu.be/G-4-sVT_uok) |
+| 10 | **A band carries no fixed direction.** Held → entry with bias. Accepted through → entry *against* the prior bias, from the same price. No level is permanently a buy or a sell. | `B` | [08-04](https://youtu.be/jvSf2rtihWY) |
 
 ## Phase 4 — Select the play
 
@@ -110,10 +109,10 @@ Two-way trade is not listed here. It is a **regime**, declared in rule 7, and th
 
 | # | Rule | Conf | Source |
 | ---: | --- | :---: | --- |
-| 12 | **One primary lean, stated first**, conditional branches after it. | `A` | [08-04](https://youtu.be/jvSf2rtihWY) |
-| 13 | **Targets are named structures** — the opposite JBA boundary, an adjacent JBA, or a weekly target. Never round numbers, never measured moves. | `A` | [05-26](https://youtu.be/rAwVpIPlpro) · [06-18](https://youtu.be/kSTzKPQFCC4) · [08-07](https://youtu.be/TpIyLl3_aVY) · [08-11](https://youtu.be/G-4-sVT_uok) |
-| 14 | **Everything is conditional** — "if/then", "want to see", "I'd expect". No predictions. | `A` | [02-13](https://youtu.be/deqIr8DaydA) · [02-17](https://youtu.be/TAn4ly-3MDw) |
-| 15 | **Close with the acceleration read** where relevant: what happens if the boundary gives. | `B` | [03-19](https://youtu.be/h4oc2xoEMlY) · [07-20](https://youtu.be/66ryWxqne8k) |
+| 11 | **One primary lean, stated first**, conditional branches after it. | `A` | [08-04](https://youtu.be/jvSf2rtihWY) |
+| 12 | **Targets are named structures** — the opposite JBA boundary, an adjacent JBA, or a weekly target. Never round numbers, never measured moves. | `A` | [05-26](https://youtu.be/rAwVpIPlpro) · [06-18](https://youtu.be/kSTzKPQFCC4) · [08-07](https://youtu.be/TpIyLl3_aVY) · [08-11](https://youtu.be/G-4-sVT_uok) |
+| 13 | **Everything is conditional** — "if/then", "want to see", "I'd expect". No predictions. | `A` | [02-13](https://youtu.be/deqIr8DaydA) · [02-17](https://youtu.be/TAn4ly-3MDw) |
+| 14 | **Close with the acceleration read** where relevant: what happens if the boundary gives. | `B` | [03-19](https://youtu.be/h4oc2xoEMlY) · [07-20](https://youtu.be/66ryWxqne8k) |
 
 ---
 
@@ -173,7 +172,7 @@ How the phases resolve on a real session.
 | **4 — Play** | Rebid to boundary: bid the band, target the upper boundary at 7804, expect re-offer there |
 | **5 — Output** | Primary lean stated first; PDL branch after it; expansion case last. No stop |
 
-The secondary branch reads straight off **rule 11** — PDL holds → up to 7804; PDL accepted through →
+The secondary branch reads straight off **rule 10** — PDL holds → up to 7804; PDL accepted through →
 down to the lower boundary and possibly the next JBA. Same level, both directions, decided by
 acceptance.
 
@@ -202,7 +201,7 @@ stops honouring its edges, at which point the level set is **rebuilt rather than
 
 ## Data, studies and exports this process needs
 
-What the 15 rules above actually require, split by whether Gekko already has it. Export filenames
+What the 14 rules above actually require, split by whether Gekko already has it. Export filenames
 follow the existing bundle convention — files dropped in the Sierra export folder, watched by
 `scripts/uploader.ts`, mapped to an ingest field in `lib/uploader/bundle.ts`.
 
@@ -230,9 +229,8 @@ the next reference once price has left one behind, so proximity has to be comput
 | **JBA zones** | 1 | Top and bottom of the active zone **plus the adjacent zones above and below** — rule 1 targets them once a boundary goes. Not just the zone price is currently inside |
 | **Weekly pivot value zone + A/B ladder** | 2 (Weekly), 5 | The pivot's value zone (70% of volume) and the stacked targets 1A/2A/1B/2B. The pivot itself ships; the ladder does not. Derivable from the value-zone width if that is exported |
 | **Profile stack** | 2 (Internal) | LVNs and high-volume edges from each named lookback — 4-hour rolling, 5-day rolling, four-week rolling, last week's, and the overnight profile. Two profiles ship today; the method cites five |
-| **LVN depth ranking** | 2 (Internal), 9 | "Deepest LVN" is his term for the primary one. Depth must be a field, not inferred from the node list. Band width (rule 9) is the node's span, so the export needs the LVN's extent, not a single price |
+| **LVN depth ranking** | 2 (Internal), 8 | "Deepest LVN" is his term for the primary one. Depth must be a field, not inferred from the node list. Band width (rule 8) is the node's span, so the export needs the LVN's extent, not a single price |
 | **Auto plot zones** | 2 (Larger balance) | Top and bottom. JBAs subdivide autoplot's interior, so the containment relationship needs both |
-| **Zone formation context** | 8 | When each zone formed, and where price sat relative to the RP at that moment. ⚠️ Rule 8 is a `C` — single instance. This export should not be built before the rule is corroborated |
 
 ### Configuration that must be pinned
 
