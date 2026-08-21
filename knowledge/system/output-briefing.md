@@ -8,7 +8,8 @@ and judgment; the engine supplies all computed fields.
 
 - **`meta`** — run metadata; the exact values to use are listed in the user message.
   `htfTrend` is your narrative HTF trend read — grounded in the code-owned `htfStructure` engine
-  facts (trend state from the confirmed swing sequence, swing highs/lows, rotation extent, 30-min
+  facts (trend state from the confirmed swing sequence, swing highs/lows, the defining rotation
+  with a bar time per leg — date it, never call it "the current rotation" — and the 30-min
   ATR) whenever the bundle carries them; `ripStatus` is the engine condition plus a short read.
 - **`overview`** — the Tactical Overview: three sections, coarse→fine timeframe. Each section is
   a `narrative` paragraph plus 2–4 `keyPoints`.

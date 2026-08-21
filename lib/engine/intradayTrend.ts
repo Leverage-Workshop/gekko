@@ -1,3 +1,4 @@
+import { findPivots } from './htfStructure'
 import type { ExecBar } from './parseExecBars'
 import type { RipCondition } from './ripStatus'
 import type { SessionIntradayFacts, SessionPosition, SessionTrend } from './sessionIntraday'
@@ -130,34 +131,18 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
-/** Confirmed fractal pivots over exec bars (same shape as the HTF finder). */
-function findPivots(
-  bars: readonly ExecBar[],
-  side: 'high' | 'low',
-  strength: number,
-): number[] {
-  const pivots: number[] = []
-  for (let i = strength; i < bars.length - strength; i++) {
-    const v = side === 'high' ? bars[i].high : bars[i].low
-    let isPivot = true
-    for (let k = i - strength; k <= i + strength && isPivot; k++) {
-      if (k === i) continue
-      const other = side === 'high' ? bars[k].high : bars[k].low
-      if (side === 'high' ? other >= v : other <= v) isPivot = false
-    }
-    if (isPivot) pivots.push(v)
-  }
-  return pivots
-}
-
 /**
  * Micro swing structure with the Dow break rule the HTF module lacks: price
  * trading through the last confirmed swing flips the state in real time —
  * no waiting for the opposing pivot to confirm.
+ *
+ * Pivots come from `htfStructure`'s shared finder (feat-117) — this module kept
+ * a private copy carrying the same symmetric tie rule that annihilated both
+ * halves of a double top, and exec bars tie far more often than 30-min bars.
  */
 function computeMicroSwing(bars: readonly ExecBar[], price: number): MicroSwingRead {
-  const highs = findPivots(bars, 'high', MICRO_PIVOT_STRENGTH)
-  const lows = findPivots(bars, 'low', MICRO_PIVOT_STRENGTH)
+  const highs = findPivots(bars, 'high', MICRO_PIVOT_STRENGTH).map((p) => p.price)
+  const lows = findPivots(bars, 'low', MICRO_PIVOT_STRENGTH).map((p) => p.price)
   const lastHigh = highs.at(-1) ?? null
   const prevHigh = highs.at(-2) ?? null
   const lastLow = lows.at(-1) ?? null

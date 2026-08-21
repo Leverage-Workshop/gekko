@@ -55,8 +55,11 @@ initiative flips at the exact point of contact.
    Acceptance Borders (LVNs), looking for **Trenches (Valley + MGI)** or **Walls (Shelf + MGI)**.
    - The HTF **trend read is code-owned** when the bundle carries the 30-min bar export:
      `htfStructure` supplies the trend state from the confirmed swing sequence, the recent swing
-     highs/lows, the current rotation extent and the measured 30-min ATR (with ATR-normalized
+     highs/lows, the defining rotation and the measured 30-min ATR (with ATR-normalized
      swing distances) — the HTF screenshot adds distribution shape only, never the trend call.
+     The **defining rotation is the last CONFIRMED swing span, not the current range**: pivots
+     confirm 2.5 h late and its two legs can come from different sessions, so it ships with a bar
+     time per leg and must be narrated dated whenever a leg predates the live session.
    - **Execute the Magnet Check.** If an MGI level sits in the center of thick volume, it is a
      **Magnet** and cannot serve as a structural border.
    - LVN/HVN nodes and POC/value-area summaries come per volume profile: the **400-pt rotation**

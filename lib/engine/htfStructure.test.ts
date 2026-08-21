@@ -3,7 +3,7 @@ import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 import type { HtfBar } from './parseHtfBars'
 import { parseHtfBars } from './parseHtfBars'
-import { computeAtr, computeHtfStructure, SWING_PIVOT_STRENGTH } from './htfStructure'
+import { computeAtr, computeHtfStructure, findPivots, SWING_PIVOT_STRENGTH } from './htfStructure'
 
 /**
  * Builds a 30-min bar per path value: open=close=v, high=v+0.5, low=v−0.5, so
@@ -105,6 +105,17 @@ describe('computeHtfStructure', () => {
     expect(facts.rotation!.extentAtr).toBeGreaterThan(0)
   })
 
+  it('dates each rotation leg so consumers cannot pass it off as the current range', () => {
+    // UP_PATH pivots: swing high at index 17, swing low at index 23 — six bars
+    // (3 h) apart, and neither is the newest bar. An undated span reads live.
+    const facts = computeHtfStructure(barsFromPath(UP_PATH), null)
+
+    expect(facts.rotation!.highDateTime).toBe('2026-07-20 18:00')
+    expect(facts.rotation!.lowDateTime).toBe('2026-07-20 21:00')
+    expect(facts.rotation!.highDateTime).toBe(facts.recentSwingHighs[0].dateTime)
+    expect(facts.rotation!.lowDateTime).toBe(facts.recentSwingLows[0].dateTime)
+  })
+
   it('normalizes current-price distance from the last swings by ATR', () => {
     const bars = barsFromPath(UP_PATH)
     const facts = computeHtfStructure(bars, 140)
@@ -187,6 +198,97 @@ describe('computeHtfStructure', () => {
     expect(facts.recentSwingHighs.length).toBeGreaterThan(0)
     expect(facts.recentSwingLows.length).toBeGreaterThan(0)
     expect(['up', 'down', 'range']).toContain(facts.trend.state)
+  })
+})
+
+describe('findPivots tie handling (feat-117)', () => {
+  // Equal peaks four bars apart — inside the ±SWING_PIVOT_STRENGTH window, so
+  // under a symmetric strict rule each disqualifies the other and NEITHER
+  // confirms. The 2026-08-21 incident in miniature.
+  const DOUBLE_TOP = [100, 101, 102, 103, 104, 120, 110, 108, 110, 120, 104, 103, 102, 101, 100]
+
+  it('confirms the earliest bar of a double top instead of annihilating both', () => {
+    const highs = findPivots(barsFromPath(DOUBLE_TOP), 'high', SWING_PIVOT_STRENGTH)
+
+    expect(highs).toHaveLength(1)
+    expect(highs[0].index).toBe(5)
+    expect(highs[0].price).toBe(120.5)
+  })
+
+  it('confirms the earliest bar of a double bottom', () => {
+    const lows = findPivots(
+      barsFromPath(DOUBLE_TOP.map((v) => 240 - v)),
+      'low',
+      SWING_PIVOT_STRENGTH,
+    )
+
+    expect(lows).toHaveLength(1)
+    expect(lows[0].index).toBe(5)
+    expect(lows[0].price).toBe(119.5)
+  })
+
+  it('reports a flat plateau once, at its first bar', () => {
+    const plateau = [100, 101, 102, 103, 104, 120, 120, 120, 104, 103, 102, 101, 100]
+    const highs = findPivots(barsFromPath(plateau), 'high', SWING_PIVOT_STRENGTH)
+
+    expect(highs.map((p) => p.index)).toEqual([5])
+  })
+
+  it('still rejects a candidate genuinely exceeded on either side', () => {
+    const path = [100, 101, 102, 103, 104, 118, 110, 108, 110, 120, 104, 103, 102, 101, 100]
+    const highs = findPivots(barsFromPath(path), 'high', SWING_PIVOT_STRENGTH)
+
+    // 118 at index 5 is exceeded by 120 at index 9; 120 at index 9 is clean.
+    expect(highs.map((p) => p.index)).toEqual([9])
+  })
+})
+
+describe('the 2026-08-21 double-top incident (feat-117 regression)', () => {
+  // Real 30-min bars from bundle 8455eacd, briefing edfa06a2. The session high
+  // 29539.00 printed TWICE (06:30 and 07:30 chart time, four bars apart, at the
+  // ONH). Under the old symmetric tie rule both were annihilated, no swing high
+  // from that session confirmed, the sequence fell to 'range' — which switches
+  // off the integrity qualifier — and the briefing narrated a 13-hour-old 78-pt
+  // band as "the current 78-point rotation" while the session had already
+  // traded 29220–29539.
+  const INCIDENT_PRICE = 29359.5
+
+  function incidentFacts() {
+    const bars = parseHtfBars(
+      readFileSync(
+        join(process.cwd(), 'chart-data', 'incident-fixtures', '2026-08-21-double-top-htf-bars.csv'),
+        'utf-8',
+      ),
+    )
+    return computeHtfStructure(bars, INCIDENT_PRICE)
+  }
+
+  it('confirms the twice-printed session high as a swing', () => {
+    const facts = incidentFacts()
+
+    expect(facts.recentSwingHighs[0]).toEqual({ price: 29539, dateTime: '2026-08-21 06:30' })
+  })
+
+  it('spans the rotation to the session high rather than the overnight 78-pt band', () => {
+    const facts = incidentFacts()
+
+    expect(facts.rotation).toEqual({
+      high: 29539,
+      highDateTime: '2026-08-21 06:30',
+      low: 29321.25,
+      lowDateTime: '2026-08-20 23:30',
+      extentPts: 217.75,
+      extentAtr: expect.any(Number),
+    })
+    expect(facts.rotation!.extentPts).not.toBe(78)
+  })
+
+  it('restores the integrity qualifier the lost pivot had switched off', () => {
+    const facts = incidentFacts()
+
+    expect(facts.trend.state).toBe('up')
+    expect(facts.trend.integrity).toBe('under-test')
+    expect(facts.trend.integrityBasis).toMatch(/retraced ~82% of the 217.75-pt defining rotation/)
   })
 })
 
