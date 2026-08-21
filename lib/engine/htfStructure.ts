@@ -74,12 +74,23 @@ export type HtfStructureFacts = {
   recentSwingHighs: HtfSwing[]
   recentSwingLows: HtfSwing[]
   /**
-   * The current rotation: the span between the most recent confirmed swing
+   * The defining rotation: the span between the most recent confirmed swing
    * high and swing low. Null until one of each has printed.
+   *
+   * Each leg carries its bar time (feat-117) because "most recent CONFIRMED"
+   * is not the same as "current" — pivots lag {@link SWING_PIVOT_STRENGTH} bars
+   * and the two legs need not come from the same session. Consumers must date
+   * the rotation rather than presenting it as the live range; the 2026-08-21
+   * briefing called a 13-hour-old 78-pt band "the current rotation" while the
+   * session had traded 29220–29539.
    */
   rotation: {
     high: number
+    /** Bar start time of the swing-high leg, `YYYY-MM-DD HH:MM` chart time. */
+    highDateTime: string
     low: number
+    /** Bar start time of the swing-low leg, `YYYY-MM-DD HH:MM` chart time. */
+    lowDateTime: string
     extentPts: number
     /** Extent in ATR multiples (1 dp) — how large this rotation is vs normal. */
     extentAtr: number
@@ -140,9 +151,28 @@ export function computeAtr(bars: readonly HtfBar[], period: number = ATR_PERIOD_
 export type Pivot = { index: number; price: number; dateTime: Date }
 
 /**
- * Confirmed fractal pivots: a swing high's High strictly exceeds the Highs of
- * `strength` bars on BOTH sides (mirror for lows), so the last `strength` bars
- * — including the in-progress bar — can never carry an unconfirmed swing.
+ * The minimal bar shape the pivot finder reads. Both the 30-min HTF bars and
+ * the exec volume bars satisfy it, so `intradayTrend` shares this finder
+ * instead of keeping a private copy that can drift (feat-117).
+ */
+export type PivotBar = { dateTime: Date; high: number; low: number }
+
+/**
+ * Confirmed fractal pivots: a swing high's High exceeds the Highs of `strength`
+ * bars on BOTH sides (mirror for lows), so the last `strength` bars — including
+ * the in-progress bar — can never carry an unconfirmed swing.
+ *
+ * The tie rule is ASYMMETRIC (feat-117): strictly above the left window, at or
+ * above the right one, so the EARLIEST bar of an equal-extreme cluster is the
+ * pivot. A symmetric strict rule annihilates BOTH halves of a double top — each
+ * tied bar disqualifies the other and neither confirms. The 2026-08-21
+ * incident: the session high 29539.00 printed twice (06:30 and 07:30, four bars
+ * apart, at the ONH), so no swing high from that session confirmed at all, the
+ * sequence read 'range', and 'range' switches off the {@link HtfTrendIntegrity}
+ * qualifier that exists to square a lagging swing read against live price. The
+ * briefing narrated a 13-hour-old 78-pt band as "the current rotation" while
+ * the session had already traded 29220–29539. Taking the earliest of a tie also
+ * confirms SOONEST, which matters for a read that already lags `strength` bars.
  *
  * Exported (feat-102) so the HTF order-flow read annotates the SAME swings this
  * module reports rather than re-implementing pivot detection with rules that
@@ -150,7 +180,7 @@ export type Pivot = { index: number; price: number; dateTime: Date }
  * "one RTH session".
  */
 export function findPivots(
-  bars: readonly HtfBar[],
+  bars: readonly PivotBar[],
   side: 'high' | 'low',
   strength: number,
 ): Pivot[] {
@@ -161,7 +191,17 @@ export function findPivots(
     for (let k = i - strength; k <= i + strength && isPivot; k++) {
       if (k === i) continue
       const other = side === 'high' ? bars[k].high : bars[k].low
-      if (side === 'high' ? other >= v : other <= v) isPivot = false
+      // Left window: ties lose. Right window: ties are tolerated, so an equal
+      // extreme later in the cluster cannot cancel this one.
+      const disqualifies =
+        k < i
+          ? side === 'high'
+            ? other >= v
+            : other <= v
+          : side === 'high'
+            ? other > v
+            : other < v
+      if (disqualifies) isPivot = false
     }
     if (isPivot) pivots.push({ index: i, price: v, dateTime: bars[i].dateTime })
   }
@@ -255,7 +295,9 @@ export function computeHtfStructure(
     lastHigh && lastLow
       ? {
           high: round2(lastHigh.price),
+          highDateTime: fmtChartTime(lastHigh.dateTime),
           low: round2(lastLow.price),
+          lowDateTime: fmtChartTime(lastLow.dateTime),
           extentPts: round2(lastHigh.price - lastLow.price),
           extentAtr: atrPoints > 0 ? round1((lastHigh.price - lastLow.price) / atrPoints) : 0,
         }
