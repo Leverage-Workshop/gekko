@@ -5,21 +5,30 @@ adversarial Codex review; disagreements resolved against the repo). Revised same
 **full review of all 25 prep transcripts** — the level-production procedure and the reference
 inventory below are distilled from the whole corpus, not a sample — and then corrected after
 a **third Codex round that independently read all 25 transcripts** and audited the
-distillation against them (its counterexamples are cited inline below).
+distillation against them (its counterexamples are cited inline below). **Revised
+2026-08-22** after the operator answered every open question and ratified the planner's
+numeric/definitional defaults — see "Operator decisions" and "Ratified rules" at the end;
+the body below is updated to match (on-demand in-session runs, single instrument, JBA boxes
+as chart drawings, RP = the Rip, Autoplot in scope).
 
 **Honest scope statement** (from that audit): this task is a *reduced, NQ-local planner in
 Job's method* — it replicates his level-and-branch construction from the inputs it has. It
-is not a complete replication of any given prep: several preps depend on ES leadership,
-Autoplot structure, discretionary prior-session zones, and response-timing judgment that the
-MVP deliberately excludes. Those exclusions are listed where they occur.
+is not a complete replication of any given prep: several preps depend on ES leadership
+(excluded **permanently** — operator decision 2026-08-22: the planner analyzes one instrument
+and the process is instrument-agnostic), discretionary prior-session zones, and
+response-timing judgment (emitted as a stated deadline, never evaluated). Those exclusions
+are listed where they occur. Autoplot structure is *in* scope (operator: "I don't think it
+would hurt to include it").
 
 Status: **plan only — nothing implemented.**
 
 ## Goal
 
-A **standalone analysis task** that replicates Job's (OrderFlow Labs) premarket **planning**
-process: given the Job Pivot / Weekly Job Pivot / JBA study geometry and where price is
-coming from, produce the same kind of plan his morning preps produce — one primary lean plus
+A **standalone analysis task** that replicates Job's (OrderFlow Labs) **planning**
+process — run **on demand** (no schedule), usually shortly **after** the RTH open, from the
+dashboard via a header **version picker** (`Gekko` | `Job`): given the Job Pivot / Weekly Job
+Pivot / JBA study geometry and where price is coming from, produce the same kind of plan his
+morning preps produce — one primary lean plus
 a short conditional if/then ladder keyed to reference levels ("stay inside → balance; below
 yesterday's low → seek the 7720s; rebid 7980–82 into the LVN → press the 8004s; build above →
 attack prior week high; look-below-and-fail → rotate back across").
@@ -28,6 +37,11 @@ Operator constraints:
 
 - Standalone task, shaped like the analyze-task (bundle → engine → persist → surface), but
   **zero carry-over of the existing prompt doctrine**.
+- **On-demand only**, like the analyze button — no premarket schedule. Because the operator
+  will mostly run it after the open, the **daily Job Pivot is fresh at run time and is a
+  prominent level**, and origin facts include the live session, not just the overnight.
+- **One instrument.** No ES-leads-NQ conditioning, ever; the MGI export gains the
+  **instrument symbol** so per-symbol parameters (band tolerances) resolve in code.
 - Reuses the existing infrastructure (bundle ingestion, Supabase, trigger.dev, uploader).
 - New Sierra Chart exports are obtainable.
 - **Lean, procedural/mechanical above all.** The prior attempt at prose rule documents
@@ -103,21 +117,21 @@ What the preps actually name, ordered roughly by citation frequency, with sourci
 | Reference | Used as | Source today |
 | --- | --- | --- |
 | **G line = the weekly open** (operator-confirmed 2026-08-20) | The single most-load-bearing line: bid/offer pivot, acceleration gate ("below the G line, off to the races") — frequently coincides with a JBA edge. Session-template-sensitive (03-19: "I fixed the G line… my chart changed the session times") | **Already exported** — MGI `weekly.wkOpen` |
-| **JBA box edges** ("top/bottom of the JBAs") + the LVN **splitting adjacent boxes** (02-13 "6840 splits these two JBAs") | Two-way-trade boundaries, traverse targets, continuation gates | Planned `job-study.json` |
-| **Weekly Job Pivot + weekly target ladder** (1A/1B/2A/2B "on the weekly") | Pivot = bias/balance anchor when near; ladder rungs = continuation destinations and occasionally the active edge (08-04 "pressing the 2A", 07-23 "beeline to the 1B") | Pivot in MGI; ladder planned `job-study.json` |
-| **Daily Job Pivot + daily value zone/targets** (06-15 "I want to see this pivot right here around 7565 bid" — distinct from the G line and weekly structure; the deep dive is primarily about this study) | Session bias line, magnet, hold/fail anchor. Target citations must disambiguate daily vs weekly ladders — the preps say "on the weekly" precisely because both exist | Planned `job-study.json` `dailyPivots[]`; the procedure must define which historical daily pivots stay actionable (deep dive: untested pivots remain relevant) |
+| **JBA box edges** ("top/bottom of the JBAs") + the LVN **splitting adjacent boxes** (02-13 "6840 splits these two JBAs") | Two-way-trade boundaries, traverse targets, continuation gates | Planned `job-study.json` — the boxes are **rectangles drawn on the chart** (operator, 2026-08-22): the exporter enumerates chart drawings and emits each rectangle's anchor prices; **no overlap/constituent computation anywhere** |
+| **Weekly Job Pivot + weekly target ladder** (1A/1B/2A/2B "on the weekly") | Pivot = bias/balance anchor when near; ladder rungs = continuation **destinations only** (08-04 "pressing the 2A", 07-23 "beeline to the 1B") — never trigger anchors, ranked last (R2) | Pivot in MGI; ladder planned `job-study.json` (study draws at least ±3 rungs, possibly ±7 — operator confirms when the exporter is built; export whatever the study exposes) |
+| **Daily Job Pivot + daily value zone/targets** (06-15 "I want to see this pivot right here around 7565 bid" — distinct from the G line and weekly structure; the deep dive is primarily about this study) | Session bias line, magnet, hold/fail anchor — **prominent at run time** because runs happen after the open and the pivot is fresh. Target citations must disambiguate daily vs weekly ladders — the preps say "on the weekly" precisely because both exist | Planned `job-study.json` `dailyPivots[]`; the procedure must define which historical daily pivots stay actionable (deep dive: untested pivots remain relevant) |
 | **Overnight high/low** | The universal trigger reference: "look above/below and fail" | MGI (0.00 placeholder gotcha), `overnightSession` engine fact |
 | **Previous day's high/low** | Edge-of-structure trigger, esp. when coinciding with a JBA edge (03-06 "it's essentially the JBA low, but let's keep it real simple — just say previous day's low") | MGI |
 | **LVN / HVN / high-volume edge on the 5-day rolling profile** (02-13 "deepest LVN on the 5-day rolling"; "primary LVN"; 06-02 "exhaustive node on top of the profile") | Entry anchors, response gauges, confluence promoters | **NOT exported at this lookback — new** (engine `lvnDetection` exists, needs a 5-day rolling VbP export) |
 | **LVN on the 4-hour rolling profile** (08-04 "this LVN on the 4-hour rolling"; deep-dive 31:43 gauges JBA against it) | Short-horizon entry anchors | **NOT exported — new** (same engine, 4-hour rolling VbP export) |
-| **RP** (03-06 "first magnet back into the RP"; 08-04 "walk the dog on the RP") | Intraday hold/fail line and magnet | Exported **if** "RP" = the Rip (likely transcription); operator to confirm vs the daily Job Pivot |
-| **Autoplot high/low/edges** (03-17 "finds the bottom of autoplot and bids out of it like crazy") | The larger-fractal frame above JBA (deep-dive: "Job pivots are a tighter time frame" than Autoplot) | **NOT exported — new, tier-2** (separate OFL study) |
+| **RP = the Rip** (operator-confirmed 2026-08-22; 03-06 "first magnet back into the RP"; 08-04 "walk the dog on the RP") | Intraday hold/fail line and magnet | **Already exported** (MGI Rip) |
+| **Autoplot high/low** (03-17 "finds the bottom of autoplot and bids out of it like crazy") | The larger-fractal frame above JBA (deep-dive: "Job pivots are a tighter time frame" than Autoplot); operator: it is the high/low of the **traditional balance-area type** | **NOT exported — new, in MVP** (operator: include it; how to read it from the OFL study is TBD at exporter time) |
 | **Previous week's high/low; previous week's value high/low** (07-07 "hanging above last week's value area low") | Zone edges and continuation destinations | pwHigh/pwLow in MGI; **pw value area NOT exported — new** |
 | **Previous month's low / VAH / VAL; weekly + monthly VWAP; round numbers** (05-26 "NQ's right at 30K — expect it to act like a magnet") | Destinations and magnets | MGI (round numbers trivially derived) |
 | **Overnight-profile nodes** (03-02 "a nice little exhausted node out of that [overnight tag]"; 06-18 "even in the overnight profile we have a real nice node") | Fresh evidence: where the overnight session found response | **NOT safely computable from exec bars** (volume-per-bar ≠ volume-at-price — third-round Codex finding); source from the 4-hour rolling VbP export, which spans the overnight |
 | **POC / distribution center / accepted-distribution boundaries** (06-18 "rotate back into the POC of this distribution", "the bulk of this mix"; 02-13/03-16/07-10 "this distribution" as the operative container) | Rotation destination and container edges — distinct semantics from LVN/HVN edges | POC in the planned VbP exports; distribution *boundaries* need a ratified definition (not automatic) |
 | **Prior-session discretionary structure**: zones of initiation, "off yesterday's activity" levels (06-10 "seek 7412 off of yesterday's activity"; 03-18 "where we initiated from, the 6787 area") | Reoffer/rebid anchors the standard MGI set does not name | **Gap** — partially recoverable as LVNs on the 4-hour rolling (initiation = fast low-volume departure), but parity is unproven; flagged for ratification |
-| **Four-week rolling profile structure** (03-20 "a large tip tail on the four-week rolling") | HTF excess/tail evidence | **NOT exported** — tier-2 alongside Autoplot |
+| **Four-week rolling profile structure** (03-20 "a large tip tail on the four-week rolling") | HTF excess/tail evidence | **NOT exported** — tier-2 |
 
 ### Step 1 — assemble and cluster the reference set
 
@@ -131,15 +145,17 @@ routinely primary on profile prominence ("primary LVN right here around the 7758
 this is where I want to see rebid", 08-07), recent defense (03-06 "we've been defending the
 6771 left and right"), or higher-timeframe weight (06-17's 1A zone). Ranking inputs =
 {confluence, source significance, profile prominence, recent defense, origin}. The clustering
-mechanics (tolerance units, transitivity cap, band anchor, per-source weights) are a step-3
-ratification item, not engineering defaults. (The banding pattern mirrors Gekko's terrain
-compositor — the planner reuses the pattern, not the terrain code.)
+mechanics are **ratified** (R1/R1b/R2 below): plain points, **per instrument** — the quoted
+bands above are ES quotes (Job preps ES first, then NQ, where the same bands read "the
+660s"), so tolerances key off the instrument symbol in the MGI export. (The banding pattern
+mirrors Gekko's terrain compositor — the planner reuses the pattern, not the terrain code.)
 
 ### Step 2 — select the ACTIONABLE set by walking outward from price
 
-The plan typically watches **a small nearest-first set per side** (usually 1–2 bands, but not
-a hard cap — 03-18 arms three lower bid areas at once: "the 860 to 820 area… the weekly pivot
-at 24666… and 24518 — if we auction into any of those") plus the current zone's edges:
+The plan typically watches **a small nearest-first set per side** (ratified R12: at most 2
+armed bands per side plus the enclosing zone's edges, max 4 emitted branches — 03-18's three
+lower bid areas "the 860 to 820 area… the weekly pivot at 24666… and 24518" is the
+acknowledged outlier) plus the current zone's edges:
 
 - Inside a JBA box: the two box edges (and any splitting LVN) anchor the actionable set;
   ("play the edges", 02-13, 06-17).
@@ -161,8 +177,8 @@ looking for bid underneath"; 06-15's G line is both the target of the downside b
 expected bid on arrival. The planner therefore gives every reference a **contextual role**
 (`actionable-now` / `actionable-if-reached` / `destination`), not a static list membership.
 "Within reach" is an engineering proxy (planner calls `computeVolatilityScale` directly on
-the bundle's HTF bars; null → plain-points fallback) and its threshold is a ratification
-item — the corpus does not itself rank by volatility-normalized distance.
+the bundle's HTF bars; null → plain-points fallback), ratified at **≤ 1.0 session sigma**
+(R4) — the corpus does not itself rank by volatility-normalized distance.
 
 ### Step 3 — read the origin (left-to-right)
 
@@ -172,10 +188,12 @@ where the overnight response printed an exhausted node, which references have **
 interacted** (06-17 "open to a rebid scenario if we haven't already interacted with this"),
 **approach failures** — price could not even reach a reference (07-10 "we can't make any
 progress to the overnight low"), and which side of the RP / G line / box edge price is
-**holding right now**. All origin facts are **overnight-observed** — computed from snapshot
-data with ratified windows and stamped `asOf` — never asserted live states; that keeps the
-premarket/live boundary clean. This is `classifyContext`'s origin dimension; it feeds the
-*primary lean*.
+**holding right now**. All origin facts are **snapshot-observed** — computed from the
+bundle's exec volume bars (timestamps → wall-clock windows; the in-progress bar never counts)
+with the ratified definitions R5–R9 and stamped `asOf` — never asserted live states. Because
+runs are on demand and usually after the open, the observation window covers the overnight
+**and the session so far**; a run taken before the open simply has no session facts yet. This
+is `classifyContext`'s origin dimension; it feeds the *primary lean*.
 
 ### Step 4 — emit branches from the play grammar
 
@@ -197,13 +215,16 @@ Branch qualifiers the grammar alone doesn't capture (each an explicit, ratifiabl
 - **Response timing**: the same geometry re-plans if the expected response doesn't arrive
   early (06-22 "if that doesn't happen pretty early on in the session… I'm going to be
   flipping, leaning against top of that JBA"; 07-20 "in the event we don't, say in the next
-  30 minutes…"). Branches may carry a response-deadline qualifier; premarket it is emitted as
-  a stated condition, never evaluated.
+  30 minutes…"). Branches carry a **30-minute response deadline** from arrival at the
+  trigger band, **emitted as a stated condition and never evaluated** (R11 — operator judges
+  timing).
 - **Exhaustion/formation evidence** can activate or prioritize a branch (06-18's exhaustive
   node; deep-dive "it moves away, and aggressively").
-- **Cross-market conditioning** (ES) — excluded from MVP, see the scope statement; on days it
-  matters it is an activation *prerequisite*, not a confidence tweak (07-23 "ES will need to
-  be back above the 7485 for me to counter").
+- **Cross-market conditioning** (ES) — excluded **permanently** (operator decision
+  2026-08-22: one instrument, instrument-agnostic process); noted here only because on
+  days it matters in the preps it is an activation *prerequisite*, not a confidence tweak
+  (07-23 "ES will need to be back above the 7485 for me to counter") — the planner on
+  those days is knowingly reduced.
 
 Each branch carries: direction, trigger band, trigger condition, a **destination chain of
 conditional stages** — often 2–4, each stage a gauge-response checkpoint where the reference
@@ -217,8 +238,8 @@ line, beeline to the 1B") — the two always travel together.
 
 ### Step 5 — state the primary lean first, prune the rest
 
-The primary lean is the branch consistent with the **overnight-observed holding state,
-weighted by origin** (repeated defense, what was just rejected, formation timing — 06-17
+The primary lean is the branch consistent with the **snapshot-observed holding state,
+weighted by origin** (precedence of origin facts ratified in R12) (repeated defense, what was just rejected, formation timing — 06-17
 conditions a rebid on being "above the RP when that formed"); every other branch stays
 conditional. **Branch pruning is part of the procedure**: the preps present a few selected
 scenarios, never every band × condition combination — the planner emits only branches
@@ -226,21 +247,22 @@ grounded in an observed origin fact or an explicitly watched band, and the prece
 caps the emitted set. Output shape = one lean + the conditional ladder (see the 08-11 example
 in Goal). Zero prose beyond that.
 
-**Known structural gap — cross-market lead:** the preps plan ES first and condition NQ on it
-(08-04 "if ES bids from the 48 range, I'll look for NQ at the 29,200 LVN"; 07-20 "even if ES
-fails at the overnight high I'd expect NQ to catch bid"), and on some days ES state is an
-**activation prerequisite** for an NQ branch (07-23). Gekko is NQ-only, so the MVP loses this
-dimension — that is a real reduction in fidelity on those days, per the scope statement, not
-a minor confidence modifier. An ES feed is a possible later input, not MVP scope.
+**Known structural gap — cross-market lead (permanent):** the preps plan ES first and
+condition NQ on it (08-04 "if ES bids from the 48 range, I'll look for NQ at the 29,200 LVN";
+07-20 "even if ES fails at the overnight high I'd expect NQ to catch bid"), and on some days
+ES state is an **activation prerequisite** for an NQ branch (07-23). The planner analyzes
+one instrument by operator decision — a real reduction in fidelity on those days, per the
+scope statement. No ES feed is planned.
 
-**JBA boxes are provisional premarket:** the preps expect the boxes to *reform/expand at the
-open* (06-16 "once this JBA forms, I want to see 7615 bid"; 06-17; 03-06 "we can probably
-expect them to expand a little here at the open"). Box edges are therefore flagged
-provisional and never quoted as a tick. The transcripts give no expansion formula — Job
-anticipates specific boundaries from visible underlying structure (03-19 "I do expect it to
-expand… right around 6640 to 45") — so any "expansion allowance" is a **UI uncertainty band
-only** and never participates in deterministic triggers; a trigger fires on the exported box
-edge or not at all.
+**JBA boxes are provisional before the open:** the preps expect the boxes to *reform/expand
+at the open* (06-16 "once this JBA forms, I want to see 7615 bid"; 06-17; 03-06 "we can
+probably expect them to expand a little here at the open"). Since runs normally happen after
+the open the exported rectangles are usually already reformed; a run whose `exportedAt`
+precedes the RTH open flags box edges provisional. The transcripts give no expansion formula
+— Job anticipates specific boundaries from visible underlying structure (03-19 "I do expect
+it to expand… right around 6640 to 45") — so any "expansion allowance" is a **UI uncertainty
+band only** and never participates in deterministic triggers; a trigger fires on the exported
+box edge or not at all.
 
 Key decisions and rationale:
 
@@ -253,10 +275,12 @@ Key decisions and rationale:
    - `dailyPivots[]`: sessionDate, pivot, valueLow, valueHigh, `targets[{label, price}]`,
      complete-flag — covering at least the JBA lookback + 1 session
    - `weeklyPivots[]`: weekOf, pivot, valueLow, valueHigh, targets
-   - `balanceAreas[]`: low, high, constituent sessions, lookback — **from the study if it
-     exposes them**; only if it doesn't do we compute overlap in TS, and only after the
-     operator ratifies overlap semantics (intersection vs envelope, transitive overlap,
-     touching-boundary, aging) against golden Sierra screenshots.
+   - `balanceAreas[]`: low, high (+ drawing id, anchor times) — **read from the chart
+     drawings**: the JBA boxes are rectangles drawn on the chart, so the exporter enumerates
+     chart drawings (`sc.GetChartDrawing` / user-drawn enumeration) and emits each
+     rectangle's anchor prices. No overlap or constituent computation, Sierra- or TS-side.
+   - `autoplot`: high, low — the traditional balance-area extremes from the OFL Autoplot
+     study; read mechanism confirmed at exporter time.
    A TS reconstruction of the studies remains available later as an audit check, never the
    source.
 
@@ -266,9 +290,9 @@ Key decisions and rationale:
      export format, so `parseProfile` + `lvnDetection` produce the "primary/deepest LVN"
      and high-volume-edge anchors unchanged;
    - **previous week's value area** (pwVAH/pwVAL) alongside the existing pwHigh/pwLow;
-   - the daily "RP" as a named level **only if** it turns out not to be the Rip.
+   - the **instrument symbol** in the MGI export (per-symbol band tolerances, R1b).
    The G line needs nothing: it is the weekly open, already exported as MGI `weekly.wkOpen`.
-   Autoplot edges are tier-2: valuable for the top-down frame, separate study, not MVP.
+   The RP is the Rip — already exported, nothing new. Autoplot high/low ship with the MVP.
 
 2. **Bind the task to its bundle.** The job-plan task takes the `bundleId` that
    `waitForFreshBundle` returns and loads **that row by id** (new `fetchBundleById` dep) —
@@ -282,8 +306,9 @@ Key decisions and rationale:
      (exporter not deployed / Windows checkout behind) and says "request a fresh bundle".
    - Export present but schema/settings unsupported → non-retryable abort.
    - Geometry parses but is insufficient for a plan (e.g. prior session incomplete, skew
-     between `exportedAt` and MGI `current.time` beyond tolerance) → **persist**
-     `status='insufficient'` with reasons. No LLM ever "fills in" missing levels.
+     between any two of `job-study.json`/MGI/bar exports' `exportedAt` **> 5 minutes**, or
+     `tradingDay` ≠ the bundle's session — R13) → **persist** `status='insufficient'` with
+     reasons. No LLM ever "fills in" missing levels.
 
 4. **Three pure modules, not six** (review finding: pipeline ceremony). One function per
    semantic boundary:
@@ -294,15 +319,16 @@ Key decisions and rationale:
    - `classifyContext.ts` — an **orthogonal dimensions object, not one enum**: price vs
      weekly value (below/lower-half/at-pivot/upper-half/above), vs JBA box(es)
      (inside-middle/at-lower-edge/at-upper-edge/outside-near/outside-extended, per box), vs
-     current daily value zone, and **origin** (last crossed boundary, last rejected excursion,
-     holding state) from the session-anchored exec bars, HTF bars for pre-session context.
+     current daily value zone, and **origin** (failed look, building/accepted, approach
+     failure, holding side, already-interacted — R5–R9) from the session-anchored exec bars
+     measured in wall-clock minutes, HTF bars only for the volatility scale.
      Plus the two outputs the level-production procedure defines: the clustered **confluence
      bands** (step 1) and the **role-assigned reference set** (step 2 — `actionable-now` /
      `actionable-if-reached` / `destination`; far structure demotes in emphasis but keeps its
-     on-arrival role). Origin facts are overnight-observed with `asOf` stamps — the module
+     on-arrival role). Origin facts are snapshot-observed with `asOf` stamps — the module
      never asserts live states.
      Every dimension carries machine-readable evidence and an `asOf` scope
-     (overnight-observed vs RTH-conditional). Data-quality status is a **separate field**,
+     (overnight vs session-so-far). Data-quality status is a **separate field**,
      never a pseudo-state. Disagreements between weekly/JBA/daily reads are exposed, never
      collapsed into a single "bias".
    - `buildPlan.ts` — play generation + explicit precedence table → `JobPlan`, implementing
@@ -314,11 +340,12 @@ Key decisions and rationale:
      evidence, invalidation, a **destination chain of conditional stages** (each stage a
      gauge-response checkpoint that may hold, reoffer, or gate continuation — a small graph,
      not a flat target array), optional response-deadline and evidence qualifiers, an
-     explicit "don't", and the rule IDs that fired. Open-location contingencies are **not a
-     second schema**: each branch carries an `appliesWhenOpen` applicability (above/inside/
-     at-pivot/below/far-outside value), so the RTH-open dimension conditions branch
-     selection instead of duplicating the plan tree. The primary lean is the branch matching
-     the overnight-observed holding state weighted by origin. Precedence: invalid/stale input → no
+     explicit "don't", and the rule IDs that fired. Runs are on demand and normally
+     in-session, so the price location at run time is known and branch selection keys off
+     it directly — there is no `appliesWhenOpen` applicability field and no open-location
+     contingency tree (a pre-open run is the same planner with no session facts). The
+     primary lean is the branch matching the snapshot-observed holding state weighted by
+     origin (R12). Precedence: invalid/stale input → no
      plan; mid-box stand-down beats weak directional context; confirmed initiative beats
      responsive fades; failed-look + re-entry enables traversal; weekly context re-orders
      priority but never manufactures an entry. The persisted plan is **immutable**; a
@@ -330,8 +357,8 @@ Key decisions and rationale:
    Human-readable rule docs, if wanted, are generated from code/tests.
 
 5. **Own schema + own table.** `knowledge/schema/job-plan.schema.ts` (`JobPlan`: meta,
-   geometry refs, context, plays[] — each with staged destinations, qualifiers and
-   `appliesWhenOpen` — standDownReasons[], warnings[]).
+   geometry refs, context, plays[] — each with staged destinations and qualifiers —
+   standDownReasons[], warnings[]).
    `job_plans`: `id`, `bundle_id` FK **ON DELETE RESTRICT** + index (audit trail; RESTRICT
    turns the pre-existing cleanup select/delete race into a loud failure instead of silent
    loss), `trading_day date`, `trigger_reason`, `status` (`ready|insufficient`) with a CHECK
@@ -366,15 +393,18 @@ feat-117), own branch + PR per repo rules.
 
 1. **Sierra Job-study exporter + snapshot archive** — no repo TS changes.
    Files: new ACSIL exporter (own DLL, Windows side), `chart-data/job-study.json` sample
-   checked in. Scope per the reference inventory: pivots/values/targets/boxes (plus RP if
-   distinct from the Rip); sibling `.vbp.md` exports for the **5-day rolling** and
-   **4-hour rolling** profiles; **pwVAH/pwVAL** added wherever pwHigh/pwLow are exported
-   today. (The G line is the weekly open — already in MGI, nothing to export.) Atomic
+   checked in. Scope per the reference inventory: pivots/values/targets (every rung the
+   study exposes — ±3 confirmed, possibly ±7), JBA boxes **read as chart-drawn rectangles**
+   (anchor prices), **Autoplot high/low**; sibling `.vbp.md` exports for the **5-day
+   rolling** and **4-hour rolling** profiles; **pwVAH/pwVAL** and the **instrument symbol**
+   added to the MGI export. (The G line is the weekly open and the RP is the Rip — both
+   already in MGI, nothing to export.) Atomic
    write; `schemaVersion`; verified against several known chart days (values eyeballed
    against the studies on screen). **Snapshot archive spec** (third-round finding — the
    evidence strategy depends on it): one immutable folder per trading day on the Windows
    side, containing the FULL export cycle (`job-study.json` + MGI + exec/HTF CSVs + all
-   `.vbp.md` profiles) captured once premarket, keyed `YYYY-MM-DD`, never overwritten;
+   `.vbp.md` profiles) captured on every on-demand run (and optionally once pre-open),
+   keyed `YYYY-MM-DD` + run time, never overwritten;
    operator labels expected outcomes when a day is used for ratification; a held-out subset
    is reserved for out-of-sample shadow evaluation. Archiving only `job-study.json` would
    not support origin, node-selection, or coherence testing.
@@ -388,17 +418,11 @@ feat-117), own branch + PR per repo rules.
    simply lack the ref and the task fails closed with the right message.
    Dependencies: step 1 (filename contract).
 
-3. **Rule ratification** — `docs/job-plan/` decision log (not model-facing): operator decides
-   JBA overlap semantics (only if TS-computed), numeric thresholds (near/holding/building/
-   failed-look/fresh-initiative/edge-vs-middle, exportedAt↔MGI skew tolerance, response
-   deadlines), precedence order, the **confluence-clustering mechanics** (tolerance units,
-   transitivity cap, band anchor, per-source significance weights), and the origin
-   definitions (last crossed boundary / last rejected excursion / approach failure /
-   already-interacted / holding, incl. which bar source owns each fact — exec volume bars vs
-   30-min HTF bars answer different questions and the in-progress last bar of each is
-   excluded from acceptance windows). **Blocking precondition: resolve the RP identity**
-   (question 3) — clustering, origin and precedence cannot be ratified while a major
-   recurring line is unidentified. Also in scope: **LVN-parity validation** — check on
+3. **Rule ratification** — **largely done 2026-08-22** (operator ratified R1–R13, see
+   "Ratified rules" below; RP identity resolved = the Rip). Remaining: transcribe R1–R13
+   into `docs/job-plan/` as the decision log with rule IDs, replay the numbers against
+   archived snapshots once they exist (bumping via `PLANNER_REVISION` if a number is
+   wrong in practice), and **LVN-parity validation** — check on
    archived days that `lvnDetection` over the 5-day/4-hour rolling exports selects the same
    "primary/deepest LVN" and high-volume edges the preps name; parity is an assumption until
    measured, and detector tuning is a ratification outcome, not a code default. Each
@@ -420,8 +444,10 @@ feat-117), own branch + PR per repo rules.
    Dependencies: step 4.
 
 6. **Surface** — `app/api/job-plans/run/route.ts` (mirrors `briefings/run` incl. bundle
-   request with reason `job-plan`; same local-only security posture — documented), minimal
-   page/card (`DESIGN.md` applies): context header (the dimensions + disagreements), play
+   request with reason `job-plan`; same local-only security posture — documented), a
+   **header version picker** (`Gekko` | `Job`) that switches the dashboard between the
+   existing briefing view and the Job plan view, and a minimal plan card (`DESIGN.md`
+   applies): context header (the dimensions + disagreements), play
    cards with staged destinations and open-applicability, stand-down reasons, warnings,
    insufficient-state rendering, **and failed-run surfacing**: a non-retryable abort writes
    no `job_plans` row, so the card must read the trigger.dev run outcome (the existing
@@ -450,8 +476,9 @@ feat-117), own branch + PR per repo rules.
   above/inside/below daily and weekly value; box edge/middle/outside; look-outside-then-
   reenter both sides; accepted initiative both sides; pivot magnet; traverse destinations;
   target-as-pause vs auto-fade; mid-box stand-down; weekly/daily conflict precedence;
-  exact-boundary and tolerance behavior; multiple boxes. Positive, negative, boundary case
-  per rule ID.
+  exact-boundary and tolerance behavior; multiple boxes; per-symbol tolerance resolution
+  (ES vs NQ); wall-clock windows on exec-bar timestamps (R5–R9) incl. in-progress-bar
+  exclusion and the 90-min early window. Positive, negative, boundary case per rule ID.
 - **Invariants**: determinism (same input + revision ⇒ identical output); long/short
   symmetry where intended; destinations ordered in play direction; invalidation on the
   correct side of activation; mid-box context can never arm an unconditional edge play;
@@ -479,8 +506,8 @@ feat-117), own branch + PR per repo rules.
   the trading machine → Windows checkout pull + uploader restart → task PR. Task before
   uploader restart = every run fails closed (acceptable, message says why).
 - **Domain invariants are assumptions until step 1 verifies them** (strict-pivot-inside-zone,
-  label uniqueness, weekly `weekOf` across holiday weeks, zone-collapse-to-one-tick, JBA
-  constituents exposure). The parser's strictness is calibrated to real output first.
+  label uniqueness, weekly `weekOf` across holiday weeks, zone-collapse-to-one-tick, ladder
+  depth, Autoplot read path). The parser's strictness is calibrated to real output first.
 - **Calendar/session traps**: Sunday Globex belongs to Monday's trading day; holiday-short
   weeks; contract rollover mixing geometry across contracts (parser requires one contract,
   matching the bundle's); DST.
@@ -492,33 +519,54 @@ feat-117), own branch + PR per repo rules.
 - **Prior-session discretionary structure** ("off yesterday's activity" levels, zones of
   initiation, distribution boundaries) may not be recoverable from the planned inputs at
   all; where it isn't, the plan on those days is knowingly reduced (scope statement).
-- **Scope creep into live execution**: this task is premarket planning. Holding/building/
-  initiative live-detection beyond what the snapshot supports, alerting, and trade
-  management are explicitly out.
+- **Scope creep into live execution**: this task is on-demand planning from a snapshot.
+  Origin facts (R5–R9) are computed once from the bundle's bars at run time; continuous
+  live detection, deadline evaluation (R11), alerting, and trade management are explicitly
+  out.
+- **Ratified numbers are first guesses**: R1–R13 were set from the corpus and the operator's
+  judgment before any snapshot existed; shadow evaluation (step 7) is where they get
+  corrected, via `PLANNER_REVISION` bumps, never silently.
 
-## Open questions (operator)
+## Operator decisions (2026-08-22)
 
-1. Does the JBA study expose its boxes (and constituents) to cross-study reads, or must
-   overlap be computed TS-side? (Determines whether the ratification item on overlap
-   semantics is needed at all.)
-2. Value-zone/target subgraph availability: does the Job Pivots study expose the full A/B
-   ladder, or only a few rungs — and should the exporter cap the ladder (e.g. ±3 zones)?
-3. **Is the preps' "RP" the Rip** (already exported) or the daily Job Pivot? The transcripts
-   are ambiguous ("first magnet back into the RP", "walk the dog on the RP") and the line is
-   operational in many preps (08-04 "the moment we begin to auction and build below the RP,
-   something has changed"). **Blocking for step 3** — ratification cannot proceed around an
-   unidentified major reference.
-4. Autoplot: is exporting its edges worth a tier-2 follow-up, or is the weekly-pivot frame
-   enough for the top-down pass?
-5. Cross-market lead: accept the NQ-only loss of the ES-leads-NQ conditioning for the MVP
-   (recommended), or plan an ES feed?
-6. Are premarket runs the only trigger (scheduled ~before RTH open), or also on-demand
-   during the session like the analyze button? (Affects whether `openBranches` need an
-   "already open" degradation.)
-7. Ratification decisions listed in step 3 (thresholds, origin definitions, precedence) —
-   these are operator calls, not engineering defaults. The corpus already pins the shape of
-   most of them (band tolerance, "within reach" distance, expansion allowance on premarket
-   box edges); the numbers remain yours.
+All seven open questions were answered by the operator; none remain open.
+
+1. **JBA boxes** — rectangles drawn on the chart. The exporter enumerates chart drawings and
+   emits each rectangle's anchor prices. There is no zone overlap and nothing to compute.
+2. **Ladder depth** — the Job Pivots study draws at least ±3 rungs, possibly ±7; confirm when
+   building the exporter and export whatever it exposes. Rungs are destination-only (R2).
+3. **RP = the Rip** — already exported. Blocker cleared.
+4. **Autoplot** — include it (MVP). Autoplot high/low = the traditional balance-area high/low;
+   how to read it from the study is checked at exporter time.
+5. **Cross-market (ES leads NQ)** — dropped permanently. One instrument; the process is
+   instrument-agnostic.
+6. **Run trigger** — on-demand only, from a header version picker (`Gekko` | `Job`). Usually
+   run after the open, so the daily Job Pivot is fresh and prominent.
+7. **Ratification** — done live, one rule at a time (below).
+
+## Ratified rules (2026-08-22)
+
+Numbers are plain points unless stated; per-instrument values key off the instrument symbol
+in the MGI export. Sigma = `computeVolatilityScale` session sigma (~130 NQ pts at the time of
+writing). "Exec bars" = the 750-volume execution bars; windows are wall-clock on their
+timestamps and the in-progress bar never counts.
+
+| ID | Rule | Ratified default |
+| --- | --- | --- |
+| R1 | Confluence band — merge tolerance / chain cap (ES) | Merge references within **5 pts**; chain transitively, cap band width at **10 pts**, split wider clusters at the largest internal gap. Band quoted as [lowest member, highest member]; anchored on its highest-significance member |
+| R1b | Same, NQ (~4× ES, matching the sigma ratio) | Merge **20 pts**, cap **40 pts** |
+| R2 | Source significance (band anchor + tie-break) | G line > weekly Job Pivot > daily Job Pivot > JBA box edge > Rip > overnight H/L > previous day H/L > 5-day rolling LVN/HVN edge > 4-hour rolling LVN > Autoplot H/L > other MGI > weekly ladder rung > daily ladder rung. **Ladder rungs are destination-only, never trigger anchors** |
+| R3 | "At" a band | Within one merge tolerance of its edge (ES 5 / NQ 20); otherwise approaching/away |
+| R4 | Within reach (`actionable-if-reached` vs `destination`) | ≤ **1.0 session sigma** from price; further = destination-only, shown, never armed |
+| R5 | Failed look | First exec-bar close back on the original side within **30 min** of the first print beyond the band edge; longer excursions hand off to R6. Qualifier **EARLY** if the excursion began within the first **90 min** of RTH (primary-lean grade), else **LATE** (emitted, lower weight) |
+| R6 | Build / hold beyond (acceptance) | Every completed exec bar closing beyond the band for **20 continuous minutes** = accepted/building (continuation armed, don't-counter on); less = testing. A single close back inside resets the clock and hands off to R5. Single threshold — no testing/building/accepted ladder |
+| R7 | Approach failure | Price came within **2× merge tolerance** (ES 10 / NQ 40) of a band without touching it, then retreated ≥ **1× tolerance** from its closest approach, closest approach within the last **60 min**. Arms the fade toward the opposite side |
+| R8 | Holding side (Rip / G line / box edge) | Defined by the last **20 min** of completed exec-bar closes: ABOVE / BELOW if all on one side, else STRADDLING |
+| R9 | Already-interacted | Any print inside the band during **this RTH session only** (overnight touches don't count). Touched bands stay destinations, demoted as fresh trigger anchors; a touched band that produced a failed look or a defense keeps full trigger status |
+| R10 | Mid-zone ("purgatory") | More than **2× merge tolerance** (ES 10 / NQ 40) from every edge of the enclosing zone → two-way trade declared between the named edges, stand down in the middle; within that distance = edge play |
+| R11 | Response deadline | Every hold/traverse branch carries a **30-min** deadline from arrival at the trigger band, **emitted in the plan text, never evaluated** by the planner |
+| R12 | Actionable set + origin precedence | Arm ≤ **2 bands per side** (nearest-first; skip a band with no confluence AND lowest-tier source) plus the enclosing zone's edges; **max 4 branches**. Primary lean = branch backed by the freshest origin fact in order: failed look > approach failure > building/accepted > holding side > repeated defense |
+| R13 | Export skew | Fail closed (`insufficient`, operator message) if any two of `job-study.json` / MGI / bar exports' `exportedAt` differ by **> 5 min**, or `tradingDay` ≠ the bundle's session |
 
 ## Claude / Codex review notes
 
@@ -558,3 +606,13 @@ feat-117), own branch + PR per repo rules.
   branch-cardinality pruning rule, the run_id write contract, the snapshot-archive spec, and
   failed-run surfacing. All folded in; the honest-scope statement at the top is its "reduced
   Job-inspired planner" conclusion, adopted verbatim in spirit.
+- **Fourth round — operator Q&A (2026-08-22)**: all seven open questions answered and the
+  thirteen rule defaults ratified one by one (operator accepted or corrected each
+  proposal). Consequential corrections: band tolerances are per-instrument (the quoted
+  bands were ES; NQ ≈ 4×), origin definitions are wall-clock on exec-bar timestamps rather
+  than bar counts or 30-min-bar boundaries ("relying on 30 min bars makes it arbitrary"),
+  the response deadline is emitted but never evaluated, ladder rungs rank below profile
+  LVNs and are destination-only, and — because runs are on demand and in-session — the
+  per-branch `appliesWhenOpen` applicability from the third round is **removed** (price
+  location at run time is known). Cross-market conditioning went from "MVP exclusion" to
+  permanent: one instrument, instrument-agnostic process.
