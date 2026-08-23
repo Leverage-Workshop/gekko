@@ -174,9 +174,12 @@ describe('readBundle', () => {
 
     // Every ingest field with a deployed exporter is satisfied by a real file in
     // the sample folder, and the MGI sidecar is found — i.e. BUNDLE_FILENAMES
-    // matches reality. The Job-planning inputs are absent until feat-118 lands
-    // its samples; the uploader skips them rather than failing the bundle.
-    expect(bundle.files.map((f) => f.field).sort()).toEqual(SAMPLE_FOLDER_FIELDS)
+    // matches reality. The Job-planning inputs are absent until feat-118 checks
+    // its samples in (the uploader skips them rather than failing the bundle),
+    // and may appear any time after — so they are allowed but not required.
+    const found = bundle.files.map((f) => f.field).sort()
+    expect(found.filter((f) => !JOB_INPUT_FIELDS.includes(f))).toEqual(SAMPLE_FOLDER_FIELDS)
+    expect(found.every((f) => ALL_FIELDS.includes(f))).toBe(true)
     expect(bundle.mgi).not.toBeNull()
   })
 })
