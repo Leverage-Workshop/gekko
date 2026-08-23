@@ -4,6 +4,19 @@
 
 **Last Updated:** 2026-08-22
 
+**Latest change (branch `feat-124-profile-vision-config`): feat-124 — profile-vision config +
+/settings + bench.** `config` gains `profile_vision_model_id` (NULL = read OFF, R14),
+`profile_vision_model_effort` and `profile_vision_samples` (migration applied live); fetchConfig
+degrades cleanly on a pre-migration DB and /settings exposes all three under a new Job-Planner
+section. The bench is `scripts/profile-vision-bench.ts` (gated on `RUN_LLM_INTEGRATION=1`) over
+pure, unit-tested scoring in `lib/job-plan/profile-vision/bench.ts` (recall / primary agreement /
+self-agreement / precision vs the code-owned detector, via a shared `lib/engine/nodeMatch.ts`
+greedy matcher extracted from lvn-eval). **The bench has NOT been run** — feat-119's golden
+profiles have not landed and a live run needs the operator (paid calls). `docs/profile-vision-
+bench-2026-08-22.md` scaffolds the harness + proposed R15 numbers. The read stays OFF until the
+operator sets a model after ratifying R15. This is the last of the requested feat-121..124 set;
+the planner chain (feat-125+) waits on feat-118's real job-study.json sample.
+
 **Latest change (branch `feat-120-golden-labels`): feat-120 — the golden-set labels + loader.**
 `chart-data/job-lvn-golden/<date>/labels.json` (20 dates, 28 labels) transcribes every
 lvn-corpus.md A1 row that names a price; `split.json` fixes the three few-shot dates and holds
