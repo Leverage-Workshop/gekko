@@ -384,3 +384,44 @@ describe('computeMgiPriority — Job Pivots (feat-111)', () => {
     expect(r.nearestTier1Below?.level.label).not.toBe('Weekly Job Pivot')
   })
 })
+
+describe('computeMgiPriority — feat-121 MGI export additions (symbol, pwVAH/pwVAL)', () => {
+  const legacy: MgiStaticLevels = {
+    current: { price: 500 },
+    daily: { rip: 505, pdh: 520 },
+    weekly: { pwHigh: 560, pwLow: 440 },
+  }
+  const extended: MgiStaticLevels = {
+    ...legacy,
+    symbol: 'NQU26',
+    weekly: { ...legacy.weekly, pwVAH: 540, pwVAL: 460 },
+  }
+
+  it('parses an export that carries the new fields', () => {
+    expect(() => computeMgiPriority(extended)).not.toThrow()
+    expect(computeMgiPriority(extended).currentPrice).toBe(500)
+  })
+
+  it('still parses the legacy export without them (every existing fixture)', () => {
+    const r = computeMgiPriority(legacy)
+    expect(r.levels.map(l => l.code).sort()).toEqual(['pdh', 'pwHigh', 'pwLow', 'rip'])
+  })
+
+  it('does not classify pwVAH/pwVAL as levels — nothing reads them yet', () => {
+    const withNew = computeMgiPriority(extended)
+    const without = computeMgiPriority(legacy)
+    expect(withNew.levels).toEqual(without.levels)
+    expect(withNew.tier1).toEqual(without.tier1)
+    expect(withNew.levels.some(l => l.price === 540 || l.price === 460)).toBe(false)
+  })
+
+  it('accepts the real fixture with the fields spliced in, level count unchanged', () => {
+    const base = loadFixture()
+    const spliced: MgiStaticLevels = {
+      ...base,
+      symbol: 'NQU26',
+      weekly: { ...base.weekly, pwVAH: 30453, pwVAL: 28583.75 },
+    }
+    expect(computeMgiPriority(spliced).levels).toHaveLength(computeMgiPriority(base).levels.length)
+  })
+})

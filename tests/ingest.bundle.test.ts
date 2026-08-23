@@ -103,8 +103,45 @@ describe('ingestBundle', () => {
     expect(record.htf_png_ref).toBe(`${record.id}/htf.png`)
     expect(record.tpo_png_ref).toBeNull()
     expect(record.exec_csv_ref).toBeNull()
+    expect(record.job_study_ref).toBeNull()
+    expect(record.five_day_vbp_ref).toBeNull()
+    expect(record.four_hour_vbp_ref).toBeNull()
     expect(record.current_price).toBeNull()
     expect(record.mgi_json).toBeNull()
+  })
+
+  it('records the Job-planning input refs when present (feat-121)', async () => {
+    const { deps, uploads, inserts } = makeDeps('job')
+    const form = new FormData()
+    form.set(
+      'job_study',
+      new File(['{"meta":{"schemaVersion":1}}'], 'job-study.json', {
+        type: 'application/json',
+      }),
+    )
+    form.set(
+      'five_day_vbp',
+      new File(['# five-day'], 'five-day-rolling.vbp.md', { type: 'text/markdown' }),
+    )
+    form.set(
+      'four_hour_vbp',
+      new File(['# four-hour'], 'four-hour-rolling.vbp.md', { type: 'text/markdown' }),
+    )
+
+    await ingestBundle(form, deps)
+
+    expect(uploads.map((u) => [u.bucket, u.path, u.contentType])).toEqual([
+      ['bundle-csvs', 'job/job-study.json', 'application/json'],
+      ['bundle-csvs', 'job/five-day-rolling.vbp.md', 'text/markdown'],
+      ['bundle-csvs', 'job/four-hour-rolling.vbp.md', 'text/markdown'],
+    ])
+    const record = inserts[0]
+    expect(record.job_study_ref).toBe('job/job-study.json')
+    expect(record.five_day_vbp_ref).toBe('job/five-day-rolling.vbp.md')
+    expect(record.four_hour_vbp_ref).toBe('job/four-hour-rolling.vbp.md')
+    // Nothing about the analyze/eval inputs changes when only Job inputs ship.
+    expect(record.exec_csv_ref).toBeNull()
+    expect(record.rotation_vbp_ref).toBeNull()
   })
 
   it('rejects an empty bundle', async () => {

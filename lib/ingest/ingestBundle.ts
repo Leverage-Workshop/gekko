@@ -29,6 +29,10 @@ export type RawBundleRecord = {
   tpo_data_ref: string | null
   daily_va_ref: string | null
   htf_csv_ref: string | null
+  /** Job-planning inputs (feat-121): null until feat-118's exporter ships the files. */
+  job_study_ref: string | null
+  five_day_vbp_ref: string | null
+  four_hour_vbp_ref: string | null
 }
 
 /** Side effects injected so the orchestration stays pure and unit-testable. */
@@ -141,6 +145,9 @@ export async function ingestBundle(
     tpo_data_ref: null,
     daily_va_ref: null,
     htf_csv_ref: null,
+    job_study_ref: null,
+    five_day_vbp_ref: null,
+    four_hour_vbp_ref: null,
   }
 
   const presentFiles = FILE_FIELDS.map((f) => ({ f, value: form.get(f.field) })).filter(
@@ -174,6 +181,9 @@ export async function ingestBundle(
     tpo_data_ref: refs.tpo_data_ref,
     daily_va_ref: refs.daily_va_ref,
     htf_csv_ref: refs.htf_csv_ref,
+    job_study_ref: refs.job_study_ref,
+    five_day_vbp_ref: refs.five_day_vbp_ref,
+    four_hour_vbp_ref: refs.four_hour_vbp_ref,
   }
 
   return deps.insertBundle(record)

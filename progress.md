@@ -4,6 +4,19 @@
 
 **Last Updated:** 2026-08-22
 
+**Latest change (branch `feat-121-job-input-refs`): feat-121 — bundle plumbing for the Job
+inputs.** Three new Sierra export files (`job-study.json`, `five-day-rolling.vbp.md`,
+`four-hour-rolling.vbp.md`) now ride uploader → ingest → Storage → `raw_bundles`
+(`job_study_ref`, `five_day_vbp_ref`, `four_hour_vbp_ref`, all nullable, migration
+`20260822200000_job_input_refs.sql` applied live). Nothing in analyze/eval reads them; the
+`MgiStaticLevels` type accepts the optional `symbol` + `weekly.pwVAH`/`pwVAL` feat-118 will add
+to the MGI export, pinned inert by tests. The feat-054 registry gate required rows in
+`docs/engine-ownership.md` for the three fields — written as "Job planning task only, never
+surfaces to the briefing model". **Deploy note:** the Windows uploader checkout must pull +
+restart before the refs populate; until feat-118's exporter ships, bundles carry NULL refs and
+the job-plan task (feat-128) fails closed. Next in the Job chain: feat-122 (renderer) →
+feat-123 (vision read) → feat-124 (config + bench; depends on feat-120 golden labels as well).
+
 **2026-08-22 (branch `claude/trading-plan-youtube-analysis-izig3g`): the Job planning task is
 now tracked in `feature_list.json` as feat-118 – feat-130**, one entry per implementable step
 of `docs/job-planning-task-plan.md` (the step → feature map is in that doc's "Implementation

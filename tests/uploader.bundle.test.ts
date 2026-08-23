@@ -35,14 +35,26 @@ const SAMPLE = {
   tpoData: 'tpo.data.md',
   dailyVa: 'daily-value-areas.csv',
   htfCsv: 'htf_bar_data.rolling.csv',
+  jobStudy: 'job-study.json',
+  fiveDayVbp: 'five-day-rolling.vbp.md',
+  fourHourVbp: 'four-hour-rolling.vbp.md',
   mgi: 'mgi_static_levels.json',
 }
+
+/**
+ * Job-planning input fields (feat-121). Their Sierra exporter (feat-118) is
+ * operator-side and not yet deployed, so the `chart-data/` sample folder does
+ * not carry these files yet — once feat-118 checks the samples in, fold them
+ * into the sample-folder expectation below.
+ */
+const JOB_INPUT_FIELDS = ['five_day_vbp', 'four_hour_vbp', 'job_study']
 
 const ALL_FIELDS = [
   'balance_area_vbp',
   'daily_va',
   'exec_csv',
   'exec_png',
+  ...JOB_INPUT_FIELDS,
   'full_rotation_delta',
   'half_rotation_delta',
   'htf_csv',
@@ -50,7 +62,9 @@ const ALL_FIELDS = [
   'rotation_vbp',
   'tpo_data',
   'tpo_png',
-]
+].sort()
+
+const SAMPLE_FOLDER_FIELDS = ALL_FIELDS.filter((f) => !JOB_INPUT_FIELDS.includes(f))
 
 describe('readBundle', () => {
   it('collects every present file with its ingest field/content-type', async () => {
@@ -67,6 +81,9 @@ describe('readBundle', () => {
         [SAMPLE.tpoData]: '# tpo data',
         [SAMPLE.dailyVa]: 'Date,POC\n',
         [SAMPLE.htfCsv]: 'DateTime,Open\n',
+        [SAMPLE.jobStudy]: '{"meta":{}}',
+        [SAMPLE.fiveDayVbp]: '# five-day vbp',
+        [SAMPLE.fourHourVbp]: '# four-hour vbp',
       }),
     )
 
@@ -79,6 +96,24 @@ describe('readBundle', () => {
     const csv = bundle.files.find((f) => f.field === 'exec_csv')
     expect(csv?.filename).toBe(SAMPLE.csv)
     expect(csv?.contentType).toBe('text/csv')
+  })
+
+  it('ships the Job-planning inputs under their ingest fields (feat-121)', async () => {
+    const bundle = await readBundle(
+      reader({
+        [SAMPLE.jobStudy]: '{"meta":{"schemaVersion":1}}',
+        [SAMPLE.fiveDayVbp]: '# five-day vbp',
+        [SAMPLE.fourHourVbp]: '# four-hour vbp',
+      }),
+    )
+
+    expect(bundle.files.map((f) => f.field).sort()).toEqual(JOB_INPUT_FIELDS)
+    const jobStudy = bundle.files.find((f) => f.field === 'job_study')
+    expect(jobStudy?.filename).toBe(SAMPLE.jobStudy)
+    expect(jobStudy?.contentType).toBe('application/json')
+    for (const field of ['five_day_vbp', 'four_hour_vbp']) {
+      expect(bundle.files.find((f) => f.field === field)?.contentType).toBe('text/markdown')
+    }
   })
 
   it('prefers the globex exec export over the retired rolling export', async () => {
@@ -137,9 +172,14 @@ describe('readBundle', () => {
 
     const bundle = await readBundle(read)
 
-    // Every ingest field is satisfied by a real file in the sample folder, and
-    // the MGI sidecar is found — i.e. BUNDLE_FILENAMES matches reality.
-    expect(bundle.files.map((f) => f.field).sort()).toEqual(ALL_FIELDS)
+    // Every ingest field with a deployed exporter is satisfied by a real file in
+    // the sample folder, and the MGI sidecar is found — i.e. BUNDLE_FILENAMES
+    // matches reality. The Job-planning inputs are absent until feat-118 checks
+    // its samples in (the uploader skips them rather than failing the bundle),
+    // and may appear any time after — so they are allowed but not required.
+    const found = bundle.files.map((f) => f.field).sort()
+    expect(found.filter((f) => !JOB_INPUT_FIELDS.includes(f))).toEqual(SAMPLE_FOLDER_FIELDS)
+    expect(found.every((f) => ALL_FIELDS.includes(f))).toBe(true)
     expect(bundle.mgi).not.toBeNull()
   })
 })
@@ -160,6 +200,9 @@ describe('BUNDLE_FILENAMES', () => {
       'tpo.data.md',
       'daily-value-areas.csv',
       'htf_bar_data.rolling.csv',
+      'job-study.json',
+      'five-day-rolling.vbp.md',
+      'four-hour-rolling.vbp.md',
       'mgi_static_levels.json',
     ])
   })
