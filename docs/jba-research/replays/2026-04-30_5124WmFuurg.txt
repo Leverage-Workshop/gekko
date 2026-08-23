@@ -1,0 +1,1127 @@
+# Market Replay_4.30.2026_Job (Reoffer to ONL then Rebid from VAL and HVE)
+# https://www.youtube.com/watch?v=5124WmFuurg  |  2718s  |  uploaded 20260430
+# Auto-captions, timestamped [mm:ss].
+
+[00:01] So, I've condensed some screens here. On
+[00:03] the left, what you'll see a 30-minute
+[00:04] candle, and that 30-minute candle just a
+[00:06] plain 30-minute bar.
+[00:08] Um there's a red line. That is the
+[00:10] volume POC. And as the 30-minute builds
+[00:13] out, you'll see the POC shift back and
+[00:15] forth, and I discussed this quite a bit
+[00:17] here this morning and um
+[00:19] kind of opening the gates for entry and
+[00:22] and um
+[00:23] waiting for the shift. And I've
+[00:25] discussed how
+[00:28] when the POC shifts the bottom, then we
+[00:30] typically get a crowded type of
+[00:32] environment. We push up, and away we go
+[00:33] to the next logical place to push POC.
+[00:36] And if we shift it, then we get a
+[00:37] rotation back and forth. You get this
+[00:39] ping-pong. And so, this large candle is
+[00:42] A period from this morning. And um right
+[00:44] here, just a 500 uh volume execution
+[00:47] chart, DOM,
+[00:49] time and sales. And we're going to
+[00:50] discuss
+[00:51] uh this as NQ came down into the
+[00:54] vicinity of the overnight low, failed
+[00:57] initially, and we had a pullback. But
+[00:59] along the way, we weren't getting
+[01:01] uh extremely
+[01:03] a logical rotation was into the
+[01:06] direction of overnight low.
+[01:08] The rotating back in through this area
+[01:11] was looking at this as, you know, we
+[01:13] have POC on the on the overall session
+[01:17] up here at the 307s, right? We could see
+[01:21] that as set in A period. And so,
+[01:24] being that B period had just opened,
+[01:26] looking at this to the downside, wanted
+[01:29] to see this push.
+[01:30] And even if we very early on
+[01:34] um in the first few minutes of B period,
+[01:36] have this POC shifting back and forth,
+[01:38] not too concerned about that, but
+[01:40] honestly want to gravitate into here to
+[01:43] see if we can find activity into this
+[01:45] vicinity and be able to have some clean
+[01:47] risk down uh for continuation. You might
+[01:51] be wondering, "Well, why aren't you
+[01:52] looking at an LVN?" Well,
+[01:54] uh
+[01:56] pretty much off the open,
+[01:58] we have this aggressive type of push
+[02:00] down. This I view as two-way trade.
+[02:03] Going park is pretty much in the
+[02:05] you know, it's not in the center. But
+[02:06] it's not at the edges. It's not at the
+[02:08] extremes.
+[02:09] So when B period opens and doesn't
+[02:11] immediately escape A period and we begin
+[02:14] to push back in, we had a lot of
+[02:16] inventory right here. And so this is
+[02:17] where I want to see activity.
+[02:19] And so I'll go ahead and play this.
+[02:22] Apologies if it's a little choppy.
+[02:24] Sometimes you get that with replays.
+[02:30] So it shifts up. We get a
+[02:32] little pull back on that.
+[02:36] You see that here. You see the
+[02:37] interactive dynamic of how that shift
+[02:41] um plays a role.
+[02:43] We begin to build out through here. Now,
+[02:47] you know, looking at this, we're
+[02:48] building above that. So thinking two-way
+[02:49] trade.
+[02:52] Unless we flip that.
+[02:57] I don't think we flipped it till after
+[02:59] the trade, to be honest.
+[03:01] But we'll see through here. I haven't
+[03:03] replayed this.
+[03:05] But as [clears throat] we came back in,
+[03:06] looking at this area uh from A period's
+[03:09] POC, see what type of activity occurs.
+[03:12] Now we've rejected from here. Delta maps
+[03:14] nice. We're building buy-side delta. But
+[03:17] that's not
+[03:18] necessarily [clears throat]
+[03:19] I mean
+[03:20] yes, absorption, right? We're above it
+[03:23] and we're creating more. And so that's
+[03:25] initiative.
+[03:28] Into that zone.
+[03:31] Come up into the 72s. Weekly view up.
+[03:34] And this [snorts] right here we see a
+[03:35] little pause.
+[03:37] But we're at the bottom of um
+[03:40] you know, 280 some odd points at this
+[03:42] point and uh not looking to just dive in
+[03:45] like a dragon with a hemorrhoid at that
+[03:47] LVN because we're back inside of value.
+[03:50] So RTH, that's what it was. RTH POC
+[03:53] shifts down and then we have the
+[03:55] potential to shift it back to A period.
+[03:57] That's what it was.
+[03:59] So,
+[04:00] uh, overall, A period plus B period RTH
+[04:03] profile, we have the POC shift down. So,
+[04:05] now we're looking back to where it was
+[04:07] up here.
+[04:08] And when that shifts back,
+[04:13] that's sign.
+[04:15] Logical next place to put POC is where
+[04:17] it was.
+[04:21] Climb up an end.
+[04:29] So, I do apologize for stream of
+[04:31] thought, but just kind of going back
+[04:32] through what we're
+[04:34] looking at through here. So, we jam up
+[04:36] in this and sweep.
+[04:38] >> [clears throat]
+[04:39] >> And right about here is where
+[04:41] I
+[04:42] jumped in
+[04:44] preemptively,
+[04:46] but it was at the 94s. So, right in that
+[04:49] shift right there. Marketing end. We
+[04:52] hadn't shifted POC yet, but looking at
+[04:54] this going, all right, we got a response
+[04:56] there. This is where I want to see a
+[04:57] response.
+[05:01] We spent a little bit of time.
+[05:04] And these dots here are the inverse
+[05:06] pinch.
+[05:11] And this is where I'm looking at this
+[05:12] going,
+[05:14] all right, trade thesis is shift the
+[05:17] sucker back up.
+[05:20] But we begin to move away.
+[05:24] In fact, I believe we move away about 20
+[05:26] points. Um, had nothing to take off. I
+[05:28] was looking at the 60s.
+[05:31] And then we come back up and out from
+[05:33] this.
+[05:34] We can see POC low on B period
+[05:36] currently.
+[05:38] And so, that's where looking at this
+[05:40] going, okay, it's probably not done.
+[05:48] But that pull stack flip initially in
+[05:50] this zone, that's that was my early
+[05:52] entry.
+[05:59] We start to get a little bit now we're
+[06:01] getting by side Delta up here and that's
+[06:03] good because after a nice leg, you don't
+[06:06] want to see it at the bottom side.
+[06:07] That's
+[06:08] initiative continuation up here. Yeah,
+[06:10] we're building above it but we've had a
+[06:12] nice leg out of here. We've had a 100
+[06:14] points so and now we shift POC back up.
+[06:17] This is where now yeah, feel a little
+[06:20] bit more comfortable on the trade.
+[06:22] So now
+[06:23] want to see this move um begin taking
+[06:26] off in the 60s and then ultimately
+[06:29] uh try to leave a runner
+[06:31] down and through.
+[06:34] So
+[06:35] uh
+[06:37] to recap, took off some here half in the
+[06:40] 60s
+[06:41] leaving two on took another off on a
+[06:43] burst down here.
+[06:46] And then try to leave one on for the
+[06:48] overnight low. So we have that first
+[06:50] push down. We don't get
+[06:53] anywhere out of the 70s and to be honest
+[06:56] I was looking at this going hmm.
+[06:59] Oh man,
+[07:00] all right, might be host but we have a
+[07:02] lot of things in favor as far as
+[07:04] probability goes. One is B period POC
+[07:07] has moved to the highs. Our TH POC has
+[07:09] moved back to where it began and right
+[07:12] now we're getting a little crowded in
+[07:13] here. We're very close to overnight low.
+[07:16] Overnight high is way above us.
+[07:19] And so logical
+[07:21] rotation would be into overnight low.
+[07:24] Got to speak in probabilities
+[07:27] and that's going to help you in my
+[07:28] opinion enter trade
+[07:31] with conviction.
+[07:35] So we rotate around a little bit. I'll
+[07:36] try to speed this up
+[07:38] a little bit here two times speed.
+[07:46] >> And then back to one time speed. I want
+[07:47] to see this through here. I haven't
+[07:49] replayed this up into this absorption.
+[07:54] But I I for moment there I thought this
+[07:57] negative
+[07:58] uh [clears throat] delta map
+[08:00] might get hosed and swept out.
+[08:03] But yeah, the bid shies away, begin to
+[08:05] push down and this is where I want to
+[08:08] see into the 60s.
+[08:14] Right into here.
+[08:31] Maybe that was the push down that got
+[08:33] reversed there, but regardless
+[08:35] each time we come up in here we're
+[08:36] seeing the bid being
+[08:39] a little bit allergic.
+[08:41] And also we're maintaining and spending
+[08:44] time here placing and keeping POC up
+[08:47] here where it was on RTH and also on the
+[08:49] period.
+[08:51] So delta map's coming blue, that's fine.
+[08:55] >> [clears throat]
+[08:59] >> And then we get that. You know what?
+[09:01] That in itself I you can't plan for
+[09:03] that. As we swept through the 60s
+[09:06] half off. I had five on three come off
+[09:09] and and then we push down bottom of
+[09:11] value.
+[09:17] Here we go.
+[09:21] Bottom of value into the 40s, high
+[09:23] volume edge.
+[09:26] And we get there.
+[09:31] But that's also aggressive and
+[09:32] supportive of the thesis. Nothing has
+[09:35] changed. We haven't shifted POC in the B
+[09:36] period on the RTH. And so therefore, we
+[09:40] have component here that is
+[09:43] offer, willing to step in and be
+[09:44] aggressive.
+[09:48] A little rotation fluctuation,
+[09:50] absolutely normal.
+[09:52] But natural next place would be down in
+[09:55] to the high volume edge for response,
+[09:57] and then ultimately overnight low.
+[10:06] So I'm not going to
+[10:08] try to drag this out. I'll speed it up
+[10:10] two times speed.
+[10:12] I'll try to slow it down to one time
+[10:13] speed when we get down there.
+[10:17] Here we go. Getting down into here.
+[10:19] Watch the offer.
+[10:22] Thins out a little bit.
+[10:24] All right. Next leg is off.
+[10:27] And so down to runner into the edge of
+[10:29] that profile.
+[10:31] And the thought process is now that
+[10:33] we've seen that participant become
+[10:36] active through here, we want to see it
+[10:38] now sweep the overnight low.
+[10:40] The curious thing about this is yes, we
+[10:42] still have POC at B period high.
+[10:45] And so we want to see that continuation.
+[10:46] We're pushing, pushing, feeling very
+[10:48] comfortable at this point.
+[10:50] And then we get down here and we
+[10:51] reverse.
+[10:53] So watch the B period POC.
+[10:56] Watch this activity.
+[10:59] Watch your offer.
+[11:02] But they're
+[11:03] gone. See how they turn blue?
+[11:06] Right there.
+[11:07] What's going on? And then up here,
+[11:10] instead of staying below that buy side
+[11:12] delta, we have off offer disappearing.
+[11:15] We're pushing through that. We're
+[11:17] slapping in some buy side delta. And so
+[11:20] we see that we have a participant here.
+[11:24] And so after having a wide IB, this
+[11:26] gives me conviction
+[11:29] with if we can shift POC
+[11:32] down to low side
+[11:34] after this move
+[11:35] and sweep that overnight low, then that
+[11:38] overnight low satisfying that
+[11:41] can potentially be a low on the range
+[11:43] cuz it's also matching up pretty much
+[11:45] with the ADR that we expect. Now, as
+[11:47] this reverses through here, yeah, I
+[11:49] didn't take the runner off. Um you guys
+[11:51] were on voice chat with me and so
+[11:55] let it move this through here
+[11:57] on that B period POC on high filter on
+[12:00] that.
+[12:01] Going to keep that stop at 93s.
+[12:06] Let it do its thing.
+[12:08] Still looking for that.
+[12:10] >> [snorts]
+[12:11] >> But they're protecting.
+[12:13] Right here in this um
+[12:15] buy side delta
+[12:17] protecting that.
+[12:29] Placing more buy side delta above at
+[12:31] this point looking at delta map turn red
+[12:33] going,
+[12:34] all right [clears throat] buddy, let's
+[12:35] go. Let's take out these overnight lows.
+[12:37] We still have POC on high on B period.
+[12:39] And um on these rotations
+[12:41] we're getting
+[12:43] the offer trying to step down step down
+[12:45] step down step down. We don't have a
+[12:46] bunch of If we had negative delta down
+[12:48] here yeah, I probably would have cut
+[12:50] that quicker. But um being that we had
+[12:53] this, yeah, rotations can happen and we
+[12:55] also have this through here.
+[12:58] And we're on our way down. We're very
+[13:00] close to an MGI reference.
+[13:03] But instead, and I'll speed this up
+[13:07] we rip up and out of this zone.
+[13:10] So we certainly have a participant down
+[13:14] there.
+[13:16] I'm not going away or shying away from
+[13:18] the trade thesis because it's off above
+[13:20] this zone where we absorbed up here and
+[13:22] begin to press down and in. Creating a
+[13:24] newer low. Um and so up here we really
+[13:27] would have to take that out in order to
+[13:30] get rid of
+[13:31] um the thesis behind it. Now, I think it
+[13:34] was poor management on my end allowing
+[13:36] this to come back instead of taking some
+[13:38] off in identifying that.
+[13:41] And then try and replace up here. So, I
+[13:44] missed the mark on that. And
+[13:47] uh that's something, you know, on the
+[13:49] fly, not the easiest thing to do. We
+[13:51] pressed thing
+[13:52] we pressed back up into here.
+[13:55] And um
+[13:58] get a little response.
+[14:04] So, at this point, I'm just sitting in a
+[14:05] single and stops up at 93's and still
+[14:08] looking for overnight low.
+[14:11] Now, what's working against me is that
+[14:13] we had put POC in the RTH down here, but
+[14:16] if we're not able to find any activity
+[14:19] above above above above, then
+[14:24] we still
+[14:26] get going.
+[14:28] But, I'm pretty sure shortly here we're
+[14:30] going to see this move back up and into
+[14:33] the direction of entry.
+[14:36] I don't I don't think we shifted it
+[14:38] back.
+[14:46] Yeah.
+[14:52] So, we still have POC in the high on B
+[14:53] period, and then let me speed this up a
+[14:56] little bit.
+[15:02] The more time base with volume base
+[15:04] bars, and I know a lot of people have
+[15:06] had difficulty reading them.
+[15:08] With volume base bars, as we're sitting
+[15:10] and settling, that helps you kind of see
+[15:12] where we can shift that POC because if
+[15:14] we're spending a lot of time, we're
+[15:15] spending a lot of volume.
+[15:17] And so, I use that instead of time
+[15:21] time base candles um
+[15:24] to be able to see how this can shift
+[15:26] back and forth and I'm looking at these
+[15:28] clusters.
+[15:30] These clusters through here.
+[15:37] So we find ourselves moving back into
+[15:38] value area low.
+[15:42] Through here. Nothing changes on that
+[15:44] trade thesis from here. Want to be able
+[15:46] to
+[15:47] be patient on this. We're getting wider
+[15:49] ranges than normal.
+[15:51] And this is ultimately the target.
+[15:54] And then after this, the trade thesis is
+[15:57] um step down below it come and above it.
+[16:01] And if we can sweep up and into this
+[16:04] zone here, then I want to see respect of
+[16:07] that and we'll discuss that here
+[16:08] shortly.
+[16:15] So we get our little sweep down and in
+[16:17] overnight low
+[16:20] is limit order
+[16:22] and it's off.
+[16:23] And so now flat. Okay? Now I want to
+[16:26] gauge this response because in seeing
+[16:29] these legs down, we've identified a
+[16:30] participant through here and also look
+[16:32] at these lows. So we have the ability to
+[16:34] sweep out some of that some of the longs
+[16:38] um
+[16:39] and look at your POC on B period right
+[16:42] here, still at the highs. Still going.
+[16:45] Use this as filter.
+[16:47] Keep an eye on that.
+[16:50] Impressing below overnight low. If we're
+[16:51] going to keep and build below overnight
+[16:53] low, want to see us accelerate in the
+[16:56] previous day low. Same rules apply.
+[16:58] And that we've had quite a range here in
+[17:00] the IB.
+[17:02] But I want to know um I'm now thinking,
+[17:04] are we going to create single prints
+[17:07] or are we going to come back into the A
+[17:09] period range, respect that
+[17:12] and drive out of there. The A period
+[17:14] range is above the overnight low. At
+[17:16] this point, have plenty of time leading
+[17:18] into um the next period change. So, I
+[17:21] got to speed this up.
+[17:24] It's six times speed right now.
+[17:27] We don't want to sit through that.
+[17:29] Let it do its thing. This is where we're
+[17:31] looking at this going, here, let me slow
+[17:33] it down.
+[17:34] Uh the bottom of this profile is not
+[17:36] clean. It's not.
+[17:39] And so, it grants less uh confidence to
+[17:41] be able to dive in immediately
+[17:44] um with coming back into the overnight
+[17:45] low. This is where I'm looking at this
+[17:46] going uh 27204 to 200 range here. Uh we
+[17:50] have the overnight low right here just
+[17:52] in the upper 80s.
+[17:54] Um
+[17:55] and so, this area I want to see us tag
+[17:57] into this notch right here. So, I
+[17:59] mentioned in chat uh
+[18:01] 225s.
+[18:04] Pull up into this, and that would be
+[18:06] enough excursion back into value to play
+[18:08] with this high volume edge.
+[18:12] So, I'm going to speed this back up to
+[18:13] four times speed.
+[18:21] And one thing we don't have currently is
+[18:24] POC shifting down, and now we're back to
+[18:26] normal speed
+[18:28] on NQ.
+[18:29] And then we burst. That's good. That's
+[18:32] good. I want to be able to see
+[18:34] um
+[18:36] see that participant show its hand.
+[18:38] We've set down below these lows outside
+[18:41] the overnight low. Now, I want to see
+[18:43] show its hand.
+[18:45] And so, on a rotation back into this,
+[18:47] looking for the 200 range right in here
+[18:49] on the high volume edge
+[18:51] as value shifts back down into here
+[18:54] to be able to get on board with that.
+[19:01] We still have POC on high
+[19:03] with that.
+[19:09] POC on high.
+[19:11] In order to shift it lower, we have to
+[19:13] go lower.
+[19:16] But if we don't shift it lower
+[19:18] and we come up and create more volume
+[19:21] into that POC on that period
+[19:24] before that shift, we can see some
+[19:26] overhead pressure.
+[19:27] But if we shift that here
+[19:30] um before the close of that period or so
+[19:32] forth, then we're seeing, "Okay, we've
+[19:34] shifted the
+[19:36] um
+[19:37] congestion of the volume in that period
+[19:40] from here, we've shifted elsewhere."
+[19:46] So, up to two times speed.
+[19:50] Coming down and in.
+[19:53] And I'll slow this down.
+[19:59] Hold on.
+[20:02] I'll slow it down when we get down
+[20:03] there.
+[20:05] So, it's just three times speed.
+[20:08] Coming down into the buyer low, this
+[20:10] right here, I'm looking at that going,
+[20:13] "Okay, now we've shifted POC. It's not
+[20:16] at the extreme, but we've shifted it."
+[20:18] Did we come into
+[20:20] uh
+[20:21] the high volume edge? We haven't. And is
+[20:23] POC at the bottom of this candle? No,
+[20:25] it's not. So, it's pretty much central
+[20:28] and this is where I'm looking at this
+[20:29] going, "All right, so two-way trade is
+[20:32] potential here on B period."
+[20:35] And right here is where that congestion
+[20:37] is. And if we push up and out, we can
+[20:39] shift it back.
+[20:41] And if we can shift it back, then we can
+[20:42] get a rotation. Upon that rotation, then
+[20:45] I want to see this shift one more time
+[20:48] and get in on this high volume edge
+[20:49] because with that shift, yeah, that's
+[20:51] showing interest. If you're building
+[20:53] volume, she's not done. But you don't
+[20:56] want to be in when everybody gets in.
+[20:59] So, we push up and out again. You're
+[21:00] looking at this going, "Man, that son of
+[21:02] a gun, I missed it."
+[21:03] 260s there.
+[21:05] Speed this up to three speed.
+[21:12] I'm keying on this high volume edge
+[21:15] through there. I'm going to slow this
+[21:16] back down to one speed.
+[21:18] Real-time speed.
+[21:21] Got this through here.
+[21:23] We know
+[21:26] We saw somebody stepping up through
+[21:27] here, but if we can at least sweep some
+[21:30] of that come into the high volume edge
+[21:31] show response, that'd be great.
+[21:35] I just tap my stream deck as if I'm
+[21:38] going to trade this and then like
+[21:40] just
+[21:40] creature of habit.
+[21:49] Some of those things uh the dorsolateral
+[21:52] striatum dorsolateral striatum.
+[21:55] Have you ever driven somewhere and
+[21:57] you're like, "Man, I don't even you
+[21:58] know, you've gone through the whole
+[21:59] drive, you don't remember half the
+[22:00] drive." You just did it on autopilot.
+[22:03] That's your dorsolateral striatum.
+[22:11] I tend to do that with clicking the
+[22:13] sizing buttons on my stream deck and
+[22:15] looking and making sure that the sizing
+[22:18] is correct.
+[22:20] But anyway, through this here, yeah,
+[22:22] we're building out, but I want to see it
+[22:24] into the high volume edge.
+[22:28] Completely missed the
+[22:30] short side opportunity this morning very
+[22:32] early.
+[22:34] But I give it some time to create that
+[22:36] range. I'm pressing down into this
+[22:38] watching the
+[22:40] tape reader and new Delta map coming
+[22:42] into the high volume edge and this is
+[22:44] where I'll slow it down.
+[22:47] Watch your offer.
+[22:49] And right about here
+[22:51] that 204s when we saw that first flick
+[22:53] blink twice if you want me to enter,
+[22:57] that's where it was.
+[23:00] So we had to push down into this, into
+[23:03] the high volume edge. Last the very last
+[23:05] thing I want to look at is the execution
+[23:07] sequence of bull stack flip. I don't
+[23:09] care what happens
+[23:10] up in here or anything like that. I want
+[23:12] to see it on this zone. Show me
+[23:14] Show me that you want to get away from
+[23:15] that. There's a very well-defined risk
+[23:18] down to overnight low with this. We have
+[23:20] two-way trade um
+[23:22] currently at this point in B period with
+[23:24] the POC dead center in B period. And so,
+[23:27] would like to see this shift to one and
+[23:29] the other. And what I was saying is that
+[23:32] if this is going to sweep that overnight
+[23:34] low, then
+[23:36] uh okay.
+[23:38] All right, got to reconsider.
+[23:40] So, putting something [clears throat] on
+[23:42] into that.
+[23:45] Get a little participation, little
+[23:47] two-way trade. This is showing me that
+[23:49] here from the POC in B period. I'm
+[23:51] expecting that.
+[23:58] But, you can see that reflected on your
+[24:01] bull stack through here.
+[24:03] The offer stepping down, stepping down,
+[24:05] stepping down, shying away, shying away.
+[24:08] And that was close
+[24:10] right there.
+[24:16] It's like that sometimes.
+[24:27] But, the difference between up here and
+[24:29] down here is that you start to see this
+[24:31] get a little toothy, a little bit
+[24:34] um
+[24:35] sporadic on the offer side. They see it
+[24:38] when I when they pull off, I have it
+[24:40] turn blue to show me that.
+[24:42] And so, now we know
+[24:44] that there's something in here.
+[24:46] Therefore, on the uptick, now I want to
+[24:48] place adds on a starter.
+[24:52] I want to see it move out of this zone.
+[24:53] We're having some two-way down here at
+[24:55] 200s. I want to place an add
+[24:57] uh quickly if we can burst up and out of
+[24:59] here.
+[25:08] Come into here.
+[25:10] Get a little protection
+[25:12] underneath those 04's.
+[25:15] No harm, no foul.
+[25:17] Box still central.
+[25:19] On B period, we're still expecting
+[25:21] two-way trade.
+[25:23] They're still stepping in through here.
+[25:26] Market.
+[25:28] Now we're stepping above where they were
+[25:29] protecting under the 204's. Back in,
+[25:32] we've already dipped our toe down. Now
+[25:34] the water's too cold down here. Want to
+[25:36] get in
+[25:37] and press this. Now the kicker here is
+[25:41] that we have
+[25:43] the potential to shift POC back to the
+[25:45] upside and this area between 260 and 270
+[25:50] is something that can that we've seen
+[25:53] sell multiple times. And so with this
+[25:55] position,
+[25:56] ultimately looking for
+[25:58] some takeoff into
+[26:01] the the um
+[26:04] about a 20-30 point range
+[26:07] and then the 50's exit. So the 50's
+[26:12] just here under POC.
+[26:14] If we are going to stall
+[26:16] then I want to pay attention to that. I
+[26:18] want to I don't want to set a limit
+[26:19] order on that because we can rip and go
+[26:21] completely across value. But I do want
+[26:24] to look at that.
+[26:26] So I'm going to speed this back up.
+[26:36] Get some off and
+[26:38] right there.
+[26:40] Get some off.
+[26:41] >> [snorts]
+[26:44] >> Get down to a runner and place that risk
+[26:47] now
+[26:48] right in front of position.
+[26:55] We get that stark pullback.
+[26:59] No problem. We haven't really come
+[27:01] across that zone too much.
+[27:10] But once we begin to push up and out, I
+[27:12] think it was right around where Okay, C
+[27:14] period is open.
+[27:16] And we have this right here. One respect
+[27:18] A period low. Uh POC at the highs.
+[27:25] And so once we
+[27:27] begin to press here, you'll see it shift
+[27:30] one more time. Watch your C period here.
+[27:33] We get into the 50s.
+[27:40] Watch that POC shift.
+[27:41] And also we have the RTH POC right here.
+[27:43] So, watching that.
+[27:47] Up. Up. Up.
+[27:50] Into that first burst into the 50s.
+[27:53] There.
+[27:57] We start to see that presence of
+[27:59] activity.
+[28:13] And jam up and out.
+[28:20] Speed this up a little bit.
+[28:29] Shift up.
+[28:33] Uh trade thesis from my end is no longer
+[28:35] valid.
+[28:38] For continuation on this.
+[28:47] So, we shifted up. Now, it's at the
+[28:48] highs.
+[28:52] Right here.
+[28:55] Watch our response from that.
+[28:58] Speed this up. It's four times speed.
+[29:02] We're going to move away.
+[29:05] And so,
+[29:06] not only does that help me filter um
+[29:10] the potential for position for entry,
+[29:13] but it also helps me protect
+[29:15] positioning.
+[29:19] I'm not sitting through this. And also,
+[29:21] um if you're going to rebid this or have
+[29:23] anything on at this point, which shows
+[29:25] flat, um not looking to put anything on
+[29:27] unless we come down and settle a little
+[29:30] bit and we shift it back to the bottom.
+[29:34] So, that's the review here from uh this
+[29:37] morning. That's the way I was looking at
+[29:40] it. Now, I missed
+[29:41] plenty of things this morning.
+[29:43] I think there's only a finite amount of
+[29:45] information we can look at at a given
+[29:47] time
+[29:48] to trade manually.
+[29:50] So, um
+[29:55] but we're all human.
+[29:56] So, I do apologize for missing some
+[29:58] things,
+[29:59] but this is exactly what I was looking
+[30:01] at. And uh that was the review from this
+[30:04] morning.
+[30:09] >> Definitely.
+[30:10] Go for it.
+[30:11] Yes, so my question is basically, how
+[30:14] are you gauging
+[30:15] um directional bias relative to the POC
+[30:18] in a given period? Um is if I think what
+[30:21] I've taken away is that if it's at the
+[30:23] extremes of a period, then you're
+[30:24] looking to basically uh trade away from
+[30:27] that level, um so reversion from that
+[30:29] level. Whereas, if it's in the middle of
+[30:30] the period, then you're looking for a
+[30:32] rotational behavior around the POC. Is
+[30:34] that right?
+[30:35] >> That's correct. Yep. And also, within a
+[30:37] period, like I understand it's a finite,
+[30:39] it's a 30-minute period of time. And um
+[30:42] you can zoom out or zoom in on this. And
+[30:44] so I was also referencing the RTH POC,
+[30:48] which is a higher time frame because
+[30:49] that's my conglomerate of your each
+[30:51] period, right? Throughout the day. And
+[30:54] then I've also spoken about the 4-hour
+[30:56] rolling and the 5-day rolling and the
+[30:58] 4-week rolling. The same concept applies
+[31:01] across the board for me. It's just
+[31:02] different time frames mean different
+[31:04] things. You can have quite a bit more
+[31:06] wiggle room on a 5-day rolling and a
+[31:10] 4-week rolling
+[31:11] or even an RTH than you will have on a
+[31:14] 30-minute. When we do When we do stack
+[31:17] them at the highs
+[31:19] and things like that, I look at that as
+[31:21] kind of being stuck.
+[31:23] It's like getting into the mud, not able
+[31:26] to really get the wheels going.
+[31:28] Um now, is that foolproof? 100% every
+[31:31] No, because we can burst above that and
+[31:34] build volume. There might be other
+[31:36] influences
+[31:38] um
+[31:38] available at that particular time that
+[31:41] drive inventory. But in a in a basic
+[31:45] sense
+[31:46] um from my end, on a 30-minute period,
+[31:49] you're going to see that shift back and
+[31:50] forth, especially if it's in the first 2
+[31:52] minutes, you're looking at a 2-minute
+[31:54] candle POC, right?
+[31:57] If it's 15 minutes in, now you're
+[31:59] looking at a 15-minute candle POC. If
+[32:01] it's 20 Same thing, right? But as that
+[32:05] progresses, you're going to see it shift
+[32:07] and move back and forth. And for me,
+[32:09] it's kind of like jumping on a
+[32:10] trampoline. Um
+[32:13] you know, or playing ping pong. We push
+[32:16] it to the one side,
+[32:18] and then it comes back, and then you
+[32:20] know, you kind of do have this
+[32:21] oscillation. And once you begin to build
+[32:25] up lower POCs on periods and they begin
+[32:28] to stack up like that at the close of
+[32:30] the period, then I look at that and say,
+[32:32] "All right, we should probably
+[32:35] uh, press up and out of this." because
+[32:37] that'll also be reflected on your 4-hour
+[32:39] and your higher your RTH profile and so
+[32:42] forth.
+[32:43] Now,
+[32:45] so so within the beginning of a period,
+[32:48] I don't place as much emphasis on that
+[32:50] um,
+[32:51] as far as entering within the first
+[32:53] couple minutes or things like that
+[32:55] because POCs at the low in the period
+[32:57] well, POCs at the low in the period, but
+[32:58] we're 15 seconds in. You know, naturally
+[33:01] we're going to have some inventory
+[33:02] fluctuation. But as that moves and if
+[33:05] you do this replay enough, um, you're
+[33:08] going to be able to see how that shift
+[33:10] and that ping-pong occurs. There's a lot
+[33:12] of, um, textbook type of information
+[33:15] around volume profiles. I even saw that
+[33:17] NinjaTrader, um, put out, uh, somebody,
+[33:21] um, she
+[33:22] put out an explanation on how to trade
+[33:24] the volume profile. Great, you know, uh,
+[33:27] I come
+[33:29] kind of like a southpaw. I'm
+[33:31] right-handed, but I come kind of like a
+[33:32] southpaw looking at this saying um, from
+[33:35] a different perspective. Let's think
+[33:37] outside of the box and how this builds
+[33:39] out across the day to be able to make an
+[33:42] actionable instead of looking at this at
+[33:45] the end of the day and say, this is the
+[33:46] shape, therefore
+[33:49] tomorrow, in general, this
+[33:52] Okay?
+[33:53] So, we want to make that volume profile
+[33:55] actionable.
+[33:56] We can do that by isolating some of the
+[33:58] information from it.
+[33:59] And volume POC is one piece of the
+[34:02] information. We can dive into the value.
+[34:04] We can do that all those types of
+[34:05] things.
+[34:06] But, um, what I've seen with regard to
+[34:09] period by period is that you can have
+[34:11] your TPO, your time POC, um, you can
+[34:14] have your VPO, your volume POC. Uh,
+[34:17] I like to action
+[34:19] along board with the VPO flips and so
+[34:22] forth. And that's one of the reasons why
+[34:24] we have the VPO VPO flip study.
+[34:28] And, um, and so if you put that on,
+[34:30] yeah, that's going to show you those
+[34:32] extremes and you can really tighten them
+[34:34] up and see some of them and
+[34:37] on a shorter time frame or so forth. But
+[34:40] if you're going to read this as it's
+[34:41] moving
+[34:42] in a dynamic sense, understanding what
+[34:45] that means in a live setting, it can
+[34:48] keep you safe.
+[34:49] And it can also qualify a position.
+[34:53] Does that answer your question?
+[34:55] >> Yeah, it it's super helpful. Um maybe
+[34:57] just a follow-up, how
+[35:00] how important sort of relative within
+[35:02] your whole narrative landscape process
+[35:04] would you say that alignment with the
+[35:05] 30-minute POC is? Like for example, do
+[35:08] you sometimes trade against it or are
+[35:09] you are sort of generally thinking I
+[35:10] really want to be aligned with that POC
+[35:12] narrative pretty much every trade I
+[35:13] take?
+[35:14] >> If I'm trading against it, I will size
+[35:16] down.
+[35:18] If I'm trading against it and I have
+[35:20] something like a Delta map flip, I got a
+[35:22] pinch, I got a dominant, I got all these
+[35:24] things lining up.
+[35:26] I'll I'll size down
+[35:29] against the piece of energy I
+[35:30] understanding that yeah, we can get a 20
+[35:32] 30-point burst out of here and that's
+[35:36] kind of pitch and catch, but also you
+[35:38] don't have I don't have that other piece
+[35:41] in my favor.
+[35:44] And so I don't necessarily look at this
+[35:45] and say, "Okay, now we're going to drive
+[35:46] to all-time highs."
+[35:49] But when they do begin to line up,
+[35:52] that's when
+[35:53] I want to lean in. And so it's funny you
+[35:56] say that because I was actually talking
+[35:57] to my dad the other day
+[35:59] and um you know, we we always talk about
+[36:01] different things and um and he was like,
+[36:04] "Oh, you know, cuz he's he's he's not
+[36:06] trading." Um
+[36:08] but he's like, "Are you seeing anything
+[36:10] you going to lean in on, lean in?" And
+[36:13] in my in the back of my mind, you know,
+[36:14] I was kind of going through some of my
+[36:16] things with him, which is fun just to
+[36:17] have conversation. I you know, I I see
+[36:20] all those memes where it's like and I
+[36:22] know that many here even on the chat may
+[36:25] have lost a family member or things like
+[36:27] that. But, I'll take those conversations
+[36:29] any given time and talk about them. Um
+[36:31] but, in the back of my mind, even this
+[36:34] morning, I'm thinking, "Lean in. Lean
+[36:36] in."
+[36:37] "Lean in." You know?
+[36:39] And so, I I I don't know why,
+[36:41] you know, my brain was just saying that,
+[36:44] but
+[36:45] based upon how this dynamically moves
+[36:49] around a current period, um
+[36:51] it it helps slice up some of the quicker
+[36:53] time frame things. So, I definitely
+[36:55] prefer the morning trade activity versus
+[36:59] the afternoon. Now, we've been in an
+[37:01] environment where the afternoon feeds
+[37:02] quite a bit more, so you have to adjust.
+[37:04] And the same rules apply for me.
+[37:07] But, within A period, B period, so
+[37:09] forth,
+[37:10] you know how quiet I was today on voice
+[37:12] this morning?
+[37:14] Very quiet. You know, I had no reason to
+[37:16] get in. We were pressing POC to the low
+[37:18] on A period, but nobody was giving up
+[37:20] from the
+[37:21] from the offer.
+[37:22] You know, we're just push, build, push,
+[37:24] build, push, build. There was nothing.
+[37:27] And um and at one point on A period, we
+[37:30] slammed POC to the low, the act the
+[37:32] exact low. And we just pressed, and we
+[37:36] swept, and we pressed, because there was
+[37:38] no
+[37:39] reason to get in on. There's no
+[37:40] response.
+[37:42] And so, this is context
+[37:44] based upon where you're at. And so, when
+[37:46] that's occurring, you don't want it to
+[37:47] be in the middle of nowhere.
+[37:50] You want to be able to gauge the hand of
+[37:54] participation around a zone of interest.
+[37:57] And so, even coming into the long down
+[37:59] here, was looking at the high volume
+[38:02] edge. We have high volume edge, we have
+[38:03] value area low, we have overnight low.
+[38:06] We've got that type of activity. And And
+[38:09] um and so, therefore,
+[38:12] now we have some structure behind this.
+[38:13] Now, if we can line this up with that as
+[38:16] well,
+[38:17] great. If we can't, then I got a
+[38:19] position a little smaller. That's also
+[38:22] why, um along the way was looking at
+[38:24] this in
+[38:26] in that particular move going
+[38:29] All right, I'm putting a starter on.
+[38:31] And that's why I said, I'm putting a
+[38:32] starter on and got to add as we see
+[38:35] participation to come through it.
+[38:37] Whereas with the short,
+[38:40] it was an immediate five.
+[38:42] From my end.
+[38:44] It was at the 90s.
+[38:46] Where was it?
+[38:48] Yeah, up here. No.
+[38:50] Somewhere down here.
+[38:52] But anyway,
+[38:53] I think you're picking up what I'm
+[38:55] putting down. All right here.
+[38:57] So we get up here and this is a primary
+[38:59] type of move. So we're we're seeing that
+[39:02] shift that back and forth then I want
+[39:04] five on. I'm going to take this. I'm
+[39:07] going to manage it. I'm not going to
+[39:08] post a
+[39:10] going to
+[39:11] you know what and and don't take that
+[39:12] the wrong way because that's a very
+[39:14] excellent way to manage your trades.
+[39:17] But there are differences between my
+[39:19] particular style and the other guys and
+[39:22] I I think that you've seen this at this
+[39:24] point, but I don't care what you're
+[39:26] doing. I just want you to extract.
+[39:32] >> Yeah, very helpful Jim. Thanks so much.
+[39:34] I think what I'm taking away is it's
+[39:35] like when you're seeing a node of
+[39:37] positioning at an extreme, you're
+[39:39] thinking
+[39:40] hopefully that's a sort of a a bigger
+[39:42] player who's going to sort of try to
+[39:43] move the market in their favor. It is is
+[39:45] how how I'm taking
+[39:46] >> Yeah, yeah, it's it's I view it
+[39:48] essentially as absorption.
+[39:50] >> Yep.
+[39:50] >> You know, you can simplify it as a
+[39:53] liquidity zone. But what if your
+[39:54] liquidity zone at the bottom instead of
+[39:57] instead of what we visualize with Delta
+[40:00] where you come back into you get
+[40:01] protection and so forth. You move up and
+[40:03] away from it. What if this style of
+[40:06] liquidity zone is simply
+[40:08] Now we got a box here and
+[40:11] we're looking at absorption. We move
+[40:12] away. Okay, that absorption is now
+[40:14] flipped to the other participant and
+[40:16] we're passing the ball back and forth.
+[40:20] That's the way I look at it.
+[40:21] >> Yeah, very cool. Thanks so much, Chip. I
+[40:23] really appreciate it. The explanation
+[40:24] very helpful.
+[40:25] >> No problem.
+[40:28] >> Yeah.
+[40:30] Hey, Joe.
+[40:31] >> Yes.
+[40:32] >> Yes. Um
+[40:33] I sit at night and I think about this
+[40:34] stuff when I can't sleep. I kind of and
+[40:37] I I I know this is like I don't know
+[40:38] what a bit what um
+[40:41] uh what a better analogy is, but it's
+[40:43] like with a volume
+[40:46] it's like it's kind of like a fire in a
+[40:48] Chicago nightclub. I know that's really
+[40:49] dark.
+[40:50] But
+[40:52] um
+[40:52] >> Hey, you got to Now you have to explain.
+[40:54] >> No, but everyone wants to get out.
+[40:56] >> Oh, yes. Okay, got you.
+[40:59] Wow.
+[40:59] >> Right.
+[40:59] >> Um and it's kind of like um Have you
+[41:02] seen the meme of a guy [clears throat]
+[41:04] it's on like America's Got Whatever uh
+[41:07] these stupid uh games that they play.
+[41:10] And um
+[41:12] there's a swing and it's swinging
+[41:14] radically back and forth. And there's a
+[41:16] guy this guy studied physics, you know?
+[41:19] >> Okay.
+[41:19] >> And so every time the swing goes one way
+[41:22] he's running towards the other end.
+[41:24] >> Okay.
+[41:25] >> He's the first in, right? Like he So he
+[41:27] knows where the the velocity is going to
+[41:28] go.
+[41:29] >> Right.
+[41:29] >> kind of look at um
+[41:32] uh
+[41:34] I look at
+[41:36] when the V puck shifts down on the
+[41:37] 30-minute as being like
+[41:40] if something happens, whatever it is,
+[41:42] someone gets offside, everyone's going
+[41:43] to run for the door.
+[41:45] >> Right.
+[41:46] >> That That's how I kind of
+[41:47] >> I totally I'm on board with you. And as
+[41:50] that pendulum swings, it moves back and
+[41:52] forth. Actually, let me make a drawing
+[41:54] for you. So, here's our pendulum, right?
+[41:57] And we might shift to this side
+[42:01] and then get a shift back to this side.
+[42:04] >> Yep.
+[42:05] >> Like this, okay? And then rotate back to
+[42:08] this side.
+[42:09] The only kicker here is that
+[42:13] when especially when you step into a
+[42:14] trade and how I'll say this to the nth
+[42:17] degree is that you got to understand
+[42:20] when
+[42:21] uh
+[42:24] let's say you shift over here
+[42:28] and you detach the edge of the pendulum
+[42:31] and we just go.
+[42:32] >> Yep. Yeah, that that's that's the other
+[42:34] problem.
+[42:34] >> Yep. And so the reason uh kind of some
+[42:37] of the explanation that I was trying to
+[42:39] give this morning is that all right. Now
+[42:43] down into this area through here
+[42:47] what I was trying to say, I don't know
+[42:49] if I said it very clearly, is that it's
+[42:51] a very clean exit.
+[42:53] It's a very clean If we have activity
+[42:55] through here
+[42:57] no.
+[42:58] It's off.
+[43:00] But blink twice if you want if you want
+[43:03] to get in through this mix.
+[43:06] Yeah. Uh like blink twice on the offer.
+[43:08] Show me a little bit of weakness because
+[43:10] if the pendulum head comes off, I know
+[43:14] that we can run.
+[43:16] >> Yeah.
+[43:16] >> and so I want to try to be kind of like
+[43:19] what you mentioned the first, you know,
+[43:21] you don't want to be the first one in
+[43:22] the party, but you want to be on that
+[43:24] edge to say that if this is wrong, I'm
+[43:27] going to know right away.
+[43:30] And uh kind of like the way I ate the
+[43:31] cottage cheese that my wife was going to
+[43:33] use today.
+[43:34] She let me know right away.
+[43:37] >> Yeah.
+[43:40] Yeah.
+[43:42] >> So this through here um a clean exit. So
+[43:46] uh vernacular sense.
+[43:48] Um I know I say a few things in
+[43:50] repetition, but a clean exit for me is I
+[43:53] know where the trade thesis is off.
+[43:57] One of the hesitations that we have had
+[43:58] in the past with any type of live
+[44:00] trading, which obviously we're more keen
+[44:03] on, you know, like you got to be
+[44:06] got to be able to manage things. Okay?
+[44:09] One of the things is
+[44:12] Um I feel comfortable understanding my
+[44:14] sizing and where that clean exit is and
+[44:16] I'll try to convey that immediately. And
+[44:19] so will Cap and Mac Mac or Leo or
+[44:22] anybody else. But um
+[44:24] >> [clears throat]
+[44:25] >> but with regards to that, I cannot
+[44:26] control
+[44:27] um somebody who looks at this and says,
+[44:29] "Okay, I I can try to work I can try to
+[44:31] make this work."
+[44:33] And so I just want to place that caveat
+[44:35] out here that when that clean exit
+[44:37] occurs
+[44:38] look, how many times have we stepped on
+[44:40] and yeah.
+[44:42] Even this
+[44:43] more recently
+[44:45] start down a little bit negative. Look,
+[44:47] if take take the hits. Take your hits.
+[44:51] Because when it's working
+[44:53] then
+[44:55] it'll it will work.
+[44:58] And you're going to be able to take this
+[44:59] across the zone.
+[45:01] But you need to take small hits. And so
+[45:03] I'm not talking to you directly, Dave.
+[45:05] But um
+[45:07] I think you get what I'm putting down.
+[45:11] >> Yep, I appreciate it.
+[45:12] >> Yep.

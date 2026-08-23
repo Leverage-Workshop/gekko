@@ -1,0 +1,507 @@
+# Dominator 2.0 Deep Dive
+# https://www.youtube.com/watch?v=87iRywxnwj4  |  1549s  |  uploaded 20250919
+# Auto-captions, timestamped [mm:ss].
+
+[00:02] All right, so Dominator 2.0 and I'm
+[00:04] excited to go through this because we've
+[00:06] discussed a lot of things about the IB
+[00:09] Dominator and made it made some changes
+[00:12] as far as DND charts that aren't
+[00:14] available completely across the board
+[00:17] with platforms within Sierra Chart they
+[00:20] are.
+[00:22] And so we're able to do that and
+[00:26] make that change to be able to um
+[00:29] produce the dominator 2.0.
+[00:33] So with that it's important to
+[00:36] understand and I know this comes into
+[00:37] play with uh the original dominator.
+[00:40] It's modified pot pace of tape isolating
+[00:44] anomalies from dumb time sales define
+[00:48] those zones where hey it's an inflection
+[00:51] point based upon those participants
+[00:53] stepping in being overwhelmed and being
+[00:56] slapped in the mouth.
+[00:58] But with Dominator 2.0 there is a
+[01:01] sessionaware design. And so essentially
+[01:06] the way you can look at this is uh when
+[01:09] we were talking about the IB dominator
+[01:12] taking the original dominator with a DND
+[01:16] and doing just the IB what are we doing
+[01:19] we're isolating simply that period of
+[01:22] time. So the session aware aspect this
+[01:25] uh current build compares structure uh
+[01:29] from the current based upon behavior
+[01:32] from that previous session or time
+[01:35] period selection.
+[01:38] So it's capturing the volume that is
+[01:41] come across those zones.
+[01:44] H it's going to be a little bit clear
+[01:46] here shortly but it it's going to
+[01:48] provide that anomaly based upon what is
+[01:52] occurring just then and yes we are going
+[01:56] to provide recommended settings on this
+[01:59] but one of the big things from my end uh
+[02:01] that I mentioned yesterday I said um we
+[02:05] want to get creative with this. So there
+[02:07] is a
+[02:12] distribution curve of activity and I'm
+[02:16] aware of it
+[02:18] but to the average um
+[02:22] OFL user or CR chart member
+[02:26] if we have
+[02:28] four or five recommended settings then
+[02:32] that creates DND charts and things like
+[02:34] that you have to overlay to your um
+[02:37] execution chart.
+[02:40] Okay. All right.
+[02:42] You can also expand upon those settings
+[02:47] to see what is meeting your needs based
+[02:49] upon higher time frame setting, further
+[02:52] excursion expectancy, shorter time frame
+[02:55] setting, more prints and
+[02:59] less extension expectancy from that
+[03:02] activity.
+[03:04] But these are the settings that we
+[03:06] currently have right now. So it
+[03:08] evaluates the pace size and intensity it
+[03:11] but it also compares that analogous
+[03:14] session activity not on 24-hour response
+[03:19] as the original dominator would but it's
+[03:22] calibrated to insight um to give insight
+[03:26] to the auction as it stands. So session
+[03:31] settings why and the accuracy.
+[03:34] So the session settings what you'll see
+[03:37] here is that session start time for the
+[03:41] symbol or the recommended settings
+[03:44] should be like like so
+[03:47] right. And so why would we do that? Put
+[03:51] it right upon the RTH open. Well, about
+[03:55] an hour before we typically have data
+[03:57] releases and so we have um anomalous
+[04:00] activity and we want to remove that type
+[04:03] of anomalous activity in order to have a
+[04:06] true sense of volume coming in at that
+[04:08] per period of time.
+[04:11] Second thing is you're going to see 2our
+[04:14] setting or a 3hour setting or a 90
+[04:17] minute setting or a 60 minute setting or
+[04:19] a even a 30 minute setting and we'll
+[04:22] talk about that.
+[04:25] Those settings are essentially the only
+[04:28] time frame settings that are available
+[04:32] within Dominator 2.0 you know, to be
+[04:34] able to have that look back response
+[04:37] because when you set your chart frame up
+[04:40] like this here, you come in, you set
+[04:44] your time frames accordingly. And so
+[04:47] this is an example of setting it on
+[04:49] Chicago time, which you know, everybody
+[04:52] knows that's the wrong time. Everybody
+[04:54] should be Eastern time, right? All
+[04:57] right. So, uh, but my charts are all in
+[05:00] Chicago time to have confluence with
+[05:03] what we're always discussing. And, um,
+[05:07] and so 8:30 would be the RTH open.
+[05:11] Therefore, 82959
+[05:15] should be the 24hour close. And if we're
+[05:19] look if we're having a look back of a
+[05:21] 2-hour se section or a 30 minute session
+[05:27] pitting that activity against where it
+[05:30] was in the prior day prior sessions
+[05:33] multiple days then
+[05:36] we want to make sure that we remove or
+[05:38] have some standardized setting for the
+[05:42] RTH open. So the evening session is set
+[05:45] to no and um it's set 24-hour like this
+[05:50] and then the settings are going to
+[05:52] arrive on the recommendation as such.
+[05:56] So this is what it looks like. So for
+[05:58] instance uh with NQ so the uh 8:30
+[06:07] session
+[06:09] with a 2hour setting is that dark area.
+[06:14] This here,
+[06:16] this area
+[06:19] is looking at the volume activity in the
+[06:23] first 2 hours
+[06:26] from RTH open based upon a look back
+[06:30] specifically on these dark areas
+[06:34] and further.
+[06:36] If I condense this on a multiple day
+[06:38] look back, it's going to be so small
+[06:41] we're not going to be able to see it.
+[06:43] However, during that time period,
+[06:47] we want to see what is normal.
+[06:50] So, in normalizing that activity based
+[06:53] upon that specific time setting, we're
+[06:55] able to take this here, pit this against
+[06:58] that and that and also what comes before
+[07:03] instead of having simply a 24hour
+[07:07] uh rolling basis.
+[07:10] So the reset recommended settings are
+[07:13] going to provide
+[07:15] more prints,
+[07:17] but what about additional settings? And
+[07:19] what about the print itself?
+[07:22] So with regard to more settings, and I
+[07:26] personally utilize handful of settings,
+[07:29] and I'll convey that here through the
+[07:31] chat uh to be able to keep that updated
+[07:33] along the way. And this will be
+[07:35] something that I test bi-weekly in order
+[07:38] to stay on board with and be able to see
+[07:41] what that current characteristic is.
+[07:46] Is that it also requires more DNDs,
+[07:50] right? Is that cumbersome? Certainly is.
+[07:53] Right? And so what you can do is create
+[07:56] those uh DND charts and utilize OFL
+[08:00] overlay. Point on low, point on high.
+[08:04] create a color to signify
+[08:09] what that specific time period is. And
+[08:12] you know what? Um, you can have it on a
+[08:16] set base say, "Look, I'm only going to
+[08:18] be looking at uh three or four different
+[08:21] settings
+[08:23] or I'm only only going to be looking at
+[08:25] one setting
+[08:27] and that point on low or point on high
+[08:29] is that particular color. If it's
+[08:31] something outside of the recommended
+[08:33] settings, you can switch the color to be
+[08:35] able to notify yourself, hey, when that
+[08:37] prints, then you understand that's
+[08:41] coming from a different setting instead
+[08:43] of just having a narrow up or an arrow
+[08:46] down,
+[08:48] but it's going to delay outlier
+[08:49] responses for that specific time frame.
+[08:52] in that particular time frame is going
+[08:55] to be extremely
+[08:57] it's going to be relative to the extreme
+[09:00] activity within that session awareness
+[09:03] flow. So we talk about arval so relative
+[09:07] volume and um I believe that everybody's
+[09:11] gone through the blog post discussing
+[09:14] relative volume and understanding that
+[09:17] and so when you come into a particular
+[09:20] situation where the first two hours or
+[09:22] the first one hour or whatever that time
+[09:25] setting that blip is what is that pitted
+[09:29] against the period
+[09:32] from the prior day at the exact same
+[09:35] time.
+[09:37] So Cory's done an excellent job of being
+[09:39] able to have this uh coded incorrectly
+[09:43] and even though we discussed setting up
+[09:45] an IB dominator, um he's done this to
+[09:48] the point where we can actually test uh
+[09:51] the 30 minute, 60 minute, 90 minute, 2
+[09:54] hour, 3 hour, 4 hour and beyond
+[09:58] and be able to place those recommended
+[10:00] settings. What that does on our end is
+[10:03] it opens up the ability to be able to
+[10:07] test that activity. It requires quite a
+[10:10] quite a bit more data. Um but we're able
+[10:12] to see that response and be able to see
+[10:14] the characteristic of the market
+[10:16] activity.
+[10:18] So I think it goes without saying that
+[10:21] structure precedes execution.
+[10:24] And even though this is very similar to
+[10:27] the dominator deep dive itself,
+[10:31] yes, prints are going to be more
+[10:33] abundant, they're also going to be more
+[10:35] active and more aligned and have a
+[10:38] higher probability of continuation or
+[10:41] reversal from a zone when you push from
+[10:45] a structural reference.
+[10:47] And that's going to provide more
+[10:48] confidence.
+[10:50] I would I would I would uh encourage
+[10:53] everybody here to step in and play
+[10:57] around with the study settings.
+[11:00] Yes, multiple variables, timebased
+[11:03] variable and then you have to change the
+[11:05] volume based variable certainly
+[11:09] I will be laying out a few ideas around
+[11:14] this of things that I utilize and um
+[11:18] it's going to provide a few different
+[11:20] settings and within those settings what
+[11:23] you're going to see is you're going to
+[11:25] see multiple prints and so Um, think
+[11:30] about the whalinator
+[11:32] especially when you're coming in down
+[11:33] into like the RP or into the edge of
+[11:36] autoplot but utilizing it in the sense
+[11:40] where huh okay this one here has a high
+[11:43] efficacy of activity. Therefore, I want
+[11:47] to overlap this with the whinator
+[11:50] into the EOD or the EAD and the other
+[11:55] setting and also in the proximity of
+[11:59] pinch on a short time frame. Those types
+[12:01] of things.
+[12:04] Get creative with this
+[12:07] because this is highly adaptive and able
+[12:10] to look back at that specific time frame
+[12:13] on a day-to-day aspect
+[12:16] and provide a response from it.
+[12:19] So
+[12:21] satisfy
+[12:22] an anomaly based upon specific volume.
+[12:27] you're gonna see in the same way you see
+[12:30] this GIF um step in. What you're going
+[12:34] to see is the Dominator will step in
+[12:38] and it will step off if that anomaly is
+[12:41] no longer met with the Dominator 2.0.
+[12:46] It is filtering activity. So it need
+[12:50] it's requiring 20% of that volume
+[12:53] activity or that finish of completion of
+[12:57] that activity in that zone to occur in
+[13:00] order to print to begin with.
+[13:04] We will be continually working refining
+[13:07] this percentage base. But we don't want
+[13:09] to take this too high as far as
+[13:12] something like a bar close to be able to
+[13:14] see, okay, my execution chart is 500
+[13:18] volume, but the Dominator 2.0 is 6,000
+[13:23] volume. Therefore, I have all these bars
+[13:26] printing. And then boom, my Dominator
+[13:29] prints way back where I was at. At the
+[13:33] same note,
+[13:36] we've stepped in and said we don't want
+[13:38] this print right off the bat. We want to
+[13:41] see that activity pretty much be
+[13:43] solidified to some degree.
+[13:47] If it's going to step in and confirm, we
+[13:50] want to have some sort of filter on
+[13:51] this. Everybody has the opportunity to
+[13:54] place this specifically on bar close.
+[13:58] when you place it on bar close and you
+[14:01] have let's say 1,000 volume execution
+[14:04] chart but the DND is coming from 6,000
+[14:08] volume understand that that print will
+[14:12] be six bars back upon completion
+[14:16] potentially if that is where that bar
+[14:18] opened.
+[14:21] We're not looking for hindsight
+[14:22] activity. We're looking for flashing in
+[14:25] of activity to be able to show that eb
+[14:27] and flow of activity that we've
+[14:29] discussed with DOM response
+[14:32] time and sales and all that we've
+[14:36] discussed through office hours
+[14:40] and a a slight filter through this will
+[14:43] remove nuances from the absolute open of
+[14:47] a volume bar
+[14:50] to be able to pause for just a second.
+[14:52] confirm we're getting some sort of
+[14:54] activity through here in order to engage
+[14:57] with and that should also be prevalent
+[15:01] on the DOM and time and sales.
+[15:06] So the dominator print plus structural
+[15:09] confluence equals risk managed, right?
+[15:15] Not going to beat that dead horse
+[15:18] any further.
+[15:20] Everybody has the opportunity to step
+[15:21] into the one-on-one section. Um the
+[15:24] one-on-one section with Dom time and
+[15:26] sales volume profile and everything that
+[15:29] we described there. I'm very proud of
+[15:31] that. I I do feel that there are ex
+[15:33] excellent uh descriptions, examples and
+[15:37] um opportunities to learn and expand um
+[15:40] understanding from that.
+[15:43] there is a certain expectancy to um step
+[15:47] into orderflow labs utilize this
+[15:50] activity and when we're talking about
+[15:51] DOM activity that you have that
+[15:54] underlying um uh understanding
+[15:59] of what is occurring
+[16:02] and yes we'll continue to review review
+[16:06] with the office hours and things like
+[16:08] that but with Dominator 2.0 Now what I
+[16:11] want to really get at is
+[16:16] that it has this session awareness.
+[16:21] So therefore it is when you change the
+[16:24] setting twoour setting for instance and
+[16:28] all these prints here there are two
+[16:30] settings on this chart. So one is the um
+[16:34] recommended 6250 volume 2our setting on
+[16:37] dominate 2.0. The other one is 7500 30
+[16:41] minute setting. You can get more prints.
+[16:44] You can get more prints. You also get
+[16:46] response from them.
+[16:52] But the highlight here with the dark
+[16:55] portions in the background are the are
+[16:59] the recommended settings to our setting.
+[17:01] This here is pitting the activity
+[17:03] against this against this and it's doing
+[17:06] that in an adaptive sequence. We've seen
+[17:10] the market move,
+[17:13] right?
+[17:15] Coils up, gets real small,
+[17:18] and then all of a sudden burst. But I'll
+[17:20] tell you, it does not move like a
+[17:23] dinghy. It moves like a cruise ship. It
+[17:26] takes time to turn. That type of stuff.
+[17:28] And so even in those low arval
+[17:31] environments, we want to be able to
+[17:33] gauge the activity against that exact
+[17:36] period of time to be able to see what is
+[17:39] happening based upon that um based upon
+[17:42] that IB.
+[17:46] And if you set those settings
+[17:48] appropriately,
+[17:51] yes, it's not only isolating the IB, it
+[17:54] is doing two, it's doing blocks of that
+[17:57] specific time setting. So if you're
+[18:00] trading glowbacks,
+[18:01] then it's looking at that exact time on
+[18:04] glowbacks that you have previously
+[18:07] looked at.
+[18:08] Therefore, it's going to remove a lot of
+[18:13] pain from having um simply a 24-hour
+[18:18] rolling aspect to this. Does this mean
+[18:21] that I'm not going to be utilizing a
+[18:22] 24-hour rolling uh the original
+[18:25] dominator? No, absolutely not. Um some
+[18:28] of those guys really heavy hitters. So,
+[18:31] they will be on they will be colored
+[18:33] differently. That way I'm aware of what
+[18:35] I'm looking at on the same note for
+[18:39] quick response and immediate activity
+[18:42] within
+[18:44] the RT session.
+[18:47] I'm going to lean heavily on this and
+[18:50] also get creative with my settings. So
+[18:54] I'm going to open up the chat.
+[19:03] Go for it.
+[19:04] >> I know that me and you talk about, you
+[19:07] know, like other Dominator settings
+[19:09] beforehand, um, Dominator 2.0 and I, you
+[19:13] know, I think one of my favorite ones is
+[19:15] actually the 20K because it has a
+[19:18] multi-our response sometimes, you know,
+[19:21] from from a low point and then if it
+[19:23] fails, it's kind of a big fail. So, I'm
+[19:26] wondering, have you looked at, you know,
+[19:28] something like a 20k over, you know, a
+[19:30] two, three hour timeline,
+[19:33] um, and seen any response from that?
+[19:35] >> Yes, I have. And, um, you you're going
+[19:39] to have some excellent response from
+[19:40] higher time frame volume settings. Right
+[19:44] now, in doing so, you're also going to
+[19:45] have fewer prints.
+[19:48] And so, one of my filters coming into
+[19:51] Dominator 2.0 now is that I want to have
+[19:53] a certain amount of prints relative to
+[19:56] the activity through RTH. I don't want
+[19:58] to go 7 days without a print
+[20:02] or anything like that. And therefore
+[20:06] over a look back, I want to be able to
+[20:08] see X amount of trades that occurred
+[20:11] from this based upon a response
+[20:16] and be able to gauge the efficacy from
+[20:19] those trades.
+[20:23] This can be a very good t very good
+[20:26] topic to step back in and um do an
+[20:29] add-on to the deep dive here also with
+[20:32] the dominator itself for a higher time
+[20:35] frame thing because what I'm thinking
+[20:37] that you're leaning in towards can
+[20:39] potentially provide a swing type of
+[20:41] opportunity.
+[20:47] What what what you were saying was that
+[20:49] with those higher time frame prints uh
+[20:52] especially when they solidify those
+[20:54] pullbacks provide opportunity to get on
+[20:56] for continuation of that trade. Yes,
+[21:00] absolutely on board with that. Similar
+[21:01] to how I look at the uh higher time
+[21:04] frame pinch and things like that, we get
+[21:07] the pinch on the 4 hour or the daily or
+[21:10] the weekly. I don't like to fight it.
+[21:13] like to see the activity around it to be
+[21:15] able to get on board and move into that
+[21:18] direction. But this also when you zoom
+[21:22] out to a higher volume, yes, you're
+[21:25] going to see that type of anomaly, it's
+[21:28] the time frame that you're looking at
+[21:31] the trade um that differs from any other
+[21:34] person here on the phone call or um
+[21:37] that's listening to this after the fact.
+[21:40] So, if you're looking for
+[21:43] that
+[21:45] 30 50 point pop outside of that zone
+[21:49] that had a retest and you have a
+[21:51] dominated 2.0 in, that's one thing, but
+[21:54] that's not swing. And um but if you're
+[21:57] looking at the 20k dominator stepping in
+[22:01] stepping in, you might have a variable
+[22:05] area of 6080 points on NQ
+[22:09] that
+[22:11] has to settle first before it begins to
+[22:14] move.
+[22:15] And so with regard to risk management on
+[22:18] this um this is intended
+[22:21] to be set for um intraday type of
+[22:25] activity. Quick response get in and push
+[22:31] show activity show interest
+[22:39] >> for some reason.
+[22:42] >> Okay. So uh the question was is this
+[22:45] indicator um only useful during RTH or
+[22:50] is it useful outside of RTH? uh with the
+[22:53] session awareness what I was getting at
+[22:55] is it is I it's coordinated to be able
+[22:59] to isolate the activity during the IB or
+[23:04] near the R RTH open
+[23:07] to give that period of time um
+[23:13] the ability to see any type of outl
+[23:16] activity.
+[23:18] Now, outside of RTH, is it still
+[23:21] applicable? Second part of the question,
+[23:24] when you select a two-hour time period,
+[23:28] um,
+[23:32] with this time setting and so with the
+[23:35] session setting, uh, let's say you step
+[23:37] in with NQ, you set these exact
+[23:39] settings, 8:30 here on CST to 8:2959
+[23:46] CST. That's a 24-hour setting, but the
+[23:48] start time is set to the RTH. That is
+[23:52] intended to remove um the data releases
+[23:56] that occur prior to RTH, give a more
+[23:59] meaningful meaningful or um precise
+[24:03] response within the um
+[24:07] Dominator 2.0 itself.
+[24:10] But in that 2hour setting, it's
+[24:13] essentially saying
+[24:15] 8:30,
+[24:17] 2 hours. The following two hours
+[24:23] would be what?
+[24:26] 10:30,
+[24:29] 12:30. That's going to be pitted against
+[24:32] the prior activity from that time frame.
+[24:34] So it is on a 24-hour rolling basis
+[24:38] instead of the activity looking directly
+[24:41] across the board in a rolling sequence
+[24:45] of what occurred during the IB or during
+[24:47] this that it's looking at that specific
+[24:50] time frame. So, in that 2-hour time
+[24:52] setting, we're looking at the first two
+[24:54] hours of activity,
+[24:57] and we're pitting that against the first
+[24:59] two hours of activity on that prior days
+[25:02] in sequence,
+[25:04] negating all of the rest of the
+[25:07] activity. We want to see what happens at
+[25:09] that time of day, at that 2-hour
+[25:13] sequence.
+[25:16] So during GlobeEx, it is viable because
+[25:20] during that 2-hour period of time where
+[25:23] you're trading through Asia and you have
+[25:26] that response through that zone, it's
+[25:28] only looking at that pitted against that
+[25:31] period of time during Asia,
+[25:37] for example.
+[25:42] Extremely viable.

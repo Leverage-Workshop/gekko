@@ -1,0 +1,878 @@
+# Market Replay_5.4.2026_Job (JBA high reoffer & ONL Rebid)
+# https://www.youtube.com/watch?v=9iNMcMoI9nk  |  2682s  |  uploaded 20260508
+# Auto-captions, timestamped [mm:ss].
+
+[00:01] Today's market replay is from the 4th of
+[00:05] May. So May the 4th be with you. And uh
+[00:08] the request was simply can you replay a
+[00:11] walk through on the dom and flow from a
+[00:13] short on ES
+[00:16] 10:45 Eastern to 11 Eastern and then the
+[00:21] 1250
+[00:23] Eastern rebid.
+[00:25] I'm really just looking for you to
+[00:27] assume that I'm trying to time an entry
+[00:30] in these areas and then just replay
+[00:32] until I see what it looks like with a
+[00:34] valid entry. And so with what I have
+[00:38] today, um, especially being that I'm not
+[00:40] trading ES, uh, when I get a request
+[00:43] like this, what I like to do is step
+[00:47] back about 10 15 minutes before and
+[00:50] begin the replay and begin the
+[00:53] recording. And when that occurs, uh,
+[00:56] being that I wasn't looking at that at
+[00:59] that particular time, uh, this is
+[01:02] simulated trading.
+[01:04] you're going to see uh some wins, some
+[01:07] faults, and management around that. Um
+[01:11] what you're not going to see is brackets
+[01:13] around it. It's just an entry and then
+[01:16] you'll see how I'm meandering around
+[01:19] those zones because I don't have those
+[01:21] brackets for ES currently, but I'll
+[01:24] discuss that. Um but through this based
+[01:28] upon the request, when would you click a
+[01:31] button and what are you seeing from left
+[01:33] to right? So there are two primary
+[01:35] things. One is what happened from left
+[01:38] to right. The other one is when you
+[01:41] click a button. And so this is the first
+[01:43] one. And so this through here with ES uh
+[01:47] this was uh something on NQ that I was
+[01:51] very keen on on the fourth there. But
+[01:54] with ES it was a little finicky and we
+[01:56] had some activity around this zone. And
+[01:59] so when when I begin this recording and
+[02:03] pressing into the upper portion of this,
+[02:05] we're looking at the JBA highs. I'd like
+[02:07] to see that interacted with. In fact, if
+[02:10] we get close, all right, we already
+[02:13] interacted with that from the left side
+[02:15] and then we saw an accelerated sellside
+[02:18] type of activity. We saw our participant
+[02:20] through there and then over here as we
+[02:23] got up into this zone looking for
+[02:26] absorption and looking for allergic
+[02:29] activity from the bid side to be able to
+[02:31] get on to anything along the way. What
+[02:34] you'll see is through the activity is as
+[02:37] I played this out and began to step in
+[02:41] after that pull back through here,
+[02:44] you'll see an ad and it was a
+[02:46] mismanagement. And so I'm trying to make
+[02:50] this human. And as Brian mentioned
+[02:53] before we started recording, are the
+[02:55] other ones not? No. Um, but this through
+[02:59] here and also the next one. Uh, they're
+[03:04] let me play this out. This has one clip.
+[03:08] How would I interact with this? in order
+[03:11] to answer the question of um I'm really
+[03:14] looking for you uh for you to assume I'm
+[03:17] trying to time an entry. And so
+[03:20] therefore, I'm looking at this going,
+[03:22] how would I time an entry? No better way
+[03:25] for me to do it than click a button. And
+[03:27] so this is simulated and it's meant to
+[03:31] display what I'm seeing in that area.
+[03:34] And so we'll start with this.
+[03:38] So, we're coming up to the JBA highs and
+[03:41] um this is on 1.75 speed
+[03:45] with ES because I'm so used to looking
+[03:47] at NQ. ES is slower than molasses with
+[03:52] that. And so, the first thing I'm
+[03:54] looking at is as we approach the top of
+[03:56] the JBAS,
+[03:59] watch my bid.
+[04:01] And so these 70s seem to be reoccurring,
+[04:04] reoccurring, reoccurring, and filling,
+[04:08] stepping up, doing absolutely fine. And
+[04:11] what you'll see is these white numbers
+[04:14] here on the pull stack on the offer are
+[04:16] showing uh a little bit little bit of
+[04:18] weakness through that. The red on the
+[04:20] bid side are showing weakness from the
+[04:22] bid. And so as we're pressing up into
+[04:25] here, what you're going to see is when
+[04:27] that button clicks, you see that
+[04:29] triangle come in and show this type of
+[04:32] activity. Watching the bid, we start to
+[04:35] get this absorption right here around
+[04:38] the low 70s.
+[04:40] It weakens up a little bit, but you see
+[04:42] this pulsing, pulsing in, pulsing in,
+[04:46] pulsing in. Really want this to tag top
+[04:49] of the JVA.
+[04:52] If not, I want to see some absorption
+[04:55] like this.
+[04:57] Yeah, eat it up from the offer side. At
+[05:02] any point, you can unmute. So, we get a
+[05:04] little weak through here and that starts
+[05:06] to show us that potential absorption
+[05:08] through that mix. And you see when that
+[05:11] step away from the bid happens, um,
+[05:14] that's where I would position on that.
+[05:19] Now at this point we have absorption
+[05:21] just above us. We have the JBA highs
+[05:24] here at 72 uh 3/4 and therefore there
+[05:28] should be no risk above the 73s.
+[05:33] If we find ourselves popping outside of
+[05:35] that zone and lifting and just some stop
+[05:39] run type of activity, then by all means
+[05:42] take a stop and reassess from left to
+[05:45] right. But when you're seeing that type
+[05:48] of absorption coming in like this at
+[05:50] those highs, especially after from left
+[05:52] to right, seeing um how we sold off from
+[05:57] those previous highs, then that's a
+[05:59] reasonable location to be able to step
+[06:01] in on. Now, what you want to do is be
+[06:05] able to gauge where would I short this
+[06:08] or where would I where would I get long?
+[06:11] Okay. So, being that you're positioned
+[06:13] short through here, you want to make
+[06:15] sure that the offer is there. You go.
+[06:19] So, that's you see me put in that little
+[06:21] triangle in that location there. Um,
+[06:25] [clears throat]
+[06:25] where's the offer shying away? So,
+[06:27] currently they're not. So, it's it's on
+[06:32] and it's still full.
+[06:34] And this is where you see this um
+[06:37] maintain
+[06:38] some congruence with stepping into that
+[06:42] 70 zone. 70 zone 70 zone
+[06:45] risk should not be
+[06:48] outside of that JBA.
+[06:51] We're at the upper portion of this.
+[06:52] Therefore, there's no part of me that
+[06:54] wants to look for getting long on this.
+[06:59] I want to see a rotation back. In fact,
+[07:01] if you look at the 7258s primary LVN
+[07:04] right here, primary LVN, and then just
+[07:07] below us, we have this entire mix of
+[07:10] MGI. Okay, so that 7258
+[07:16] should be a target.
+[07:20] Get something off in that zone.
+[07:23] Gauge continuation.
+[07:26] Watch your offer on this.
+[07:31] Being that your position short,
+[07:35] you want to be able to look at this and
+[07:36] say, would I long this?
+[07:40] We're absorbing at the top of that uh
+[07:42] leg-to-le delta profile. We're having
+[07:45] some two-way trade. No harm, no foul.
+[07:47] We're refreshing in the 70s.
+[07:51] Let it move. Let it do its thing. at the
+[07:54] first sign of weakness, especially with
+[07:56] the absorption and having
+[07:58] [clears throat] further absorption.
+[07:59] Looking at this thing, lean in to this,
+[08:03] allow it to move
+[08:08] clearly defined risk above us
+[08:12] because if it's not the JBA highs, then
+[08:15] boom, it's the Gline up there in the
+[08:17] 76s. We don't need to hold through that
+[08:19] all of that.
+[08:21] But even as the bid steps in a little
+[08:23] bit more and we're getting even a little
+[08:26] bit more absorption through that mix,
+[08:30] this is a two-way trade. Pretty even.
+[08:37] Is the entry laggered?
+[08:39] Um,
+[08:42] I would agree that
+[08:44] uh, yeah, it's definitely not top
+[08:48] ticking or anything like that, but
+[08:51] essentially I before entering a
+[08:53] position, I want to be able to see the
+[08:56] activity move away, show some sort of
+[08:59] accommodation to that positioning.
+[09:03] And at this point, what we can see is if
+[09:06] you're watching this from where would I
+[09:08] take a long type of mindset, the offer
+[09:12] is still heavy and filling and filling
+[09:14] and filling. This is going to take time.
+[09:16] Absorption takes time.
+[09:25] If this trade thesis fails
+[09:28] at the JBA highs, we stop run out of
+[09:30] that, come back in, then this is why um
+[09:36] I would say, you know, is it still
+[09:39] viable? If we stop run out of that and
+[09:42] come back in, resetting position is
+[09:44] absolutely viable. But if we stop run
+[09:48] out of that and we settle above those
+[09:50] JBA highs, then in that scenario, you're
+[09:53] looking at this going, "All right, don't
+[09:54] fight it. Let it move. Let it get out of
+[09:57] this zone." Uh because this zone is not
+[09:59] read appropriately.
+[10:02] But in this area, we see the offer still
+[10:04] stepping in.
+[10:07] And now we begin to see aggression. This
+[10:10] is what you want to see as far as
+[10:12] initiative activity once you're
+[10:14] positioned.
+[10:17] that gives a little bit of sense of
+[10:19] ease, right? But those 58 primary LVN
+[10:22] just below you can be a primary bid
+[10:24] zone.
+[10:27] So we have to have that in the back of
+[10:28] our mind right there where the cursor
+[10:31] just went. Um primary bid zone potential
+[10:36] that's a zone of initiation after
+[10:38] leaving the prior distribution.
+[10:43] That's also where you want to begin to
+[10:46] take something off. And if you get a
+[10:48] rotation out of this,
+[10:52] work on some ads. You're going to see a
+[10:55] very uh mismanaged ad on this.
+[11:00] So, there is one at 58. I want to be
+[11:04] able to take something off there. See
+[11:07] that move down and get a get a little
+[11:09] response.
+[11:11] We come down into the lower portion of
+[11:14] that distribution and we begin to see
+[11:16] protection of it. Right? So watch your
+[11:19] offer.
+[11:20] We remember that 70s had absorption.
+[11:23] Therefore, if the 70s give up, then no
+[11:26] bueno.
+[11:48] Still finding some acceleration. Come
+[11:51] down in tag. Tag it off into the 58s.
+[11:54] Primary LVN zone of initiation. Natural
+[11:57] place for response. We get a bit out of
+[11:59] there.
+[12:02] Nothing wrong with taking something off.
+[12:04] And then below us, we have these power
+[12:05] lines of multiple MGI pieces down into
+[12:08] there. But I'm looking at this um as far
+[12:11] as the uh the pivot [snorts] in that
+[12:15] zone. And then what you're going to see
+[12:17] is just below uh where where I placed
+[12:20] that order there, we have 120 lots.
+[12:23] Watch watch that order just below that
+[12:26] um
+[12:29] limit order. Watch what's sitting down
+[12:31] there because we move up and out of
+[12:32] here. We don't get into there. We get
+[12:36] within a point. And this is where I'd be
+[12:38] looking at this going, you got to be
+[12:40] me.
+[12:44] There's interest into that zone. So,
+[12:47] after taking something off into that
+[12:49] LVN, I want to make sure that if that
+[12:51] bid solidifies, I'm going to make sure
+[12:54] that my protection is in front. So, I
+[12:57] don't have the brackets set up here for
+[12:59] ES. Um, and so I'm placing them on. And
+[13:01] you can see them placed on.
+[13:04] So at this point, I'm putting it in
+[13:06] front. We sweep out of here. We're going
+[13:09] to sweep the JBA highs potentially up
+[13:11] into the Gline. And so I don't want to
+[13:14] be a part of that. Just get me out. But
+[13:16] then we begin to absorb a little bit
+[13:18] more here into the leg delta profile
+[13:23] into the 61 area.
+[13:30] That order is still sitting down there
+[13:31] at 50 quarter. And I'm not going to let
+[13:34] this come back
+[13:36] and take out that positioning.
+[13:40] If we do,
+[13:42] then we should accelerate into the JBA
+[13:46] high into the Gline so forth. This is
+[13:49] why I would manage it in that sense.
+[13:52] Once we stepped into that LVN and we saw
+[13:55] a response there even though we got a
+[13:56] sweep down into previous month's value
+[13:59] high.
+[14:00] All right, gauge for continuation but
+[14:04] don't don't need to fight at that
+[14:08] specific entry getting absorption into
+[14:11] the leg to leg uh profile and then
+[14:13] you're going to see an ad.
+[14:16] Watch your bid.
+[14:18] I swear I'm looking at this going, "All
+[14:20] right, we might roll over again." Let's
+[14:22] take a look. Watch the bid.
+[14:26] Are we holding those 58s? Wait, how we
+[14:28] doing there? We're holding. Still
+[14:31] refreshing.
+[14:39] Sellside delta coming down in. That's
+[14:40] aggressive here near those highs.
+[14:43] Watching the bid. I see it step away.
+[14:47] Get away.
+[14:59] There's the ad right there. We thin out
+[15:02] on the bid and that brings that
+[15:05] positioning um average on the position
+[15:08] down. But I'm going to keep that risk
+[15:10] still to 68s because if we get above
+[15:13] those 68s, then uh we can accelerate.
+[15:16] Now, here's the problem with this one.
+[15:19] Uh, watch your offer
+[15:23] with an ad. I want it to work
+[15:25] immediately or I want it off.
+[15:29] I want that ad to be taken out that 50
+[15:31] quarter, but instead we begin to
+[15:34] reverse.
+[15:42] Watch your offer
+[15:51] kind of lingering around that ad
+[15:53] positioning and I use last in first out
+[15:56] LFO
+[15:58] and so that's why the very last position
+[16:01] I put on is the first one that's taken
+[16:02] off. We have that absorption up in the
+[16:04] 6263 area. I don't want to see any type
+[16:07] of activity up into there.
+[16:12] Watching the offer.
+[16:18] It's thinning.
+[16:23] Thinning
+[16:26] little step in
+[16:35] there. 63 quarters. Looks like they're
+[16:37] stepping a little bit. Let's press those
+[16:41] 7250
+[16:43] quarter.
+[16:46] Want your offer?
+[16:53] Looks good.
+[17:00] Looking good.
+[17:03] And this is where you begin to sit here
+[17:05] and patiently go. Yeah, of course. We'll
+[17:08] rotate down to this sucker.
+[17:15] We've lost cell delta at 656 half.
+[17:24] Got to make some progress. Sell sweep.
+[17:27] Sell sweep.
+[17:30] All right. Watch your offer. Sell sweep
+[17:32] down below that negative delta. Need to
+[17:34] make progress. Now we need to sweep it
+[17:36] again. It gets neutralized. Uh watch
+[17:39] your offer. Thin.
+[17:42] Thin. Thin.
+[17:44] Take it off. Took off the ad. Put the
+[17:47] risk back to where it began.
+[17:53] So yes, I'm manually putting those in,
+[17:56] but I still want to take off something
+[17:59] at 50 quarter. If we're able to hold
+[18:01] below um that zone where the entry
+[18:07] began.
+[18:12] So that's a mismanagement,
+[18:14] right?
+[18:16] Should I have let that one go? Well,
+[18:18] that type of weakness in seeing that I
+[18:21] don't want to add or I don't want to
+[18:23] have more risk on the table. If we don't
+[18:25] move immediately, but instead we show
+[18:27] weakness. Um, I'm not too concerned
+[18:30] about letting it sit through any further
+[18:32] absorption. Take it off. That's that's
+[18:34] the way I'll treat it. And so I'm trying
+[18:36] to, like I said to begin with, very
+[18:39] human about this type of response. What
+[18:42] is happening? The question came around
+[18:45] to how would you press a button? And so
+[18:50] being that I'm not trading ES on a daily
+[18:53] basis, this is how I'd be pressing a
+[18:55] button. And then so uh we have some on
+[19:00] from above us. We want to see this sweep
+[19:02] down in the 50s and that's where we get
+[19:04] into the pivot zone and the fiveminute
+[19:07] or mid the RP. I mean there's a lot
+[19:10] going on there. Unless we just sweep
+[19:12] that then I'd expect a response.
+[19:14] Therefore I want to get in just uh give
+[19:17] me a tick in front of this 155 guy that
+[19:20] it's been refreshing and just hanging
+[19:22] out there the entire time.
+[19:25] So, I'll take a tick bub. It's fine.
+[19:28] Getting a ton of sell delta in here. If
+[19:32] the offer is to shy away,
+[19:35] then that can be explosive right back
+[19:37] into a stop.
+[19:40] But we don't shy away on the offer. The
+[19:43] bid actually shies away.
+[19:49] Primary location for entry is up at the
+[19:51] upper portion of that JBA. Um, the
+[19:55] support desk request for this review uh
+[19:59] is aligned with how I would treat this
+[20:02] type of scenario based upon the fact
+[20:05] that I utilize the JBAS. I know not
+[20:07] everybody visualizes them or utilizes
+[20:09] them on their charts, but through here
+[20:12] want to see that tag through. And now we
+[20:14] have to gauge activity at RP
+[20:18] and pivot. Watch your offer.
+[20:28] got to step down. You got a lot of
+[20:29] negative delta. We have to step down.
+[20:33] Uh buy side delta starting to step up.
+[20:38] We got to be able to look at these 54
+[20:40] area. Um because if we get above all
+[20:42] that sell delta, then it can rip out of
+[20:46] this. Set somebody off sides. Okay, we
+[20:49] get a little acceleration. Uh uh
+[20:52] weakening off
+[20:54] bins out off.
+[20:58] The curious thing about this is that
+[21:00] what you'll see even after this rotation
+[21:03] up here at the end of the recording,
+[21:06] yeah, you get a rotation up and then we
+[21:08] just rotate about the same distance. We
+[21:10] just continue to jam to the downside. Um
+[21:14] what does that mean as far as that
+[21:15] positioning goes? From my end, I I
+[21:18] couldn't care less.
+[21:22] Uh to be honest, yeah, I honestly
+[21:25] couldn't care less. Um once that
+[21:28] weakness is shown, then I want to be
+[21:30] able to get out on that
+[21:33] extract.
+[21:35] And we get a little waterfall through
+[21:36] here. That would be a good replay on
+[21:39] your end to be able to look at see um
+[21:42] this for potential ads or things like
+[21:44] that. But um with what we've been uh
+[21:48] seeing in the current environment at
+[21:52] some point got to be okay with being
+[21:53] able to extract.
+[21:56] But along the way what we saw up here
+[21:59] was the bid was allergic. Press down in
+[22:01] offer shied away a little bit. Take
+[22:03] something off. Okay. Bid shied away. Put
+[22:07] on an ad. And then we had this two-way
+[22:09] trade. This is two-way trade. And so
+[22:11] when I say all right, so shies
+[22:14] away. And you're going to see this eb
+[22:15] and flow back and forth.
+[22:18] And this is not a perfectly managed
+[22:20] trade by any means, but um upon the
+[22:23] replay and the timestamps requested,
+[22:26] this is how I would have engaged with
+[22:28] that, especially with being tight on
+[22:32] that ad along the way. The second one is
+[22:39] this. All right. And so what we're going
+[22:42] to see is a fail. uh a failed uh bid
+[22:46] from here. And uh the screenshot is
+[22:49] meant to reflect the entries that I was
+[22:53] taken on those timestamps. But um on the
+[22:56] recording, what you're going to see is
+[22:57] because it's 5day rolling aspect is is
+[23:00] that the JBA uh low was actually right
+[23:03] here. It was like we were dipping our
+[23:05] toe in potentially coming up and out.
+[23:07] And so,
+[23:09] um, even with that, yeah, I would have
+[23:13] engaged here every given time. And so,
+[23:17] uh, what we'll see from this is that we
+[23:19] have JBA low, we have the overnight low,
+[23:21] and, um, and the entry from my end, uh,
+[23:25] was not completely ideal, but we be able
+[23:29] to see how we pit that against a local
+[23:31] low and how that activity occurs.
+[23:36] It would be super easy just to
+[23:37] cherrypick things and guys, hey, just do
+[23:41] this and this and this. But, um, when I
+[23:44] do get a time stamp
+[23:46] in a request for a review, then I want
+[23:49] to see how how would I treat this. So
+[23:55] you can see the JBA low right there at
+[23:57] the 72193 3/4
+[24:00] and um overnight low right down there
+[24:03] into the 7213 range. 133/4
+[24:10] getting a lot of cell delta into that.
+[24:13] But look what happened just before. And
+[24:15] so just before we get a bunch of
+[24:16] dominators coming in we had an extreme
+[24:19] sellside type of activity in tape
+[24:21] reader. And then now on this cell here,
+[24:23] we're limiting a little bit. We're not
+[24:25] getting a lot of cell side type of
+[24:28] activity into this. And so we're testing
+[24:30] below the ordinate low. And this has a
+[24:33] potential to either dip our toe into the
+[24:35] JBA, come out and rebid the top of it.
+[24:38] Or um
+[24:41] after this fail of the overnight low, we
+[24:44] could see some bid through here. If
+[24:46] we're below that overnight low, uh no
+[24:48] bueno. we can find continuation through
+[24:51] that. And so we'll take a look at this.
+[25:00] So from left to right, we saw a downward
+[25:02] shaping balance coming into that
+[25:04] waterfall type of activity that took out
+[25:06] overnight low. Very aggressive
+[25:09] dominators coming in, pinches coming in,
+[25:11] and now we've recovered the overnight
+[25:13] low. We've already recovered the
+[25:15] overnight low and the JBA high. Watch
+[25:17] your offer.
+[25:24] Sweep cell sweep
+[25:28] in progress. No progress.
+[25:33] So this first one will be the fail. But
+[25:36] watch your offer
+[25:43] right there. That's where that flip
+[25:46] occurs. It's where I'd be looking to be
+[25:49] able to step in on a potential fail to
+[25:52] come back into the JBA low or even get
+[25:54] to the overnight low.
+[25:56] But right here, you're still in still in
+[25:59] the red zone. Still in the red zone.
+[26:00] Watch your bid.
+[26:05] You're looking at your opponent.
+[26:08] So, watch your bid.
+[26:12] If it can acquies to movement, you don't
+[26:16] want it.
+[26:18] Two very close areas.
+[26:22] A lot of cell delta. Looks good. Looks
+[26:25] good.
+[26:29] Panning out a little bit
+[26:33] right here. So that removal
+[26:39] of that bid show me that weakness. We're
+[26:42] at the top of the JBS. If we want to
+[26:44] step out immediately again, then I would
+[26:46] do the same thing for [clears throat] a
+[26:48] rebid from that JBA high. But right
+[26:51] there, I know that we have to make a
+[26:53] decision. We can move from here.
+[26:57] I'm going let it set.
+[27:01] No harm, no foul.
+[27:06] also strike one.
+[27:10] >> Hey Joe, do you not look at that
+[27:12] absorption as kind of protection to your
+[27:14] position?
+[27:15] >> I do, but I'm not going to sit through
+[27:18] absorption and potential to come back in
+[27:21] and test MGI that's just below us. And
+[27:23] we have an LVN at 16.
+[27:29] So that can provide some fuel to the
+[27:30] upside. But we have the LVN at 16, we
+[27:33] have the overnight low. At this point,
+[27:35] if we're going to be auctioning in there
+[27:37] at all and seeing any type of weakness
+[27:40] from the bid, then at least come down
+[27:43] and knock on the door of one of these.
+[27:46] So 16 or the overnight low at 13 3/4,
+[27:49] knock on the door and make sure that
+[27:51] there's some bid willing to answer.
+[28:02] It's making progress essentially. So
+[28:05] negative delta at that point is making
+[28:07] progress. And so being that we had a
+[28:08] down leg downward shaping balance
+[28:12] waterfall type of activity looks
+[28:13] exhaustive. Um [snorts] but yeah, could
+[28:18] that be the perfect reoffer? It can be.
+[28:20] And so yeah, I'll be I'll be pretty
+[28:25] finicky around that.
+[28:35] So at this point, the LVN at the 7216
+[28:38] and then the overnight low um right
+[28:40] there at 13 3/4 keeping an eye
+[28:54] Yeah. So, Brian, yeah, I and I know that
+[28:57] I'm going to get this a ton, especially
+[29:00] with replay reviews.
+[29:02] Um, hindsight is always 2020.
+[29:06] Absolutely. And so um uh with respect to
+[29:11] the individual who put this in as a
+[29:14] request and I don't trade ES. One thing
+[29:17] I'd like to do to try to make it as
+[29:20] human as possible is
+[29:23] I have your request. These are the
+[29:26] timestamps and so forth. And when I sit
+[29:28] down and do it, um I want to do it in
+[29:30] one shot.
+[29:33] And so I want to sit down, turn it on,
+[29:37] have the depth, and begin to move
+[29:40] through that process.
+[29:43] Where would where would this be off or
+[29:47] anything like that? Like go through this
+[29:49] in a situation where all right instead
+[29:51] of going back and studying the highs and
+[29:53] lows of it
+[29:57] and cherrypicking that to the tea and
+[29:59] say this is that
+[30:03] what would make me
+[30:05] press a button or make a decision? Mhm.
+[30:08] And you can choose a random day as well.
+[30:11] I mean, if you're doing the dumb, you
+[30:12] got to have a lot of data loaded for a
+[30:15] look back. But through this, um, what I
+[30:19] want you to also see is that even with
+[30:23] even like this first long, uh, we saw
+[30:27] the offer shy away and we're also at a
+[30:29] top of a structural key component. Um, I
+[30:31] would take that every single time,
+[30:35] but it failed.
+[30:45] Uh, your point uh with that statement
+[30:47] was relative to the previous replay
+[30:49] where you said you mismanaged the ad.
+[30:52] Oh, yeah. So, um, with the previous
+[30:56] replay that we just looked at, I had
+[30:58] that add-on and then I took it off,
+[31:00] right? Um, I could have just left my
+[31:04] risk right there at the 68s
+[31:07] when we were just slapping down. Could
+[31:09] have just left it there because if I
+[31:11] gave it just a little bit more time,
+[31:13] then uh, it would have worked out.
+[31:16] That's how I would manage that ad. It's
+[31:19] got to respond now and press into that
+[31:21] zone. Otherwise, I got to take it off.
+[31:23] But it's still a mismanagement because
+[31:25] ultimately it didn't work.
+[31:27] Right.
+[31:31] >> Yeah. That's where you'll get a strong
+[31:32] argument from me because I you have to
+[31:34] make the best decision you can in the
+[31:36] moment.
+[31:37] >> Exactly.
+[31:37] >> It's easy to say you mismanaged it after
+[31:39] the fact when you see the price action
+[31:41] that actually occurred afterward.
+[31:43] >> Okay. Now I understand what you're
+[31:45] saying, but yes. Um yeah, after the fact
+[31:49] I look at that and go, man, that was
+[31:50] completely mismanaged. I should have
+[31:52] just left that risk on and would have
+[31:56] been absolutely fine. But yes, in the
+[31:58] moment, yeah, wasn't wasn't looking to
+[32:01] have that lingering contract there, take
+[32:04] it off because it's it's underwater and
+[32:07] um take it off as soon as I see that
+[32:09] allergic activity from the offer. But
+[32:11] yes, okay, I think we're speaking apples
+[32:13] to apples now.
+[32:18] So this coming down into here, uh, watch
+[32:21] your bid.
+[32:25] It's pretty thin. And so we want to look
+[32:29] for a long 7216 and overnight low. So
+[32:32] essentially looking for the long. We
+[32:35] want to have our eyes on the offer. I
+[32:39] know I just said bid. bid was pretty
+[32:41] thin down there, but now we're kind of
+[32:43] in purgatory on the high volume edge
+[32:45] into that LBN. Ah, let it move. Let it
+[32:48] move. Let it get there. It's already
+[32:51] failed at top the JBAS. So now be
+[32:53] specific. Allow it to move into that
+[32:55] structural component. Watch your offer
+[33:01] being that the bid was slightly thin
+[33:03] before. All right.
+[33:06] Gives an opportunity. Okay, now we're
+[33:08] slapping in a lot more cell delta. This
+[33:11] comes back to what you were talking
+[33:12] about with Isn't that um hold on one
+[33:15] second.
+[33:17] Uh Cam said, when do you look at uh this
+[33:21] as being back inside JBA and not willing
+[33:23] to take longs?
+[33:26] Okay, so context on the day is that we
+[33:29] escaped the overnight low and we
+[33:30] recovered the overnight range
+[33:33] and we have this zone from 13 and 3/4 up
+[33:37] to 20s.
+[33:40] We auction through here this way is
+[33:43] two-way trade. This has a potential for
+[33:46] a primary
+[33:48] reoffer.
+[33:50] But being that we have seen something
+[33:52] like this
+[33:55] downward shaping balance
+[33:57] waterfall type of activity
+[34:02] and we're dwindling on the cell side
+[34:06] tape reader so forth LVN right here. I'm
+[34:09] looking at this as as exhaustive. And so
+[34:12] this here was uh like my girls like to
+[34:16] say and oopsydoo
+[34:22] looks like a battle between four
+[34:23] confluences versus one. Yeah, it
+[34:26] absolutely is. So what has happened
+[34:29] before this session? So your overnight
+[34:31] session has happened also your previous
+[34:34] RTH session has happened. And so we saw
+[34:37] this waterfall type of activity come in
+[34:39] here and it was met aggressively to come
+[34:42] back into this area.
+[34:48] So therefore, if we're going to auction
+[34:51] and hold below that overnight low, then
+[34:54] acceleration can ensue.
+[35:06] So what's your offer through this
+[35:08] magnet?
+[35:11] What's your tape reader, too?
+[35:22] offer standing.
+[35:25] Refreshing those 17s.
+[35:31] Overnight low tag, but but the offer is
+[35:33] still there. It's still there. When do
+[35:36] you step in? When they step away.
+[35:41] They're still there. Wait, we've tagged
+[35:44] them into MGI. Yeah, that's what we want
+[35:46] to see. But you don't just need to set a
+[35:48] limit order. Watch your offer
+[35:54] and 145s
+[35:57] there at 17 quarters. Blink twice if you
+[36:01] want me to bid this.
+[36:03] Not yet. Oh,
+[36:06] watch it. Then
+[36:09] you'll see the the uh numbers become
+[36:11] white
+[36:13] on the pole stack. And that's the bed
+[36:16] right there.
+[36:19] Here's the kicker.
+[36:22] That's exactly where I would step in on
+[36:25] this sucker.
+[36:27] Uh
+[36:29] like they say in the memes, here's the
+[36:31] shot. Here's the chaser. The chaser is
+[36:34] if we find any activity below this
+[36:36] current low, then no bueno. That's
+[36:41] that's not good. And we're going to
+[36:44] meander here a little bit. Remember
+[36:46] sitting through this and um and looking
+[36:49] at these 190s stepping down, but how
+[36:51] much progress are we making?
+[36:53] [clears throat] Now, this is where I'm
+[36:55] looking at this going, "All right, so
+[36:57] [snorts] that would that current low is
+[37:00] going to decide. That's going to
+[37:02] decide."
+[37:04] But the entry point is when we show that
+[37:07] weakness
+[37:09] and get in on it.
+[37:13] And can we spend a little bit of time
+[37:15] before we begin to move? Yep. Look at
+[37:17] your tape reader. Do we have anything
+[37:20] overwhelming going on through that?
+[37:21] Nope. Sit, wait, sit, wait. 150 sitting
+[37:26] there at uh 7215 3/4. There's nothing
+[37:29] more that you can do on the DOM other
+[37:32] than look at this and say produce some
+[37:34] buy side delta like that that I was just
+[37:37] put the cursor over.
+[37:40] That's aggressive.
+[37:42] So now we have the buy side stepping
+[37:45] above sellside activity to be able to
+[37:49] show willingness across the tape. Now we
+[37:52] got the 130 showing up to 17 quarters
+[37:55] and they stepped away. But watch, you're
+[37:57] going to have this a little bit back and
+[37:58] forth. 120s at 1650s.
+[38:04] Just watch them flash in and flash out.
+[38:06] And we're not quite filling.
+[38:10] And this is two-way trade.
+[38:16] Pitting this against MGI. We just slap
+[38:19] in
+[38:21] 133 lots at 7215
+[38:24] that
+[38:26] immediately
+[38:28] pause
+[38:30] instead of finding acceleration or
+[38:32] crossing the tape and um just sweeping
+[38:36] through the next few levels. This here
+[38:39] is uh for a lack of better way of saying
+[38:42] it, this is where
+[38:45] you have a butt pucker moment.
+[38:49] And you're looking at this going, "Huh?
+[38:54] Do I actually know what I'm looking at?
+[38:58] What am I thinking right now?"
+[39:00] Ton of sell sweeps. Ton of sell sweeps.
+[39:03] We're not making progress. Yes. So, when
+[39:07] you begin to see that weakness from the
+[39:09] offer,
+[39:11] step in.
+[39:15] You can have a little two-way trade
+[39:16] after it,
+[39:18] but when you begin to accelerate away
+[39:20] from that zone,
+[39:23] that's where you begin to go back to
+[39:26] your execution chart.
+[39:31] Assess where can we respond above us.
+[39:36] Yeah, this is where Stow's calling
+[39:37] everybody a turkey. Come on, you
+[39:39] turkeys.
+[39:43] So funny.
+[39:46] He's a good guy and we actually grew up
+[39:48] pretty much in the same area.
+[39:55] So bid stepping up and this is where you
+[39:58] get that acceleration because we saw all
+[40:00] that we saw all that sell delta down in
+[40:03] here. But I tell you what um you can see
+[40:06] the triangle right here and is that the
+[40:09] perfect entry? Nope. I can tell you I
+[40:12] don't always have the perfect entry,
+[40:16] but I definitely don't want to be
+[40:18] entering when my opponent is active
+[40:22] because worst case scenario, I get
+[40:24] something like this against low an
+[40:27] absorption, right? Maybe it sweeps, I
+[40:30] stop, then I'm out quick and know
+[40:33] [clears throat] it.
+[40:35] But this particular zone um when we
+[40:38] begin to respond from the overnight low,
+[40:40] we accelerate up and out. And uh this is
+[40:42] where I'd be looking at this traversing
+[40:44] this purgatory up into the 36 areas. And
+[40:48] I think at this point into the uh
+[40:51] recording,
+[40:57] no
+[40:59] 24 25 area. this area of absorption.
+[41:03] Want to take things off this area right
+[41:05] here where we previously saw somebody
+[41:08] absorbing.
+[41:14] I know that's PAC on that profile,
+[41:19] but primarily basing this on that leg
+[41:22] delta
+[41:23] looking at this here because we had
+[41:25] passive sellside activity.
+[41:35] Get something off in there.
+[41:41] Come on. Swear. Come on, you turkeys.
+[41:52] All right. And then this is where I'd be
+[41:54] placing risk in front at this point and
+[41:57] then uh looking for us to traverse this
+[42:00] purgatory through here into the 36s.
+[42:06] So
+[42:08] that's that's how I'd move out of this
+[42:10] zone.
+[42:12] I do appreciate anybody who puts time
+[42:14] stamps in, you know, uh reasonable
+[42:18] timestamps,
+[42:19] you know, as long as they're not four
+[42:20] hours long and things like that. Yep. Uh
+[42:23] particular rotations that uh you were
+[42:26] looking at and you want some input on,
+[42:29] uh by all means do it.
+[42:31] This particular fashion in my opinion
+[42:35] will be a little bit better to be able
+[42:37] to show like what were you saying? How
+[42:40] would you do this? And I've said it from
+[42:43] the start, this is on sim based upon
+[42:46] these replays for these reviews. Um, and
+[42:50] I'm I'm not trading ES, but does this
+[42:53] help to be able to see when would you
+[42:56] click a button? When would you do this?
+[42:58] That type of stuff. So, before anybody
+[43:02] hits social media and says, "Okay, I got
+[43:04] these reviews with um, you know, a bunch
+[43:07] of sim trading." Yes, I am sim active on
+[43:13] these types of reviews to be able to
+[43:15] show when does that actually
+[43:18] occur
+[43:20] and how does that meet the requirements
+[43:23] for any type of positioning,
+[43:26] right? Somebody's going to mark up
+[43:28] mommy.
+[43:34] But anyway, um I think I missed this one
+[43:36] here. So, uh,
+[43:39] through here the bid stalled out a
+[43:42] little bit and took it off. And then I
+[43:45] think this is sped up where it goes up
+[43:47] into kind of the me rest of it.
+[43:52] Press, press, press. I don't even think
+[43:54] I took this all the way across that
+[43:56] zone,
+[44:04] but in this into that area, the 25 or uh
+[44:07] 24 25 zone where we had previous
+[44:09] absorption, it's looking at that going,
+[44:11] okay, are they going to step back in?
+[44:14] And that's where uh from my end, I'm
+[44:16] looking at this going, all right, and
+[44:18] I'm not going to fight this too much.
+[44:19] I'll maybe leave a single and then we
+[44:21] get a burst. So any type of acceleration
+[44:25] like that um I become very friendly with
+[44:29] my flatten button
+[44:33] because the job is done.

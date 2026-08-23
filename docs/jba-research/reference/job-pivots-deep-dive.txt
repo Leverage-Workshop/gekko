@@ -1,0 +1,376 @@
+# Job Pivots — Deep Dive (transcript)
+# Source: https://youtu.be/CoKoCpLYnC8 — author's own walkthrough of the Job Pivot,
+# its value zone and targets, and the weekly pivot. Transcribed externally.
+# COMPLETE (38:44). The Balance Zone section runs from 30:16.
+
+(0:10 - 0:29)
+Okay, good evening. Thank you for everybody hopping on tonight for the deep dive of the Job Pivots. We're going to go through the description, the utilization, some analysis, and some application of the Job Pivots, the Balance Zones, and also the Weekly Pivots themselves.
+
+(0:29 - 1:25)
+So what is the Job Pivot? Well, it's based upon the Volume Profile that definitely acts as a line in the sand or a crucial line for the session, and that's going to help create a bias or directional sense of where we need to be re-bidding or re-offering versus who's in control of the auction. So understanding the fact that there is inventory or volume placed over certain different time periods, we're looking at and isolating specific quantities of that volume in order to assess control as we move into the following session. And so the components of the Pivot themselves are the Pivots, the Value Zone around the Pivot, which is 70% of that volume, and the Targets that are expanded from this.
+
+(1:25 - 1:41)
+And you can see that in this graphic, and we'll discuss that as well. Now, the Targets above and below the Pivot, they represent those price range expectancies. So that's going to be influenced, certainly, by how the Pivot was formed.
+
+(1:41 - 2:18)
+And so the way the Pivot was formed is going to be, like mentioned, versus the Volume Profile coming into a session and seeing the activity at hand. Now, the Targets are the expansion points from that Value Zone around the Pivot. So if we go ahead and take a look at this from a more rudimentary fashion, and I'll explain this here in a second, but here is a Pivot, okay? A certain amount of volume was needed in order to create that and protect that.
+
+(2:20 - 2:34)
+Now, upon building that volume, we have a certain amount of range expectancy from this. So we could start stacking that zone, that distance. Stacking that, moving out in either direction.
+
+(2:34 - 3:00)
+And as we do that, we get this compounding effect, an area where we are going to see extension in a similar way, where you see somebody either extend the IP or so forth. But we extend these zones in order to see where we can find some interaction. So the Targets themselves are expected to have some interaction and pause in the order flow activity.
+
+(3:00 - 3:13)
+In this example here, okay, what we see is a test up into Pivot. We reject Pivot and we start to push down and away from the zone. We come down into the 1B and we start to rotate and balance around that zone.
+
+(3:14 - 3:32)
+So in this example here, the way I'm looking at this is that, yes, we are finding exactly what we would expect. Some two-way trade activities of that order flow and inability to initiate or push down and against. And that's providing balance.
+
+(3:32 - 3:52)
+Now, Leo in the Autoplot section discussed balance versus imbalance back to balance. Now, when you come into imbalance, even on a shorter time frame, and the Pivots versus the Autoplot are going to be like a smaller fractal of the activity. So we start to move away and into a Target.
+
+(3:52 - 4:15)
+We're then looking for an area of balance. So when we start to see that there, in respect of a zone, then where could we go from here? We understand that further extension can come down to the next Target. And outside of that, within a session, push back up into Zone and test into Pivot, because Pivot can act as a magnet.
+
+(4:15 - 4:43)
+Now, the distance between the Targets and so forth vary based upon the activity. So it's consistently adapting based upon the actual volume traded throughout the day in and day out sessions. And with that fact, there's no arbitrary sense of where the inventory is.
+
+(4:44 - 5:14)
+And so it's constantly updating, allowing for planning and also interaction against. And when we start to move and accelerate away from Pivot, then not only do we need to gauge the volume profile and different MGI aspects, but having an idea of where Targets are, are going to give a sense of resolution of an auction. So, above and below the Pivot, the expected range is represented by the Targets.
+
+(5:14 - 5:31)
+And so that's obviously influenced by the Pivot itself. But, and it's going to also vary based upon the activity. But what about the activity that occurs on a session? Now, there's three examples shown here.
+
+(5:31 - 5:53)
+In this example here, we start out at Pivot. We jam up into the 1A and we start to test up into this. We likely get a bit of absorption and a flush back down into range, where we wind up in balance, working our way back up into this until we finally overcome that Target and then work up into the next zone.
+
+(5:54 - 6:39)
+We have all gone through and looked at even the morning preps and so forth that I've discussed. And what you can see is I take a step-by-step approach on things. Where's the auction? Where can the auction go? How good of a job are we doing getting back into prior auction? And so these Targets on the intraday aspect of the shortest time frame here allow me to gauge like a microscope on what's occurring and saying, okay, so if we're failing up in here, if we're getting absorption up in here, where is a likely zone of traversing in order to then assess whether we're going to rebid? So for instance, this here, we push back down in.
+
+(6:39 - 6:44)
+Oh, we wind up rebidding into this zone. That's great. That means that we're getting buyer stepping back up into here.
+
+(6:44 - 7:00)
+We need to then Target back into this Target from Pivot and gauge the ability to build above that and continue. And then sometimes we get this balance like this. But the same rules apply.
+
+(7:01 - 7:11)
+We're above Pivot here. Obviously, we like to see that gravitate back down and in. But as long as we're respecting either end, we get boxed into this range.
+
+(7:11 - 7:20)
+And then all of a sudden we start to break. That in itself is not initially an area to fade. You know, you can see coming to the end of this Pivot.
+
+(7:20 - 7:37)
+We're coming to the end of a session. And so no sense in fading that because that extension can go up here and double this range and that distance and push in. Secondly, they act as a sense of pause.
+
+(7:38 - 7:51)
+A lot of times, if we are pushing down in this example here against Pivot, we start jamming into one direction. Clearly, we can see who's in control. We're underneath Pivot.
+
+(7:51 - 8:00)
+We're re-offering and so forth. But as we push, where do we stop? Well, the inventory prior is left in here. We have the Pivot here.
+
+(8:00 - 8:19)
+And as we extend into that, we get a slight pause here at the 1B. Yes, with initiation in continuation of the move. Let me rephrase that.
+
+(8:19 - 8:28)
+That way it's not confusing. If we're moving down and you want to get short, we come down here and we pause and we're at the 1B. Don't short this.
+
+(8:28 - 8:37)
+Let it pull back. Where could it pull back to? Could pull back to into a prior reference in order to gauge a re-offer in order to push down. Okay.
+
+(8:38 - 8:53)
+If this is pushing down, you're not on the ride for this. You're looking for a scalp for a long. Gauge absorption in this zone here as the pause occurs in order to push.
+
+(8:53 - 9:29)
+Where can you target? Back into the prior zone to gauge continuation or rejection. The leg-to-leg profile and different things that Leo discussed on autoplot are extremely powerful in helping assess that activity in a live sense. But what I want to make very clear is that the targets themselves, whether or not you visualize them, can be pretty good pause points, stopping points, areas of interest in order to reference during a session.
+
+(9:31 - 9:47)
+Now, consider a few nuances of the pivot. One is where do we open? Second is the pivot tends to act as a magnet. And the third is the market mechanical or emotional.
+
+(9:47 - 10:07)
+All right. And so to step on to the first one, basically, if we're opening at the top of the pivot value, not extremely out of range and we're above pivot. I'm initially looking at that as that's productive.
+
+(10:07 - 10:22)
+That's bullish. However, I don't want to buy that. I want to see that interaction to gauge the strength at that inventory in order to push up and find continuation.
+
+(10:23 - 10:33)
+And so I do treat this as a magnet. All right. But with respect to the open, we can open within the pivot value.
+
+(10:33 - 10:49)
+We can open outside the pivot value. We can open directly at the pivot. So if we're opening directly at the pivot, then it's going to be necessary absolutely to gauge the volume build around the pivot itself.
+
+(10:50 - 11:17)
+How many times have you seen two-way trade, guys in curve? And also, how many times have you seen tag a pivot and it never comes home? Exactly. So where's the open? If we're opening up and around, let's say arbitrarily the 1A or the 2A, we're even beyond that. We're opening way out of range and we have inventory all the way down here.
+
+(11:17 - 11:47)
+That is where I begin to look at this and start to think to myself, not so sure we're not going to at least test some of that inventory. So does that make me get short immediately and right away? No, absolutely not. Based on my profile, I want to see, let's come back inside of a zone of initiation into a prior zone of distribution and begin to work in that direction.
+
+(11:48 - 12:10)
+That way I have structure to lean upon above me. But the reference of opening way outside of range gives me the context of how often do we tag the pivot? Now CAP has been great enough in order to put some of the stats into the discord. And we look at that and yes, is there a golden egg on anything? No, there's not.
+
+(12:10 - 12:55)
+But it gives you a very good reference. How often do we breach an overnight high and low? How often do we breach an IB high or low? How often do we... Do you get what I'm saying? And so when we're able to see that the pivot does act as a magnet in order to get tagged and reassess or refresh inventory, then opening well outside of range provides context to be able to have some reserve for a breakout trade and some responsibility to view an exhausted look on your profile or on the absorption from delta and so forth. Okay.
+
+(12:57 - 13:15)
+So this example here is simply just opening slightly above value, come down, tag pivot, and then we're off and running. You're going to see this quite a bit. Earlier today in the chat I mentioned, you know, it's funny back and forth.
+
+(13:15 - 13:29)
+You know, you get people that were short way up high and it's pushing down into pivot. And we get about to the pivot range and they're well into profit and they're looking at this and sending in the chat. Come on, don't do what you're supposed to do.
+
+(13:29 - 13:47)
+A lot of times it does what it's supposed to do. And so if you're initiating a position, allow the response to show. Gauge the absorption at pivot, but understand that unless we're building below it, the control is not there.
+
+(13:47 - 14:04)
+Unless we're building above it, if price is below, the control is not above it. Now, acts as a magnet. So at any given point, the auction can push one direction and then start to move back and in.
+
+(14:05 - 14:58)
+And if pivot is well above or so forth, if we have enough of a, we have enough interest, then certainly looking at that, we can find ourselves pushing outside in a wide balance range and then coming back and gravitating towards pivot in order to get another responsive look. It acts as a magnet, not only just off the open, but even through the midday when we're looking at other MGI, such as 24 hour VWAP or the IB high low, overnight high low, in previous day, high low, the weekly open and so forth. If we're within vicinity, then I typically look at this as let's complete the auction up to that to gauge and assess response.
+
+(14:59 - 15:21)
+And it will help further allow me to minimize risk along the way because then you can gauge based upon that session itself, how that inventory is responding. Mechanical or emotional. Now, the example here down below is pretty mechanical.
+
+(15:22 - 15:41)
+Push down, tag, pivot to the T, and we just drive out and everything's hunky dory. Great. Now, what happens if we just jam down through that? That is in a very simplistic fashion, how I gauge an emotional auction.
+
+(15:42 - 15:53)
+Are we responding at MGI? So MGI, we have the MGI study. It has an entire list of things, but MGI is market generating information. The pivot is also a piece of MGI.
+
+(15:54 - 16:08)
+Okay. So if we push into that, we're testing that prior inventory and there's an expected response and it does not occur. Not only does it not occur, instead of it pausing, it accelerates.
+
+(16:09 - 16:26)
+To me, what that says at that time is there's no point in countering this. There's another player at hand and we're just slapping through some levels along the way. Okay.
+
+(16:27 - 16:47)
+Now, for the most part, we're going to have a lot of mechanical activity. More recently, like even today, we saw some emotional activities and drive, push, build, push, build, push, build. But it's important to keep in mind where we begin to pause.
+
+(16:49 - 17:00)
+Now, with, hold on one second here. Mechanical versus emotional. Okay.
+
+(17:00 - 17:13)
+So with two-way trade, two-way trade, and here's a recent example of rotating back and forth around pivot. Okay. We've seen this when we're inside of a balance zone.
+
+(17:13 - 17:25)
+We'll get to the balance zones, but we start to auction to the upper end of value. We start to auction to the lower end of value. And along the way, we simply just turn around on either end, back and forth, and we just rotate through pivot.
+
+(17:25 - 17:52)
+If we're slicing that back and forth, but multiple times, then that needs to be maximized because we're creating a Gaussian curve. And what that means is outside of the primary activity, outside of value, we're just simply getting a responsive approach to bring it back towards the middle. And it's kind of pitch and catch through that.
+
+(17:53 - 18:16)
+When does that change? It changes when it stops respecting the tapers. It stops respecting the LVNs below and so forth, and it starts to push and build. And so with this here, personally, one of my preferred types of environments is as we push through this like this, it's typically a little bit slower.
+
+(18:17 - 18:36)
+Sometimes we traverse back and forth, but aggressively, and we do it quite a bit through a session. But we have a Gaussian look on a curve, and we're not just pushing and building a new node. We're simply tagging to one side, tagging to the other side, tagging in.
+
+(18:36 - 19:09)
+And it grants a lot of opportunity along the way to extract without having to look for rebids, re-offers, but simply move towards the middle, allow it to rotate, let the pendulum swing, and so forth. So exhaustive looks on the profile. So if you have something like this, and you get a spike up, and you get a volume build from that, traverse back across.
+
+(19:10 - 19:13)
+Oh, I missed all of that. That's fine. That's an exhaustive look that we saw.
+
+(19:13 - 19:23)
+And so we talk about things like the LVN return. How do we know if it's exhaustive? It moves away and aggressively. And so this here would be exhaustive.
+
+(19:23 - 19:44)
+And so that would show a small build above this. And therefore, when we return to that, we would expect that player to be in command and stepping back into trade to bring it back and target back into pivot and ultimately traverse the zone. Absorption at edges, leg-to-leg delta profile.
+
+(19:44 - 19:59)
+So another way you can see exhaustion on this, which Leo discussed with the autoplot aspect, is with the leg-to-leg delta profile, you're going to get a ton of bi-delta up here. This is going to be giant and blue, blue, blue. And we're not making progress.
+
+(20:00 - 20:16)
+And instead, all of a sudden, in the way that I look at it, and not everybody might look at it this way, but you get a pull stack flip. The offer starts stepping down. You start getting aggressive orders pushing against and underneath that bi-delta.
+
+(20:16 - 20:26)
+And now you begin to accelerate. And that is another way to view exhaustion with respect to balance itself. And the last thing is traverse value.
+
+(20:26 - 20:49)
+So if we're finding ourselves consistently traversing value, not only on a pivot, but on a profile itself, then that's the ebb and flow at hand. If we're traversing value, we step away from it. We step outside like this.
+
+(20:49 - 20:56)
+We come back in. Then this here is rejected. Therefore, in here needs to be ribbid.
+
+(20:58 - 21:16)
+Naturally targeting the traversal to the other side. This here comes in, tests outside of value, comes back in, and again, traverse value. And then we did it to the other side and do it again.
+
+(21:18 - 21:41)
+And so I know that Cap discusses this as well in his morning preps, but this is a key component of not only reading the pivots themselves, but stepping away from the pivots, stepping away from the targets and so forth. It's all based upon the concepts of volume profile and value response. And therefore, if we are to step outside of a target, we can't progress.
+
+(21:43 - 21:49)
+Instead, we step back inside. We seek the opposite target. All right.
+
+(21:50 - 21:56)
+So traversing value. So locate targets above and below. Create that balance.
+
+(21:56 - 22:03)
+Get an idea from your profile. Exhaustive looks on the profile. Absorption edges on leg to leg delta.
+
+(22:04 - 22:17)
+And then when it comes to volume build, building volume simply means building interest. There's a lot of people willing to partake in the auction itself. And I'm not going to harp on this a whole lot.
+
+(22:17 - 22:28)
+There's the one-on-one section discuss the volume profile. But what we can see here is the volume profile as it's pushing and building. It's just, it's not coming back through areas of initiation.
+
+(22:29 - 22:34)
+Okay. Areas of initiation on the volume profile are low volume nodes. There's not a lot of volume there.
+
+(22:35 - 22:42)
+It just jams out of there. Not a lot of opportunity to place interest. So it pushes and then it finds a new place where there's interest to be had.
+
+(22:43 - 22:56)
+And these targets tend to find themselves at areas of high volume nodes that are built upon the current session. So gauge volume around the pivots and the targets. The areas of initiation, the LVNs.
+
+(22:56 - 23:27)
+Why is that important? Because if we start to push in one direction, we start to push in one direction, then when does it stop? It stops when the areas of initiation are breached back through. So if we're buy, buy, buy, buy, buy, buy, buy, and then these buyers get hosed and we come back down into this prior distribution, that's where something can be changing. First, we expect balance.
+
+(23:27 - 23:39)
+Balance can lead to continuation. But initially, we look at that and say, okay, that zone of initiation has now paused. We're no longer accelerating.
+
+(23:40 - 23:51)
+Now we're kind of digesting the move. So it shows changes in the auction. So changes in the auction need to be gauged based upon the volume build around the profile.
+
+(23:53 - 24:09)
+It's a very clean way to do it. And as it relates to the targets, what you're going to see is a lot of times it lines up. For instance, 1A here in this example being the high volume edge to the lower side needs to be protected.
+
+(24:10 - 24:28)
+This up here winds up being a high volume node right over here. And so therefore, anything activity inside of this would make me assume that we're coming back down. So volume building around the pivots is certainly important.
+
+(24:28 - 24:59)
+With these different aspects that we're even discussing tonight, I understand that to some, it's like putting your mouth on a fire hydrant trying to take in the water. But the foundation of activity within the auctions themselves, the volume profile, as it relates to push, build, push, build, or changes of hand need to be hammered home. Let's see here.
+
+(25:00 - 25:15)
+Compression and expansion. So there's been plenty of times where, it's never not funny to me, but where it's like, hey, we need a 12B or we need a 12A target. Yep, absolutely.
+
+(25:15 - 25:30)
+Because if we get a lot of compression, then simply what that means is what? Prepare for expansion. And then what we get following is expansion. We look at this going, oh my goodness, 1B is all the way down.
+
+(25:31 - 25:59)
+Yep, it is because we're in expansion. And that's where we start to see this, not only respecting into that prior pivot and pushing out of zone, creating and developing a pivot down here, but respecting this one, re-offering pivot low and gravitating towards a balance at 1B. So is there an arbitrary rule for how much compression? Nope, nope.
+
+(25:59 - 26:06)
+Be aware of your ATR study. Be aware of our ball. Leo talks about that a whole lot in the chat.
+
+(26:07 - 26:20)
+And I think that's extremely helpful. Understanding how much interest is actually coming into the market at that time, our ball. Understanding how much expansion we could possibly get on our TH session.
+
+(26:20 - 26:44)
+That's ATR study. So what is our expectancy? Simply because we've been lulled to sleep up here doesn't mean we need to get caught off sides when we finally begin to find another participant. All right, so when we get compression, if you're not comfortable with the read, reduce size or pause, allow for a move to begin.
+
+(26:46 - 27:05)
+That's my recommendation on that. And zones of initiation. And so once we get compression, you're going to see an area where we just initiate, okay? For instance, the blue arrow here, okay? Let me erase the rest of this.
+
+(27:06 - 27:15)
+So we'll come out of this session here, come back, we test this re-offer. We initiate and jam down. We leave pivot right here.
+
+(27:17 - 27:45)
+Area of initiation. We're thinking LVN or we're thinking where we just absolutely slammed through, where we expanded very quickly and left a wide kennel. And so this through here starts to push, okay? We could see this again with this here starts to push down, okay? We can even see this on a small timeframe as a fractal.
+
+(27:46 - 28:04)
+And it should be very clear now that I view the weekly pivots, the balance zones, auto-plot and so forth as a top-down approach. We'll get to that, but as a fractal. But if you look at this here, where we find a little bit of absorption here, we'll push up and out.
+
+(28:04 - 28:16)
+Yep, and it's rebid. Yes, it's short-lived. The primary trend is down, but it still occurs.
+
+(28:17 - 28:35)
+And so I prefer to see this on LVNs based upon either the current session or four-hour rolling, so forth. But you can see this based upon the price activity as well. So what is the weekly Joe pivot? It's based on the prior week's volume profile.
+
+(28:35 - 28:55)
+It indicates a controller bias for the current week. And I wanna respect it, especially if we are pushing down and beginning to build against prior ones. And along the way, if those ones have not been tested by a new week, I wanna consider the fact that we can consolidate around them and untest the pivot.
+
+(28:56 - 29:18)
+But on a weekly aspect, if we're not able to find interest below that, then that's important to me. In the same way as a fractal on an intraday aspect, we're gonna utilize that from Joe pivots for a session. So they have the value zone and targets and so forth.
+
+(29:18 - 29:28)
+And it's treated the same. However, it's a wider timeframe. So with a wider timeframe, what you get is more fluctuation around its own.
+
+(29:29 - 29:45)
+And so with a pivot on the intraday aspect, how many times have you seen a target to the tick, just slightly over or so forth, turn and run. On a weekly aspect, you have to view this as a zone. It's a wider zone.
+
+(29:46 - 29:59)
+And so it's going to take some digestion around. And it's gonna take our read from left to right. The reason why we do the ED recaps, the reason why we do the morning preps and always start out from.
+
+
+=== BALANCE ZONES (30:16 - 38:44) ===
+Appended from the complete transcript; the earlier capture ended mid-sentence at ~29:55.
+
+(29:51 - 30:14) The reason why we do the EOD recaps, the reason why we do the morning preps, and
+always start out from a higher time frame and then build down to a smaller time frame, is that we
+have to continue to review the higher time frame activity that occurred around the higher time
+frame MGI and the higher time frame pivots. That will help us assess the activity that occurs
+intraday.
+
+(30:16 - 30:53) What about the balance area? When we have overlapping pivots -- and I use a 5-day
+lookback; that time frame you can change however you'd like, I'm going to be sticking with a 5-day
+-- that offers actionable insights to auction changes. Anything within a 5-day lookback that is
+overlapping like this is going to grant me a box of the auction. It's going to be rolling and
+moving forward.
+
+(30:54 - 31:40) The way I look at this: think about it in the same way as a pivot zone. We have a
+lot of interest in this area. This is a value zone -- an overlapping value zone. We look outside of
+value and come back in and we're holding it. On an intraday aspect you would look at this on your
+TPO and say, okay, let's traverse value. I would do the same.
+
+(31:43 - 31:53) When it comes to planning with respect to the balance zones, I like to gauge this
+against the 5-day rolling volume profile or a 4-hour volume profile, to see where I have some
+overlap.
+
+(32:03 - 32:20) Not to fade: if we look outside, come back in, and we're holding in here, nothing in
+my right mind is telling me to short that. If this wants to slam from there, by all means -- that's
+fine.
+
+(32:21 - 32:47) Example: we come down, tag the bottom, push up, hit here, then sell. Now we're out
+of zone. We can reoffer that zone until it stops -- until you take a stop into that.
+
+(32:45 - 33:07) If this pushes, doesn't provide an opportunity, and winds up granting a new balance
+zone, now we have this area of thin volume on the profile to gauge as a new build: if we get above
+this, I am no longer interested in shorting anything down here. But while we're down here in
+balance -- short that, buy that, and do that until we build outside of this range.
+
+(33:14 - 33:44) We have balance through this. Want to be active on the edges -- not only the edges
+of the balance range themselves; they'll give us an idea of what the range edge is, what the
+overnight activity is. If we have a primary LVN right here and this comes down and pauses, that
+grants you context of where you are. If you're jumping off a trampoline and you do a backflip, you
+want to know where your feet are going to land.
+
+(33:44 - 34:19) One of the best things that grants that, as far as balance within the market, is
+autoplot. With respect to autoplot, Job pivots are a tighter time frame -- so you're going to have
+more zones, they're smaller, they're not going to traverse the entire zone of autoplot. But within
+autoplot itself you're going to see this sliced and diced based upon how pivots have been built.
+That context, from a top-down approach, grants understanding.
+
+(34:20 - 34:33) We looked down underneath of this and pushed up in here -- I don't want to
+necessarily sell this. I want to rebid this and try to work our way across. Here we failed, that's
+fine.
+
+(34:40 - 35:14) TESTING VALUE FROM OUTSIDE. If we move outside of value and come back in, we want to
+be aware of that -- come back in, reoffer that. We move up into a prior zone, we look back in: that
+tells me the above look is a fail, and therefore I need to lean on this, between the two, in order
+to push down and across this zone. If we look outside here and come back in, we need to do the same.
+
+(35:15 - 35:42) TESTING VALUE FROM INSIDE. If we're inside, dead center, pushing up and finding
+exhaustion -- we might not be able to set our stop loss directly at the top of the balance zone.
+That's fine. You should have a look of exhaustion or some sort of structural component to lean on up
+there. But you know that you're at the top of a zone if you're getting that look.
+
+(35:44 - 36:32) RESTING IN VALUE, NOT DOING ANYTHING: let it move. This looks like it can do this,
+but where I'm at right now it's a coin flip -- let it move, and then it moves, and now we have the
+opportunity to work with it. If it's resting in value and not doing anything -- no particular setup,
+not moving towards the edge -- pause. Keep that context in mind, because there are going to be
+plenty of setups along the way. Nobody wants to be full size in the middle of a balance zone. We
+patiently wait to exploit the edges.
+
+(36:33 - 37:12) From the top-down, left-to-right approach -- that's how the Job pivots, the balance
+areas and the weekly pivots help me approach planning and execution day to day. You look at this and
+say: we're in balance, where do I want to be looking for reoffer, where do I want to be looking for
+rebid? And from left to right: are there multiple zones, how is this changing, are we within
+vicinity or dead center?
+
+(37:25 - 38:23) Where does the auction change? As soon as we're no longer respecting this zone. If
+we come out here and start to do this -- not looking to bid that; would look to bid that, because
+this sell here shows potential change. Push up -- okay, no change, balance. Bid this. Testing value
+from inside, offering, reoffer, pushing down and in. If it does something like this -- no need to
+bid. You're going to get updates in the inventory and the activity at hand, but no need to
+anticipate. Allow it to move, show its hand.
+
+(38:24 - 38:44) So: top-down, left-to-right. Top-down meaning high time frame, from the weekly
+aspect, moving down and in. Left-to-right meaning where did we come from -- did we just reject the
+above or the below -- and then going from there.

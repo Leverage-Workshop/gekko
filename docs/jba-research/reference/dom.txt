@@ -1,0 +1,95 @@
+# OFL course material: dom (text extracted from PDF)
+
+-------------------------------------------------- 
+**DEPTH OF MARKET (DOM)** 
+-------------------------------------------------- 
+The Depth of Market (DOM) serves as a transparent visualization into the order activity necessary to define a 
+setup. As a centralized order book, it organizes all bid (buy) and offer (sell) orders in accordance with a 
+"price-time priority" rule. 
+
+This fundamental trading principle pledges market fairness by prioritizing the earliest-placed orders for 
+execution and maintaining full visibility of all orders. 
+-------------------------------------------------- 
+**DOM STRUCTURE** 
+-------------------------------------------------- 
+In the DOM layout, the bid orders are displayed in the column on the left, while the ask orders are seen in the 
+column on the right. 
+
+Monitoring these columns will provide insight into market participation and anticipate potential price trends. 
+-------------------------------------------------- 
+**PULLING & STACKING** 
+-------------------------------------------------- 
+An exclusive attribute of the DOM is the Pulling and Stacking mechanism. This represents live modifications 
+made by limit orders for buying or selling. 
+
+These alterations provide a snapshot of the market's immediate preference. Spotting significant resting limit 
+orders being added or withdrawn equates to checking the market's pulse, which helps gauge trading interest at 
+selected price levels. 
+-------------------------------------------------- 
+**SPREAD & LIQUIDITY** 
+-------------------------------------------------- 
+The DOM's Spread is the distance between the bid and the ask. 
+
+It could be as minuscule as a single tick, but in times of high volatility or major news events, you may witness 
+multiple ticks between the optimal bid and offer. The spread serves as a measure of market liquidity. 
+
+-------------------------------------------------- 
+**ORDER TYPES** 
+-------------------------------------------------- 
+The DOM accommodates a variety of order types including: 
+
+- Limit orders   
+- Market orders   
+- Good Til Date   
+- Fill or Kill   
+- Market on Close   
+- Limit on Close   
+- Stop order   
+- Iceberg order   
+- Block Order   
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Each of these order types suits distinct trading strategies, giving traders more control over their market 
+engagements. 
+-------------------------------------------------- 
+**SWEEPING** 
+-------------------------------------------------- 
+Sweeping is a circumstance where a sizable market order depletes all available orders at the recent market 
+price and starts filling at subsequent prices. 
+
+This demonstrates a potential for initiative activity to buy or sell based upon the progress and response of 
+price. 
+
+-------------------------------------------------- 
+**DOM CONCEPTS** 
+-------------------------------------------------- 
+Large Orders   
+- Large orders like iceberg or block orders can leave an imprint on the market.   
+- These orders can sway price direction but should not sway trading preference until responsive activity occurs 
+as a result from the particular zone. 
+
+Layering   
+- To visualize layering, it is necessary to see numerous price levels having large quantities of orders to attempt 
+to mitigate considerable market impact.   
+- It also conceals the actual size of the order. 
+
+Reloading   
+- This occurs when orders persistently replace their bid or offer as their limit orders get filled.   
+- This could denote absorption, showing buying or selling interest at that particular price level. 
+
+Absorption   
+- This signifies a scenario where large limit orders (or refreshing limit orders) soak up opposing market orders, 
+restraining further price movement.   
+- This can display a potential reversal in the price activity. 
+
+Initiative Activity   
+- This is a display of orders replenishing and also stepping up/down the order book to pursue their desired 
+price.   
+- Evident as limit orders begin climbing or descending the price ladder in size as the book thins out.   
+- This can indicate a powerful buying or selling momentum.
