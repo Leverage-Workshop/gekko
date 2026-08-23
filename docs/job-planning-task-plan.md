@@ -9,7 +9,10 @@ distillation against them (its counterexamples are cited inline below). **Revise
 2026-08-22** after the operator answered every open question and ratified the planner's
 numeric/definitional defaults — see "Operator decisions" and "Ratified rules" at the end;
 the body below is updated to match (on-demand in-session runs, single instrument, JBA boxes
-as chart drawings, RP = the Rip, Autoplot in scope).
+as chart drawings, RP = the Rip, Autoplot in scope). **Revised again 2026-08-22 (later)**:
+profile LVN/HVN identification moves from the code-owned detector to an **LLM vision read
+of purpose-rendered profile images** — see "Profile node identification (vision)" and the
+corpus in `docs/jba-research/lvn-corpus.md`.
 
 **Honest scope statement** (from that audit): this task is a *reduced, NQ-local planner in
 Job's method* — it replicates his level-and-branch construction from the inputs it has. It
@@ -48,13 +51,18 @@ Operator constraints:
   (`docs/jba-research/jba-analysis-process.md`, `execution-process.md`) is disregarded; the
   raw transcripts/replays/deep-dive remain valid evidence.
 
-The core design consequence, agreed by both reviewers: **the production planning path
-contains no LLM call.** The plan is a deterministic function of exported study geometry plus
-recent price path. Job's method — location vs value, box edges, failed looks, don't-fade-fresh-
-initiative, stand down in the middle — is a small state classification plus a play table, and
-an LLM in that loop adds nondeterminism, hallucinated levels, and exactly the doctrine-drift
-failure mode this task exists to escape. An optional prose renderer (strictly from the
-finished plan JSON, non-fatal, operator opt-in) can come later.
+The core design consequence, agreed by both reviewers: **the planning logic contains no
+LLM call.** The plan is a deterministic function of exported study geometry, recent price
+path, and one **perception input** — the profile node set. Job's method — location vs value,
+box edges, failed looks, don't-fade-fresh-initiative, stand down in the middle — is a small
+state classification plus a play table, and an LLM in *that* loop adds nondeterminism,
+hallucinated levels, and exactly the doctrine-drift failure mode this task exists to escape.
+The one LLM use (operator decision 2026-08-22, see "Profile node identification (vision)")
+is upstream of the planner and is pure perception: reading LVNs / high-volume edges off a
+rendered volume profile, the way Job reads them off his screen. Its output is validated
+against the profile's own price grid, persisted as planner **input**, and covered by the
+reproducibility fingerprint — the planner itself stays a pure function. An optional prose
+renderer (strictly from the finished plan JSON, non-fatal, operator opt-in) can come later.
 
 ## Existing behavior (what we reuse, what we don't)
 
@@ -98,11 +106,17 @@ Verified constraints the plan must respect:
 ```
 job-study.json (new Sierra export of the Job studies' own subgraphs)
   → strict parser + geometry normalization        (pure, fail closed)
+                                                      ┐
+5-day / 4-hour rolling .vbp.md exports                │
+  → renderProfile (data → SVG → PNG, pure)             │ profile node identification
+  → N parallel vision calls per image (LLM)            │ (perception only; see section)
+  → snap / validate / consensus → ProfileNodes (pure)  ┘
   → context classification (orthogonal dimensions) (pure)
   → play generation + precedence → JobPlan doc     (pure)
-  → job-plan-task (trigger.dev, no LLM)            (I/O shell)
-  → job_plans table (own persistence, RLS)
-  → minimal dashboard surface (mechanical rendering)
+  → job-plan-task (trigger.dev)                    (I/O shell; the vision calls are its
+                                                    only LLM use)
+  → job_plans table (own persistence, RLS; ProfileNodes + image hashes persisted as input)
+  → minimal dashboard surface (mechanical rendering; rendered profiles + nodes shown for grading)
 ```
 
 ## The level-production procedure (distilled from all 25 preps)
@@ -122,15 +136,15 @@ What the preps actually name, ordered roughly by citation frequency, with sourci
 | **Daily Job Pivot + daily value zone/targets** (06-15 "I want to see this pivot right here around 7565 bid" — distinct from the G line and weekly structure; the deep dive is primarily about this study) | Session bias line, magnet, hold/fail anchor — **prominent at run time** because runs happen after the open and the pivot is fresh. Target citations must disambiguate daily vs weekly ladders — the preps say "on the weekly" precisely because both exist | Planned `job-study.json` `dailyPivots[]`; the procedure must define which historical daily pivots stay actionable (deep dive: untested pivots remain relevant) |
 | **Overnight high/low** | The universal trigger reference: "look above/below and fail" | MGI (0.00 placeholder gotcha), `overnightSession` engine fact |
 | **Previous day's high/low** | Edge-of-structure trigger, esp. when coinciding with a JBA edge (03-06 "it's essentially the JBA low, but let's keep it real simple — just say previous day's low") | MGI |
-| **LVN / HVN / high-volume edge on the 5-day rolling profile** (02-13 "deepest LVN on the 5-day rolling"; "primary LVN"; 06-02 "exhaustive node on top of the profile") | Entry anchors, response gauges, confluence promoters | **NOT exported at this lookback — new** (engine `lvnDetection` exists, needs a 5-day rolling VbP export) |
-| **LVN on the 4-hour rolling profile** (08-04 "this LVN on the 4-hour rolling"; deep-dive 31:43 gauges JBA against it) | Short-horizon entry anchors | **NOT exported — new** (same engine, 4-hour rolling VbP export) |
+| **LVN / HVN / high-volume edge on the 5-day rolling profile** (02-13 "deepest LVN on the 5-day rolling"; "primary LVN"; 06-02 "exhaustive node on top of the profile") | Entry anchors, response gauges, confluence promoters | **NOT exported at this lookback — new** 5-day rolling `.vbp.md` export; nodes identified by the **vision read** (see "Profile node identification"), not `lvnDetection` |
+| **LVN on the 4-hour rolling profile** (08-04 "this LVN on the 4-hour rolling"; deep-dive 31:43 gauges JBA against it) | Short-horizon entry anchors | **NOT exported — new** 4-hour rolling `.vbp.md` export; same vision read |
 | **RP = the Rip** (operator-confirmed 2026-08-22; 03-06 "first magnet back into the RP"; 08-04 "walk the dog on the RP") | Intraday hold/fail line and magnet | **Already exported** (MGI Rip) |
 | **Autoplot high/low** (03-17 "finds the bottom of autoplot and bids out of it like crazy") | The larger-fractal frame above JBA (deep-dive: "Job pivots are a tighter time frame" than Autoplot); operator: it is the high/low of the **traditional balance-area type** | **NOT exported — new, in MVP** (operator: include it; how to read it from the OFL study is TBD at exporter time) |
 | **Previous week's high/low; previous week's value high/low** (07-07 "hanging above last week's value area low") | Zone edges and continuation destinations | pwHigh/pwLow in MGI; **pw value area NOT exported — new** |
 | **Previous month's low / VAH / VAL; weekly + monthly VWAP; round numbers** (05-26 "NQ's right at 30K — expect it to act like a magnet") | Destinations and magnets | MGI (round numbers trivially derived) |
-| **Overnight-profile nodes** (03-02 "a nice little exhausted node out of that [overnight tag]"; 06-18 "even in the overnight profile we have a real nice node") | Fresh evidence: where the overnight session found response | **NOT safely computable from exec bars** (volume-per-bar ≠ volume-at-price — third-round Codex finding); source from the 4-hour rolling VbP export, which spans the overnight |
-| **POC / distribution center / accepted-distribution boundaries** (06-18 "rotate back into the POC of this distribution", "the bulk of this mix"; 02-13/03-16/07-10 "this distribution" as the operative container) | Rotation destination and container edges — distinct semantics from LVN/HVN edges | POC in the planned VbP exports; distribution *boundaries* need a ratified definition (not automatic) |
-| **Prior-session discretionary structure**: zones of initiation, "off yesterday's activity" levels (06-10 "seek 7412 off of yesterday's activity"; 03-18 "where we initiated from, the 6787 area") | Reoffer/rebid anchors the standard MGI set does not name | **Gap** — partially recoverable as LVNs on the 4-hour rolling (initiation = fast low-volume departure), but parity is unproven; flagged for ratification |
+| **Overnight-profile nodes** (03-02 "a nice little exhausted node out of that [overnight tag]"; 06-18 "even in the overnight profile we have a real nice node") | Fresh evidence: where the overnight session found response | **NOT safely computable from exec bars** (volume-per-bar ≠ volume-at-price — third-round Codex finding); the vision read of the 4-hour rolling export (which spans the overnight) reports exhaustive nodes at the profile's extremes |
+| **POC / distribution center / accepted-distribution boundaries** (06-18 "rotate back into the POC of this distribution", "the bulk of this mix"; 02-13/03-16/07-10 "this distribution" as the operative container) | Rotation destination and container edges — distinct semantics from LVN/HVN edges | POC in the planned VbP exports; distribution *boundaries* = the high-volume edges the vision read returns (`hvn-edge`), subject to the same validation |
+| **Prior-session discretionary structure**: zones of initiation, "off yesterday's activity" levels (06-10 "seek 7412 off of yesterday's activity"; 03-18 "where we initiated from, the 6787 area") | Reoffer/rebid anchors the standard MGI set does not name | **Gap** — partially recoverable as departure-scar LVNs on the 4-hour rolling (the corpus's "zone of initiation" = the LVN an aggressive departure leaves, `lvn-corpus.md` B3); the vision prompt asks for exactly that shape, parity measured on the golden set |
 | **Four-week rolling profile structure** (03-20 "a large tip tail on the four-week rolling") | HTF excess/tail evidence | **NOT exported** — tier-2 |
 
 ### Step 1 — assemble and cluster the reference set
@@ -144,7 +158,9 @@ is one promoter among several, not the ranking (third-round correction): lone re
 routinely primary on profile prominence ("primary LVN right here around the 7758 to 60 area —
 this is where I want to see rebid", 08-07), recent defense (03-06 "we've been defending the
 6771 left and right"), or higher-timeframe weight (06-17's 1A zone). Ranking inputs =
-{confluence, source significance, profile prominence, recent defense, origin}. The clustering
+{confluence, source significance, profile prominence, recent defense, origin}. Profile
+prominence is supplied by the vision read (`prominence` rank + `primary` flag per profile —
+Job's "deepest meaning primary"), never recomputed from volume. The clustering
 mechanics are **ratified** (R1/R1b/R2 below): plain points, **per instrument** — the quoted
 bands above are ES quotes (Job preps ES first, then NQ, where the same bands read "the
 660s"), so tolerances key off the instrument symbol in the MGI export. (The banding pattern
@@ -287,8 +303,9 @@ Key decisions and rationale:
    The corpus review adds these companion exports (same exporter or siblings, per the
    reference inventory above):
    - a **5-day rolling** and a **4-hour rolling** volume profile in the existing `.vbp.md`
-     export format, so `parseProfile` + `lvnDetection` produce the "primary/deepest LVN"
-     and high-volume-edge anchors unchanged;
+     export format (`parseVbpProfile` reads them unchanged); the "primary/deepest LVN" and
+     high-volume-edge anchors come from the **vision read** of their rendered images, not
+     from `lvnDetection` (see "Profile node identification (vision)");
    - **previous week's value area** (pwVAH/pwVAL) alongside the existing pwHigh/pwLow;
    - the **instrument symbol** in the MGI export (per-symbol band tolerances, R1b).
    The G line needs nothing: it is the weekly open, already exported as MGI `weekly.wkOpen`.
@@ -373,7 +390,10 @@ Key decisions and rationale:
    computation completes; the trigger.dev run id is stable across attempt retries; an
    upsert may replace a prior attempt's row wholesale except that an `insufficient` result
    never overwrites a persisted `ready` one; `created_at` is the persisting attempt's time.
-   Remaining columns: `plan jsonb`, `warnings jsonb`, `created_at`. RLS
+   Remaining columns: `plan jsonb`, `warnings jsonb`, `profile_nodes jsonb` (the vision
+   read — consensus + raw samples + model/effort + `VISION_PROMPT_REVISION` + image hashes;
+   null when no profile was read), `created_at`. The fingerprint also covers the rendered
+   image hashes, `VISION_PROMPT_REVISION`, and the vision model id. RLS
    enabled, service-role-only policies like the existing tables; the page reads server-side.
    `unused_bundles_before` gains a `NOT EXISTS job_plans` guard **in the same migration**.
    `gekko-db` skill updated in the same PR (repo rule).
@@ -386,10 +406,146 @@ Key decisions and rationale:
    run against actual study output (this also fixes the phase-ordering inversion where the
    data contract and the rule corpus would otherwise never meet until the end).
 
+## Profile node identification (vision)
+
+**Decision (operator, 2026-08-22):** the planner's LVN / high-volume-edge references come
+from an **LLM vision read of purpose-rendered profile images**, not from the code-owned
+`lib/engine/lvnDetection.ts`. Rationale: the detector's measured ceiling is holdout LVN F1
+≈ 0.44 at ±10 pts on the fixture set (`lvnDetection.ts:106-109`, "the architecture's #1
+engine risk"); a vision model reading the profile the way Job reads his screen is, today,
+better than any detector we will write; and since the planner has no other LLM spend, the
+budget goes here. **Scope boundary:** this is the Job planner only — the Gekko briefing
+pipeline's `lvnDetection` / `terrainZones` / `engineAnchorPrices` are untouched.
+
+Ground truth, in priority order: (1) **the prep corpus** — `docs/jba-research/lvn-corpus.md`
+(110 worked examples; section B is the criteria, section D the negatives), turned into a
+golden set by Sierra **replay exports** of the profiles as of each prep (operator: feasible);
+(2) `chart-data/lvn-fixtures/` (8 profiles, 34 LVN / 18 HVN operator labels under Gekko-era
+criteria) as the backup regression floor.
+
+### The perception contract
+
+- **Input per call**: ONE rendered profile image (or one tile of it), plus text: instrument,
+  profile name/lookback, price range, row step, POC/VAH/VAL, current price. **No structure**
+  (no JBA boxes, MGI, pivots) — relating nodes to structure is planner math (R1/R2), and
+  showing the boxes would invite the model to find LVNs where the boxes suggest. The call is
+  perception only.
+- **Output** `ProfileNodesRead` (Zod, flat — OpenAI rejects root unions):
+  `nodes[]` ≤ 8 of `{ kind: 'lvn' | 'hvn-edge' | 'hvn-core' | 'exhaustive-node' | 'taper-tail',
+  priceLow, priceHigh (a band; equal for a point), prominence 1–5 (1 = primary), primary
+  (exactly one `lvn` per profile), position: 'top' | 'upper' | 'mid' | 'lower' | 'bottom',
+  shape: 'valley' | 'shelf-edge' | 'wide-gap' | 'notch', rationale ≤ 20 words }`;
+  `thinZones[]` ≤ 3 `{ low, high }` (the "wide LVN" / "kennel" spans, corpus B6);
+  `profileShape: 'bell' | 'double' | 'multi' | 'trend-up' | 'trend-down' | 'thin'`;
+  `unfinished: boolean` (no taper / exhaustive node at an extreme — corpus #69).
+- **Criteria in the prompt** — distilled from `lvn-corpus.md` B1–B12 and D, each with one
+  quoted example: deepest = primary, ranked **within this profile**; a notable LVN is a
+  departure scar (thin shelf immediately outside a fat node's edge — the `hvn-edge` and the
+  `lvn` are adjacent and both reported), not a dip inside a node; wide LVNs reported as a
+  band, narrow ones as 2–4 pt bands; tiny "sticks" grouped into one mass with LVNs at its
+  boundaries; exhaustive-node anatomy at the extremes (spike, small build, aggressive
+  departure; taper tail); high-volume edges = distribution boundaries, reported on both
+  sides of each fat node; `hvn-core` only for the POC-class peak of each distribution.
+  Negatives: don't pad counts; don't label a trough inside the value-area bulk as primary;
+  don't mark every minor local minimum.
+- **Few-shot**: 2–3 golden-set images with their expected JSON, fixed (`VISION_PROMPT_REVISION`
+  bumps when they change); the rest of the golden set is test-only and never tuned on.
+
+### Rendering (pure, deterministic)
+
+- `lib/job-plan/profile-vision/renderProfile.ts`: `VbpProfile` → SVG string (pure function
+  of rows + meta + options); `rasterize.ts`: SVG → PNG via `@resvg/resvg-js` (prebuilt
+  native binary — must be `external` in the trigger.dev build; font file shipped via
+  `additionalFiles`). Fallback if resvg won't load in the trigger worker: `@napi-rs/canvas`.
+  Verified against the trigger MCP docs at implementation time, not assumed.
+- **Layout mirrors the screen Job and the operator read**: horizontal bars extending left
+  from a right-hand price axis (the `lvn-fixtures/*.image.png` screenshots are the
+  reference look), portrait ≈ 900 × 1400 px, long edge ≤ 1568 px so no provider downscales
+  the labels.
+- **Rows**: aggregate bins to ≤ ~700 rows (a 5-day NQ export at 1-pt bins → 2-pt rows),
+  2 px per row; the effective `step` is passed in the text so the model knows the grid.
+- **Price axis**: major labels every 20 pts NQ / 5 pts ES (per instrument, same ratio as R1),
+  minor ticks at half, faint gridlines at majors, ≥ 14 px font. Label density is the lever
+  for price accuracy — the model reads prices off the axis, we snap the rest.
+- **Markers**: POC (solid, labeled), VAH/VAL (dashed, labeled), value area lightly shaded,
+  current price (labeled). Nothing else on the image.
+- **Bake-off variables** (implementation step 4): light vs dark theme; a thin smoothed
+  envelope (≈ 9-row MA) overlaid on the raw bars vs raw only; single image vs two
+  overlapping tiles (≥ 10 % overlap, own axis each) when rows exceed a threshold; bars
+  right-anchored (Sierra) vs left-anchored.
+- `sha256(svg)` is part of the run fingerprint.
+
+### Calls, parallelism, consensus
+
+- Per run: profiles **P = {5-day rolling, 4-hour rolling}** (extensible to the existing
+  rotation / balance-area exports if the operator wants them), **S** samples per image
+  (`config.profile_vision_samples`, default 3), **T** tiles (1–2). All |P| × S × T calls
+  run concurrently via `Promise.all` under a small concurrency cap (6) with a per-call
+  timeout (60 s), inside the job-plan task — comfortably within `maxDuration: 300`. No
+  child tasks; a run is one trigger.dev run.
+- **Consensus** (`consensus.ts`, pure): snap every price to the profile grid; drop anything
+  outside the profile's range; cluster reads across samples within the **R1 merge
+  tolerance** (ES 5 / NQ 20); keep clusters with agreement ≥ ⌈S/2⌉; price = median band,
+  prominence = best, `primary` and `kind` by majority; record `agreement: k/S` per node.
+  Tiles are de-duplicated in the same pass. Output `ProfileNodes` keyed by profile.
+- **Model / effort**: new `config` columns `profile_vision_model_id`,
+  `profile_vision_model_effort`, `profile_vision_samples` (+ a fallback tier in
+  `fetchConfigRow`, + `/settings` exposure per the feat-055 pattern). Never hardcoded; the
+  bake-off picks the default. The candidate list comes from the **OpenRouter MCP server**
+  (`list-models` filtered to image-input models) at bench time, not from memory.
+  Flash-tier models are excluded (they game validation floors —
+  `docs/briefing-audit-2026-07-25.md`).
+- **Cost**: ≈ 6–12 calls × ~8k input tokens (image + few-shot images + criteria) — small.
+  Usage/cost surface to run metadata like the other tasks.
+- **Failure**: a profile with fewer than ⌈S/2⌉ successful samples → `profileNodes[profile]
+  = null`; the plan **proceeds** with a prominent `profile_nodes_unavailable` warning and
+  R2 tiers 8/9 simply empty. Proceed-with-warning rather than fail-closed (profile nodes
+  are one reference class among many; the G line / pivots / boxes / overnight extremes
+  still plan) — **R14, ratified 2026-08-22**.
+
+### Persistence and reproducibility
+
+- `job_plans.profile_nodes jsonb`: the consensus `ProfileNodes` **plus** every raw sample
+  read, model id + effort, `VISION_PROMPT_REVISION`, and the image hashes. The PNGs go to a
+  `job-plan-images` storage bucket keyed by hash (operator grading, UI overlay of nodes on
+  the rendered profile — the plan card shows the profile with the nodes it used).
+- The fingerprint gains `{ imageHashes, VISION_PROMPT_REVISION, visionModelId }`. Replaying a
+  persisted `ProfileNodes` through the planner is deterministic; replaying the vision read
+  is not, which is exactly why the read is persisted as input.
+
+### Ground truth and validation
+
+- **Golden set (primary)** — `chart-data/job-lvn-golden/<prep-date>/`: Sierra **replay
+  exports** of the 5-day and 4-hour rolling profiles **as of the prep's time** — convention:
+  replay to the prep video's publish time when known, otherwise **09:15 ET**; the operator
+  overrides individual dates — in the existing
+  `.vbp.md` format, plus `labels.json`: `[{ profile: '5d' | '4h' | 'any', kind, priceLow,
+  priceHigh, primary, corpusRef }]` transcribed from `lvn-corpus.md` A1. Profile-unspecified
+  mentions are labeled `any` and scored leniently (a hit on either profile counts);
+  named-profile mentions score strictly. Both ES and NQ dates are valid — the renderer is
+  instrument-agnostic. Also export the overnight profile for the three dates that cite it
+  (06-15, 06-18, 03-02) if the study exposes it. Split: 3 fixed few-shot dates (proposed:
+  02-13 deepest-LVN-on-5-day, 08-07 primary-LVN-above-JBA-low, 06-02 exhaustive-node-on-
+  top + LVN-under-HVE) / every other date is test.
+- **Fixtures (backup)** — the 8 `lvn-fixtures` profiles, scored by the existing harness
+  logic in a `--source=vision` mode; they keep the shape coverage (bell / double / multi /
+  trend / thin) the golden set may lack and act as the regression floor.
+- **Bench** — `scripts/profile-vision-bench.ts`, gated on `RUN_LLM_INTEGRATION=1` (never on
+  key presence alone — `.env` leaks into the shell), responses cached in scratch by
+  (image hash, prompt revision, model) so iteration is cheap. Reports per model × render
+  variant: **recall of Job-named nodes** within tolerance (ES 5 / NQ 20 — R1; ±10 also
+  reported for fixture comparability), **primary-agreement rate** (model's `primary` vs
+  Job's on dates he names one), precision / count delta, self-agreement across samples,
+  cost and latency — side by side with `lvnDetection` on both sets.
+- **Exit criterion before the read is wired into the planner** (first guesses — operator
+  ratifies after seeing the numbers): test-date recall ≥ 0.8 and primary agreement ≥ 0.7,
+  strictly better than the detector on both sets, self-agreement ≥ 0.8 at the chosen S.
+  The prompt is never tuned on the test dates.
+
 ## Implementation steps
 
 Each step ≈ one `feature_list.json` entry (id assigned when picked up; next free is
-feat-117), own branch + PR per repo rules.
+feat-118), own branch + PR per repo rules.
 
 1. **Sierra Job-study exporter + snapshot archive** — no repo TS changes.
    Files: new ACSIL exporter (own DLL, Windows side), `chart-data/job-study.json` sample
@@ -408,6 +564,11 @@ feat-117), own branch + PR per repo rules.
    operator labels expected outcomes when a day is used for ratification; a held-out subset
    is reserved for out-of-sample shadow evaluation. Archiving only `job-study.json` would
    not support origin, node-selection, or coherence testing.
+   **Golden-set replay exports** (same exporter, Sierra chart replay): for each prep date in
+   `docs/jba-research/lvn-corpus.md` A1, the 5-day and 4-hour rolling `.vbp.md` as of the
+   prep's time → `chart-data/job-lvn-golden/<date>/`, with `labels.json` transcribed from
+   the corpus (see "Ground truth and validation"). This sub-deliverable is independent of
+   the Job-study DLL and unblocks step 4's bench; it can ship first.
    Dependencies: none.
 
 2. **Bundle plumbing** — `supabase/migrations/*_job_study_ref.sql` (nullable
@@ -422,28 +583,48 @@ feat-117), own branch + PR per repo rules.
    "Ratified rules" below; RP identity resolved = the Rip). Remaining: transcribe R1–R13
    into `docs/job-plan/` as the decision log with rule IDs, replay the numbers against
    archived snapshots once they exist (bumping via `PLANNER_REVISION` if a number is
-   wrong in practice), and **LVN-parity validation** — check on
-   archived days that `lvnDetection` over the 5-day/4-hour rolling exports selects the same
-   "primary/deepest LVN" and high-volume edges the preps name; parity is an assumption until
-   measured, and detector tuning is a ratification outcome, not a code default. Each
-   decision gets a rule ID. Evidence: archived snapshots + transcripts (graded), replays for
-   sequencing.
+   wrong in practice), and confirming the **R15 vision exit criterion** numbers once
+   step 4's bench has produced them (R14 is ratified: proceed with warning). Each decision gets a rule ID. Evidence: archived snapshots +
+   transcripts (graded), replays for sequencing.
    Dependencies: step 1 (snapshots exist). Can overlap step 2.
 
-4. **Deterministic planner (pure)** — `lib/job-plan/`: `parseJobStudy.ts`,
-   `classifyContext.ts`, `buildPlan.ts`, `types.ts`, `rules.ts` (named predicates +
-   `PLANNER_REVISION`), `knowledge/schema/job-plan.schema.ts`. Tests per the Tests section.
-   Dependencies: steps 1, 3.
+4. **Profile vision read — renderer, bench, identification module** —
+   `lib/job-plan/profile-vision/`: `renderProfile.ts` (VbP → SVG, pure), `rasterize.ts`
+   (SVG → PNG, `@resvg/resvg-js` + shipped font; trigger build `external` verified against
+   the trigger MCP docs), `schema.ts` (`ProfileNodesRead`, flat Zod), `prompt.ts`
+   (criteria from `lvn-corpus.md` B/D + fixed few-shot; `VISION_PROMPT_REVISION`),
+   `identifyProfileNodes.ts` (|P| × S × T calls through `generateStructured` with
+   `images`, concurrency cap, per-call timeout, partial failure), `consensus.ts` (snap /
+   range / cluster / vote, pure), `types.ts` (`ProfileNodes`). `scripts/profile-vision-
+   bench.ts` (golden set + fixtures, `--model`, `--variant`, `--samples`, cached,
+   `RUN_LLM_INTEGRATION=1`-gated) and a `--source=vision` mode for the fixture scoring.
+   `config` migration: `profile_vision_model_id`, `profile_vision_model_effort`,
+   `profile_vision_samples` (+ `fetchConfigRow` fallback tier, `/settings` fields,
+   `gekko-db` skill). Deliverable = the bench report (model × variant table) and the
+   operator's pick; the module is not wired to the planner until the exit criterion is
+   ratified. **Can start now** on the existing rotation / balance-area exports and the
+   fixtures; the golden set lands when step 1's replay exports do.
+   Dependencies: step 1's replay exports for the golden half of the bench; nothing else.
 
-5. **Task + persistence** — `supabase/migrations/*_job_plans.sql` (+ `gekko-db` skill);
+5. **Deterministic planner (pure)** — `lib/job-plan/`: `parseJobStudy.ts`,
+   `classifyContext.ts`, `buildPlan.ts`, `types.ts`, `rules.ts` (named predicates +
+   `PLANNER_REVISION`), `knowledge/schema/job-plan.schema.ts`. Takes `ProfileNodes | null`
+   per profile as a plain input (step 4's output type) — the planner never calls the
+   vision module. Tests per the Tests section.
+   Dependencies: steps 1, 3, 4 (types only; the planner is testable with hand-built
+   `ProfileNodes`).
+
+6. **Task + persistence** — `supabase/migrations/*_job_plans.sql` (+ `gekko-db` skill);
    `trigger/jobPlanTask.ts` (`job-plan-task`, schemaTask, retry config mirroring analyze);
    `lib/job-plan/runJobPlan.ts` + `deps.ts` (`fetchBundleById`, `downloadObject`,
    `insertJobPlan` — injected, unit-testable); fresh-bundle binding by returned `bundleId`;
-   error taxonomy; run metadata (status, planner revision, fingerprint, bundle wait outcome).
-   No LLM, no `entry_levels`, no push.
-   Dependencies: step 4.
+   error taxonomy; run metadata (status, planner revision, fingerprint, bundle wait outcome,
+   vision model / samples / agreement / cost). The task renders the profiles, runs the
+   vision read (step 4, gated on the ratified exit criterion), persists `profile_nodes` +
+   images, then calls the planner. No other LLM use, no `entry_levels`, no push.
+   Dependencies: steps 4, 5.
 
-6. **Surface** — `app/api/job-plans/run/route.ts` (mirrors `briefings/run` incl. bundle
+7. **Surface** — `app/api/job-plans/run/route.ts` (mirrors `briefings/run` incl. bundle
    request with reason `job-plan`; same local-only security posture — documented), a
    **header version picker** (`Gekko` | `Job`) that switches the dashboard between the
    existing briefing view and the Job plan view, and a minimal plan card (`DESIGN.md`
@@ -452,17 +633,21 @@ feat-117), own branch + PR per repo rules.
    insufficient-state rendering, **and failed-run surfacing**: a non-retryable abort writes
    no `job_plans` row, so the card must read the trigger.dev run outcome (the existing
    `use-triggered-run` pattern) and show the remediation message — otherwise an aborted run
-   looks like "nothing happened".
-   Dependencies: step 5.
+   looks like "nothing happened". The card also shows each **rendered profile with its
+   nodes overlaid** (and agreement k/S), so the operator grades the vision read on every
+   run without leaving the dashboard.
+   Dependencies: step 6.
 
-7. **Shadow evaluation** — run the planner over the accumulated snapshot archive
+8. **Shadow evaluation** — run the planner over the accumulated snapshot archive
    (`scripts/` runner over fixtures, no task changes); operator grades context
    classifications and play cards against what Job's preps actually said on overlapping
    days; iterate thresholds via `PLANNER_REVISION` bumps. Exit criterion: operator signs off
-   that states and plays match the method on a meaningful sample.
-   Dependencies: steps 4–6.
+   that states and plays match the method on a meaningful sample. The vision read is graded
+   alongside (operator marks missed / spurious nodes on the card); misses feed prompt
+   revisions, never per-day prompt edits.
+   Dependencies: steps 5–7.
 
-8. **(Optional, later, operator opt-in)** — non-fatal LLM prose renderer strictly from the
+9. **(Optional, later, operator opt-in)** — non-fatal LLM prose renderer strictly from the
    persisted `JobPlan` JSON (config-driven model id per repo rule; no charts, no raw market
    data, output never feeds execution/eval). Post-open branch-resolution task as a separate
    linked artifact. Deliberately out of MVP.
@@ -488,6 +673,18 @@ feat-117), own branch + PR per repo rules.
 - **Golden corpus**: archived `job-study.json` days with operator-graded expected context +
   plays; replay-derived sequencing cases only where contemporaneous data can be joined.
   Transcript-only cases stay annotations, not goldens.
+- **Profile vision (unit, no LLM)**: `renderProfile` snapshot tests (same rows + options ⇒
+  byte-identical SVG; axis labels at the per-instrument interval; POC/VA/current markers
+  at the right y; aggregation preserves total volume and range; tiling overlap and
+  per-tile axes); `consensus` table-driven (snap to grid, out-of-range dropped, clusters
+  at exactly the R1 tolerance, majority thresholds at S = 1/2/3/5, primary vote ties,
+  tile de-dup, partial-failure → null); `identifyProfileNodes` with an injected
+  `generate` (concurrency cap honored, per-call timeout, one failing sample tolerated,
+  ⌈S/2⌉ − 1 successes → null + warning); schema rejects > 8 nodes, two `primary`s, bands
+  with low > high. Planner tests cover `ProfileNodes = null` (tiers 8/9 empty, warning
+  emitted, still `ready`).
+- **Profile vision (bench, live, `RUN_LLM_INTEGRATION=1`)**: golden set + fixtures per the
+  "Ground truth and validation" metrics; not in CI; the report is the deliverable.
 - **Integration**: ingest→ref recorded; fresh-bundle request → task loads the **fulfilling**
   bundle id; missing export → non-retryable abort; retry idempotency on `run_id`;
   `briefings`/`entry_levels` untouched by a job-plan run; cleanup function excludes
@@ -513,9 +710,30 @@ feat-117), own branch + PR per repo rules.
   matching the bundle's); DST.
 - **Overfitting the annotator**: rules ratified from reconstructed stories rather than data —
   contained by the evidence-grading rule and shadow evaluation on out-of-sample days.
-- **LVN semantic parity**: running the existing detector over new 5-day/4-hour exports does
-  not guarantee it selects the levels Job calls "primary/deepest LVN" or the same
-  high-volume edges — validated in step 3, never assumed.
+- **Vision read — nondeterminism**: the same image can yield different nodes across calls.
+  Contained by S-sample consensus with majority agreement, persistence of the consensus
+  *and* the raw samples as planner input, and the fingerprint; the planner is replayable
+  from the persisted read. Self-agreement is a bench metric with an exit floor.
+- **Vision read — price misreads**: the model reads prices off the axis and can be off by
+  a label interval. Contained by dense labels (20 NQ / 5 ES), grid snapping, range
+  rejection, and the R1 tolerance in consensus; a misread that survives all three is a
+  wrong level in the plan — the bench's recall-within-tolerance metric measures exactly
+  this, and the card's overlay makes it visible per run.
+- **Vision read — Job-parity is still measured, not assumed**: the corpus labels are Job's
+  words on a chart we re-export by replay; replay-export skew (wrong replay time, session
+  template differences) can put the golden profile out of register with the prep. The
+  operator confirms the replay timestamp per date; a golden day whose profile clearly
+  mismatches the prep is annotated, not force-fit.
+- **Vision read — model drift / availability**: OpenRouter can substitute or retire a
+  model. `assertModelMatch` already rejects substitution; the config column makes
+  re-pointing a settings change; `VISION_PROMPT_REVISION` + model id in the fingerprint
+  make drift auditable. A full outage degrades to `profile_nodes_unavailable` (R14).
+- **Native rasterizer in the trigger build**: `@resvg/resvg-js` is a prebuilt native
+  module; if it will not load in the worker, `@napi-rs/canvas` is the fallback. Verified
+  in step 4 before anything depends on it.
+- **Prompt overfitting to the few-shot dates**: contained by the fixed few-shot / test
+  split and the rule that test dates are never tuned on; the fixtures' shape coverage
+  guards against a prompt that only works on the corpus's profile shapes.
 - **Prior-session discretionary structure** ("off yesterday's activity" levels, zones of
   initiation, distribution boundaries) may not be recoverable from the planned inputs at
   all; where it isn't, the plan on those days is knowingly reduced (scope statement).
@@ -524,7 +742,7 @@ feat-117), own branch + PR per repo rules.
   live detection, deadline evaluation (R11), alerting, and trade management are explicitly
   out.
 - **Ratified numbers are first guesses**: R1–R13 were set from the corpus and the operator's
-  judgment before any snapshot existed; shadow evaluation (step 7) is where they get
+  judgment before any snapshot existed; shadow evaluation (step 8) is where they get
   corrected, via `PLANNER_REVISION` bumps, never silently.
 
 ## Operator decisions (2026-08-22)
@@ -543,6 +761,14 @@ All seven open questions were answered by the operator; none remain open.
 6. **Run trigger** — on-demand only, from a header version picker (`Gekko` | `Job`). Usually
    run after the open, so the daily Job Pivot is fresh and prominent.
 7. **Ratification** — done live, one rule at a time (below).
+8. **Profile LVN / HVN identification (later on 2026-08-22)** — by **LLM vision** over
+   purpose-rendered profile images, not the code detector ("at this point it's still just
+   better than any code we're going to come up with"); the planner's unused LLM budget goes
+   here; multiple profiles evaluated in parallel; the prompt grounded in the prep corpus
+   (`docs/jba-research/lvn-corpus.md`), with the `lvn-fixtures` set demoted to backup; a
+   Sierra **replay export** per prep date is feasible and becomes the golden set (replay
+   to the prep's publish time, else 09:15 ET — the operator's own convention). **R14
+   ratified**: a failed vision read degrades the plan with a warning, never blocks it.
 
 ## Ratified rules (2026-08-22)
 
@@ -567,6 +793,8 @@ timestamps and the in-progress bar never counts.
 | R11 | Response deadline | Every hold/traverse branch carries a **30-min** deadline from arrival at the trigger band, **emitted in the plan text, never evaluated** by the planner |
 | R12 | Actionable set + origin precedence | Arm ≤ **2 bands per side** (nearest-first; skip a band with no confluence AND lowest-tier source) plus the enclosing zone's edges; **max 4 branches**. Primary lean = branch backed by the freshest origin fact in order: failed look > approach failure > building/accepted > holding side > repeated defense |
 | R13 | Export skew | Fail closed (`insufficient`, operator message) if any two of `job-study.json` / MGI / bar exports' `exportedAt` differ by **> 5 min**, or `tradingDay` ≠ the bundle's session |
+| R14 *(ratified 2026-08-22)* | What the planner does when the vision read fails for a profile | **Still produce the plan**, minus that profile's LVN/HVN levels, with a loud `profile_nodes_unavailable` warning on the card (the G line / pivots / box edges / overnight extremes still plan). Never `insufficient` for this cause alone |
+| R15 *(proposed — operator confirms or raises after seeing bench results)* | The bar the vision read must clear before it feeds the planner | On prep dates it has not seen: finds ≥ **80 %** of the LVNs Job named (within R1 tolerance), picks the same "primary" LVN ≥ **70 %** of the time, agrees with itself across repeated calls ≥ **80 %**, and beats `lvnDetection` on both the golden set and the fixtures |
 
 ## Claude / Codex review notes
 
@@ -616,3 +844,17 @@ timestamps and the in-progress bar never counts.
   per-branch `appliesWhenOpen` applicability from the third round is **removed** (price
   location at run time is known). Cross-market conditioning went from "MVP exclusion" to
   permanent: one instrument, instrument-agnostic process.
+- **Fifth round — LVN identification by vision (2026-08-22, later)**: the operator overrode
+  the plan's assumption that `lvnDetection` over new 5-day / 4-hour exports would stand in
+  for Job's "primary / deepest LVN" (the plan had it as an unvalidated parity risk). Repo
+  facts that shaped the design: `generateStructured` already accepts `images` (base64 PNG)
+  and the analyze task ships chart screenshots through it today; the detector's measured
+  holdout LVN F1 is ≈ 0.44 at ±10 pts; no server-side rendering exists (no `sharp` /
+  `resvg` / `canvas` dep — `sharp` is only a transitive optional dep of `next`); no task
+  fans out parallel LLM calls yet; `maxDuration` is 300 s with no machine preset. The
+  mined corpus (110 examples) supplied an explicit ranking rule ("deepest meaning
+  primary"), the departure-scar / HVE-adjacent position rule, width-as-qualifier, the
+  exhaustive-node anatomy, the visual grouping rule, and twelve counterexamples — all of
+  which go into the prompt rather than into code. The zero-LLM principle is narrowed, not
+  abandoned: the planner stays a pure function; the vision read is perception, persisted as
+  input, replayable, fingerprinted.
