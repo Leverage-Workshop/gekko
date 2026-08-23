@@ -11,6 +11,7 @@
     "test": "vitest run",
     "uploader": "tsx scripts/uploader.ts",
     "lvn:eval": "tsx scripts/lvn-eval.ts",
+    "profile-vision:bench": "tsx scripts/profile-vision-bench.ts",
     "format": "prettier --write \"{app,lib,tests}/**/*.{ts,tsx,css}\""
   },
   "dependencies": {

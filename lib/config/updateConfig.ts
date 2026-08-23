@@ -47,6 +47,16 @@ export const ConfigUpdateSchema = z.object({
     .number('Must be a number')
     .min(0.05, 'Must be at least 0.05')
     .max(2, 'Must be at most 2'),
+  // feat-124: Job planner profile vision read. Null model id = read OFF
+  // (feat-128 treats it as profile-nodes-unavailable, R14). The id, when set,
+  // is a normal OpenRouter provider/model; effort mirrors the other slots.
+  profile_vision_model_id: modelId.nullable(),
+  profile_vision_model_effort: effort,
+  profile_vision_samples: z
+    .number('Must be a number')
+    .int('Must be a whole number')
+    .min(1, 'Must be at least 1')
+    .max(5, 'Must be at most 5'),
 })
 
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>
@@ -60,8 +70,8 @@ export const MIGRATION_REQUIRED_MESSAGE =
   'A config column is missing in the live database — apply the pending ' +
   'supabase/migrations (high_conviction_flag.sql, model_reasoning_effort.sql, ' +
   'execution_bar_volume.sql, significant_move_pts.sql, ' +
-  'volatility_scaled_gates.sql) (Supabase MCP server ' +
-  'or dashboard SQL editor) first, then save again.'
+  'volatility_scaled_gates.sql, profile_vision_config.sql) (Supabase MCP ' +
+  'server or dashboard SQL editor) first, then save again.'
 
 export async function updateConfigRow(
   supabase: SupabaseClient,

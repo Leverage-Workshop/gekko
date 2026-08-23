@@ -20,6 +20,9 @@ export interface SettingsInitialValues {
   high_conviction_model_effort: ReasoningEffort | null
   execution_bar_volume: number
   significant_move_sigma: number
+  profile_vision_model_id: string | null
+  profile_vision_model_effort: ReasoningEffort | null
+  profile_vision_samples: number
 }
 
 interface SettingsFormProps {
@@ -33,6 +36,8 @@ interface SettingsFormProps {
   barVolumeColumnMissing: boolean
   /** Live DB predates the significant_move_sigma migration (feat-096). */
   significantMoveColumnMissing: boolean
+  /** Live DB predates the profile_vision_config migration (feat-124). */
+  profileVisionColumnsMissing: boolean
 }
 
 type SaveState =
@@ -130,6 +135,7 @@ export function SettingsForm({
   effortColumnsMissing,
   barVolumeColumnMissing,
   significantMoveColumnMissing,
+  profileVisionColumnsMissing,
 }: SettingsFormProps) {
   const [modelId, setModelId] = useState(initial.model_id)
   const [triageModelId, setTriageModelId] = useState(initial.triage_model_id)
@@ -141,6 +147,9 @@ export function SettingsForm({
   const [modelEffort, setModelEffort] = useState(initial.model_effort)
   const [triageEffort, setTriageEffort] = useState(initial.triage_model_effort)
   const [hcEffort, setHcEffort] = useState(initial.high_conviction_model_effort)
+  const [pvModelId, setPvModelId] = useState(initial.profile_vision_model_id ?? '')
+  const [pvEffort, setPvEffort] = useState(initial.profile_vision_model_effort)
+  const [pvSamples, setPvSamples] = useState(String(initial.profile_vision_samples))
   const [state, setState] = useState<SaveState>({ phase: 'idle' })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [lastUpdatedAt, setLastUpdatedAt] = useState(updatedAt)
@@ -168,6 +177,12 @@ export function SettingsForm({
       setState({ phase: 'error', message: 'Validation failed' })
       return
     }
+    const pvSampleCount = Number(pvSamples)
+    if (pvSamples.trim() === '' || Number.isNaN(pvSampleCount)) {
+      setFieldErrors({ profile_vision_samples: ['Must be a number'] })
+      setState({ phase: 'error', message: 'Validation failed' })
+      return
+    }
 
     try {
       const res = await fetch('/api/config', {
@@ -184,6 +199,9 @@ export function SettingsForm({
           high_conviction_model_effort: hcEffort,
           execution_bar_volume: barVol,
           significant_move_sigma: sigMove,
+          profile_vision_model_id: pvModelId.trim() === '' ? null : pvModelId.trim(),
+          profile_vision_model_effort: pvEffort,
+          profile_vision_samples: pvSampleCount,
         }),
       })
       const body = (await res.json().catch(() => null)) as ConfigResponse | null
@@ -324,6 +342,69 @@ export function SettingsForm({
           <p className="mt-2 text-xs font-light tracking-wide text-warning">
             The execution_bar_volume column is not in the live database yet — apply
             the execution_bar_volume migration before saving.
+          </p>
+        )}
+      </div>
+
+      <div className="border-t border-hairline pt-8">
+        <span className="text-xs font-bold uppercase tracking-[1.5px] text-body">
+          Job Planner — Profile Vision
+        </span>
+        <p className="mt-2 text-xs font-light text-muted">
+          LLM read of the rendered 5-day / 4-hour volume profiles for the Job
+          plan (feat-123). Leave the model blank to keep the read OFF — the
+          planner degrades with a warning (R14). Only enable after ratifying the
+          bench numbers (R15).
+        </p>
+
+        <div className="mt-6">
+          <FieldLabel htmlFor="profile_vision_model_id">Profile Vision Model</FieldLabel>
+          <input
+            id="profile_vision_model_id"
+            name="profile_vision_model_id"
+            type="text"
+            value={pvModelId}
+            onChange={(e) => setPvModelId(e.target.value)}
+            className={inputClass}
+            placeholder="provider/model (blank = read OFF)"
+          />
+          <FieldError messages={fieldErrors.profile_vision_model_id} />
+          <p className="mt-1 text-xs font-light text-muted">
+            Blank turns the vision read off; feat-128 then reports profile nodes
+            unavailable rather than calling a model.
+          </p>
+          <EffortSelect
+            id="profile_vision_model_effort"
+            value={pvEffort}
+            onChange={setPvEffort}
+            messages={fieldErrors.profile_vision_model_effort}
+          />
+        </div>
+
+        <div className="mt-6">
+          <FieldLabel htmlFor="profile_vision_samples">Vision Samples per Image</FieldLabel>
+          <input
+            id="profile_vision_samples"
+            name="profile_vision_samples"
+            type="number"
+            step="1"
+            min="1"
+            max="5"
+            value={pvSamples}
+            onChange={(e) => setPvSamples(e.target.value)}
+            className={inputClass}
+          />
+          <FieldError messages={fieldErrors.profile_vision_samples} />
+          <p className="mt-1 text-xs font-light text-muted">
+            S in the per-profile consensus (1–5) — a node needs a majority of
+            samples to survive. Default 3.
+          </p>
+        </div>
+
+        {profileVisionColumnsMissing && (
+          <p className="mt-2 text-xs font-light tracking-wide text-warning">
+            The profile-vision columns are not in the live database yet — apply
+            the profile_vision_config migration before saving.
           </p>
         )}
       </div>

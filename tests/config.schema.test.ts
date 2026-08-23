@@ -15,6 +15,9 @@ const valid = {
   high_conviction_model_effort: null,
   execution_bar_volume: 750,
   significant_move_sigma: 0.4,
+  profile_vision_model_id: null,
+  profile_vision_model_effort: null,
+  profile_vision_samples: 3,
 }
 
 function fieldErrors(payload: unknown): Record<string, unknown> {
@@ -206,5 +209,33 @@ describe('ConfigUpdateSchema', () => {
     const partial: Partial<typeof valid> = { ...valid }
     delete partial.model_effort
     expect(ConfigUpdateSchema.safeParse(partial).success).toBe(false)
+  })
+
+  describe('profile vision (feat-124)', () => {
+    it('accepts a null model id (read OFF) and a set one', () => {
+      expect(ConfigUpdateSchema.safeParse({ ...valid, profile_vision_model_id: null }).success).toBe(true)
+      expect(
+        ConfigUpdateSchema.safeParse({ ...valid, profile_vision_model_id: 'openai/gpt-5.6-terra' }).success,
+      ).toBe(true)
+    })
+
+    it('rejects a non-provider/model id when set', () => {
+      expect(fieldErrors({ ...valid, profile_vision_model_id: 'gpt-5.6-terra' })).toHaveProperty(
+        'profile_vision_model_id',
+      )
+    })
+
+    it('accepts samples at the 1 and 5 boundaries, rejects outside and non-integers', () => {
+      expect(ConfigUpdateSchema.safeParse({ ...valid, profile_vision_samples: 1 }).success).toBe(true)
+      expect(ConfigUpdateSchema.safeParse({ ...valid, profile_vision_samples: 5 }).success).toBe(true)
+      expect(fieldErrors({ ...valid, profile_vision_samples: 0 })).toHaveProperty('profile_vision_samples')
+      expect(fieldErrors({ ...valid, profile_vision_samples: 6 })).toHaveProperty('profile_vision_samples')
+      expect(fieldErrors({ ...valid, profile_vision_samples: 2.5 })).toHaveProperty('profile_vision_samples')
+    })
+
+    it('rejects a payload missing profile_vision fields (the form always sends them)', () => {
+      const { profile_vision_samples: _s, ...missing } = valid
+      expect(fieldErrors(missing)).toHaveProperty('profile_vision_samples')
+    })
   })
 })

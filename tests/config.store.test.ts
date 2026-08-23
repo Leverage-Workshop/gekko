@@ -29,7 +29,31 @@ const FULL_ROW = {
   high_conviction_model_effort: 'xhigh' as const,
   execution_bar_volume: 750,
   significant_move_sigma: 0.3,
+  profile_vision_model_id: 'openai/gpt-5.6-terra',
+  profile_vision_model_effort: 'medium' as const,
+  profile_vision_samples: 3,
   updated_at: '2026-07-08T12:00:00Z',
+}
+
+/** Post significant_move_sigma, pre profile_vision_config (feat-124). */
+const PRE_PROFILE_VISION_ROW = {
+  model_id: 'anthropic/claude-sonnet-5',
+  triage_model_id: 'anthropic/claude-haiku-4-5',
+  rr_min: 3,
+  high_conviction_enabled: true,
+  high_conviction_model_id: 'anthropic/claude-opus-4-8',
+  model_effort: 'high' as const,
+  triage_model_effort: null,
+  high_conviction_model_effort: 'xhigh' as const,
+  execution_bar_volume: 750,
+  significant_move_sigma: 0.3,
+  updated_at: '2026-07-08T12:00:00Z',
+}
+
+const PROFILE_VISION_PAD = {
+  profile_vision_model_id: null,
+  profile_vision_model_effort: null,
+  profile_vision_samples: 3,
 }
 
 /** Post execution_bar_volume, pre significant_move_sigma (feat-096 units change). */
@@ -129,13 +153,34 @@ describe('fetchConfigRow', () => {
     expect(result.effortColumnsMissing).toBe(false)
     expect(result.barVolumeColumnMissing).toBe(false)
     expect(result.significantMoveColumnMissing).toBe(false)
+    expect(result.profileVisionColumnsMissing).toBe(false)
     expect(selects).toHaveLength(1)
+    expect(selects[0]).toContain('profile_vision_model_id')
+    expect(selects[0]).toContain('profile_vision_samples')
     expect(selects[0]).toContain('high_conviction_enabled')
     expect(selects[0]).toContain('model_effort')
     expect(selects[0]).toContain('triage_model_effort')
     expect(selects[0]).toContain('high_conviction_model_effort')
     expect(selects[0]).toContain('execution_bar_volume')
     expect(selects[0]).toContain('significant_move_sigma')
+  })
+
+  it('falls back to the pre-profile-vision column set on 42703 with the read-OFF defaults padded (feat-124)', async () => {
+    const { client, selects } = selectClient((columns) =>
+      columns.includes('profile_vision_model_id')
+        ? {
+            data: null,
+            error: { code: '42703', message: 'column config.profile_vision_model_id does not exist' },
+          }
+        : { data: PRE_PROFILE_VISION_ROW, error: null },
+    )
+    const result = await fetchConfigRow(client)
+
+    expect(selects).toHaveLength(2)
+    expect(selects[1]).not.toContain('profile_vision_model_id')
+    expect(result.profileVisionColumnsMissing).toBe(true)
+    expect(result.significantMoveColumnMissing).toBe(false)
+    expect(result.row).toEqual({ ...PRE_PROFILE_VISION_ROW, ...PROFILE_VISION_PAD })
   })
 
   it('falls back to the pre-significant-move column set on 42703 with the 0.3-sigma default padded (feat-096, feat-112)', async () => {
@@ -149,11 +194,16 @@ describe('fetchConfigRow', () => {
     )
     const result = await fetchConfigRow(client)
 
-    expect(selects).toHaveLength(2)
-    expect(selects[1]).not.toContain('significant_move_sigma')
+    expect(selects).toHaveLength(3)
+    expect(selects[2]).not.toContain('significant_move_sigma')
     expect(result.significantMoveColumnMissing).toBe(true)
     expect(result.barVolumeColumnMissing).toBe(false)
-    expect(result.row).toEqual({ ...PRE_SIGNIFICANT_MOVE_ROW, significant_move_sigma: 0.3 })
+    expect(result.profileVisionColumnsMissing).toBe(true)
+    expect(result.row).toEqual({
+      ...PRE_SIGNIFICANT_MOVE_ROW,
+      significant_move_sigma: 0.3,
+      ...PROFILE_VISION_PAD,
+    })
   })
 
   it('falls back to the pre-bar-volume column set on 42703 with the 750 default padded (feat-079)', async () => {
@@ -167,15 +217,17 @@ describe('fetchConfigRow', () => {
     )
     const result = await fetchConfigRow(client)
 
-    expect(selects).toHaveLength(3)
-    expect(selects[2]).not.toContain('execution_bar_volume')
+    expect(selects).toHaveLength(4)
+    expect(selects[3]).not.toContain('execution_bar_volume')
     expect(result.barVolumeColumnMissing).toBe(true)
     expect(result.significantMoveColumnMissing).toBe(true)
+    expect(result.profileVisionColumnsMissing).toBe(true)
     expect(result.effortColumnsMissing).toBe(false)
     expect(result.row).toEqual({
       ...PRE_BAR_VOLUME_ROW,
       execution_bar_volume: 750,
       significant_move_sigma: 0.3,
+      ...PROFILE_VISION_PAD,
     })
   })
 
@@ -187,11 +239,12 @@ describe('fetchConfigRow', () => {
     )
     const result = await fetchConfigRow(client)
 
-    expect(selects).toHaveLength(4)
-    expect(selects[3]).not.toContain('model_effort')
+    expect(selects).toHaveLength(5)
+    expect(selects[4]).not.toContain('model_effort')
     expect(result.effortColumnsMissing).toBe(true)
     expect(result.barVolumeColumnMissing).toBe(true)
     expect(result.significantMoveColumnMissing).toBe(true)
+    expect(result.profileVisionColumnsMissing).toBe(true)
     expect(result.highConvictionColumnsMissing).toBe(false)
     expect(result.row).toEqual({
       ...PRE_EFFORT_ROW,
@@ -200,6 +253,7 @@ describe('fetchConfigRow', () => {
       high_conviction_model_effort: null,
       execution_bar_volume: 750,
       significant_move_sigma: 0.3,
+      ...PROFILE_VISION_PAD,
     })
   })
 
@@ -211,12 +265,13 @@ describe('fetchConfigRow', () => {
     )
     const result = await fetchConfigRow(client)
 
-    expect(selects).toHaveLength(5)
-    expect(selects[4]).not.toContain('high_conviction')
+    expect(selects).toHaveLength(6)
+    expect(selects[5]).not.toContain('high_conviction')
     expect(result.highConvictionColumnsMissing).toBe(true)
     expect(result.effortColumnsMissing).toBe(true)
     expect(result.barVolumeColumnMissing).toBe(true)
     expect(result.significantMoveColumnMissing).toBe(true)
+    expect(result.profileVisionColumnsMissing).toBe(true)
     expect(result.row).toEqual({
       ...LEGACY_ROW,
       high_conviction_enabled: false,
@@ -226,6 +281,7 @@ describe('fetchConfigRow', () => {
       high_conviction_model_effort: null,
       execution_bar_volume: 750,
       significant_move_sigma: 0.3,
+      ...PROFILE_VISION_PAD,
     })
   })
 
@@ -277,6 +333,9 @@ describe('updateConfigRow', () => {
     high_conviction_model_effort: null,
     execution_bar_volume: 750,
     significant_move_sigma: 0.3,
+    profile_vision_model_id: 'openai/gpt-5.6-terra',
+    profile_vision_model_effort: 'medium' as const,
+    profile_vision_samples: 3,
   }
 
   it('updates row id=1 with a fresh updated_at and returns the row', async () => {
@@ -299,6 +358,7 @@ describe('updateConfigRow', () => {
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('model_reasoning_effort')
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('execution_bar_volume')
     expect(MIGRATION_REQUIRED_MESSAGE).toContain('volatility_scaled_gates')
+    expect(MIGRATION_REQUIRED_MESSAGE).toContain('profile_vision_config')
   })
 
   it('reports a 404 when the config row is unseeded', async () => {
