@@ -95,6 +95,89 @@ export function scoreRead(
   }
 }
 
+/**
+ * Case-level one-to-one matching (feat-124 bench). A prediction is claimed by at
+ * most one label and a label claims at most one prediction, so a node is never
+ * double-counted across the named + `any` passes. Named labels may only match a
+ * prediction from THEIR profile; `any` labels may match a prediction from any
+ * profile (a hit on either counts — the lenient golden semantics). Named labels
+ * are matched first so they get priority on their own profile.
+ */
+export type ProfilePredictions = { readonly key: string; readonly nodes: readonly ScoredNode[] }
+export type NamedLabels = { readonly key: string; readonly labels: readonly ScoredNode[] }
+
+type Claimable = { readonly price: number; readonly key: string; used: boolean }
+
+/** Greedy nearest claim over unused, eligible predictions; marks the winner used. */
+function claim(
+  labels: readonly number[],
+  preds: Claimable[],
+  eligible: (p: Claimable) => boolean,
+  tolerance: number
+): number {
+  let tp = 0
+  for (const label of labels) {
+    let bestIdx = -1
+    let bestDist = Infinity
+    for (let i = 0; i < preds.length; i++) {
+      const p = preds[i]
+      if (p.used || !eligible(p)) continue
+      const d = Math.abs(p.price - label)
+      if (d <= tolerance && d < bestDist) {
+        bestDist = d
+        bestIdx = i
+      }
+    }
+    if (bestIdx !== -1) {
+      preds[bestIdx].used = true
+      tp += 1
+    }
+  }
+  return tp
+}
+
+function scoreCaseFamily(
+  predicted: readonly ProfilePredictions[],
+  named: readonly NamedLabels[],
+  anyLabels: readonly ScoredNode[],
+  family: NodeFamily,
+  tolerance: number
+): Metrics {
+  const preds: Claimable[] = predicted.flatMap((pp) =>
+    pp.nodes
+      .filter((n) => n.family === family)
+      .map((n) => ({ price: n.price, key: pp.key, used: false }))
+  )
+  const anyF = anyLabels.filter((l) => l.family === family).map((l) => l.price)
+  let labeled = anyF.length
+  let tp = 0
+  for (const group of named) {
+    const labels = group.labels.filter((l) => l.family === family).map((l) => l.price)
+    labeled += labels.length
+    tp += claim(labels, preds, (p) => p.key === group.key, tolerance)
+  }
+  tp += claim(anyF, preds, () => true, tolerance)
+  return { tp, fp: preds.length - tp, fn: labeled - tp, detected: preds.length, labeled }
+}
+
+/**
+ * Score all of a case's predictions against its named + `any` labels, one-to-one
+ * across the whole case, summed per family. This is the matcher the bench uses
+ * for BOTH the vision read and the detector, so neither can double-count.
+ */
+export function scoreCaseNodes(
+  predicted: readonly ProfilePredictions[],
+  named: readonly NamedLabels[],
+  anyLabels: readonly ScoredNode[],
+  tolerance: number
+): FamilyScores {
+  return {
+    lvn: scoreCaseFamily(predicted, named, anyLabels, 'lvn', tolerance),
+    hvn: scoreCaseFamily(predicted, named, anyLabels, 'hvn', tolerance),
+    extreme: scoreCaseFamily(predicted, named, anyLabels, 'extreme', tolerance),
+  }
+}
+
 export function emptyFamilyScores(): FamilyScores {
   return { lvn: { ...EMPTY_METRICS }, hvn: { ...EMPTY_METRICS }, extreme: { ...EMPTY_METRICS } }
 }

@@ -9,6 +9,7 @@ import {
   overall,
   precision,
   recall,
+  scoreCaseNodes,
   scorePrimary,
   scoreRead,
   selfAgreement,
@@ -150,5 +151,56 @@ describe('bench — self-agreement', () => {
     const a = [nq(100, 'lvn')]
     const b = [nq(103, 'lvn'), nq(500, 'hvn')]
     expect(selfAgreement([a, b], 5)).toBeCloseTo(selfAgreement([b, a], 5)!, 9)
+  })
+})
+
+describe('bench — case-level one-to-one matching (no double-count)', () => {
+  const named = (key: string, ...nodes: ScoredNode[]) => ({ key, labels: nodes })
+
+  it('does not let one prediction satisfy both a named and an any label', () => {
+    // one lvn prediction at 29100; a named lvn AND an any lvn both near it.
+    const preds = [{ key: '5d', nodes: [nq(29100, 'lvn')] }]
+    const s = scoreCaseNodes(preds, [named('5d', nq(29105, 'lvn'))], [nq(29108, 'lvn')], 20)
+    // the prediction is claimed once (by the named label); the any label misses.
+    expect(s.lvn).toMatchObject({ tp: 1, fp: 0, fn: 1, detected: 1, labeled: 2 })
+  })
+
+  it('binds a named label to ITS profile — a prediction on another profile cannot satisfy it', () => {
+    const preds = [
+      { key: '5d', nodes: [] as ScoredNode[] },
+      { key: '4h', nodes: [nq(29100, 'lvn')] },
+    ]
+    const s = scoreCaseNodes(preds, [named('5d', nq(29100, 'lvn'))], [], 20)
+    expect(s.lvn).toMatchObject({ tp: 0, fn: 1, fp: 1 })
+  })
+
+  it('lets an any label match a prediction from EITHER profile (union), once', () => {
+    const preds = [
+      { key: '5d', nodes: [nq(29100, 'lvn')] },
+      { key: '4h', nodes: [nq(29100, 'lvn')] },
+    ]
+    // one any label near both — claims exactly one prediction.
+    const s = scoreCaseNodes(preds, [], [nq(29100, 'lvn')], 20)
+    expect(s.lvn).toMatchObject({ tp: 1, fp: 1, fn: 0, detected: 2, labeled: 1 })
+  })
+
+  it('named labels get priority on their profile before any labels claim the union', () => {
+    const preds = [{ key: '5d', nodes: [nq(29100, 'lvn'), nq(29500, 'lvn')] }]
+    const s = scoreCaseNodes(preds, [named('5d', nq(29100, 'lvn'))], [nq(29500, 'lvn')], 20)
+    expect(s.lvn).toMatchObject({ tp: 2, fp: 0, fn: 0 })
+  })
+
+  it('keeps families independent (an lvn label never claims an hvn prediction)', () => {
+    const preds = [{ key: '5d', nodes: [nq(29300, 'hvn')] }]
+    const s = scoreCaseNodes(preds, [], [nq(29300, 'lvn')], 20)
+    expect(s.lvn).toMatchObject({ tp: 0, fn: 1 })
+    expect(s.hvn).toMatchObject({ tp: 0, fp: 1 })
+  })
+
+  it('an empty prediction set (failed read) makes every label a false negative', () => {
+    const preds = [{ key: '5d', nodes: [] as ScoredNode[] }]
+    const s = scoreCaseNodes(preds, [named('5d', nq(1, 'lvn'))], [nq(2, 'hvn')], 20)
+    expect(s.lvn).toMatchObject({ tp: 0, fn: 1, detected: 0 })
+    expect(s.hvn).toMatchObject({ tp: 0, fn: 1, detected: 0 })
   })
 })

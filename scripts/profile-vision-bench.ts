@@ -35,22 +35,22 @@ import { sumMetrics, type Metrics } from '../lib/engine/nodeMatch'
 import { generateStructured } from '../lib/llm/generateStructured'
 import type { ReasoningEffort } from '../lib/llm/reasoning'
 import {
-  addFamilyScores,
   consensusToScored,
   countDelta,
   detectorToScored,
-  emptyFamilyScores,
   f1,
   labelToScored,
   overall,
   precision,
   recall,
+  scoreCaseNodes,
   scorePrimary,
-  scoreRead,
   selfAgreement,
   toleranceFor,
   type FamilyScores,
+  type NamedLabels,
   type PrimaryOutcome,
+  type ProfilePredictions,
   type ScoredNode,
 } from '../lib/job-plan/profile-vision/bench'
 import {
@@ -169,16 +169,28 @@ function saveCacheFile(key: string, file: CacheFile): void {
  * cost/latency replayed.
  */
 function makeGenerate(model: string, effort: ReasoningEffort | null): VisionGenerate {
+  // One shared in-memory read list per key (loaded once from disk), so the S
+  // concurrent calls for one image append to the SAME array instead of each
+  // re-reading a stale disk snapshot and clobbering the others on save.
+  const store = new Map<string, CachedRead[]>()
   const cursor = new Map<string, number>()
+  const reads = (key: string): CachedRead[] => {
+    let list = store.get(key)
+    if (!list) {
+      list = loadCacheFile(key).reads
+      store.set(key, list)
+    }
+    return list
+  }
   return async ({ prompt, images, abortSignal }) => {
     const targetImage = images[images.length - 1]
     const imageSha = createHash('sha256').update(targetImage.base64).digest('hex')
     const key = cacheKey(imageSha, model, effort)
-    const file = loadCacheFile(key)
+    const list = reads(key)
     const i = cursor.get(key) ?? 0
     cursor.set(key, i + 1)
-    if (i < file.reads.length) {
-      const hit = file.reads[i]
+    if (i < list.length) {
+      const hit = list[i]
       return { object: hit.read, cost: hit.cost, latencyMs: hit.latencyMs ?? 0 }
     }
     const result = await generateStructured({
@@ -189,8 +201,8 @@ function makeGenerate(model: string, effort: ReasoningEffort | null): VisionGene
       images: [...images],
       abortSignal,
     })
-    file.reads.push({ read: result.object, cost: result.cost, latencyMs: result.latencyMs })
-    saveCacheFile(key, file)
+    list.push({ read: result.object, cost: result.cost, latencyMs: result.latencyMs })
+    saveCacheFile(key, { reads: list })
     return { object: result.object, cost: result.cost, latencyMs: result.latencyMs }
   }
 }
@@ -304,17 +316,26 @@ async function scoreCase(
   generate: VisionGenerate
 ): Promise<CaseResult> {
   const tolerance = toleranceFor(pc.instrument)
+  const keys = Object.keys(pc.profiles) as ProfileKey[]
+  const named: NamedLabels[] = keys.map((key) => ({
+    key,
+    labels: (pc.named[key] ?? []).map(labelToScored),
+  }))
+  const anyLabels = pc.any.map(labelToScored)
 
-  // Detector (code-owned) over every profile of the case, scored the same way.
-  let detector = emptyFamilyScores()
-  for (const key of Object.keys(pc.profiles) as ProfileKey[]) {
+  // Detector (code-owned): one prediction set per profile, scored one-to-one
+  // across the case (named labels bound to their profile, `any` to the union).
+  const detectorPreds: ProfilePredictions[] = keys.map((key) => {
     const det = detectLvnHvn(pc.profiles[key]!.rows)
-    const predicted = detectorToScored(
-      det.lvn.map((n) => n.price),
-      det.hvn.map((n) => n.price)
-    )
-    detector = addFamilyScores(detector, scoreRead(predicted, caseLabels(pc, key), tolerance))
-  }
+    return {
+      key,
+      nodes: detectorToScored(
+        det.lvn.map((n) => n.price),
+        det.hvn.map((n) => n.price)
+      ),
+    }
+  })
+  const detector = scoreCaseNodes(detectorPreds, named, anyLabels, tolerance)
 
   // Vision read: all readable profiles at once, S samples each.
   const result = await identifyProfileNodes({
@@ -328,38 +349,32 @@ async function scoreCase(
     generate,
   })
 
-  let vision = emptyFamilyScores()
-  const unionPredicted: ScoredNode[] = []
+  const visionPreds: ProfilePredictions[] = []
   const unionPrimaries: ScoredNode[] = []
   const selfs: number[] = []
   let costUsd = 0
   let latencyMs = 0
   let anyConsensus = false
 
-  for (const key of Object.keys(pc.profiles) as ProfileKey[]) {
+  for (const key of keys) {
     const entry = result.profiles[key]
     for (const r of entry?.raw ?? []) {
       costUsd += r.cost ?? 0
       latencyMs += r.latencyMs ?? 0
     }
     const consensus = entry?.consensus
-    // Named labels for THIS profile: scored against this profile's read (empty on failure).
-    const predicted = consensus ? consensus.nodes.map(consensusToScored) : []
-    vision = addFamilyScores(
-      vision,
-      scoreRead(predicted, (pc.named[key] ?? []).map(labelToScored), tolerance)
-    )
+    // A failed consensus contributes an empty prediction set — its labels become
+    // pure false negatives rather than vanishing from the score.
+    visionPreds.push({ key, nodes: consensus ? consensus.nodes.map(consensusToScored) : [] })
     if (consensus) {
       anyConsensus = true
-      unionPredicted.push(...predicted)
       unionPrimaries.push(...consensus.nodes.filter((n) => n.primary).map(consensusToScored))
       const s = perProfileSelf(entry?.raw ?? [], tolerance)
       if (s !== null) selfs.push(s)
     }
   }
 
-  // `any` labels resolved ONCE against the union of the case's profiles.
-  vision = addFamilyScores(vision, scoreRead(unionPredicted, pc.any.map(labelToScored), tolerance))
+  const vision = scoreCaseNodes(visionPreds, named, anyLabels, tolerance)
 
   const labeledPrimary = [...Object.values(pc.named).flat(), ...pc.any].find((l) => l.primary)
   const primary = scorePrimary(
@@ -378,11 +393,6 @@ async function scoreCase(
     latencyMs,
     failed: !anyConsensus,
   }
-}
-
-/** Labels a profile is scored against for the DETECTOR pass: its named labels + the `any` labels. */
-function caseLabels(pc: ProfileCase, key: ProfileKey): ScoredNode[] {
-  return [...(pc.named[key] ?? []), ...pc.any].map(labelToScored)
 }
 
 function perProfileSelf(
