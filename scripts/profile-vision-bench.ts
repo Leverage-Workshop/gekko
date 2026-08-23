@@ -350,7 +350,7 @@ async function scoreCase(
   })
 
   const visionPreds: ProfilePredictions[] = []
-  const unionPrimaries: ScoredNode[] = []
+  const primaryByKey = new Map<ProfileKey, ScoredNode>()
   const selfs: number[] = []
   let costUsd = 0
   let latencyMs = 0
@@ -368,7 +368,8 @@ async function scoreCase(
     visionPreds.push({ key, nodes: consensus ? consensus.nodes.map(consensusToScored) : [] })
     if (consensus) {
       anyConsensus = true
-      unionPrimaries.push(...consensus.nodes.filter((n) => n.primary).map(consensusToScored))
+      const primaryNode = consensus.nodes.find((n) => n.primary)
+      if (primaryNode) primaryByKey.set(key, consensusToScored(primaryNode))
       const s = perProfileSelf(entry?.raw ?? [], tolerance)
       if (s !== null) selfs.push(s)
     }
@@ -376,9 +377,20 @@ async function scoreCase(
 
   const vision = scoreCaseNodes(visionPreds, named, anyLabels, tolerance)
 
-  const labeledPrimary = [...Object.values(pc.named).flat(), ...pc.any].find((l) => l.primary)
+  // The labeled primary is scored against the primary of ITS profile (a named
+  // label) or, for an `any` primary, any profile's primary (the union).
+  const namedPrimary = keys
+    .flatMap((key) =>
+      (pc.named[key] ?? []).filter((l) => l.primary).map((l) => ({ key, label: l }))
+    )
+    .at(0)
+  const anyPrimary = pc.any.find((l) => l.primary)
+  const predictedPrimary = namedPrimary
+    ? (primaryByKey.get(namedPrimary.key) ?? null)
+    : ([...primaryByKey.values()].at(0) ?? null)
+  const labeledPrimary = namedPrimary?.label ?? anyPrimary ?? null
   const primary = scorePrimary(
-    unionPrimaries[0] ?? null,
+    labeledPrimary ? predictedPrimary : null,
     labeledPrimary ? labelToScored(labeledPrimary) : null,
     tolerance
   )
