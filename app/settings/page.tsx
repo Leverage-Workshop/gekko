@@ -28,6 +28,7 @@ export default async function SettingsPage() {
     effortColumnsMissing,
     barVolumeColumnMissing,
     significantMoveColumnMissing,
+    profileVisionColumnsMissing,
   } = await fetchConfigRow(getServiceClient())
 
   return (
@@ -63,12 +64,16 @@ export default async function SettingsPage() {
                 high_conviction_model_effort: row.high_conviction_model_effort,
                 execution_bar_volume: row.execution_bar_volume,
                 significant_move_sigma: row.significant_move_sigma,
+                profile_vision_model_id: row.profile_vision_model_id,
+                profile_vision_model_effort: row.profile_vision_model_effort,
+                profile_vision_samples: row.profile_vision_samples,
               }}
               updatedAt={row.updated_at}
               highConvictionColumnsMissing={highConvictionColumnsMissing}
               effortColumnsMissing={effortColumnsMissing}
               barVolumeColumnMissing={barVolumeColumnMissing}
               significantMoveColumnMissing={significantMoveColumnMissing}
+              profileVisionColumnsMissing={profileVisionColumnsMissing}
             />
           </section>
         ) : (

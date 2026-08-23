@@ -6,9 +6,10 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-22 (31 applied migrations live;
-nothing pending — feat-121's `20260822200000_job_input_refs.sql` was applied the same day
-via the claude.ai Supabase MCP `apply_migration` tool).
+the project's REST APIs. Schema snapshot updated 2026-08-22 (32 applied migrations live;
+nothing pending — feat-121's `20260822200000_job_input_refs.sql` and feat-124's
+`20260822210000_profile_vision_config.sql` were applied the same day via the claude.ai
+Supabase MCP `apply_migration` tool).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -107,6 +108,9 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | significant_move_sigma | numeric | **0.3** (feat-112, was 0.4) — feat-086 entry-first contract, feat-096 units: min reversal traverse a level must offer to anchor an objective entry, as a MULTIPLE of the measured recency-weighted Parkinson session sigma (`lib/engine/volatilityScale.ts`) rather than raw points; CHECK 0.05–2.0; resolved to points per run (~77 pts at bundle b6f71b2e's 257-pt sigma, ~85 at the review's 283-pt reference) and injected into analyze/update prompts in BOTH units, /settings-editable. **Replaced `significant_move_pts` (int, default 50, CHECK 10–500), dropped by the feat-096 migration on 2026-08-11** — 50 pts was 0.18σ and filtered nothing (review D3), while 0.4σ over-filtered once the regime widened (feat-112) |
 | proximity_window_seconds | int | 60 — recency window of exec bars feeding the eval near-entry gate |
 | execution_bar_volume | int | 750 — per-bar volume of the Sierra execution-chart bars (feat-079); CHECK 50–50000; injected into analyze/update prompts, /settings-editable |
+| profile_vision_model_id | text, nullable | Job planner profile vision read model (feat-124); NULL = read OFF (profile nodes unavailable, R14) |
+| profile_vision_model_effort | text, nullable | CHECK in ('none','minimal','low','medium','high','xhigh','max'); NULL = provider default (feat-124) |
+| profile_vision_samples | int | 3 — samples per profile image in the vision consensus (feat-123); CHECK 1–5 (feat-124) |
 | updated_at | timestamptz | now() |
 
 ### raw_bundles — one row per ingested Sierra export bundle
@@ -194,7 +198,9 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Migrations & DDL
 
 - **Nothing is pending as of 2026-08-22.** feat-121's `20260822200000_job_input_refs.sql`
-  (three nullable `raw_bundles` ref columns) was applied that day via the MCP tool below.
+  (three nullable `raw_bundles` ref columns) and feat-124's
+  `20260822210000_profile_vision_config.sql` (three `config` columns) were applied that day
+  via the MCP tool below.
   Earlier: `20260809140000_volatility_scaled_gates.sql`
   had been committed-but-unapplied since 2026-08-09; it and feat-112's
   `20260811170000_significant_move_sigma_030.sql` were both applied on 2026-08-11 via the
@@ -209,7 +215,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
     ~146-pt floor while the stored row still said 50 pts. **A padded config default is
     invisible to the pipeline that consumes it; apply the migration the same day.**
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (31 rows as of 2026-08-22; repo
+  `supabase_migrations.schema_migrations` (32 rows as of 2026-08-22; repo
   `20260802200000_revalidation_action.sql` applied via the claude.ai Supabase
   MCP, so its live timestamp differs from the filename).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has

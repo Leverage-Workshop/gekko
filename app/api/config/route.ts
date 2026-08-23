@@ -32,11 +32,12 @@ type ConfigPayload = {
   config: ConfigRow
   highConvictionColumnsMissing?: boolean
   effortColumnsMissing?: boolean
+  profileVisionColumnsMissing?: boolean
 }
 
 export async function GET(): Promise<Response> {
   try {
-    const { row, highConvictionColumnsMissing, effortColumnsMissing } =
+    const { row, highConvictionColumnsMissing, effortColumnsMissing, profileVisionColumnsMissing } =
       await fetchConfigRow(getServiceClient())
     if (!row) {
       return json(
@@ -45,7 +46,10 @@ export async function GET(): Promise<Response> {
       )
     }
     return json<ConfigPayload>(
-      { success: true, data: { config: row, highConvictionColumnsMissing, effortColumnsMissing } },
+      {
+        success: true,
+        data: { config: row, highConvictionColumnsMissing, effortColumnsMissing, profileVisionColumnsMissing },
+      },
       200,
     )
   } catch (error) {

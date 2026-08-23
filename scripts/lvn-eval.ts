@@ -16,6 +16,16 @@
 import { loadLvnFixtures } from '../lib/engine/loadLvnFixtures'
 import type { LvnFixture, FixtureSplit } from '../lib/engine/loadLvnFixtures'
 import { detectLvnHvn, DEFAULT_LVN_PARAMS } from '../lib/engine/lvnDetection'
+import {
+  EMPTY_METRICS as EMPTY,
+  countDelta,
+  f1,
+  greedyMatch as score,
+  precision,
+  recall,
+  sumMetrics as sum,
+  type Metrics,
+} from '../lib/engine/nodeMatch'
 
 const DEFAULT_TOLERANCE = 10
 // TRAIN F1 gate — a REGRESSION FLOOR, not a quality claim. Detection is code-owned and
@@ -26,14 +36,6 @@ const DEFAULT_TOLERANCE = 10
 // raising it is future work gated on a better detector and/or more fixtures.
 const DEFAULT_THRESHOLD = 0.4
 
-type Metrics = {
-  tp: number
-  fp: number
-  fn: number
-  detected: number
-  labeled: number
-}
-
 function parseFlag(name: string, fallback: number): number {
   const arg = process.argv.find(a => a.startsWith(`--${name}=`))
   if (!arg) return fallback
@@ -41,63 +43,13 @@ function parseFlag(name: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback
 }
 
-/** Greedy nearest matching: each label claims the closest unused detected price within tolerance. */
-function score(detected: number[], labeled: number[], tolerance: number): Metrics {
-  const used = new Set<number>()
-  let tp = 0
-  for (const label of labeled) {
-    let bestIdx = -1
-    let bestDist = Infinity
-    for (let i = 0; i < detected.length; i++) {
-      if (used.has(i)) continue
-      const d = Math.abs(detected[i] - label)
-      if (d <= tolerance && d < bestDist) {
-        bestDist = d
-        bestIdx = i
-      }
-    }
-    if (bestIdx !== -1) {
-      used.add(bestIdx)
-      tp++
-    }
-  }
-  return {
-    tp,
-    fp: detected.length - tp,
-    fn: labeled.length - tp,
-    detected: detected.length,
-    labeled: labeled.length,
-  }
-}
-
-function precision(m: Metrics): number {
-  return m.tp + m.fp === 0 ? 1 : m.tp / (m.tp + m.fp)
-}
-function recall(m: Metrics): number {
-  return m.tp + m.fn === 0 ? 1 : m.tp / (m.tp + m.fn)
-}
-function f1(m: Metrics): number {
-  const p = precision(m)
-  const r = recall(m)
-  return p + r === 0 ? 0 : (2 * p * r) / (p + r)
-}
-function sum(a: Metrics, b: Metrics): Metrics {
-  return {
-    tp: a.tp + b.tp,
-    fp: a.fp + b.fp,
-    fn: a.fn + b.fn,
-    detected: a.detected + b.detected,
-    labeled: a.labeled + b.labeled,
-  }
-}
-const EMPTY: Metrics = { tp: 0, fp: 0, fn: 0, detected: 0, labeled: 0 }
 
 function pct(n: number): string {
   return (n * 100).toFixed(0).padStart(3) + '%'
 }
 
 function fmtRow(label: string, m: Metrics): string {
-  const delta = m.detected - m.labeled
+  const delta = countDelta(m)
   const deltaStr = (delta > 0 ? '+' : '') + delta
   return (
     `  ${label.padEnd(22)} ` +

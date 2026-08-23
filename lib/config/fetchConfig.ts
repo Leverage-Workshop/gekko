@@ -41,6 +41,15 @@ export interface ConfigRow {
    * prompts in BOTH units; the doctrine prefix never states the number.
    */
   significant_move_sigma: number
+  /**
+   * Job planner profile vision read (feat-124, docs/job-planning-task-plan.md
+   * "Model / effort"). `profile_vision_model_id` NULL = the read is OFF (feat-128
+   * treats it as "profile nodes unavailable", R14); effort NULL = provider
+   * default; samples is S in the P x S x T consensus (feat-123), 1..5.
+   */
+  profile_vision_model_id: string | null
+  profile_vision_model_effort: ReasoningEffort | null
+  profile_vision_samples: number
   updated_at: string
 }
 
@@ -70,9 +79,22 @@ export interface ConfigReadResult {
    * point value is never read as a multiple.
    */
   significantMoveColumnMissing: boolean
+  /**
+   * True when the live DB predates the profile_vision_config migration
+   * (feat-124) — the returned row is padded with {@link PROFILE_VISION_DEFAULTS}
+   * (read OFF, provider-default effort, 3 samples).
+   */
+  profileVisionColumnsMissing: boolean
 }
 
 export const FULL_CONFIG_COLUMNS =
+  'model_id, triage_model_id, rr_min, high_conviction_enabled, high_conviction_model_id, ' +
+  'model_effort, triage_model_effort, high_conviction_model_effort, execution_bar_volume, ' +
+  'significant_move_sigma, profile_vision_model_id, profile_vision_model_effort, ' +
+  'profile_vision_samples, updated_at'
+
+/** Pre-profile_vision_config column set (post significant_move_sigma). */
+const PRE_PROFILE_VISION_CONFIG_COLUMNS =
   'model_id, triage_model_id, rr_min, high_conviction_enabled, high_conviction_model_id, ' +
   'model_effort, triage_model_effort, high_conviction_model_effort, execution_bar_volume, ' +
   'significant_move_sigma, updated_at'
@@ -136,6 +158,21 @@ const SIGNIFICANT_MOVE_DEFAULTS = {
   significant_move_sigma: DEFAULT_SIGNIFICANT_MOVE_SIGMA,
 } as const
 
+/** Samples per profile image when the vision read runs (feat-123 default S). */
+export const DEFAULT_PROFILE_VISION_SAMPLES = 3
+
+/**
+ * Pads the read shape when the live DB predates the profile_vision_config
+ * migration (feat-124): the read is OFF (null model id), provider-default
+ * effort, the default sample count. A null model id is never a model call —
+ * feat-128 reads it as "profile nodes unavailable" (R14).
+ */
+export const PROFILE_VISION_DEFAULTS = {
+  profile_vision_model_id: null,
+  profile_vision_model_effort: null,
+  profile_vision_samples: DEFAULT_PROFILE_VISION_SAMPLES,
+} as const
+
 /** Postgres "undefined_column" — the column set predates a checked-in migration. */
 export function isMissingColumnError(error: { code?: string; message?: string }): boolean {
   if (error.code === '42703') {
@@ -165,10 +202,30 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
       effortColumnsMissing: false,
       barVolumeColumnMissing: false,
       significantMoveColumnMissing: false,
+      profileVisionColumnsMissing: false,
     }
   }
   if (!isMissingColumnError(full.error)) {
     throw full.error
+  }
+
+  // Live DB predates the profile_vision_config migration (feat-124): retry
+  // without those columns and pad with the read-OFF defaults.
+  const preProfileVision = await selectConfig(supabase, PRE_PROFILE_VISION_CONFIG_COLUMNS)
+  if (!preProfileVision.error) {
+    return {
+      row: preProfileVision.data
+        ? ({ ...preProfileVision.data, ...PROFILE_VISION_DEFAULTS } as ConfigRow)
+        : null,
+      highConvictionColumnsMissing: false,
+      effortColumnsMissing: false,
+      barVolumeColumnMissing: false,
+      significantMoveColumnMissing: false,
+      profileVisionColumnsMissing: true,
+    }
+  }
+  if (!isMissingColumnError(preProfileVision.error)) {
+    throw preProfileVision.error
   }
 
   // Live DB predates the significant_move_sigma migration (or still carries
@@ -177,12 +234,17 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
   if (!preSignificantMove.error) {
     return {
       row: preSignificantMove.data
-        ? ({ ...preSignificantMove.data, ...SIGNIFICANT_MOVE_DEFAULTS } as ConfigRow)
+        ? ({
+            ...preSignificantMove.data,
+            ...SIGNIFICANT_MOVE_DEFAULTS,
+            ...PROFILE_VISION_DEFAULTS,
+          } as ConfigRow)
         : null,
       highConvictionColumnsMissing: false,
       effortColumnsMissing: false,
       barVolumeColumnMissing: false,
       significantMoveColumnMissing: true,
+      profileVisionColumnsMissing: true,
     }
   }
   if (!isMissingColumnError(preSignificantMove.error)) {
@@ -199,12 +261,14 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
             ...preBarVolume.data,
             ...BAR_VOLUME_DEFAULTS,
             ...SIGNIFICANT_MOVE_DEFAULTS,
+            ...PROFILE_VISION_DEFAULTS,
           } as ConfigRow)
         : null,
       highConvictionColumnsMissing: false,
       effortColumnsMissing: false,
       barVolumeColumnMissing: true,
       significantMoveColumnMissing: true,
+      profileVisionColumnsMissing: true,
     }
   }
   if (!isMissingColumnError(preBarVolume.error)) {
@@ -222,12 +286,14 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
             ...EFFORT_DEFAULTS,
             ...BAR_VOLUME_DEFAULTS,
             ...SIGNIFICANT_MOVE_DEFAULTS,
+            ...PROFILE_VISION_DEFAULTS,
           } as ConfigRow)
         : null,
       highConvictionColumnsMissing: false,
       effortColumnsMissing: true,
       barVolumeColumnMissing: true,
       significantMoveColumnMissing: true,
+      profileVisionColumnsMissing: true,
     }
   }
   if (!isMissingColumnError(preEffort.error)) {
@@ -248,11 +314,13 @@ export async function fetchConfigRow(supabase: SupabaseClient): Promise<ConfigRe
           ...EFFORT_DEFAULTS,
           ...BAR_VOLUME_DEFAULTS,
           ...SIGNIFICANT_MOVE_DEFAULTS,
+          ...PROFILE_VISION_DEFAULTS,
         } as ConfigRow)
       : null,
     highConvictionColumnsMissing: true,
     effortColumnsMissing: true,
     barVolumeColumnMissing: true,
     significantMoveColumnMissing: true,
+    profileVisionColumnsMissing: true,
   }
 }

@@ -42,6 +42,9 @@ const VALID_BODY = {
   high_conviction_model_effort: null,
   execution_bar_volume: 750,
   significant_move_sigma: 0.4,
+  profile_vision_model_id: null,
+  profile_vision_model_effort: null,
+  profile_vision_samples: 3,
 }
 
 function fakeClient({
@@ -89,7 +92,12 @@ describe('GET /api/config', () => {
     expect(res.status).toBe(200)
     expect(body).toEqual({
       success: true,
-      data: { config: ROW, highConvictionColumnsMissing: false, effortColumnsMissing: false },
+      data: {
+        config: ROW,
+        highConvictionColumnsMissing: false,
+        effortColumnsMissing: false,
+        profileVisionColumnsMissing: false,
+      },
     })
   })
 

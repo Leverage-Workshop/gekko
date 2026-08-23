@@ -187,6 +187,21 @@ describe('supabase migrations', () => {
     expect(content).not.toMatch(/delete\s+from/i)
   })
 
+  it('adds the profile-vision config columns additively and constrained (feat-124)', () => {
+    const file = sql.files.find((f) => f.includes('profile_vision_config'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    expect(content).toContain('add column if not exists profile_vision_model_id text')
+    expect(content).toContain('add column if not exists profile_vision_model_effort text')
+    expect(content).toContain('profile_vision_model_effort in')
+    expect(content).toContain("('none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max')")
+    expect(content).toContain('add column if not exists profile_vision_samples integer')
+    expect(content).toContain('default 3')
+    expect(content).toContain('profile_vision_samples between 1 and 5')
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+
   it('renames five_day_vbp_ref to balance_area_vbp_ref guarded and non-destructively (feat-037)', () => {
     const file = sql.files.find((f) => f.includes('balance_area_vbp_ref'))
     expect(file).toBeDefined()
