@@ -229,7 +229,9 @@ function valueContextLine(vm: ValueMigrationFacts | null | undefined): string {
 /**
  * One code-owned HTF structure context line (feat-049): 30-min trend state,
  * measured ATR and ATR-normalized distances from the last confirmed swings —
- * the "rotation noise or trend break?" scale for hold/exit reads.
+ * the "rotation noise or trend break?" scale for hold/exit reads. The rotation
+ * legs ship WITH their bar times (feat-117): confirmed pivots lag, so an
+ * undated span reads as the live range when it can be a session old.
  */
 function htfContextLine(htf: HtfStructureFacts | null | undefined): string {
   if (!htf) {
@@ -245,13 +247,13 @@ function htfContextLine(htf: HtfStructureFacts | null | undefined): string {
       : null,
   ].filter(Boolean)
   const rotation = htf.rotation
-    ? `; current rotation ${htf.rotation.low}–${htf.rotation.high} (${htf.rotation.extentPts} pts, ${htf.rotation.extentAtr} ATR)`
+    ? `; defining rotation ${htf.rotation.low} (${htf.rotation.lowDateTime}) – ${htf.rotation.high} (${htf.rotation.highDateTime}), ${htf.rotation.extentPts} pts / ${htf.rotation.extentAtr} ATR`
     : ''
   const swings = swingBits.length > 0 ? `; price is ${swingBits.join(' and ')}` : ''
   const integrity = htf.trend.integrity
     ? ` — integrity ${htf.trend.integrity.toUpperCase()} (${htf.trend.integrityBasis})`
     : ''
-  return `Code-owned (30-min chart): trend ${htf.trend.state.toUpperCase()} (${htf.trend.basis})${integrity}; 30-min ATR ${htf.atrPoints} pts${rotation}${swings}. An adverse move well inside 1 rotation/a few ATR is rotation noise; beyond the last swing against the trade is a structure break. The swing state lags by 2.5 h — weigh the integrity qualifier, not the raw state.`
+  return `Code-owned (30-min chart, bars through ${htf.windowEnd}): trend ${htf.trend.state.toUpperCase()} (${htf.trend.basis})${integrity}; 30-min ATR ${htf.atrPoints} pts${rotation}${swings}. An adverse move well inside 1 rotation/a few ATR is rotation noise; beyond the last swing against the trade is a structure break. The swing state lags by 2.5 h — weigh the integrity qualifier, not the raw state, and read the rotation as the last CONFIRMED span at the times given, not as the current range.`
 }
 
 /**

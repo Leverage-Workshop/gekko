@@ -2,9 +2,45 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-12
+**Last Updated:** 2026-08-21
 
-**Latest change (branch `feat-113-retire-atr-rungs`): feat-113 — the ATR-projected rung anchor
+**Latest change (branch `feat-117-pivot-tie-break`): feat-117 — double-top pivot annihilation
+fixed; the defining rotation now ships dated.** Live defect, found by the operator reading the
+2026-08-21 08:28 PT briefing (`edfa06a2`, bundle `8455eacd`): *"Range: mixed confirmed swings, so
+no directional integrity qualifier applies. The current 78-point rotation spans 29321.25 to
+29399.25"* — a rotation whose legs confirmed at 21:30 and 23:30 the **previous day** while the
+live session had already traded 29220–29539. The bundle was FRESH (bars through 10:00 chart time,
+price 29359.5) and the model reported the engine fact faithfully. The fact was wrong.
+
+Root cause: `findPivots` disqualified a candidate on a **non-strict** comparison against BOTH
+windows, so two bars with an identical extreme inside the ±5-bar window annihilate each other and
+neither confirms. That session's high **29539.00 printed twice** — 06:30 and 07:30, four bars
+apart, exactly at the ONH — so no swing high from the session entered the sequence at all. The
+knock-on is what made it dangerous: with the high erased the sequence read "mixed" → state
+`range`, and integrity is only computed for `up`/`down`, so **feat-064's real-time squaring — the
+one mechanism built to stop a lagging swing read shipping unqualified — was switched off by the
+same bug that caused the staleness.** Over the 2955-bar export the tie rule annihilated 5
+candidates in ~3 months, all highs: rare, but landing precisely on double-tested extremes.
+
+The tie rule is now asymmetric — strictly above the left window, at or above the right — so the
+**earliest** bar of an equal-extreme cluster is the pivot (it also confirms soonest, which matters
+for a read already lagging 2.5 h). On the incident export: last swing high 29539.00 @ 2026-08-21
+06:30, state `up`, rotation 217.75 pts / 3.3 ATR, integrity `under-test` at ~82% retrace — the
+honest read of a session that rallied to 29539 and got sold 319 pts to 29220.
+
+Two companions shipped with it. `intradayTrend.ts` kept a **private copy** of the same rule on
+exec bars — which tie far more often at 750-volume granularity and feed `intradayTrend.direction`,
+the fact that awards the primary objective — and now shares htfStructure's finder (its bar
+parameter widened to a structural `PivotBar`); `htfFlow.ts` already shared it and inherits the fix.
+And `rotation` gained `highDateTime`/`lowDateTime`: "most recent CONFIRMED" is not "current", the
+two legs need not come from the same session, and an undated span reads as the live range — both
+prompts, the eval context line and the two knowledge docs now forbid *"the current rotation"* and
+require the span dated whenever a leg predates the live session. Note this second gap is
+independent of the bug: even with the tie fixed, the incident's low leg is still 23:30 the prior
+day against a session low of 29220. That is inherent fractal lag the prose must disclose, not a
+threshold to tune.
+
+**Prior change (branch `feat-113-retire-atr-rungs`): feat-113 — the ATR-projected rung anchor
 class is deleted; the engine carries ONE volatility measure.** Operator decision 2026-08-12, from a
 review of feat-113's original scope: "it doesn't make any sense to use two different volatility
 measures, especially if the Sigma one is way better", and on the rungs specifically, "I never asked
