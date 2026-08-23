@@ -33,6 +33,15 @@ const price = z.number().finite()
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
+/** A shape-valid ISO date that is also a real calendar date (rejects 2026-99-99, 2026-02-30). */
+function isCalendarDate(value: string): boolean {
+  if (!ISO_DATE.test(value)) return false
+  const d = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value
+}
+
+const isoDate = z.string().refine(isCalendarDate, { message: 'must be a real YYYY-MM-DD date' })
+
 export const goldenLabelSchema = z
   .object({
     instrument: z.enum(INSTRUMENTS),
@@ -80,8 +89,8 @@ const uniqueDates = (arr: string[]) => new Set(arr).size === arr.length
 
 export const splitSchema = z
   .object({
-    fewShot: z.array(z.string().regex(ISO_DATE)).min(1),
-    test: z.array(z.string().regex(ISO_DATE)),
+    fewShot: z.array(isoDate).min(1),
+    test: z.array(isoDate),
   })
   .strict()
   .refine((s) => s.fewShot.every((d) => !s.test.includes(d)), {
@@ -174,6 +183,12 @@ function loadDate(root: string, date: string, role: SplitRole): GoldenDate {
   // themselves demand a file; only explicitly named profiles can be "missing".
   const missing = referencedProfiles(labels).filter((p) => !present.includes(p))
 
+  // A date is scorable only when a file exists that some label can be scored against:
+  // the named profile for a strict label, or ANY present profile for an `any` label.
+  const scorable = labels.some((l) =>
+    l.profile === 'any' ? present.length > 0 : present.includes(l.profile)
+  )
+
   return {
     date,
     role,
@@ -182,7 +197,7 @@ function loadDate(root: string, date: string, role: SplitRole): GoldenDate {
     replay,
     profilesPresent: present,
     profilesMissing: missing,
-    scorable: present.length > 0,
+    scorable,
   }
 }
 

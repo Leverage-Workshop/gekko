@@ -73,19 +73,19 @@ describe('golden labels', () => {
     }
   })
 
-  it('the A1 row a label cites actually names the label price (or its NQ short form)', () => {
+  it('the A1 row a label cites names the priceLow as a full price (boundary-delimited)', () => {
+    // The A1 Price column carries the fully-expanded low endpoint; anchoring on it (not a
+    // colloquial 2-digit form) catches a wrong-row citation and a wrong thousands digit —
+    // ES "45" alone cannot distinguish 6745 from 7745, but the full "6745" can.
     for (const { date, label } of all) {
       const row = A1_ROWS.get(label.corpusRef)!
-      const digits = (n: number) => String(n).replace(/\.0$/, '')
-      // the row mentions the price, its last-4 short form (NQ "960s" = 24960), or its band ends
-      const candidates = [label.priceLow, label.priceHigh].flatMap((p) => [
-        digits(p),
-        digits(p % 10000),
-        digits(Math.floor(p) % 1000),
-      ])
+      const low = Math.floor(label.priceLow)
+      // allow a trailing 's' — the corpus writes "6840s" / "the 960s"
+      const full = new RegExp(`\\b${low}s?\\b`)
+      const last3 = new RegExp(`\\b${String(low % 1000).padStart(3, '0')}s?\\b`)
       expect(
-        candidates.some((c) => row.includes(c)),
-        `${date} ref ${label.corpusRef}: row does not name ${label.priceLow}-${label.priceHigh}`
+        full.test(row) || last3.test(row),
+        `${date} ref ${label.corpusRef}: row does not name priceLow ${label.priceLow}`
       ).toBe(true)
     }
   })
@@ -191,6 +191,8 @@ describe('schemas reject malformed input', () => {
       false
     )
     expect(splitSchema.safeParse({ fewShot: ['01/01/2026'], test: [] }).success).toBe(false)
+    expect(splitSchema.safeParse({ fewShot: ['2026-99-99'], test: [] }).success).toBe(false)
+    expect(splitSchema.safeParse({ fewShot: ['2026-02-30'], test: [] }).success).toBe(false)
     expect(splitSchema.safeParse({ fewShot: ['2026-01-01'], test: [], extra: 1 }).success).toBe(
       false
     )
@@ -258,6 +260,8 @@ describe('loader', () => {
     const dir = mkdtempSync(join(tmpdir(), 'golden-'))
     afterAll(() => rmSync(dir, { recursive: true, force: true }))
     const writeDate = (date: string, labels: unknown, extra: Record<string, string> = {}) => {
+      // fresh folder each time — no profile file leaks between tests that reuse the date
+      rmSync(join(dir, date), { recursive: true, force: true })
       mkdirSync(join(dir, date), { recursive: true })
       writeFileSync(join(dir, date, 'labels.json'), JSON.stringify(labels))
       for (const [name, body] of Object.entries(extra)) writeFileSync(join(dir, date, name), body)
@@ -286,11 +290,28 @@ describe('loader', () => {
       })
     })
 
-    it('reports a present profile file as scorable', () => {
+    it('reports the named profile file as scorable', () => {
       writeFileSync(join(dir, 'split.json'), JSON.stringify({ fewShot: ['2026-01-01'], test: [] }))
       writeDate('2026-01-01', [label()], { 'five-day-rolling.vbp.md': '# profile' })
       const d = loadGoldenSet(dir).dates[0]
       expect(d).toMatchObject({ scorable: true, profilesPresent: ['5d'], profilesMissing: [] })
+    })
+
+    it('is NOT scorable when only an unrelated profile file exists for a strict label', () => {
+      writeFileSync(join(dir, 'split.json'), JSON.stringify({ fewShot: ['2026-01-01'], test: [] }))
+      writeDate('2026-01-01', [label({ profile: '5d' })], { 'overnight.vbp.md': '# profile' })
+      const d = loadGoldenSet(dir).dates[0]
+      expect(d).toMatchObject({
+        scorable: false,
+        profilesPresent: ['overnight'],
+        profilesMissing: ['5d'],
+      })
+    })
+
+    it('an `any` label is scorable against whichever profile is present', () => {
+      writeFileSync(join(dir, 'split.json'), JSON.stringify({ fewShot: ['2026-01-01'], test: [] }))
+      writeDate('2026-01-01', [label({ profile: 'any' })], { 'overnight.vbp.md': '# profile' })
+      expect(loadGoldenSet(dir).dates[0].scorable).toBe(true)
     })
 
     it('throws when replay.json contradicts the label instrument', () => {
