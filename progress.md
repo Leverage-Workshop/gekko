@@ -2,7 +2,23 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-22
+**Last Updated:** 2026-08-23
+
+**Latest change (branch `chore-codex-review-gate`): Codex code review is part of the check-in
+gate.** `npm run codex:gate` (`scripts/codex-gate.ts`, `lib/codex-gate/`) runs Codex's native
+code reviewer (the one behind `/codex:review`) over `origin/main...HEAD`, fails on any `[P0]`/`[P1]`
+finding, prints P2/P3 for triage, and records the run in a gitignored `.codex-gate/last.json`.
+CLAUDE.md's Definition of Done and End of Session now require it before the PR. Design note:
+the first cut used the plugin's *adversarial* review with a hard "no critical/high" bar plus a
+PreToolUse hook that classified git/gh commands — the adversarial reviewer then produced an
+unbounded stream of "do not ship" classifier-evasion findings against the hook itself (13
+rounds). Operator decision 2026-08-23: plain review, P1-only bar, no hook — enforcement is the
+CLAUDE.md rule, like the rest of the harness. The gate's first run on itself returned one P1
+— the parser dropped `[P0]` findings, a silent pass — fixed; a second P1 (a missing
+`codex.status` was treated as success) — fixed. Final gate: PASS on the PR head; one P2
+dismissed (registry with several Codex plugin installs where the first is stale — single
+installation here; revisit if the plugin is ever reinstalled at another scope). 17 tests (review-text parsing, payload
+fail-closed, git helpers against a temp repo).
 
 **Latest change (branch `feat-124-profile-vision-config`): feat-124 — profile-vision config +
 /settings + bench.** `config` gains `profile_vision_model_id` (NULL = read OFF, R14),

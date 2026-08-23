@@ -41,3 +41,7 @@ __pycache__/
 
 # Derived reading copies of replay transcripts
 docs/jba-research/replays/.condensed/
+
+# Codex review gate stamp (scripts/codex-gate.ts) — bound to a local HEAD,
+# never meaningful in another checkout.
+.codex-gate/
