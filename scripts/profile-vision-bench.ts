@@ -21,7 +21,8 @@
  * memory), filtered to image-input models with flash-tier excluded (they game
  * validation floors — docs/briefing-audit-2026-07-25.md). Responses are cached
  * under the scratchpad keyed by (image sha256, VISION_PROMPT_REVISION, model,
- * effort) so iterating on variants/scoring is cheap.
+ * effort) — an ORDERED list of the S reads, so a warm rerun replays each
+ * sample's distinct read (self-agreement stays honest) with its real cost/latency.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -30,13 +31,15 @@ import { join } from 'node:path'
 import { detectLvnHvn } from '../lib/engine/lvnDetection'
 import { loadLvnFixtures } from '../lib/engine/loadLvnFixtures'
 import { parseVbpProfile, type VbpProfile } from '../lib/engine/parseProfile'
-import type { Metrics } from '../lib/engine/nodeMatch'
+import { sumMetrics, type Metrics } from '../lib/engine/nodeMatch'
 import { generateStructured } from '../lib/llm/generateStructured'
 import type { ReasoningEffort } from '../lib/llm/reasoning'
 import {
+  addFamilyScores,
   consensusToScored,
   countDelta,
   detectorToScored,
+  emptyFamilyScores,
   f1,
   labelToScored,
   overall,
@@ -51,7 +54,6 @@ import {
   type ScoredNode,
 } from '../lib/job-plan/profile-vision/bench'
 import {
-  GOLDEN_PROFILES,
   loadGoldenSet,
   PROFILE_FILES,
   type GoldenDate,
@@ -67,6 +69,7 @@ import {
   type ProfileNodesRead,
 } from '../lib/job-plan/profile-vision/schema'
 import { VISION_PROMPT_REVISION } from '../lib/job-plan/profile-vision/prompt'
+import { PROFILE_KEYS, type ProfileKey } from '../lib/job-plan/profile-vision/types'
 import type { RenderOptions } from '../lib/job-plan/profile-vision/renderProfile'
 
 // ---------------------------------------------------------------------------
@@ -80,6 +83,9 @@ const VARIANTS: Readonly<Record<string, Omit<RenderOptions, 'instrument' | 'curr
   'left-anchor': { barAnchor: 'left' },
   'dark-envelope': { theme: 'dark', envelope: true },
 }
+
+/** Vision-readable profile keys (feat-123). Golden `overnight` profiles have no vision key. */
+const READABLE_KEYS: readonly ProfileKey[] = PROFILE_KEYS
 
 type Args = {
   model: string | null
@@ -119,9 +125,15 @@ function parseArgs(argv: string[]): Args {
 }
 
 // ---------------------------------------------------------------------------
-// Response cache: (image sha256, prompt revision, model, effort) -> read JSON.
+// Response cache: (image sha256, prompt revision, model, effort) -> ORDERED
+// list of the reads seen for that image, each with cost/latency. A cold run
+// appends live reads; a warm run replays them in order, one per sample, so
+// self-agreement and cost/latency survive re-runs.
 // ---------------------------------------------------------------------------
 const CACHE_DIR = join(tmpdir(), 'gekko-profile-vision-bench-cache')
+
+type CachedRead = { read: ProfileNodesRead; cost: number | null; latencyMs: number | null }
+type CacheFile = { reads: CachedRead[] }
 
 function cacheKey(imageSha: string, model: string, effort: ReasoningEffort | null): string {
   return createHash('sha256')
@@ -129,30 +141,46 @@ function cacheKey(imageSha: string, model: string, effort: ReasoningEffort | nul
     .digest('hex')
 }
 
-function readCache(key: string): ProfileNodesRead | null {
+function loadCacheFile(key: string): CacheFile {
   const path = join(CACHE_DIR, `${key}.json`)
-  if (!existsSync(path)) return null
-  const parsed = profileNodesReadSchema.safeParse(JSON.parse(readFileSync(path, 'utf8')))
-  return parsed.success ? parsed.data : null
+  if (!existsSync(path)) return { reads: [] }
+  const raw = JSON.parse(readFileSync(path, 'utf8')) as { reads?: unknown[] }
+  const reads: CachedRead[] = []
+  for (const entry of raw.reads ?? []) {
+    const e = entry as { read?: unknown; cost?: number | null; latencyMs?: number | null }
+    const parsed = profileNodesReadSchema.safeParse(e.read)
+    if (parsed.success) {
+      reads.push({ read: parsed.data, cost: e.cost ?? null, latencyMs: e.latencyMs ?? null })
+    }
+  }
+  return { reads }
 }
 
-function writeCache(key: string, read: ProfileNodesRead): void {
+function saveCacheFile(key: string, file: CacheFile): void {
   mkdirSync(CACHE_DIR, { recursive: true })
-  writeFileSync(join(CACHE_DIR, `${key}.json`), JSON.stringify(read))
+  writeFileSync(join(CACHE_DIR, `${key}.json`), JSON.stringify(file))
 }
 
 /**
- * A caching wrapper over generateStructured shaped as the VisionGenerate dep:
- * the image sha (first image is the target) keys the cache with the prompt
- * revision, model and effort, so re-running a variant reuses paid reads.
+ * A caching wrapper over generateStructured shaped as the VisionGenerate dep.
+ * Per image key it hands out the cached reads in order (one per call), and only
+ * makes a live call when the cache is exhausted for this run — so S samples of
+ * one image get S DISTINCT reads on both cold and warm runs, with real
+ * cost/latency replayed.
  */
 function makeGenerate(model: string, effort: ReasoningEffort | null): VisionGenerate {
+  const cursor = new Map<string, number>()
   return async ({ prompt, images, abortSignal }) => {
     const targetImage = images[images.length - 1]
     const imageSha = createHash('sha256').update(targetImage.base64).digest('hex')
     const key = cacheKey(imageSha, model, effort)
-    const cached = readCache(key)
-    if (cached) return { object: cached, cost: 0, latencyMs: 0 }
+    const file = loadCacheFile(key)
+    const i = cursor.get(key) ?? 0
+    cursor.set(key, i + 1)
+    if (i < file.reads.length) {
+      const hit = file.reads[i]
+      return { object: hit.read, cost: hit.cost, latencyMs: hit.latencyMs ?? 0 }
+    }
     const result = await generateStructured({
       model,
       effort,
@@ -161,19 +189,26 @@ function makeGenerate(model: string, effort: ReasoningEffort | null): VisionGene
       images: [...images],
       abortSignal,
     })
-    writeCache(key, result.object)
+    file.reads.push({ read: result.object, cost: result.cost, latencyMs: result.latencyMs })
+    saveCacheFile(key, file)
     return { object: result.object, cost: result.cost, latencyMs: result.latencyMs }
   }
 }
 
 // ---------------------------------------------------------------------------
 // Sources: golden dates (feat-119 profiles, may be absent) and lvn-fixtures.
+// A CASE is a date (or a fixture): it may carry several profiles, its labels
+// split into per-named-profile labels + `any` labels scored against the union.
 // ---------------------------------------------------------------------------
 type ProfileCase = {
   readonly id: string
   readonly instrument: Instrument
-  readonly profile: VbpProfile
-  readonly labels: readonly GoldenLabel[]
+  /** Vision-readable profiles for this case, keyed by profile. */
+  readonly profiles: Partial<Record<ProfileKey, VbpProfile>>
+  /** Labels naming a specific readable profile, keyed by that profile. */
+  readonly named: Partial<Record<ProfileKey, GoldenLabel[]>>
+  /** `any` labels — scored ONCE against the union of the case's profiles. */
+  readonly any: GoldenLabel[]
 }
 
 function goldenCases(dates: string[] | null): { cases: ProfileCase[]; skipped: string[] } {
@@ -183,44 +218,49 @@ function goldenCases(dates: string[] | null): { cases: ProfileCase[]; skipped: s
   for (const d of set.dates) {
     if (d.role === 'fewShot') continue // never scored on the few-shot dates
     if (dates && !dates.includes(d.date)) continue
-    const files = presentProfileFiles(d)
-    if (files.length === 0) {
+    const profiles = readableProfiles(d)
+    if (Object.keys(profiles).length === 0) {
       skipped.push(d.date)
       continue
     }
-    for (const { key, path } of files) {
-      const labels = d.labels.filter((l) => l.profile === key || l.profile === 'any')
-      if (labels.length === 0) continue
-      cases.push({
-        id: `${d.date}:${key}`,
-        instrument: d.instrument,
-        profile: parseVbpProfile(readFileSync(path, 'utf8')),
-        labels,
-      })
+    const named: Partial<Record<ProfileKey, GoldenLabel[]>> = {}
+    for (const key of Object.keys(profiles) as ProfileKey[]) {
+      const labels = d.labels.filter((l) => l.profile === key)
+      if (labels.length > 0) named[key] = labels
     }
+    cases.push({
+      id: d.date,
+      instrument: d.instrument,
+      profiles,
+      named,
+      any: d.labels.filter((l) => l.profile === 'any'),
+    })
   }
   return { cases, skipped }
 }
 
-function presentProfileFiles(
-  d: GoldenDate
-): { key: Exclude<(typeof GOLDEN_PROFILES)[number], 'any'>; path: string }[] {
-  return d.profilesPresent.map((key) => ({
-    key,
-    path: join('chart-data/job-lvn-golden', d.date, PROFILE_FILES[key]),
-  }))
+function readableProfiles(d: GoldenDate): Partial<Record<ProfileKey, VbpProfile>> {
+  const out: Partial<Record<ProfileKey, VbpProfile>> = {}
+  for (const key of READABLE_KEYS) {
+    if (!d.profilesPresent.includes(key)) continue
+    const path = join('chart-data/job-lvn-golden', d.date, PROFILE_FILES[key])
+    out[key] = parseVbpProfile(readFileSync(path, 'utf8'))
+  }
+  return out
 }
 
 function fixtureCases(): ProfileCase[] {
-  // fixture labels are prices split lvn/hvn (no kind granularity, no primary).
+  // fixture labels are prices split lvn/hvn (no kind granularity, no primary);
+  // one profile per fixture, all labels `any`.
   const { fixtures } = loadLvnFixtures({ strict: true })
   return fixtures.map((fx) => ({
     id: `fixture:${fx.id}`,
-    instrument: 'NQ' as const, // the lvn-fixtures are NQ exports
-    profile: { rows: fx.rows, meta: fx.meta },
-    labels: [
+    instrument: 'NQ' as const,
+    profiles: { '5d': { rows: fx.rows, meta: fx.meta } },
+    named: {},
+    any: [
       ...fx.labels.lvn.map((p, i) => label('NQ', 'lvn', p, i)),
-      ...fx.labels.hvn.map((p, i) => label('NQ', 'hvn-core', p, i)),
+      ...fx.labels.hvn.map((p, i) => label('NQ', 'hvn-core', p, i + 1000)),
     ],
   }))
 }
@@ -248,11 +288,14 @@ function label(
 // ---------------------------------------------------------------------------
 type CaseResult = {
   readonly id: string
-  readonly vision: FamilyScores | null
+  readonly vision: FamilyScores // always present — a failed read scores as all-miss
   readonly detector: FamilyScores
   readonly primary: PrimaryOutcome
   readonly self: number | null
   readonly costUsd: number
+  readonly latencyMs: number
+  /** True when EVERY readable profile's consensus was unavailable (R14). */
+  readonly failed: boolean
 }
 
 async function scoreCase(
@@ -261,69 +304,98 @@ async function scoreCase(
   generate: VisionGenerate
 ): Promise<CaseResult> {
   const tolerance = toleranceFor(pc.instrument)
-  const labeled = pc.labels.map(labelToScored)
 
-  // Detector (code-owned) on the same profile.
-  const det = detectLvnHvn(pc.profile.rows)
-  const detector = scoreRead(
-    detectorToScored(
+  // Detector (code-owned) over every profile of the case, scored the same way.
+  let detector = emptyFamilyScores()
+  for (const key of Object.keys(pc.profiles) as ProfileKey[]) {
+    const det = detectLvnHvn(pc.profiles[key]!.rows)
+    const predicted = detectorToScored(
       det.lvn.map((n) => n.price),
       det.hvn.map((n) => n.price)
-    ),
-    labeled,
-    tolerance
-  )
+    )
+    detector = addFamilyScores(detector, scoreRead(predicted, caseLabels(pc, key), tolerance))
+  }
 
-  // Vision read: one profile, S samples, T tiles.
+  // Vision read: all readable profiles at once, S samples each.
   const result = await identifyProfileNodes({
     instrument: pc.instrument,
     currentPrice: null,
-    profiles: { '5d': pc.profile }, // one profile per case; the 5d slot is arbitrary here
+    profiles: pc.profiles,
     render: VARIANTS[args.variant],
     samples: args.samples,
     modelId: args.model!,
     effort: args.effort,
     generate,
   })
-  const entry = result.profiles['5d']
-  const consensus = entry?.consensus ?? null
-  const costUsd = (entry?.raw ?? []).reduce((s, r) => s + (r.cost ?? 0), 0)
 
-  let vision: FamilyScores | null = null
-  let primary: PrimaryOutcome = 'not_applicable'
-  let self: number | null = null
-  if (consensus) {
-    const predicted = consensus.nodes.map(consensusToScored)
-    vision = scoreRead(predicted, labeled, tolerance)
-    const labeledPrimary = pc.labels.find((l) => l.primary)
-    const predictedPrimary = consensus.nodes.find((n) => n.primary)
-    primary = scorePrimary(
-      predictedPrimary ? consensusToScored(predictedPrimary) : null,
-      labeledPrimary ? labelToScored(labeledPrimary) : null,
-      tolerance
+  let vision = emptyFamilyScores()
+  const unionPredicted: ScoredNode[] = []
+  const unionPrimaries: ScoredNode[] = []
+  const selfs: number[] = []
+  let costUsd = 0
+  let latencyMs = 0
+  let anyConsensus = false
+
+  for (const key of Object.keys(pc.profiles) as ProfileKey[]) {
+    const entry = result.profiles[key]
+    for (const r of entry?.raw ?? []) {
+      costUsd += r.cost ?? 0
+      latencyMs += r.latencyMs ?? 0
+    }
+    const consensus = entry?.consensus
+    // Named labels for THIS profile: scored against this profile's read (empty on failure).
+    const predicted = consensus ? consensus.nodes.map(consensusToScored) : []
+    vision = addFamilyScores(
+      vision,
+      scoreRead(predicted, (pc.named[key] ?? []).map(labelToScored), tolerance)
     )
-    self = sampleSelfAgreement(entry!.raw, pc.instrument, tolerance)
+    if (consensus) {
+      anyConsensus = true
+      unionPredicted.push(...predicted)
+      unionPrimaries.push(...consensus.nodes.filter((n) => n.primary).map(consensusToScored))
+      const s = perProfileSelf(entry?.raw ?? [], tolerance)
+      if (s !== null) selfs.push(s)
+    }
   }
-  return { id: pc.id, vision, detector, primary, self, costUsd }
+
+  // `any` labels resolved ONCE against the union of the case's profiles.
+  vision = addFamilyScores(vision, scoreRead(unionPredicted, pc.any.map(labelToScored), tolerance))
+
+  const labeledPrimary = [...Object.values(pc.named).flat(), ...pc.any].find((l) => l.primary)
+  const primary = scorePrimary(
+    unionPrimaries[0] ?? null,
+    labeledPrimary ? labelToScored(labeledPrimary) : null,
+    tolerance
+  )
+
+  return {
+    id: pc.id,
+    vision,
+    detector,
+    primary,
+    self: selfs.length === 0 ? null : selfs.reduce((a, b) => a + b, 0) / selfs.length,
+    costUsd,
+    latencyMs,
+    failed: !anyConsensus,
+  }
 }
 
-/** Self-agreement from the raw per-sample reads (one tile assumed here). */
-function sampleSelfAgreement(
-  raw: readonly { ok: boolean; read: ProfileNodesRead | null; sample: number; tile: number }[],
-  _instrument: Instrument,
+/** Labels a profile is scored against for the DETECTOR pass: its named labels + the `any` labels. */
+function caseLabels(pc: ProfileCase, key: ProfileKey): ScoredNode[] {
+  return [...(pc.named[key] ?? []), ...pc.any].map(labelToScored)
+}
+
+function perProfileSelf(
+  raw: readonly { ok: boolean; read: ProfileNodesRead | null; sample: number }[],
   tolerance: number
 ): number | null {
   const bySample = new Map<number, ScoredNode[]>()
   for (const r of raw) {
     if (!r.ok || !r.read) continue
-    const nodes = r.read.nodes.map((n) => consensusToScoredNode(n))
+    const nodes = r.read.nodes.map((n) => consensusToScored({ ...n, agreement: 1, samples: 1 }))
     bySample.set(r.sample, [...(bySample.get(r.sample) ?? []), ...nodes])
   }
   return selfAgreement([...bySample.values()], tolerance)
-}
-
-function consensusToScoredNode(n: ProfileNodesRead['nodes'][number]): ScoredNode {
-  return consensusToScored({ ...n, agreement: 1, samples: 1 })
 }
 
 // ---------------------------------------------------------------------------
@@ -333,45 +405,41 @@ function pct(x: number): string {
   return `${(x * 100).toFixed(0)}%`
 }
 
-function aggregate(
+function aggregateFamily(
   cases: readonly CaseResult[],
-  pick: (c: CaseResult) => FamilyScores | null
+  pick: (c: CaseResult) => FamilyScores
 ): Metrics {
   return cases
-    .map(pick)
-    .filter((s): s is FamilyScores => s !== null)
-    .map(overall)
-    .reduce(
-      (a, b) => ({
-        tp: a.tp + b.tp,
-        fp: a.fp + b.fp,
-        fn: a.fn + b.fn,
-        detected: a.detected + b.detected,
-        labeled: a.labeled + b.labeled,
-      }),
-      { tp: 0, fp: 0, fn: 0, detected: 0, labeled: 0 }
-    )
+    .map((c) => overall(pick(c)))
+    .reduce(sumMetrics, {
+      tp: 0,
+      fp: 0,
+      fn: 0,
+      detected: 0,
+      labeled: 0,
+    })
 }
 
 function summarize(cases: readonly CaseResult[]) {
-  const vision = aggregate(cases, (c) => c.vision)
-  const detector = aggregate(cases, (c) => c.detector)
+  const vision = aggregateFamily(cases, (c) => c.vision)
+  const detector = aggregateFamily(cases, (c) => c.detector)
   const primaries = cases.filter((c) => c.primary !== 'not_applicable')
   const primaryHits = primaries.filter((c) => c.primary === 'hit').length
   const selfs = cases.map((c) => c.self).filter((s): s is number => s !== null)
-  const cost = cases.reduce((s, c) => s + c.costUsd, 0)
   return {
-    vision,
     detector,
     visionRecall: recall(vision),
     visionPrecision: precision(vision),
     visionF1: f1(vision),
     detectorRecall: recall(detector),
+    detectorPrecision: precision(detector),
     detectorF1: f1(detector),
     primaryAgreement: primaries.length === 0 ? null : primaryHits / primaries.length,
     selfAgreement: selfs.length === 0 ? null : selfs.reduce((a, b) => a + b, 0) / selfs.length,
     countDelta: countDelta(vision),
-    costUsd: cost,
+    costUsd: cases.reduce((s, c) => s + c.costUsd, 0),
+    latencyMs: cases.reduce((s, c) => s + c.latencyMs, 0),
+    failedCases: cases.filter((c) => c.failed).length,
   }
 }
 
@@ -386,19 +454,20 @@ function reportBody(
     `## Profile-vision bench`,
     ``,
     `- model: \`${args.model}\`  effort: \`${args.effort ?? 'provider default'}\`  variant: \`${args.variant}\`  samples: ${args.samples}`,
-    `- source: ${args.source}  cases scored: ${cases}  golden dates skipped (no feat-119 profile yet): ${skipped.length}${skipped.length ? ` (${skipped.join(', ')})` : ''}`,
+    `- source: ${args.source}  cases scored: ${cases}  (vision read failed on ${s.failedCases})`,
+    `- golden dates skipped — no feat-119 profile yet: ${skipped.length}${skipped.length ? ` (${skipped.join(', ')})` : ''}`,
     `- prompt revision: \`${VISION_PROMPT_REVISION}\``,
     ``,
     `| metric | vision | detector |`,
     `| --- | --- | --- |`,
     `| recall (R1 tol) | ${pct(s.visionRecall)} | ${pct(s.detectorRecall)} |`,
-    `| precision | ${pct(s.visionPrecision)} | ${pct(precision(s.detector))} |`,
+    `| precision | ${pct(s.visionPrecision)} | ${pct(s.detectorPrecision)} |`,
     `| F1 | ${pct(s.visionF1)} | ${pct(s.detectorF1)} |`,
     `| count Δ (pred − labeled) | ${s.countDelta} | ${countDelta(s.detector)} |`,
     ``,
     `- primary agreement: ${s.primaryAgreement === null ? 'n/a' : pct(s.primaryAgreement)}`,
     `- self-agreement across samples: ${s.selfAgreement === null ? 'n/a' : pct(s.selfAgreement)}`,
-    `- cost: $${s.costUsd.toFixed(4)}`,
+    `- cost: $${s.costUsd.toFixed(4)}   latency: ${(s.latencyMs / 1000).toFixed(1)}s total`,
     ``,
     `### R15 (proposed exit criterion)`,
     ``,
