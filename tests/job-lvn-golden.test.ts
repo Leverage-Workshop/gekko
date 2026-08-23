@@ -73,19 +73,29 @@ describe('golden labels', () => {
     }
   })
 
-  it('the A1 row a label cites names the priceLow as a full price (boundary-delimited)', () => {
-    // The A1 Price column carries the fully-expanded low endpoint; anchoring on it (not a
-    // colloquial 2-digit form) catches a wrong-row citation and a wrong thousands digit —
-    // ES "45" alone cannot distinguish 6745 from 7745, but the full "6745" can.
+  it('the A1 row names priceLow as its full price, and priceHigh as full or a colloquial short form', () => {
+    // priceLow is the strict anchor: the A1 Price column carries the fully-expanded low
+    // endpoint, so requiring the boundary-delimited full price catches a wrong-row citation
+    // AND a wrong thousands digit — ES "45" alone cannot tell 6745 from 7745, "6745" can.
+    // No last-N fallback for the low (that is exactly the false-pass). priceHigh of a band is
+    // often spoken colloquially ("68 to 72"), so it is a softer full/last3/last2 check.
+    const boundary = (n: number, s: string) => new RegExp(`\\b${n}s?\\b`).test(s)
     for (const { date, label } of all) {
       const row = A1_ROWS.get(label.corpusRef)!
       const low = Math.floor(label.priceLow)
-      // allow a trailing 's' — the corpus writes "6840s" / "the 960s"
-      const full = new RegExp(`\\b${low}s?\\b`)
-      const last3 = new RegExp(`\\b${String(low % 1000).padStart(3, '0')}s?\\b`)
       expect(
-        full.test(row) || last3.test(row),
-        `${date} ref ${label.corpusRef}: row does not name priceLow ${label.priceLow}`
+        boundary(low, row),
+        `${date} ref ${label.corpusRef}: row does not name the full priceLow ${label.priceLow}`
+      ).toBe(true)
+
+      const high = Math.floor(label.priceHigh)
+      const highOk =
+        boundary(high, row) ||
+        boundary(high % 1000, row) ||
+        new RegExp(`\\b${String(high % 100).padStart(2, '0')}\\b`).test(row)
+      expect(
+        highOk,
+        `${date} ref ${label.corpusRef}: row does not name priceHigh ${label.priceHigh}`
       ).toBe(true)
     }
   })
