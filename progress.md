@@ -4,6 +4,18 @@
 
 **Last Updated:** 2026-08-22
 
+**Latest change (branch `feat-122-profile-renderer`): feat-122 — profile renderer + rasterizer.**
+`lib/job-plan/profile-vision/` now turns any `.vbp.md` export into a deterministic SVG (pure
+function of rows + meta + options; sha256 per tile for feat-128's fingerprint) and a PNG via
+`@resvg/resvg-js` with DejaVu Sans Bold shipped in `assets/fonts/` (system fonts never loaded).
+Layout mirrors the Sierra screenshots the operator reads: bars left off a right-hand axis,
+900x1400, <= 660 rows, 20-pt NQ / 5-pt ES labels, POC/VAH/VAL/current markers and nothing
+else. Bake-off variables are plain options (theme, envelope, tiles, bar anchor) for feat-124's
+bench. `scripts/render-profile.ts` renders to PNG for eyeballing. trigger.config.ts lists
+resvg as `external` and the font under `additionalFiles` (verified against the trigger.dev
+docs via MCP); the in-worker smoke test is deferred to feat-128, the first task that will
+import the module. Next: feat-123 (schema / prompt / identify / consensus) → feat-124.
+
 **Latest change (branch `feat-121-job-input-refs`): feat-121 — bundle plumbing for the Job
 inputs.** Three new Sierra export files (`job-study.json`, `five-day-rolling.vbp.md`,
 `four-hour-rolling.vbp.md`) now ride uploader → ingest → Storage → `raw_bundles`
