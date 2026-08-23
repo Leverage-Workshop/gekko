@@ -156,31 +156,44 @@ function overlapSpan(
   return low < high ? { low, high } : null
 }
 
-function insideSpan(
-  c: { low: number; high: number },
-  span: { low: number; high: number }
-): boolean {
-  return c.low >= span.low && c.high <= span.high
+type Band = { readonly low: number; readonly high: number }
+
+/** The part of a band inside a span, or null when they do not meet. */
+function clipToSpan(c: Band, span: Band): Band | null {
+  const low = Math.max(c.low, span.low)
+  const high = Math.min(c.high, span.high)
+  return low <= high ? { low, high } : null
 }
 
-function bandsMatch(a: Candidate, b: Candidate, tolerance: number): boolean {
+/** Two bands (already clipped to the shared span) describe one node when they intersect or sit within tolerance/2. */
+function bandsMatch(a: Band, b: Band, tolerance: number): boolean {
   const intersect = a.low <= b.high && b.low <= a.high
-  return intersect || Math.abs(a.center - b.center) <= tolerance / 2
+  return intersect || Math.abs((a.low + a.high) / 2 - (b.low + b.high) / 2) <= tolerance / 2
 }
 
-/** Merge a tile duplicate into its keeper: better prominence wins the labels, primary is OR-ed. */
+/**
+ * Merge a tile duplicate into its keeper. The band is the UNION of the two
+ * reports (a node cut by the seam is reported clipped on each side, so the
+ * union restores it); the better prominence carries the labels; primary is OR-ed.
+ */
 function mergeTilePair(keep: Candidate, dup: Candidate): Candidate {
   const better = dup.node.prominence < keep.node.prominence ? dup : keep
+  const low = Math.min(keep.low, dup.low)
+  const high = Math.max(keep.high, dup.high)
   return {
     ...better,
+    low,
+    high,
+    center: (low + high) / 2,
     node: { ...better.node, primary: keep.node.primary || dup.node.primary },
   }
 }
 
 /**
  * Within one sample, the same node seen in two tiles is one node. Only a pair
- * whose bands both lie inside the tiles' shared span qualifies — two distinct
- * features that merely sit within the tolerance on different tiles do not.
+ * whose bands both REACH the tiles' shared span and match inside it qualifies
+ * — a node straddling the seam is a duplicate, two distinct features that
+ * merely sit within the tolerance on different tiles are not.
  */
 function dedupeTiles(
   candidates: readonly Candidate[],
@@ -194,9 +207,10 @@ function dedupeTiles(
       if (k.sample !== c.sample || k.tile === c.tile) return false
       if (FAMILY_OF[k.node.kind] !== FAMILY_OF[c.node.kind]) return false
       const span = overlapSpan(tiles, k.tile, c.tile)
-      return (
-        span !== null && insideSpan(k, span) && insideSpan(c, span) && bandsMatch(k, c, tolerance)
-      )
+      if (span === null) return false
+      const kIn = clipToSpan(k, span)
+      const cIn = clipToSpan(c, span)
+      return kIn !== null && cIn !== null && bandsMatch(kIn, cIn, tolerance)
     })
     if (idx === -1) kept.push(c)
     else kept[idx] = mergeTilePair(kept[idx], c)
@@ -300,6 +314,9 @@ type Zone = {
   readonly high: number
 }
 
+/** A consensus zone still carrying the samples behind it, until the final merge. */
+type ZoneWithSamples = ConsensusThinZone & { readonly voters: ReadonlySet<number> }
+
 function zonesOf(reads: readonly SuccessfulRead[], grid: Grid): Zone[] {
   const out: Zone[] = []
   for (const { sample, tile, read } of reads) {
@@ -347,16 +364,18 @@ function zoneClusters(zones: readonly Zone[], tolerance: number): Zone[][] {
   return clusters
 }
 
-/** Two output zones that overlap are one zone (union, best agreement). */
-function mergeOverlappingZones(zones: readonly ConsensusThinZone[]): ConsensusThinZone[] {
-  const out: ConsensusThinZone[] = []
+/** Two output zones that overlap are one zone: the union, agreed by the UNION of their samples. */
+function mergeOverlappingZones(zones: readonly ZoneWithSamples[]): ZoneWithSamples[] {
+  const out: ZoneWithSamples[] = []
   for (const z of [...zones].sort((a, b) => a.low - b.low || a.high - b.high)) {
     const last = out[out.length - 1]
     if (last && z.low <= last.high) {
+      const voters = new Set([...last.voters, ...z.voters])
       out[out.length - 1] = {
         ...last,
         high: Math.max(last.high, z.high),
-        agreement: Math.max(last.agreement, z.agreement),
+        voters,
+        agreement: voters.size,
       }
     } else {
       out.push(z)
@@ -373,11 +392,18 @@ function consensusThinZones(
   samples: number
 ): ConsensusThinZone[] {
   const clusters = zoneClusters(dedupeZoneTiles(zonesOf(reads, grid)), tolerance)
-  const zones = clusters
+  const zones: ZoneWithSamples[] = clusters
     .map((cl) => {
       const low = snapToGrid(median(cl.map((x) => x.low)), grid)
       const high = snapToGrid(median(cl.map((x) => x.high)), grid)
-      return { low: Math.min(low, high), high: Math.max(low, high), agreement: cl.length, samples }
+      const voters = new Set(cl.map((x) => x.sample))
+      return {
+        low: Math.min(low, high),
+        high: Math.max(low, high),
+        agreement: voters.size,
+        samples,
+        voters,
+      }
     })
     .filter((z) => z.agreement >= threshold)
   return mergeOverlappingZones(zones)
@@ -386,6 +412,7 @@ function consensusThinZones(
     )
     .slice(0, MAX_THIN_ZONES)
     .sort((a, b) => b.high - a.high)
+    .map(({ voters: _v, ...zone }) => zone)
 }
 
 /** Samples whose every tile read succeeded. */

@@ -407,6 +407,39 @@ describe('consensus — tiles, caps, zones, shape', () => {
     expect(edges).toEqual([29210, 29226])
   })
 
+  it('a true duplicate STRADDLING the seam is one node, with the union band (never counted twice)', () => {
+    // overlap is 29180-29220; tile 0 reports 29214-29226 (crosses the seam), tile 1 reports it clipped 29214-29220
+    const straddle = n({
+      kind: 'hvn-edge',
+      priceLow: 29214,
+      priceHigh: 29226,
+      primary: false,
+      prominence: 2,
+    })
+    const clipped = n({
+      kind: 'hvn-edge',
+      priceLow: 29214,
+      priceHigh: 29220,
+      primary: false,
+      prominence: 3,
+    })
+    const reads: SuccessfulRead[] = [
+      { sample: 0, tile: 0, read: read([PRIMARY, straddle]) },
+      { sample: 0, tile: 1, read: read([clipped]) },
+      { sample: 1, tile: 0, read: read([PRIMARY, straddle]) },
+      { sample: 1, tile: 1, read: read([clipped]) },
+    ]
+    const c = buildConsensus(input(reads, 2, 2))!
+    const edges = c.nodes.filter((x) => x.kind === 'hvn-edge')
+    expect(edges).toHaveLength(1)
+    expect(edges[0]).toMatchObject({
+      priceLow: 29214,
+      priceHigh: 29226,
+      agreement: 2,
+      prominence: 2,
+    })
+  })
+
   it('the tile merge keeps the better prominence and OR-s the primary flag', () => {
     const reads: SuccessfulRead[] = [
       {
@@ -425,6 +458,20 @@ describe('consensus — tiles, caps, zones, shape', () => {
       prominence: 1,
       agreement: 1,
     })
+  })
+
+  it('overlapping output zones merge with the UNION of their voters as agreement', () => {
+    // samples 0,1: 29100-29140 (center 29120); samples 2,3: 29138-29220 (center 29179) — centers
+    // 59 apart (> 2 x tolerance, so two clusters) but the bands overlap -> one zone, 4 voters.
+    const reads = [
+      sample(0, [PRIMARY], { thinZones: [{ low: 29100, high: 29140 }] }),
+      sample(1, [PRIMARY], { thinZones: [{ low: 29100, high: 29140 }] }),
+      sample(2, [PRIMARY], { thinZones: [{ low: 29138, high: 29220 }] }),
+      sample(3, [PRIMARY], { thinZones: [{ low: 29138, high: 29220 }] }),
+    ]
+    const c = buildConsensus(input(reads))!
+    expect(c.thinZones).toHaveLength(1)
+    expect(c.thinZones[0]).toEqual({ low: 29100, high: 29220, agreement: 4, samples: 4 })
   })
 
   it('thin zones cut by the tile seam are unioned within a sample, and overlapping outputs merge', () => {
