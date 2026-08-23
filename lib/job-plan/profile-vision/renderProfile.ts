@@ -122,6 +122,9 @@ const MARGIN_LEFT = 24
 const AXIS_WIDTH = 132
 const TICK_MAJOR = 10
 const TICK_MINOR = 5
+/** Below these the plot area collapses to nothing (margins + axis only). */
+const MIN_WIDTH = MARGIN_LEFT + AXIS_WIDTH
+const MIN_HEIGHT = MARGIN_TOP + MARGIN_BOTTOM
 
 type Palette = {
   bg: string
@@ -502,6 +505,9 @@ function validate(
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
     throw new Error('renderProfile: width and height must be positive integers')
   }
+  if (width <= MIN_WIDTH || height <= MIN_HEIGHT) {
+    throw new Error(`renderProfile: image must exceed ${MIN_WIDTH} x ${MIN_HEIGHT} to hold a plot`)
+  }
   if (Math.max(width, height) > MAX_LONG_EDGE) {
     throw new Error(`renderProfile: long edge ${Math.max(width, height)} exceeds ${MAX_LONG_EDGE}`)
   }
@@ -559,6 +565,9 @@ export function renderProfile(profile: VbpProfile, opts: RenderOptions): RenderR
   const theme = opts.theme ?? 'light'
   const { rows, binsPerRow } = aggregateRows(profile, maxRows)
   const maxVolume = rows.reduce((m, r) => Math.max(m, r.volume), 0)
+  if (!Number.isFinite(maxVolume) || !Number.isFinite(rows.reduce((s, r) => s + r.volume, 0))) {
+    throw new Error('renderProfile: aggregated volume overflowed')
+  }
   const ranges = tileRanges(rows.length, opts.tiles ?? 1)
   const tileSpans: TileSpan[] = ranges.map((r, i) => ({
     index: i,
@@ -575,10 +584,10 @@ export function renderProfile(profile: VbpProfile, opts: RenderOptions): RenderR
   return { tiles, meta }
 }
 
-/** Single-image convenience: the whole profile as one SVG (tiles forced to 1). */
+/** Single-image convenience: the whole profile as one SVG (`tiles` is not an option here). */
 export function renderProfileSvg(
   profile: VbpProfile,
-  opts: RenderOptions
+  opts: Omit<RenderOptions, 'tiles'>
 ): { svg: string; sha256: string; meta: RenderMeta } {
   const result = renderProfile(profile, { ...opts, tiles: 1 })
   const [tile] = result.tiles

@@ -339,6 +339,8 @@ describe('renderProfile — input validation (never a NaN coordinate with a stab
     ['maxRows Infinity', { maxRows: Infinity }, /maxRows/],
     ['maxRows fractional', { maxRows: 2.5 }, /maxRows/],
     ['maxRows 0', { maxRows: 0 }, /maxRows/],
+    ['width that leaves no plot (margins + axis = 156)', { width: 156 }, /hold a plot/],
+    ['height that leaves no plot (margins = 80)', { height: 80 }, /hold a plot/],
     ['currentPrice NaN', { currentPrice: NaN }, /currentPrice/],
     ['currentPrice Infinity', { currentPrice: Infinity }, /currentPrice/],
   ])('rejects %s', (_label, bad, message) => {
@@ -379,6 +381,18 @@ describe('renderProfile — input validation (never a NaN coordinate with a stab
     expect(() => renderProfileSvg(duplicate, es)).toThrow(/not contiguous/)
     const wrongStep = { ...synthetic(), meta: { ...synthetic().meta, step: 2 } }
     expect(() => renderProfileSvg(wrongStep, es)).toThrow(/not contiguous/)
+  })
+
+  it('accepts the smallest image that still holds a plot', () => {
+    expect(() => renderProfileSvg(synthetic(), { ...es, width: 157, height: 81 })).not.toThrow()
+  })
+
+  it('rejects a profile whose finite volumes overflow when aggregated', () => {
+    const huge = {
+      ...synthetic(),
+      rows: synthetic().rows.map((r) => ({ ...r, volume: Number.MAX_VALUE })),
+    }
+    expect(() => renderProfileSvg(huge, { ...es, maxRows: 6 })).toThrow(/overflowed/)
   })
 
   it('accepts a quarter-point ES grid', () => {
@@ -497,8 +511,9 @@ describe('renderProfile — tiles', () => {
     )
   })
 
-  it('renderProfileSvg always yields the single full image', () => {
-    const { meta } = renderProfileSvg(realProfile(), { instrument: 'NQ', tiles: 2 })
+  it('renderProfileSvg always yields the single full image and says so in meta', () => {
+    const { meta } = renderProfileSvg(realProfile(), { instrument: 'NQ' })
     expect(meta.tiles).toHaveLength(1)
+    expect(meta.requestedTiles).toBe(1)
   })
 })
