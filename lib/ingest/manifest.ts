@@ -4,7 +4,7 @@
  * The local uploader (feat-009) bundles the Sierra Chart export folder and
  * posts it as multipart/form-data. Each file field maps to a Storage bucket and
  * the `raw_bundles` ref column that records its object path. PNG snapshots live
- * in `chart-images`; CSV/Markdown telemetry exports live in `bundle-csvs`.
+ * in `chart-images`; CSV/Markdown/JSON telemetry exports live in `bundle-csvs`.
  *
  * Files are stored under a per-bundle prefix (`<bundleId>/<filename>`), so the
  * stored ref is the object path *within* its bucket (the bucket is implied by
@@ -84,6 +84,30 @@ export const FILE_FIELDS: readonly FileField[] = [
     column: 'htf_csv_ref',
     filename: 'htf_bars.csv',
     contentType: 'text/csv',
+  },
+  // Job-planning inputs (feat-121, docs/job-planning-task-plan.md step 2). The local
+  // filenames are the contract feat-118's Sierra exporter emits; nothing in
+  // analyze/eval reads these refs — the job-plan task (feat-128) does.
+  {
+    field: 'job_study',
+    bucket: 'bundle-csvs',
+    column: 'job_study_ref',
+    filename: 'job-study.json',
+    contentType: 'application/json',
+  },
+  {
+    field: 'five_day_vbp',
+    bucket: 'bundle-csvs',
+    column: 'five_day_vbp_ref',
+    filename: 'five-day-rolling.vbp.md',
+    contentType: 'text/markdown',
+  },
+  {
+    field: 'four_hour_vbp',
+    bucket: 'bundle-csvs',
+    column: 'four_hour_vbp_ref',
+    filename: 'four-hour-rolling.vbp.md',
+    contentType: 'text/markdown',
   },
 ] as const
 

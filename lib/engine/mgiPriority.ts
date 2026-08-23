@@ -93,8 +93,18 @@ export type MgiPriority = {
   nearestDailyBelow: NearestBorder | null
 }
 
-/** Shape of the static MGI export. All fields optional — exports may omit levels. */
+/**
+ * Shape of the static MGI export. All fields optional — exports may omit levels.
+ *
+ * `symbol` and `weekly.pwVAH` / `weekly.pwVAL` are feat-121 additions for the Job planner
+ * (feat-118 adds them to MgiDataExporter.cpp): the chart symbol as Sierra reports it
+ * (e.g. `NQU26` — the planner keys its NQ/ES tolerances off the root) and the prior
+ * week's value-area edges. Optional so every existing export and fixture still parses;
+ * {@link extractLevels} walks {@link LEVEL_SPECS}, not the JSON, so neither is ever
+ * classified as a level. Nothing reads them until feat-126.
+ */
 export type MgiStaticLevels = {
+  symbol?: string
   current?: { time?: string; price?: number }
   daily?: Partial<
     Record<
@@ -115,7 +125,9 @@ export type MgiStaticLevels = {
     >
   >
   atr?: Partial<Record<'high' | 'low', number>>
-  weekly?: Partial<Record<'vwap' | 'pwHigh' | 'pwLow' | 'wkOpen' | 'jobPivot', number>>
+  weekly?: Partial<
+    Record<'vwap' | 'pwHigh' | 'pwLow' | 'wkOpen' | 'jobPivot' | 'pwVAH' | 'pwVAL', number>
+  >
   monthly?: Partial<Record<'vwap' | 'pmHigh' | 'pmLow' | 'mthOpen' | 'pmVAH' | 'pmVAL', number>>
   vRange?: Partial<Record<'high' | 'low' | 'extPlus2' | 'extPlus3' | 'extMinus2' | 'extMinus3', number>>
 }

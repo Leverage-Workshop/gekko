@@ -6,9 +6,9 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-11 (30 applied migrations live;
-nothing pending — `20260809140000_volatility_scaled_gates.sql` and feat-112's
-`20260811170000_significant_move_sigma_030.sql` were both applied 2026-08-11).
+the project's REST APIs. Schema snapshot updated 2026-08-22 (31 applied migrations live;
+nothing pending — feat-121's `20260822200000_job_input_refs.sql` was applied the same day
+via the claude.ai Supabase MCP `apply_migration` tool).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -124,6 +124,8 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | tpo_data_ref | text, nullable | tpo.data.md numeric TPO export (feat-046) |
 | daily_va_ref | text, nullable | daily-value-areas.csv POC/VAH/VAL history (feat-048) |
 | htf_csv_ref | text, nullable | htf_bar_data.rolling.csv 30-min bars, rolling 90d (feat-049) |
+| job_study_ref | text, nullable | job-study.json — JBA pivots/value zones/target ladders/chart-drawn balance areas/Autoplot (feat-121; emitted by feat-118's Sierra exporter, NULL until it ships) |
+| five_day_vbp_ref / four_hour_vbp_ref | text, nullable | five-day-rolling.vbp.md / four-hour-rolling.vbp.md rolling profiles for the Job planner vision read (feat-121) |
 
 ### briefings — FK `bundle_id → raw_bundles.id`
 | column | type | notes |
@@ -191,7 +193,9 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 
 ## Migrations & DDL
 
-- **Nothing is pending as of 2026-08-11.** `20260809140000_volatility_scaled_gates.sql`
+- **Nothing is pending as of 2026-08-22.** feat-121's `20260822200000_job_input_refs.sql`
+  (three nullable `raw_bundles` ref columns) was applied that day via the MCP tool below.
+  Earlier: `20260809140000_volatility_scaled_gates.sql`
   had been committed-but-unapplied since 2026-08-09; it and feat-112's
   `20260811170000_significant_move_sigma_030.sql` were both applied on 2026-08-11 via the
   **claude.ai Supabase MCP `apply_migration` tool**, which IS reachable in Claude Code
@@ -205,7 +209,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
     ~146-pt floor while the stored row still said 50 pts. **A padded config default is
     invisible to the pipeline that consumes it; apply the migration the same day.**
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (30 rows as of 2026-08-11; repo
+  `supabase_migrations.schema_migrations` (31 rows as of 2026-08-22; repo
   `20260802200000_revalidation_action.sql` applied via the claude.ai Supabase
   MCP, so its live timestamp differs from the filename).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has

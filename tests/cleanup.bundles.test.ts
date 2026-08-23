@@ -29,6 +29,15 @@ function fullCandidate(id: string): CleanupCandidate {
   })
 }
 
+/** The feat-121 Job-planning input refs, all in bundle-csvs. */
+function jobInputCandidate(id: string): CleanupCandidate {
+  return candidate(id, {
+    job_study_ref: `${id}/job-study.json`,
+    five_day_vbp_ref: `${id}/five-day-rolling.vbp.md`,
+    four_hour_vbp_ref: `${id}/four-hour-rolling.vbp.md`,
+  })
+}
+
 type DepsWithSpies = CleanupDeps & {
   removeObjects: ReturnType<typeof vi.fn>
   deleteBundleRows: ReturnType<typeof vi.fn>
@@ -60,6 +69,16 @@ describe('collectObjectPaths', () => {
       'b1/balance-area.vbp.md',
       'b1/half-rotation-delta.vbp.md',
       'b1/full-rotation-delta.vbp.md',
+    ])
+  })
+
+  it('covers the Job-planning input refs via FILE_FIELDS (feat-121)', () => {
+    const byBucket = collectObjectPaths([jobInputCandidate('b7')])
+    expect(byBucket.get('chart-images')).toBeUndefined()
+    expect(byBucket.get('bundle-csvs')).toEqual([
+      'b7/job-study.json',
+      'b7/five-day-rolling.vbp.md',
+      'b7/four-hour-rolling.vbp.md',
     ])
   })
 

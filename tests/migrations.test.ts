@@ -136,6 +136,20 @@ describe('supabase migrations', () => {
     expect(content).not.toMatch(/delete\s+from/i)
   })
 
+  it('adds the Job-planning input ref columns additively (feat-121)', () => {
+    const file = sql.files.find((f) => f.includes('job_input_refs'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    for (const column of ['job_study_ref', 'five_day_vbp_ref', 'four_hour_vbp_ref']) {
+      expect(content).toContain(`add column if not exists ${column} text`)
+    }
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+    // The cleanup guard for job_plans belongs to the migration that creates that
+    // table (feat-128) — this one must not redefine the selection function.
+    expect(content).not.toMatch(/create\s+or\s+replace\s+function/i)
+  })
+
   it('adds the daily value-area ref column additively (feat-048)', () => {
     const file = sql.files.find((f) => f.includes('daily_va_ref'))
     expect(file).toBeDefined()

@@ -30,6 +30,13 @@ export interface BundleRow {
   htf_png_ref: string | null
   tpo_png_ref: string | null
   exec_png_ref: string | null
+  /**
+   * Job-planning inputs (feat-121). Optional on the type so pre-feat-121 fixtures still
+   * build; the analyze/eval loads never read them — the job-plan task (feat-128) does.
+   */
+  job_study_ref?: string | null
+  five_day_vbp_ref?: string | null
+  four_hour_vbp_ref?: string | null
 }
 
 export interface LoadBundleDeps {

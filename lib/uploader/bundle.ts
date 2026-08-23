@@ -37,6 +37,12 @@ const LOCAL_FILENAMES_BY_FIELD: Readonly<Record<string, readonly string[]>> = {
   tpo_data: ['tpo.data.md'],
   daily_va: ['daily-value-areas.csv'],
   htf_csv: ['htf_bar_data.rolling.csv'],
+  // Job-planning inputs (feat-121): the names feat-118's JobStudyExporter and the
+  // companion profile studies write. Absent until that exporter is deployed — the
+  // uploader skips missing files, so bundles simply lack the refs until then.
+  job_study: ['job-study.json'],
+  five_day_vbp: ['five-day-rolling.vbp.md'],
+  four_hour_vbp: ['four-hour-rolling.vbp.md'],
 }
 
 type LocalFile = {
