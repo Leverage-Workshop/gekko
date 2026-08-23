@@ -88,6 +88,21 @@ describe('golden labels', () => {
         `${date} ref ${label.corpusRef}: row does not name the full priceLow ${label.priceLow}`
       ).toBe(true)
 
+      // a fractional tick must be spoken in the row ("24485 half" = .5), so an accidental
+      // .25/.75 edit is caught rather than hidden by the integer floor.
+      const FRACTION_WORDS: Record<string, RegExp> = {
+        '0.25': /quarter/i,
+        '0.5': /\bhalf\b/i,
+        '0.75': /(three|3)[\s-]*quarter/i,
+      }
+      const frac = label.priceLow - low
+      if (frac !== 0) {
+        expect(
+          FRACTION_WORDS[String(frac)]?.test(row),
+          `${date} ref ${label.corpusRef}: fractional priceLow ${label.priceLow} not spoken in the row`
+        ).toBe(true)
+      }
+
       const high = Math.floor(label.priceHigh)
       const highOk =
         boundary(high, row) ||
