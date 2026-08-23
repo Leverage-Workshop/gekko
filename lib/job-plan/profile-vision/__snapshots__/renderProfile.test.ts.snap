@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`renderProfile — determinism > renders the synthetic ES profile exactly (snapshot) 1`] = `
+exports[`renderProfile — determinism > renders the synthetic ES profile exactly (snapshot), and the hash IS sha256 of those bytes 1`] = `
 "<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1400" viewBox="0 0 900 1400" shape-rendering="crispEdges">
 <rect x="0" y="0" width="900" height="1400" fill="#ffffff"/>
 <line x1="768.00" y1="40.00" x2="768.00" y2="1360.00" stroke="#1a1a1a" stroke-width="1"/>

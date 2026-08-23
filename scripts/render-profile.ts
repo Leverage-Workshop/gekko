@@ -87,7 +87,7 @@ function main(): void {
       process.stdout.write(
         `${base}.png  ${dim.width}x${dim.height}  ${instrument}  rows ${result.meta.rows}` +
           ` (x${result.meta.binsPerRow} bins, step ${result.meta.step})  span ${tile.tile.priceLow}-${tile.tile.priceHigh}` +
-          `  sha256 ${tile.sha256.slice(0, 12)}\n`,
+          `  sha256 ${tile.sha256.slice(0, 12)}\n`
       )
     }
   }

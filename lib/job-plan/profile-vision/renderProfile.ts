@@ -87,6 +87,8 @@ export type RenderMeta = {
   readonly vah: number
   readonly val: number
   readonly currentPrice: number | null
+  /** What the caller asked for; `tiles.length` is what was produced (see tileRanges). */
+  readonly requestedTiles: 1 | 2
   readonly tiles: readonly TileSpan[]
 }
 
@@ -185,7 +187,7 @@ function esc(s: string): string {
  */
 export function aggregateRows(
   profile: VbpProfile,
-  maxRows: number,
+  maxRows: number
 ): { rows: RenderRow[]; binsPerRow: number } {
   const sorted = [...profile.rows].sort((a, b) => b.price - a.price)
   const step = profile.meta.step
@@ -216,6 +218,8 @@ export function envelopeVolumes(rows: readonly RenderRow[]): number[] {
 /**
  * Split rows into tile row-ranges. One tile = everything; two tiles share
  * TILE_OVERLAP of the rows so a node on the seam is fully visible in one of them.
+ * A profile under 4 rows cannot be split with an overlap and falls back to one
+ * tile — `meta.requestedTiles` vs `meta.tiles.length` records that it did.
  */
 export function tileRanges(rowCount: number, tiles: 1 | 2): { start: number; end: number }[] {
   if (tiles === 1 || rowCount < 4) return [{ start: 0, end: rowCount }]
@@ -264,7 +268,7 @@ function axisSvg(g: Geometry, major: number, minor: number, pal: Palette): strin
   const parts: string[] = []
   const x0 = g.plotRight
   parts.push(
-    `<line x1="${px(x0)}" y1="${px(g.plotTop)}" x2="${px(x0)}" y2="${px(g.plotBottom)}" stroke="${pal.axisLine}" stroke-width="1"/>`,
+    `<line x1="${px(x0)}" y1="${px(g.plotTop)}" x2="${px(x0)}" y2="${px(g.plotBottom)}" stroke="${pal.axisLine}" stroke-width="1"/>`
   )
   // Top-down, so the SVG's label order is the reading order.
   const topMinor = Math.floor(g.priceHigh / minor) * minor
@@ -273,17 +277,17 @@ function axisSvg(g: Geometry, major: number, minor: number, pal: Palette): strin
     const isMajor = Math.abs(p / major - Math.round(p / major)) < 1e-9
     if (isMajor) {
       parts.push(
-        `<line x1="${px(g.plotLeft)}" y1="${px(y)}" x2="${px(x0)}" y2="${px(y)}" stroke="${pal.gridMajor}" stroke-width="1"/>`,
+        `<line x1="${px(g.plotLeft)}" y1="${px(y)}" x2="${px(x0)}" y2="${px(y)}" stroke="${pal.gridMajor}" stroke-width="1"/>`
       )
       parts.push(
-        `<line x1="${px(x0)}" y1="${px(y)}" x2="${px(x0 + TICK_MAJOR)}" y2="${px(y)}" stroke="${pal.axisLine}" stroke-width="1"/>`,
+        `<line x1="${px(x0)}" y1="${px(y)}" x2="${px(x0 + TICK_MAJOR)}" y2="${px(y)}" stroke="${pal.axisLine}" stroke-width="1"/>`
       )
       parts.push(
-        `<text x="${px(x0 + TICK_MAJOR + 4)}" y="${px(y)}" fill="${pal.axisText}" font-family="${FONT_FAMILY}" font-weight="bold" font-size="${LABEL_FONT_PX}" dominant-baseline="middle">${price2(p)}</text>`,
+        `<text x="${px(x0 + TICK_MAJOR + 4)}" y="${px(y)}" fill="${pal.axisText}" font-family="${FONT_FAMILY}" font-weight="bold" font-size="${LABEL_FONT_PX}" dominant-baseline="middle">${price2(p)}</text>`
       )
     } else {
       parts.push(
-        `<line x1="${px(x0)}" y1="${px(y)}" x2="${px(x0 + TICK_MINOR)}" y2="${px(y)}" stroke="${pal.axisLine}" stroke-width="1"/>`,
+        `<line x1="${px(x0)}" y1="${px(y)}" x2="${px(x0 + TICK_MINOR)}" y2="${px(y)}" stroke="${pal.axisLine}" stroke-width="1"/>`
       )
     }
   }
@@ -295,7 +299,7 @@ function barsSvg(
   rows: readonly RenderRow[],
   maxVolume: number,
   anchor: BarAnchor,
-  pal: Palette,
+  pal: Palette
 ): string {
   const plotWidth = g.plotRight - g.plotLeft
   const parts: string[] = []
@@ -306,7 +310,7 @@ function barsSvg(
     const yBot = priceToY(g, row.priceLow)
     const x = anchor === 'right' ? g.plotRight - w : g.plotLeft
     parts.push(
-      `<rect x="${px(x)}" y="${px(yTop)}" width="${px(w)}" height="${px(yBot - yTop)}" fill="${pal.bar}"/>`,
+      `<rect x="${px(x)}" y="${px(yTop)}" width="${px(w)}" height="${px(yBot - yTop)}" fill="${pal.bar}"/>`
     )
   }
   return parts.join('\n')
@@ -317,7 +321,7 @@ function envelopeSvg(
   rows: readonly RenderRow[],
   maxVolume: number,
   anchor: BarAnchor,
-  pal: Palette,
+  pal: Palette
 ): string {
   if (rows.length === 0 || maxVolume === 0) return ''
   const plotWidth = g.plotRight - g.plotLeft
@@ -343,7 +347,7 @@ function markerLabel(
   text: string,
   color: string,
   above: boolean,
-  pal: Palette,
+  pal: Palette
 ): string {
   const yText = above ? y - 5 : y + LABEL_FONT_PX
   return `<text x="${px(g.plotLeft + 4)}" y="${px(yText)}" fill="${color}" stroke="${pal.bg}" stroke-width="3" paint-order="stroke" font-family="${FONT_FAMILY}" font-weight="bold" font-size="${LABEL_FONT_PX}">${esc(text)}</text>`
@@ -370,27 +374,36 @@ function markerLinesSvg(
   vah: number,
   val: number,
   current: number | null,
-  pal: Palette,
+  pal: Palette
 ): string {
   const parts: string[] = []
   if (inSpan(g, vah)) {
     const y = priceToY(g, vah)
-    parts.push(hLine(g, y, pal.va, true), markerLabel(g, y, `VAH ${price2(vah)}`, pal.va, true, pal))
+    parts.push(
+      hLine(g, y, pal.va, true),
+      markerLabel(g, y, `VAH ${price2(vah)}`, pal.va, true, pal)
+    )
   }
   if (inSpan(g, val)) {
     const y = priceToY(g, val)
-    parts.push(hLine(g, y, pal.va, true), markerLabel(g, y, `VAL ${price2(val)}`, pal.va, false, pal))
+    parts.push(
+      hLine(g, y, pal.va, true),
+      markerLabel(g, y, `VAL ${price2(val)}`, pal.va, false, pal)
+    )
   }
   if (inSpan(g, poc)) {
     const y = priceToY(g, poc)
-    parts.push(hLine(g, y, pal.poc, false), markerLabel(g, y, `POC ${price2(poc)}`, pal.poc, true, pal))
+    parts.push(
+      hLine(g, y, pal.poc, false),
+      markerLabel(g, y, `POC ${price2(poc)}`, pal.poc, true, pal)
+    )
   }
   if (current === null) return parts.join('\n')
   if (inSpan(g, current)) {
     const y = priceToY(g, current)
     parts.push(
       hLine(g, y, pal.current, false),
-      markerLabel(g, y, `current ${price2(current)}`, pal.current, current < poc, pal),
+      markerLabel(g, y, `current ${price2(current)}`, pal.current, current < poc, pal)
     )
   } else {
     const above = current > g.priceHigh
@@ -410,7 +423,7 @@ function renderTile(
   tile: TileSpan,
   meta: RenderMeta,
   pal: Palette,
-  maxVolume: number,
+  maxVolume: number
 ): RenderedTile {
   const g = geometry(meta.width, meta.height, tile.priceLow, tile.priceHigh)
   const body = [
@@ -430,13 +443,106 @@ function renderTile(
   return { tile, svg, sha256: sha256Hex(svg) }
 }
 
-function validate(profile: VbpProfile, width: number, height: number, maxRows: number): void {
+function isFinite_(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n)
+}
+
+/**
+ * Rows must be unique and contiguous on the export's bin grid. `parseVbpProfile`
+ * already enforces this, but `renderProfile` is a public API taking any
+ * `VbpProfile` — a gap or duplicate would be painted through as one solid band
+ * and the reported step/span would lie.
+ */
+function validateGrid(rows: readonly VbpProfile['rows'][number][], step: number): void {
+  const sorted = [...rows].sort((a, b) => b.price - a.price)
+  for (let i = 0; i < sorted.length; i++) {
+    const { price, volume } = sorted[i]
+    if (!isFinite_(price) || !isFinite_(volume) || volume < 0) {
+      throw new Error(
+        `renderProfile: row ${i} has a non-finite price or negative/non-finite volume`
+      )
+    }
+    if (i > 0) {
+      const gap = round4(sorted[i - 1].price - price)
+      if (Math.abs(gap - step) > 0.0001) {
+        throw new Error(
+          `renderProfile: rows are not contiguous at ${price} (gap ${gap}, expected ${step})`
+        )
+      }
+    }
+  }
+}
+
+function validate(
+  profile: VbpProfile,
+  opts: RenderOptions,
+  width: number,
+  height: number,
+  maxRows: number
+): void {
   if (profile.rows.length === 0) throw new Error('renderProfile: profile has no rows')
-  if (!(profile.meta.step > 0)) throw new Error('renderProfile: profile step must be > 0')
+  if (!isFinite_(profile.meta.step) || profile.meta.step <= 0) {
+    throw new Error('renderProfile: profile step must be a finite number > 0')
+  }
+  validateGrid(profile.rows, profile.meta.step)
+  for (const [name, value] of [
+    ['pocPrice', profile.meta.pocPrice],
+    ['valueAreaHigh', profile.meta.valueAreaHigh],
+    ['valueAreaLow', profile.meta.valueAreaLow],
+  ] as const) {
+    if (!isFinite_(value)) throw new Error(`renderProfile: meta.${name} must be finite`)
+  }
+  if (
+    opts.currentPrice !== undefined &&
+    opts.currentPrice !== null &&
+    !isFinite_(opts.currentPrice)
+  ) {
+    throw new Error('renderProfile: currentPrice must be finite or null')
+  }
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+    throw new Error('renderProfile: width and height must be positive integers')
+  }
   if (Math.max(width, height) > MAX_LONG_EDGE) {
     throw new Error(`renderProfile: long edge ${Math.max(width, height)} exceeds ${MAX_LONG_EDGE}`)
   }
-  if (!(maxRows >= 1)) throw new Error('renderProfile: maxRows must be >= 1')
+  if (!Number.isInteger(maxRows) || maxRows < 1) {
+    throw new Error('renderProfile: maxRows must be a positive integer')
+  }
+}
+
+function buildMeta(
+  profile: VbpProfile,
+  opts: RenderOptions,
+  layout: { width: number; height: number; theme: RenderTheme },
+  rows: readonly RenderRow[],
+  binsPerRow: number,
+  tiles: readonly TileSpan[]
+): RenderMeta {
+  const majorInterval = MAJOR_LABEL_INTERVAL[opts.instrument]
+  return {
+    instrument: opts.instrument,
+    theme: layout.theme,
+    envelope: opts.envelope ?? false,
+    barAnchor: opts.barAnchor ?? 'right',
+    width: layout.width,
+    height: layout.height,
+    binStep: profile.meta.step,
+    step: round4(profile.meta.step * binsPerRow),
+    binsPerRow,
+    sourceRows: profile.rows.length,
+    rows: rows.length,
+    priceLow: rows[rows.length - 1].priceLow,
+    priceHigh: rows[0].priceHigh,
+    totalVolume: rows.reduce((s, r) => s + r.volume, 0),
+    majorInterval,
+    minorInterval: majorInterval / 2,
+    poc: profile.meta.pocPrice,
+    vah: profile.meta.valueAreaHigh,
+    val: profile.meta.valueAreaLow,
+    currentPrice: opts.currentPrice ?? null,
+    requestedTiles: opts.tiles ?? 1,
+    tiles,
+  }
 }
 
 /**
@@ -448,17 +554,12 @@ export function renderProfile(profile: VbpProfile, opts: RenderOptions): RenderR
   const width = opts.width ?? DEFAULT_WIDTH
   const height = opts.height ?? DEFAULT_HEIGHT
   const maxRows = opts.maxRows ?? DEFAULT_MAX_ROWS
-  validate(profile, width, height, maxRows)
+  validate(profile, opts, width, height, maxRows)
 
   const theme = opts.theme ?? 'light'
-  const pal = PALETTES[theme]
   const { rows, binsPerRow } = aggregateRows(profile, maxRows)
-  const majorInterval = MAJOR_LABEL_INTERVAL[opts.instrument]
-  const minorInterval = majorInterval / 2
   const maxVolume = rows.reduce((m, r) => Math.max(m, r.volume), 0)
-  const totalVolume = rows.reduce((s, r) => s + r.volume, 0)
-  const tileCount = opts.tiles ?? 1
-  const ranges = tileRanges(rows.length, tileCount)
+  const ranges = tileRanges(rows.length, opts.tiles ?? 1)
   const tileSpans: TileSpan[] = ranges.map((r, i) => ({
     index: i,
     of: ranges.length,
@@ -466,33 +567,10 @@ export function renderProfile(profile: VbpProfile, opts: RenderOptions): RenderR
     priceHigh: rows[r.start].priceHigh,
     rows: r.end - r.start,
   }))
-
-  const meta: RenderMeta = {
-    instrument: opts.instrument,
-    theme,
-    envelope: opts.envelope ?? false,
-    barAnchor: opts.barAnchor ?? 'right',
-    width,
-    height,
-    binStep: profile.meta.step,
-    step: round4(profile.meta.step * binsPerRow),
-    binsPerRow,
-    sourceRows: profile.rows.length,
-    rows: rows.length,
-    priceLow: rows[rows.length - 1].priceLow,
-    priceHigh: rows[0].priceHigh,
-    totalVolume,
-    majorInterval,
-    minorInterval,
-    poc: profile.meta.pocPrice,
-    vah: profile.meta.valueAreaHigh,
-    val: profile.meta.valueAreaLow,
-    currentPrice: opts.currentPrice ?? null,
-    tiles: tileSpans,
-  }
-
+  const meta = buildMeta(profile, opts, { width, height, theme }, rows, binsPerRow, tileSpans)
+  const pal = PALETTES[theme]
   const tiles = ranges.map((r, i) =>
-    renderTile(rows.slice(r.start, r.end), tileSpans[i], meta, pal, maxVolume),
+    renderTile(rows.slice(r.start, r.end), tileSpans[i], meta, pal, maxVolume)
   )
   return { tiles, meta }
 }
@@ -500,7 +578,7 @@ export function renderProfile(profile: VbpProfile, opts: RenderOptions): RenderR
 /** Single-image convenience: the whole profile as one SVG (tiles forced to 1). */
 export function renderProfileSvg(
   profile: VbpProfile,
-  opts: RenderOptions,
+  opts: RenderOptions
 ): { svg: string; sha256: string; meta: RenderMeta } {
   const result = renderProfile(profile, { ...opts, tiles: 1 })
   const [tile] = result.tiles

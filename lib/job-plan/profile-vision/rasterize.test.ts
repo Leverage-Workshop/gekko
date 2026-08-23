@@ -1,12 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import {
-  pngDimensions,
-  PROFILE_FONT_FILE,
-  rasterizePng,
-  resolveFontFile,
-} from './rasterize'
+import { pngDimensions, PROFILE_FONT_FILE, rasterizePng, resolveFontFile } from './rasterize'
 import { renderProfileSvg } from './renderProfile'
 import type { VbpProfile } from '@/lib/engine/parseProfile'
 
@@ -17,7 +12,14 @@ const tiny: VbpProfile = {
     { price: 101, volume: 25 },
     { price: 100, volume: 5 },
   ],
-  meta: { tickSize: 0.25, binSize: 4, step: 1, pocPrice: 102, valueAreaHigh: 103, valueAreaLow: 101 },
+  meta: {
+    tickSize: 0.25,
+    binSize: 4,
+    step: 1,
+    pocPrice: 102,
+    valueAreaHigh: 103,
+    valueAreaLow: 101,
+  },
 }
 
 describe('rasterizePng', () => {
@@ -43,7 +45,7 @@ describe('rasterizePng', () => {
   it('fails loudly when the font file is missing (a packaging error)', () => {
     const { svg } = renderProfileSvg(tiny, { instrument: 'ES', width: 200, height: 300 })
     expect(() => rasterizePng(svg, { fontFile: '/nonexistent/font.ttf' })).toThrow(
-      /font file not found/,
+      /font file not found/
     )
   })
 
