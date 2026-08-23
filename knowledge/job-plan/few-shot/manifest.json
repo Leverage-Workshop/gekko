@@ -1,0 +1,7 @@
+{
+  "source": "lvn-fixtures stand-in: chart-data/lvn-fixtures/fixture-5 (clean double distribution) and fixture-3 (trend / elongated up leg), labels re-read under the corpus criteria (docs/jba-research/lvn-corpus.md B1-B12, D). Replace with feat-120's few-shot dates (2026-02-13, 2026-08-07, 2026-06-02) once feat-119's golden exports exist; bump VISION_PROMPT_REVISION when you do.",
+  "examples": [
+    { "id": "double-distribution", "instrument": "NQ", "profile": "double-distribution.vbp.md", "expected": "double-distribution.expected.json" },
+    { "id": "trend-up", "instrument": "NQ", "profile": "trend-up.vbp.md", "expected": "trend-up.expected.json" }
+  ]
+}

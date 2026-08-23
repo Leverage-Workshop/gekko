@@ -73,6 +73,12 @@ export interface GenerateStructuredParams<T> {
   /** Chart images to attach as vision parts. */
   images?: readonly ChartImage[]
   /**
+   * Cancel the provider request (feat-123): the profile vision read aborts a
+   * call at its per-sample timeout so a slow provider cannot keep billing
+   * past the concurrency slot it was released from.
+   */
+  abortSignal?: AbortSignal
+  /**
    * Opt-in LLM telemetry (feat-030): record this call as a LangSmith run via
    * LangSmith's `wrapAISDK` integration. Only active when `LANGSMITH_API_KEY`
    * is configured — otherwise silently disabled. Image parts are redacted
@@ -185,6 +191,7 @@ export async function generateStructured<T>(
     system,
     cacheSystem = false,
     images = [],
+    abortSignal,
     telemetry,
     resolveModel = (id) => getOpenRouter()(id, openrouterModelSettings(effort)),
     generate,
@@ -237,6 +244,7 @@ export async function generateStructured<T>(
     // would be untrusted input impersonating doctrine, so throw rather than
     // let it reach the model.
     allowSystemInMessages: false,
+    ...(abortSignal ? { abortSignal } : {}),
     ...(telemetry && telemetryRuntime
       ? {
           providerOptions: {

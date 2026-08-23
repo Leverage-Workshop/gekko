@@ -4,6 +4,20 @@
 
 **Last Updated:** 2026-08-22
 
+**Latest change (branch `feat-123-profile-vision-read`): feat-123 — the profile vision read.**
+`lib/job-plan/profile-vision/` now has the module that turns feat-122's images into planner
+input: a flat `ProfileNodesRead` schema, a prompt whose 14 criteria each quote
+`docs/jba-research/lvn-corpus.md` verbatim (a test asserts it) and carry NO structure, a
+stand-in few-shot set under `knowledge/job-plan/few-shot/` (lvn-fixtures 5 and 3 until the
+golden exports exist — swap them and bump `VISION_PROMPT_REVISION`), `identifyProfileNodes`
+(P × S × T calls through an injected `generate`, concurrency 6, 60 s timeout that ABORTS the
+provider request — `generateStructured` gained an `abortSignal` passthrough for it) and a pure
+`consensus` (grid snap, seam-aware tile de-dup, kind-family clustering at the R1 tolerance,
+one vote per sample, ≥ ⌈S/2⌉, exactly one primary lvn, R14 null + warning). Not wired to any
+task. Codex caught real defects on the first pass (timed-out calls leaking past the cap,
+tile de-dup collapsing distinct nodes, exhaustive/taper blended by majority vote) — all fixed.
+Next: feat-124 (config + /settings + bench) — which also depends on feat-120 (golden labels).
+
 **Latest change (branch `feat-122-profile-renderer`): feat-122 — profile renderer + rasterizer.**
 `lib/job-plan/profile-vision/` now turns any `.vbp.md` export into a deterministic SVG (pure
 function of rows + meta + options; sha256 per tile for feat-128's fingerprint) and a PNG via
