@@ -1,0 +1,22 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "5d",
+    "kind": "hvn-edge",
+    "priceLow": 6745,
+    "priceHigh": 6745,
+    "primary": false,
+    "corpusRef": 15,
+    "verbatim": "this 45 area on the 5-day rolling \u2026 It's a high volume edge"
+  },
+  {
+    "instrument": "ES",
+    "profile": "5d",
+    "kind": "hvn-edge",
+    "priceLow": 6781,
+    "priceHigh": 6785,
+    "primary": false,
+    "corpusRef": 15,
+    "verbatim": "And the 81s right here as well. So, 81 to 85 area (HVE antecedent ambiguous 45 vs 81-85)"
+  }
+]

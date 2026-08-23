@@ -1,0 +1,32 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "overnight",
+    "kind": "exhaustive-node",
+    "priceLow": 6771,
+    "priceHigh": 6771,
+    "primary": false,
+    "corpusRef": 8,
+    "verbatim": "We got a nice little response out potentially a little exhausted node"
+  },
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 6802,
+    "priceHigh": 6806,
+    "primary": false,
+    "corpusRef": 9,
+    "verbatim": "into this wide LVN 682 to 6806 range"
+  },
+  {
+    "instrument": "ES",
+    "profile": "overnight",
+    "kind": "exhaustive-node",
+    "priceLow": 6802,
+    "priceHigh": 6802,
+    "primary": false,
+    "corpusRef": 10,
+    "verbatim": "this little exhaustive looking node \u2026 at 6802 on ES (NQ analogue 24,600)"
+  }
+]

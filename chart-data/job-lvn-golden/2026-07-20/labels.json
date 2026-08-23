@@ -1,0 +1,12 @@
+[
+  {
+    "instrument": "NQ",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 29255,
+    "priceHigh": 29332,
+    "primary": false,
+    "corpusRef": 35,
+    "verbatim": "up here we have the split zone between 255 and 332"
+  }
+]

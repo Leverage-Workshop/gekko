@@ -1,0 +1,12 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "overnight",
+    "kind": "lvn",
+    "priceLow": 7529,
+    "priceHigh": 7533,
+    "primary": false,
+    "corpusRef": 29,
+    "verbatim": "in the overnight profile \u2026 a real nice node \u2026 7533 to 29 \u2026 that node, that LVN"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "hvn-edge",
+    "priceLow": 7568,
+    "priceHigh": 7572,
+    "primary": false,
+    "corpusRef": 22,
+    "verbatim": "coming down to the high volume edge \u2026 This down here 68 to 72, want to see it defend"
+  },
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "exhaustive-node",
+    "priceLow": 7620,
+    "priceHigh": 7624,
+    "primary": false,
+    "corpusRef": 23,
+    "verbatim": "watch this as an exhaust of note on top of the volume profile"
+  },
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 7568,
+    "priceHigh": 7572,
+    "primary": false,
+    "corpusRef": 24,
+    "verbatim": "68 72 LVN right down here (the LVN directly beneath the HVE)"
+  }
+]

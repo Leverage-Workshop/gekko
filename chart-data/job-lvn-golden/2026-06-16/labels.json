@@ -1,0 +1,22 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 7636,
+    "priceHigh": 7636,
+    "primary": false,
+    "corpusRef": 27,
+    "verbatim": "test up into this 36 to gauge for continuation. That OBN can be pretty prominent today"
+  },
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 7608,
+    "priceHigh": 7615,
+    "primary": false,
+    "corpusRef": 28,
+    "verbatim": "explore some into this LVN \u2026 put a little pressure on the 1A"
+  }
+]

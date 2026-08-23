@@ -1,0 +1,22 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 6840,
+    "priceHigh": 6844,
+    "primary": true,
+    "corpusRef": 4,
+    "verbatim": "naturally, we do have this primary LVN up here in the low 40s"
+  },
+  {
+    "instrument": "ES",
+    "profile": "4h",
+    "kind": "lvn",
+    "priceLow": 6816,
+    "priceHigh": 6818,
+    "primary": false,
+    "corpusRef": 5,
+    "verbatim": "we've got a nice little LVN right here. So this 6816 area is what I want to key on 16 to 18"
+  }
+]

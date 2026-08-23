@@ -1,0 +1,12 @@
+[
+  {
+    "instrument": "NQ",
+    "profile": "4h",
+    "kind": "lvn",
+    "priceLow": 29200,
+    "priceHigh": 29200,
+    "primary": false,
+    "corpusRef": 37,
+    "verbatim": "this 29,200 area this LVN on the 4-hour rolling"
+  }
+]
