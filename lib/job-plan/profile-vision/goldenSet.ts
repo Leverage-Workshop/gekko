@@ -31,6 +31,8 @@ const INSTRUMENTS = ['NQ', 'ES'] as const
 
 const price = z.number().finite()
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
 export const goldenLabelSchema = z
   .object({
     instrument: z.enum(INSTRUMENTS),
@@ -42,32 +44,64 @@ export const goldenLabelSchema = z
     corpusRef: z.number().int().positive(),
     verbatim: z.string().min(1),
   })
+  .strict()
   .refine((l) => l.priceLow <= l.priceHigh, {
     message: 'priceLow must be <= priceHigh',
     path: ['priceLow'],
   })
+  .refine((l) => !l.primary || l.kind === 'lvn', {
+    message: 'only an lvn can be primary',
+    path: ['primary'],
+  })
 export type GoldenLabel = z.infer<typeof goldenLabelSchema>
 
-export const labelsSchema = z.array(goldenLabelSchema).min(1)
+/**
+ * A date's labels: non-empty, all one instrument (feat-119 exports one chartbook
+ * profile per folder), and at most one primary per profile.
+ */
+export const labelsSchema = z
+  .array(goldenLabelSchema)
+  .min(1)
+  .refine((ls) => new Set(ls.map((l) => l.instrument)).size === 1, {
+    message: 'a date folder must hold a single instrument',
+  })
+  .refine(
+    (ls) => {
+      const byProfile = new Map<string, number>()
+      for (const l of ls.filter((l) => l.primary)) {
+        byProfile.set(l.profile, (byProfile.get(l.profile) ?? 0) + 1)
+      }
+      return [...byProfile.values()].every((c) => c <= 1)
+    },
+    { message: 'at most one primary per profile' }
+  )
+
+const uniqueDates = (arr: string[]) => new Set(arr).size === arr.length
 
 export const splitSchema = z
   .object({
-    fewShot: z.array(z.string()).min(1),
-    test: z.array(z.string()),
+    fewShot: z.array(z.string().regex(ISO_DATE)).min(1),
+    test: z.array(z.string().regex(ISO_DATE)),
   })
+  .strict()
   .refine((s) => s.fewShot.every((d) => !s.test.includes(d)), {
     message: 'fewShot and test must not overlap',
     path: ['test'],
   })
+  .refine((s) => uniqueDates(s.fewShot) && uniqueDates(s.test), {
+    message: 'split date lists must not contain duplicates',
+  })
 export type GoldenSplit = z.infer<typeof splitSchema>
 
 /** feat-119's per-date sidecar (operator-side). Parsed here so the loader validates it when present. */
-export const replaySchema = z.object({
-  replayAt: z.string().min(1),
-  instrument: z.enum(INSTRUMENTS),
-  sessionTemplate: z.string().min(1),
-  note: z.string().optional(),
-})
+export const replaySchema = z
+  .object({
+    replayAt: z.string().datetime({ offset: true }),
+    instrument: z.enum(INSTRUMENTS),
+    sessionTemplate: z.string().min(1),
+    note: z.string().optional(),
+  })
+  .strict()
 export type GoldenReplay = z.infer<typeof replaySchema>
 
 export type SplitRole = 'fewShot' | 'test'
@@ -83,6 +117,8 @@ export type GoldenDate = {
   readonly profilesPresent: readonly Exclude<GoldenProfile, 'any'>[]
   /** Profile files a label references but that have not landed yet (feat-119 incremental). */
   readonly profilesMissing: readonly Exclude<GoldenProfile, 'any'>[]
+  /** False until at least one profile file lands — the date cannot be scored yet. */
+  readonly scorable: boolean
 }
 
 export type GoldenSet = {
@@ -124,6 +160,13 @@ function loadDate(root: string, date: string, role: SplitRole): GoldenDate {
   const replayPath = join(dir, 'replay.json')
   const replay = existsSync(replayPath) ? replaySchema.parse(readJson(replayPath)) : null
 
+  const byMagnitude = instrumentOf(labels, null)
+  if (replay && replay.instrument !== byMagnitude) {
+    throw new Error(
+      `${date}: replay.json instrument ${replay.instrument} contradicts the labels (${byMagnitude})`
+    )
+  }
+
   const present = (Object.keys(PROFILE_FILES) as Exclude<GoldenProfile, 'any'>[]).filter((p) =>
     existsSync(join(dir, PROFILE_FILES[p]))
   )
@@ -139,6 +182,7 @@ function loadDate(root: string, date: string, role: SplitRole): GoldenDate {
     replay,
     profilesPresent: present,
     profilesMissing: missing,
+    scorable: present.length > 0,
   }
 }
 

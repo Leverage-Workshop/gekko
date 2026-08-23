@@ -1,12 +1,12 @@
 [
   {
-    "instrument": "NQ",
+    "instrument": "ES",
     "profile": "any",
     "kind": "lvn",
-    "priceLow": 29255,
-    "priceHigh": 29332,
+    "priceLow": 7545,
+    "priceHigh": 7545,
     "primary": false,
-    "corpusRef": 35,
-    "verbatim": "up here we have the split zone between 255 and 332"
+    "corpusRef": 34,
+    "verbatim": "right here at the cell VM that could be a pretty large um hurdle to get over"
   }
 ]

@@ -4,19 +4,19 @@ Ground truth for the profile vision bench (feat-124) and the R15 exit criterion.
 Two halves:
 
 - **Repo half (feat-120, this directory's `labels.json` + `split.json`):** operator
-  labels transcribed from `docs/jba-research/lvn-corpus.md` section A1 — every prep row
-  that names a price.
+  labels transcribed from `docs/jba-research/lvn-corpus.md` section A1 — prep rows that
+  name a price.
 - **Operator half (feat-119, not yet landed):** per-date `five-day-rolling.vbp.md` /
   `four-hour-rolling.vbp.md` / `overnight.vbp.md` Sierra replay exports + a `replay.json`.
-  Dates land incrementally; feat-124's bench scores whatever folders have profiles and
-  logs the count it skipped.
+  Dates land incrementally; feat-124's bench scores whatever folders have profiles
+  (`scorable`) and logs the count it skipped.
 
 ## Per-date layout
 
 ```
 <YYYY-MM-DD>/
   labels.json                 # feat-120 (here now)
-  replay.json                 # feat-119 (operator) — { replayAt, instrument, sessionTemplate, note }
+  replay.json                 # feat-119 (operator) — { replayAt (ISO+offset), instrument, sessionTemplate, note? }
   five-day-rolling.vbp.md     # feat-119 (operator)
   four-hour-rolling.vbp.md    # feat-119 (operator)
   overnight.vbp.md            # feat-119 (operator), only the dates that cite it
@@ -31,20 +31,24 @@ An array of `{ instrument, profile, kind, priceLow, priceHigh, primary, corpusRe
   (scored strictly).
 - `kind`: `lvn` | `hvn-edge` | `hvn-core` | `exhaustive-node` | `taper-tail`.
 - a band (`priceLow < priceHigh`) when Job quotes one ("6816 to 18", "682 to 6806"); equal
-  low/high for a point.
-- `primary: true` only where Job says primary / deepest / most prominent.
-- `corpusRef`: the A1 row number; `verbatim`: a short quote.
+  low/high for a point. An unquoted approximate ("low 40s") is recorded as the round **point**,
+  never an invented band.
+- `primary: true` only where Job says primary / deepest / most prominent (always an `lvn`).
+- `corpusRef`: the A1 row number. `verbatim`: a **contiguous** quote from that A1 row (a test
+  asserts it is a substring of the row). One A1 row may yield more than one label when it names
+  more than one node (row 15's two high-volume edges), so `(corpusRef, band)` — not `corpusRef`
+  alone — is unique within a date.
 - NQ prices spoken without the thousands digit are expanded per the corpus reading notes
   ("the 960s" = 24960).
 
 ## Design decision: one instrument per date
 
 feat-119 exports **one** chartbook profile per date folder, so each date carries a single
-instrument's labels (`instrumentOf(date)` derives it from `replay.json` when present, else
-from the label price magnitude — NQ ≥ 10000, ES below). Several A1 rows name both an ES and
-an NQ price for the same read; the golden date keeps the instrument with the richer read and
-the dropped analogue stays in the corpus. Consequently a label's `corpusRef` is unique
-**within its date**, and not every A1 price is transcribed — the set is a validated ground
+instrument's labels — the schema enforces it, and `instrumentOf(date)` derives the instrument
+from `replay.json` when present (the loader throws if it contradicts the labels) else from the
+label price magnitude (NQ ≥ 10000, ES below). Several A1 rows name both an ES and an NQ price
+for the same read; the golden date keeps the instrument with the richer read and the dropped
+analogue stays in the corpus. Not every A1 price is transcribed — the set is a validated ground
 truth, not an exhaustive transcription. The three few-shot dates are fixed in `split.json`
 (`2026-02-13` NQ deepest-LVN-on-5-day, `2026-08-07` ES primary-LVN-above-JBA-low, `2026-06-02`
 ES exhaustive-node-on-top + LVN-under-HVE) and the test dates are never tuned on.
