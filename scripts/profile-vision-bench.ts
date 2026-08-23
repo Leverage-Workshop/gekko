@@ -40,6 +40,7 @@ import {
   detectorToScored,
   f1,
   labelToScored,
+  nearest,
   overall,
   precision,
   recall,
@@ -385,10 +386,14 @@ async function scoreCase(
     )
     .at(0)
   const anyPrimary = pc.any.find((l) => l.primary)
+  const labeledPrimary = namedPrimary?.label ?? anyPrimary ?? null
+  // Named primary: only ITS profile's primary can satisfy it. `any` primary: the
+  // NEAREST primary across all profiles (a hit if any is within tolerance).
   const predictedPrimary = namedPrimary
     ? (primaryByKey.get(namedPrimary.key) ?? null)
-    : ([...primaryByKey.values()].at(0) ?? null)
-  const labeledPrimary = namedPrimary?.label ?? anyPrimary ?? null
+    : labeledPrimary
+      ? nearest([...primaryByKey.values()], labelToScored(labeledPrimary).price)
+      : null
   const primary = scorePrimary(
     labeledPrimary ? predictedPrimary : null,
     labeledPrimary ? labelToScored(labeledPrimary) : null,

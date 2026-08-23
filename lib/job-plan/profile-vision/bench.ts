@@ -201,6 +201,20 @@ export function overall(scores: FamilyScores): Metrics {
  */
 export type PrimaryOutcome = 'hit' | 'miss' | 'no_primary_predicted' | 'not_applicable'
 
+/** The node in `nodes` closest to `price`, or null when `nodes` is empty. */
+export function nearest(nodes: readonly ScoredNode[], price: number): ScoredNode | null {
+  let best: ScoredNode | null = null
+  let bestDist = Infinity
+  for (const n of nodes) {
+    const d = Math.abs(n.price - price)
+    if (d < bestDist) {
+      bestDist = d
+      best = n
+    }
+  }
+  return best
+}
+
 export function scorePrimary(
   predictedPrimary: ScoredNode | null,
   labeledPrimary: ScoredNode | null,

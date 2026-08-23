@@ -9,6 +9,7 @@ import {
   overall,
   precision,
   recall,
+  nearest,
   scoreCaseNodes,
   scorePrimary,
   scoreRead,
@@ -202,5 +203,20 @@ describe('bench — case-level one-to-one matching (no double-count)', () => {
     const s = scoreCaseNodes(preds, [named('5d', nq(1, 'lvn'))], [nq(2, 'hvn')], 20)
     expect(s.lvn).toMatchObject({ tp: 0, fn: 1, detected: 0 })
     expect(s.hvn).toMatchObject({ tp: 0, fn: 1, detected: 0 })
+  })
+})
+
+describe('bench — nearest', () => {
+  it('picks the closest node across the set, so an any-primary hits if ANY profile is near', () => {
+    const nodes = [nq(29500, 'lvn'), nq(29105, 'lvn')]
+    expect(nearest(nodes, 29100)).toEqual(nq(29105, 'lvn'))
+    // reversed order — still the 29105 node
+    expect(nearest([nq(29105, 'lvn'), nq(29500, 'lvn')], 29100)).toEqual(nq(29105, 'lvn'))
+    expect(nearest([], 29100)).toBeNull()
+  })
+
+  it('feeds a within-tolerance any-primary to scorePrimary as a hit even when another profile misses', () => {
+    const nodes = [nq(29500, 'lvn'), nq(29105, 'lvn')]
+    expect(scorePrimary(nearest(nodes, 29100), nq(29100, 'lvn'), 20)).toBe('hit')
   })
 })
