@@ -2,7 +2,18 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-21
+**Last Updated:** 2026-08-22
+
+**2026-08-22 (branch `claude/trading-plan-youtube-analysis-izig3g`): the Job planning task is
+now tracked in `feature_list.json` as feat-118 – feat-130**, one entry per implementable step
+of `docs/job-planning-task-plan.md` (the step → feature map is in that doc's "Implementation
+steps"). Two entries are operator-side Sierra/Windows work (feat-118 exporter + snapshot
+archive, feat-119 golden-set replay exports) and carry status `operator`; note that
+`scripts/auto-implement.sh` only skips `done`/`skipped`, so its jq filter needs `operator`
+added before the loop runs again. Unblocked repo work right now: feat-120 (golden labels),
+feat-121 (bundle plumbing), feat-122 (profile renderer). The planner chain (feat-125 →
+feat-127) waits on feat-118's real `job-study.json` sample by design (parser strictness is
+calibrated to real output). `main` (feat-117) was merged into this branch.
 
 **Latest change (branch `feat-117-pivot-tie-break`): feat-117 — double-top pivot annihilation
 fixed; the defining rotation now ships dated.** Live defect, found by the operator reading the

@@ -544,8 +544,21 @@ criteria) as the backup regression floor.
 
 ## Implementation steps
 
-Each step ≈ one `feature_list.json` entry (id assigned when picked up; next free is
-feat-118), own branch + PR per repo rules.
+Each step ≈ one `feature_list.json` entry, own branch + PR per repo rules. **Tracked as
+feat-118 – feat-130 (added 2026-08-22)**: step 1 → feat-118 (exporter + companions + snapshot
+archive, operator-side) and feat-119 (golden-set replay exports, operator-side); step 2 →
+feat-121; step 3 → folded into feat-126's `rules.ts` (decision log by rule ID), feat-124 (R15
+numbers) and feat-130 (replaying the numbers against snapshots); step 4 → feat-120 (golden
+labels + split), feat-122 (renderer), feat-123 (schema / prompt / identify / consensus),
+feat-124 (config + bench); step 5 → feat-125 (parser), feat-126 (classifyContext + rules),
+feat-127 (buildPlan + schema); step 6 → feat-128; step 7 → feat-129; step 8 → feat-130;
+step 9 is deliberately not tracked (out of MVP, operator opt-in). Operator-side entries carry
+status `operator` rather than `not-started` so the unattended implement loop does not pick
+them up. One deliberate deviation from the text below: the filename contract
+(`job-study.json`, `five-day-rolling.vbp.md`, `four-hour-rolling.vbp.md`) is fixed in
+feat-121 so the bundle plumbing does not wait on the DLL, and the `unused_bundles_before`
+guard lands with the `job_plans` migration (feat-128) because that is where the table it
+references is created.
 
 1. **Sierra Job-study exporter + snapshot archive** — no repo TS changes.
    Files: new ACSIL exporter (own DLL, Windows side), `chart-data/job-study.json` sample
