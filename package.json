@@ -12,6 +12,7 @@
     "uploader": "tsx scripts/uploader.ts",
     "lvn:eval": "tsx scripts/lvn-eval.ts",
     "profile-vision:bench": "tsx scripts/profile-vision-bench.ts",
+    "codex:gate": "tsx scripts/codex-gate.ts",
     "format": "prettier --write \"{app,lib,tests}/**/*.{ts,tsx,css}\""
   },
   "dependencies": {

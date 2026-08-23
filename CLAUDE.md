@@ -27,8 +27,8 @@ If baseline verification is failing, repair that first before adding new scope.
 - **One feature at a time**: Pick exactly one unfinished feature from `feature_list.json`
 - **Branch per feature**: Before writing any code, create a feature branch
   (`git checkout -b feat-NNN-<slug>`). Never commit feature work directly to `main`.
-- **PR to merge**: When `./init.sh` passes on the branch, open a PR against `main` and
-  merge via squash.
+- **PR to merge**: When `./init.sh` and `npm run codex:gate` both pass on the branch, open a
+  PR against `main` and merge via squash.
 - **Verification required**: Don't claim done without running verification commands
 - **Update artifacts**: Before ending session, update `progress.md` and `feature_list.json`
 - **Stay in scope**: Don't modify files unrelated to the current feature
@@ -52,6 +52,8 @@ A feature is done only when ALL of the following are true:
 
 - [ ] Target behavior is implemented
 - [ ] Required verification actually ran (tests / lint / type-check)
+- [ ] Codex review passed on the final commit (`npm run codex:gate`: no P0/P1 findings; P2/P3
+      triaged, with dismissals noted in `progress.md`)
 - [ ] Evidence recorded in `feature_list.json` or `progress.md`
 - [ ] Repository remains restartable from standard startup path
 
@@ -62,7 +64,8 @@ Before ending a session:
 1. Update `progress.md` with current state
 2. Update `feature_list.json` with new feature status
 3. Record any unresolved risks or blockers
-4. Push branch and open a PR against `main`; merge via squash once `./init.sh` passes
+4. Commit, run `npm run codex:gate` until it passes, then push the branch and open a PR
+   against `main`; merge via squash once `./init.sh` passes
 5. Leave repo clean enough for next session to run `./init.sh` immediately
 
 ## Verification Commands
@@ -80,6 +83,30 @@ Required checks (once `package.json` exists, `./init.sh` auto-runs them):
 
 Until **feat-001** scaffolds the Next.js app there is no manifest; `./init.sh` will say so —
 that is expected, and feat-001 is the first feature to pick up.
+
+```bash
+# Check-in gate (run on the committed branch, before push / PR)
+npm run codex:gate
+```
+
+## Codex Review Gate
+
+Every change gets an independent Codex code review before it is checked in.
+`npm run codex:gate` (`scripts/codex-gate.ts`, helpers in `lib/codex-gate/`) runs Codex's
+native code reviewer — the same one behind `/codex:review` — over the branch diff
+`origin/main...HEAD` (falls back to `main`; `--base` / `CODEX_GATE_BASE` override). It is a
+bug-finder over the diff, not an architecture critique.
+
+- Findings come back as `[P0]` (release-blocking), `[P1]` (bug, must fix), `[P2]` (should
+  fix), `[P3]` (nit). The gate **fails on any P0/P1**; P2/P3 are printed for triage
+  (`--block-on P0,P1,P2` to tighten).
+- It reviews committed state only (uncommitted changes are skipped with a warning), refreshes
+  `origin/main` first, and leaves `.codex-gate/last.json` (gitignored) as a record of which
+  commit was reviewed against which base and what came back.
+- Loop: get `./init.sh` green → commit → `npm run codex:gate` → fix real P1s (and cheap
+  P2s), commit, re-run → push and open the PR. Codex is an independent reviewer, not an
+  oracle: verify a finding against the code before acting on it, and if you dismiss one,
+  say why in `progress.md` alongside the gate verdict.
 
 ## Integration Sources of Truth
 
