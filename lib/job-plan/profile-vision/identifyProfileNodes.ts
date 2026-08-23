@@ -51,6 +51,8 @@ export type VisionGenerate = (params: {
   readonly schema: z.ZodType<ProfileNodesRead>
   readonly prompt: string
   readonly images: readonly ChartImage[]
+  /** Aborted at the per-call timeout — a real `generate` MUST honour it (generateStructured does). */
+  readonly abortSignal: AbortSignal
   readonly telemetry?: TelemetryOptions
 }) => Promise<{
   readonly object: ProfileNodesRead
@@ -110,10 +112,22 @@ export async function runWithConcurrency<T>(
   return results
 }
 
-/** Reject after `ms` — the model call itself keeps running but the sample is counted as failed. */
-export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+/**
+ * Reject after `ms` AND abort the controller so the provider request is
+ * cancelled: the concurrency slot is released at the timeout, so without the
+ * abort a slow provider would keep arbitrarily many requests (and their cost)
+ * alive beyond the cap.
+ */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  controller: AbortController
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`timed out after ${ms} ms`)), ms)
+    const timer = setTimeout(() => {
+      controller.abort(new Error(`timed out after ${ms} ms`))
+      reject(new Error(`timed out after ${ms} ms`))
+    }, ms)
     promise.then(
       (v) => {
         clearTimeout(timer)
@@ -182,6 +196,7 @@ function buildCalls(
 
 async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<RawSample> {
   const base = { sample: call.sample, tile: call.tile.index, imageSha256: call.imageSha256 }
+  const controller = new AbortController()
   try {
     const result = await withTimeout(
       input.generate({
@@ -190,9 +205,11 @@ async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<Ra
         schema: profileNodesReadSchema,
         prompt: call.prompt,
         images: call.images,
+        abortSignal: controller.signal,
         ...(input.telemetry ? { telemetry: input.telemetry } : {}),
       }),
-      input.timeoutMs ?? DEFAULT_TIMEOUT_MS
+      input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      controller
     )
     return {
       ...base,
@@ -231,7 +248,7 @@ function entryFor(
       priceHigh: rendered.meta.priceHigh,
     },
     samples: input.samples,
-    tilesPerSample: rendered.tiles.length,
+    tiles: rendered.tiles.map((t) => t.tile),
     reads,
   })
   return {

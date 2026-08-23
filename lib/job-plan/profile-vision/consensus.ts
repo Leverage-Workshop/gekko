@@ -19,16 +19,23 @@ import type { ConsensusNode, ConsensusThinZone, ProfileConsensus } from './types
  *
  *   1. Snap every price to the profile grid; drop nodes with no overlap with
  *      the profile's span, clip the rest.
- *   2. De-duplicate tiles within a sample: the same node seen in two overlapping
- *      tiles is one node.
+ *   2. De-duplicate tiles within a sample: the same node seen in two
+ *      overlapping tiles is one node. Only nodes inside BOTH tiles' spans can
+ *      be duplicates, and only when their bands intersect (or their centers
+ *      sit within half the tolerance); the merge keeps the better prominence
+ *      and OR-s the primary flag — never "first tile wins".
  *   3. Cluster across samples within the R1 merge tolerance (ES 5 / NQ 20),
- *      within a kind FAMILY (an lvn and its adjacent hvn-edge are two nodes by
- *      design — corpus B4 — so they must never merge). One vote per sample per
- *      cluster.
+ *      within a kind FAMILY: an lvn and its adjacent hvn-edge are two nodes
+ *      by design (corpus B4) so they never merge; hvn-edge / hvn-core are
+ *      alternate labels for one fat feature; exhaustive-node and taper-tail
+ *      are DIFFERENT extreme anatomy and stay apart. One vote per sample per
+ *      cluster — a same-sample collision opens a new cluster.
  *   4. Keep clusters with agreement >= ceil(S/2); price = median band,
  *      prominence = best, kind / position / shape / primary by majority.
- *   5. Exactly one primary lvn survives (most primary votes, then agreement,
- *      then prominence); at most MAX_NODES nodes, the primary always kept.
+ *   5. Exactly one primary lvn whenever any lvn survives: most primary votes,
+ *      then agreement, then prominence; with no primary votes at all the
+ *      strongest surviving lvn is promoted. At most MAX_NODES nodes, the
+ *      primary always kept.
  *
  * Fewer than ceil(S/2) successful samples -> null (the caller emits the
  * `profile_nodes_unavailable` warning — R14, proceed with warning).
@@ -40,24 +47,34 @@ export type SuccessfulRead = {
   readonly read: ProfileNodesRead
 }
 
+export type Grid = { readonly step: number; readonly priceLow: number; readonly priceHigh: number }
+
+export type TileRange = {
+  readonly index: number
+  readonly priceLow: number
+  readonly priceHigh: number
+}
+
 export type ConsensusInput = {
   readonly instrument: Instrument
   /** The rendered grid: effective row step and the full profile span (bin edges). */
-  readonly grid: { readonly step: number; readonly priceLow: number; readonly priceHigh: number }
+  readonly grid: Grid
   /** Samples requested (S). */
   readonly samples: number
-  /** Tiles each sample consists of (T); a sample is successful only when every tile read succeeded. */
-  readonly tilesPerSample: number
+  /** The rendered tiles (T); a sample is successful only when every tile read succeeded. */
+  readonly tiles: readonly TileRange[]
   readonly reads: readonly SuccessfulRead[]
 }
 
+type Family = 'lvn' | 'hvn' | 'exhaustive' | 'taper'
+
 /** Kind families that may merge into one cluster. */
-const FAMILY_OF: Readonly<Record<NodeKind, 'thin' | 'fat' | 'extreme'>> = {
-  lvn: 'thin',
-  'hvn-edge': 'fat',
-  'hvn-core': 'fat',
-  'exhaustive-node': 'extreme',
-  'taper-tail': 'extreme',
+const FAMILY_OF: Readonly<Record<NodeKind, Family>> = {
+  lvn: 'lvn',
+  'hvn-edge': 'hvn',
+  'hvn-core': 'hvn',
+  'exhaustive-node': 'exhaustive',
+  'taper-tail': 'taper',
 }
 
 type Candidate = {
@@ -69,10 +86,7 @@ type Candidate = {
   readonly center: number
 }
 
-type Cluster = {
-  readonly family: 'thin' | 'fat' | 'extreme'
-  readonly members: readonly Candidate[]
-}
+type Cluster = { readonly family: Family; readonly members: readonly Candidate[] }
 
 export function requiredSamples(samples: number): number {
   return Math.ceil(samples / 2)
@@ -83,7 +97,7 @@ function round4(n: number): number {
 }
 
 /** Snap a price to the grid and clamp it into the span. */
-export function snapToGrid(price: number, grid: ConsensusInput['grid']): number {
+export function snapToGrid(price: number, grid: Grid): number {
   const snapped = grid.priceLow + Math.round((price - grid.priceLow) / grid.step) * grid.step
   return round4(Math.min(grid.priceHigh, Math.max(grid.priceLow, snapped)))
 }
@@ -103,7 +117,19 @@ function majority<T extends string>(votes: readonly T[], order: readonly T[]): T
   )[0][0]
 }
 
-function toCandidates(reads: readonly SuccessfulRead[], grid: ConsensusInput['grid']): Candidate[] {
+/** Total order on candidates so clustering is permutation-invariant. */
+function byCandidate(a: Candidate, b: Candidate): number {
+  return (
+    a.center - b.center ||
+    a.sample - b.sample ||
+    a.tile - b.tile ||
+    NODE_KINDS.indexOf(a.node.kind) - NODE_KINDS.indexOf(b.node.kind) ||
+    a.low - b.low ||
+    a.high - b.high
+  )
+}
+
+function toCandidates(reads: readonly SuccessfulRead[], grid: Grid): Candidate[] {
   const out: Candidate[] = []
   for (const { sample, tile, read } of reads) {
     for (const node of read.nodes) {
@@ -113,23 +139,67 @@ function toCandidates(reads: readonly SuccessfulRead[], grid: ConsensusInput['gr
       out.push({ sample, tile, node, low, high, center: (low + high) / 2 })
     }
   }
-  return out
+  return out.sort(byCandidate)
 }
 
-/** Within one sample, the same node seen in two tiles is one node (first tile wins). */
-function dedupeTiles(candidates: readonly Candidate[], tolerance: number): Candidate[] {
+/** The price span two tiles share, or null when they do not overlap. */
+function overlapSpan(
+  tiles: readonly TileRange[],
+  a: number,
+  b: number
+): { low: number; high: number } | null {
+  const ta = tiles.find((t) => t.index === a)
+  const tb = tiles.find((t) => t.index === b)
+  if (!ta || !tb) return null
+  const low = Math.max(ta.priceLow, tb.priceLow)
+  const high = Math.min(ta.priceHigh, tb.priceHigh)
+  return low < high ? { low, high } : null
+}
+
+function insideSpan(
+  c: { low: number; high: number },
+  span: { low: number; high: number }
+): boolean {
+  return c.low >= span.low && c.high <= span.high
+}
+
+function bandsMatch(a: Candidate, b: Candidate, tolerance: number): boolean {
+  const intersect = a.low <= b.high && b.low <= a.high
+  return intersect || Math.abs(a.center - b.center) <= tolerance / 2
+}
+
+/** Merge a tile duplicate into its keeper: better prominence wins the labels, primary is OR-ed. */
+function mergeTilePair(keep: Candidate, dup: Candidate): Candidate {
+  const better = dup.node.prominence < keep.node.prominence ? dup : keep
+  return {
+    ...better,
+    node: { ...better.node, primary: keep.node.primary || dup.node.primary },
+  }
+}
+
+/**
+ * Within one sample, the same node seen in two tiles is one node. Only a pair
+ * whose bands both lie inside the tiles' shared span qualifies — two distinct
+ * features that merely sit within the tolerance on different tiles do not.
+ */
+function dedupeTiles(
+  candidates: readonly Candidate[],
+  tiles: readonly TileRange[],
+  tolerance: number
+): Candidate[] {
+  if (tiles.length < 2) return [...candidates]
   const kept: Candidate[] = []
-  for (const c of [...candidates].sort(
-    (a, b) => a.sample - b.sample || a.tile - b.tile || a.center - b.center
-  )) {
-    const duplicate = kept.some(
-      (k) =>
-        k.sample === c.sample &&
-        k.tile !== c.tile &&
-        FAMILY_OF[k.node.kind] === FAMILY_OF[c.node.kind] &&
-        Math.abs(k.center - c.center) <= tolerance
-    )
-    if (!duplicate) kept.push(c)
+  for (const c of candidates) {
+    const idx = kept.findIndex((k) => {
+      if (k.sample !== c.sample || k.tile === c.tile) return false
+      if (FAMILY_OF[k.node.kind] !== FAMILY_OF[c.node.kind]) return false
+      const span = overlapSpan(tiles, k.tile, c.tile)
+      return (
+        span !== null && insideSpan(k, span) && insideSpan(c, span) && bandsMatch(k, c, tolerance)
+      )
+    })
+    if (idx === -1) kept.push(c)
+    else kept[idx] = mergeTilePair(kept[idx], c)
   }
   return kept
 }
@@ -140,9 +210,8 @@ function clusterCenter(members: readonly Candidate[]): number {
 
 /** Greedy single-linkage by center within a family; one member per sample per cluster. */
 function cluster(candidates: readonly Candidate[], tolerance: number): Cluster[] {
-  const sorted = [...candidates].sort((a, b) => a.center - b.center || a.sample - b.sample)
   const clusters: Cluster[] = []
-  for (const c of sorted) {
+  for (const c of [...candidates].sort(byCandidate)) {
     const family = FAMILY_OF[c.node.kind]
     const idx = clusters.findIndex(
       (cl) =>
@@ -150,18 +219,15 @@ function cluster(candidates: readonly Candidate[], tolerance: number): Cluster[]
         Math.abs(clusterCenter(cl.members) - c.center) <= tolerance &&
         !cl.members.some((m) => m.sample === c.sample)
     )
-    if (idx === -1) {
-      clusters.push({ family, members: [c] })
-    } else {
-      clusters[idx] = { family, members: [...clusters[idx].members, c] }
-    }
+    if (idx === -1) clusters.push({ family, members: [c] })
+    else clusters[idx] = { family, members: [...clusters[idx].members, c] }
   }
   return clusters
 }
 
 type Scored = ConsensusNode & { readonly primaryVotes: number; readonly center: number }
 
-function summarize(cl: Cluster, grid: ConsensusInput['grid'], samples: number): Scored {
+function summarize(cl: Cluster, grid: Grid, samples: number): Scored {
   const m = cl.members
   const low = snapToGrid(median(m.map((x) => x.low)), grid)
   const high = snapToGrid(median(m.map((x) => x.high)), grid)
@@ -199,9 +265,14 @@ function byPrimaryStrength(a: Scored, b: Scored): number {
   )
 }
 
-/** Exactly one primary lvn: the strongest candidate that received at least one primary vote. */
+/**
+ * Exactly one primary lvn whenever any lvn survives: the strongest candidate
+ * by primary votes; with no votes at all (every sample's primary fell below
+ * the agreement threshold) the strongest surviving lvn is promoted rather
+ * than shipping lvns with no primary — the planner contract needs one.
+ */
 function resolvePrimary(nodes: readonly Scored[]): Scored[] {
-  const lvns = nodes.filter((n) => n.kind === 'lvn' && n.primaryVotes > 0).sort(byPrimaryStrength)
+  const lvns = nodes.filter((n) => n.kind === 'lvn').sort(byPrimaryStrength)
   const winner = lvns[0]
   return nodes.map((n) => ({ ...n, primary: n === winner }))
 }
@@ -222,53 +293,94 @@ function stripScore(n: Scored): ConsensusNode {
   return node
 }
 
-type ZoneCandidate = { readonly sample: number; readonly low: number; readonly high: number }
+type Zone = {
+  readonly sample: number
+  readonly tile: number
+  readonly low: number
+  readonly high: number
+}
+
+function zonesOf(reads: readonly SuccessfulRead[], grid: Grid): Zone[] {
+  const out: Zone[] = []
+  for (const { sample, tile, read } of reads) {
+    for (const z of read.thinZones) {
+      if (z.high < grid.priceLow || z.low > grid.priceHigh) continue
+      out.push({ sample, tile, low: snapToGrid(z.low, grid), high: snapToGrid(z.high, grid) })
+    }
+  }
+  return out.sort(
+    (a, b) => a.low - b.low || a.high - b.high || a.sample - b.sample || a.tile - b.tile
+  )
+}
+
+/** Within one sample, zones from different tiles that touch are one zone (their union — a tile seam cuts zones). */
+function dedupeZoneTiles(zones: readonly Zone[]): Zone[] {
+  const kept: Zone[] = []
+  for (const z of zones) {
+    const idx = kept.findIndex(
+      (k) => k.sample === z.sample && k.tile !== z.tile && z.low <= k.high && k.low <= z.high
+    )
+    if (idx === -1) kept.push(z)
+    else
+      kept[idx] = {
+        ...kept[idx],
+        low: Math.min(kept[idx].low, z.low),
+        high: Math.max(kept[idx].high, z.high),
+      }
+  }
+  return kept
+}
+
+function zoneClusters(zones: readonly Zone[], tolerance: number): Zone[][] {
+  const clusters: Zone[][] = []
+  for (const z of zones) {
+    const idx = clusters.findIndex((cl) => {
+      const lo = median(cl.map((x) => x.low))
+      const hi = median(cl.map((x) => x.high))
+      const overlaps = z.low <= hi + tolerance && z.high >= lo - tolerance
+      const near = Math.abs((lo + hi) / 2 - (z.low + z.high) / 2) <= 2 * tolerance
+      return overlaps && near && !cl.some((x) => x.sample === z.sample)
+    })
+    if (idx === -1) clusters.push([z])
+    else clusters[idx] = [...clusters[idx], z]
+  }
+  return clusters
+}
+
+/** Two output zones that overlap are one zone (union, best agreement). */
+function mergeOverlappingZones(zones: readonly ConsensusThinZone[]): ConsensusThinZone[] {
+  const out: ConsensusThinZone[] = []
+  for (const z of [...zones].sort((a, b) => a.low - b.low || a.high - b.high)) {
+    const last = out[out.length - 1]
+    if (last && z.low <= last.high) {
+      out[out.length - 1] = {
+        ...last,
+        high: Math.max(last.high, z.high),
+        agreement: Math.max(last.agreement, z.agreement),
+      }
+    } else {
+      out.push(z)
+    }
+  }
+  return out
+}
 
 function consensusThinZones(
   reads: readonly SuccessfulRead[],
-  grid: ConsensusInput['grid'],
+  grid: Grid,
   tolerance: number,
   threshold: number,
   samples: number
 ): ConsensusThinZone[] {
-  const candidates: ZoneCandidate[] = []
-  for (const { sample, read } of reads) {
-    for (const z of read.thinZones) {
-      if (z.high < grid.priceLow || z.low > grid.priceHigh) continue
-      candidates.push({ sample, low: snapToGrid(z.low, grid), high: snapToGrid(z.high, grid) })
-    }
-  }
-  const clusters: ZoneCandidate[][] = []
-  for (const c of candidates.sort(
-    (a, b) => a.low + a.high - (b.low + b.high) || a.sample - b.sample
-  )) {
-    const center = (c.low + c.high) / 2
-    const idx = clusters.findIndex((cl) => {
-      const lo = median(cl.map((x) => x.low))
-      const hi = median(cl.map((x) => x.high))
-      const overlaps = c.low <= hi + tolerance && c.high >= lo - tolerance
-      return (
-        overlaps &&
-        Math.abs((lo + hi) / 2 - center) <= 2 * tolerance &&
-        !cl.some((x) => x.sample === c.sample)
-      )
-    })
-    if (idx === -1) clusters.push([c])
-    else clusters[idx] = [...clusters[idx], c]
-  }
-  return clusters
+  const clusters = zoneClusters(dedupeZoneTiles(zonesOf(reads, grid)), tolerance)
+  const zones = clusters
     .map((cl) => {
-      const seen = new Set(cl.map((x) => x.sample))
       const low = snapToGrid(median(cl.map((x) => x.low)), grid)
       const high = snapToGrid(median(cl.map((x) => x.high)), grid)
-      return {
-        low: Math.min(low, high),
-        high: Math.max(low, high),
-        agreement: seen.size,
-        samples,
-      }
+      return { low: Math.min(low, high), high: Math.max(low, high), agreement: cl.length, samples }
     })
     .filter((z) => z.agreement >= threshold)
+  return mergeOverlappingZones(zones)
     .sort(
       (a, b) => b.agreement - a.agreement || b.high - b.low - (a.high - a.low) || b.high - a.high
     )
@@ -294,12 +406,12 @@ export function successfulSamples(
 
 export function buildConsensus(input: ConsensusInput): ProfileConsensus | null {
   const threshold = requiredSamples(input.samples)
-  const complete = successfulSamples(input.reads, input.tilesPerSample)
+  const complete = successfulSamples(input.reads, input.tiles.length)
   if (complete.size < threshold) return null
 
   const reads = input.reads.filter((r) => complete.has(r.sample))
   const tolerance = R1_MERGE_TOLERANCE[input.instrument]
-  const candidates = dedupeTiles(toCandidates(reads, input.grid), tolerance)
+  const candidates = dedupeTiles(toCandidates(reads, input.grid), input.tiles, tolerance)
   const scored = cluster(candidates, tolerance)
     .map((cl) => summarize(cl, input.grid, input.samples))
     .filter((n) => n.agreement >= threshold)
@@ -319,6 +431,6 @@ export function buildConsensus(input: ConsensusInput): ProfileConsensus | null {
 }
 
 /** Exported for tests: the kind family a node clusters within. */
-export function familyOf(kind: NodeKind): 'thin' | 'fat' | 'extreme' {
+export function familyOf(kind: NodeKind): Family {
   return FAMILY_OF[kind]
 }

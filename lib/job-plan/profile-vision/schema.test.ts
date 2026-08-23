@@ -22,8 +22,16 @@ describe('profileNodesReadSchema', () => {
     expect(profileNodesReadSchema.safeParse({ ...base, nodes: [node()] }).success).toBe(true)
   })
 
-  it('accepts an empty read (no nodes means no primary required)', () => {
-    expect(profileNodesReadSchema.safeParse({ ...base, nodes: [] }).success).toBe(true)
+  it('rejects an empty read — a profile always has at least one node', () => {
+    expect(profileNodesReadSchema.safeParse({ ...base, nodes: [] }).success).toBe(false)
+  })
+
+  it('accepts an lvn-free image (a tile that is one fat node) without a primary', () => {
+    const r = profileNodesReadSchema.safeParse({
+      ...base,
+      nodes: [node({ kind: 'hvn-core', primary: false, shape: 'notch' })],
+    })
+    expect(r.success).toBe(true)
   })
 
   it('rejects more than 8 nodes', () => {

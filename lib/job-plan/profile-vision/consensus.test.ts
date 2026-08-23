@@ -42,12 +42,22 @@ function sample(
   return { sample, tile: 0, read: read(nodes, extra) }
 }
 
+/** Two tiles over the NQ grid sharing 29180–29220. */
+const TWO_TILES = [
+  { index: 0, priceLow: 29180, priceHigh: 29400 },
+  { index: 1, priceLow: 29000, priceHigh: 29220 },
+]
+
 function input(
   reads: SuccessfulRead[],
   samples = reads.length,
   tilesPerSample = 1
 ): ConsensusInput {
-  return { instrument: 'NQ', grid: GRID, samples, tilesPerSample, reads }
+  const tiles =
+    tilesPerSample === 2
+      ? TWO_TILES
+      : [{ index: 0, priceLow: GRID.priceLow, priceHigh: GRID.priceHigh }]
+  return { instrument: 'NQ', grid: GRID, samples, tiles, reads }
 }
 
 /** The primary lvn every sample agrees on, so reads are schema-valid. */
@@ -67,12 +77,12 @@ describe('consensus — helpers', () => {
     expect(snapToGrid(6812.13, { step: 0.25, priceLow: 6800, priceHigh: 6820 })).toBe(6812.25)
   })
 
-  it('kind families keep an lvn apart from its adjacent hvn-edge', () => {
-    expect(familyOf('lvn')).toBe('thin')
-    expect(familyOf('hvn-edge')).toBe('fat')
-    expect(familyOf('hvn-core')).toBe('fat')
-    expect(familyOf('taper-tail')).toBe('extreme')
-    expect(familyOf('exhaustive-node')).toBe('extreme')
+  it('kind families: lvn alone, hvn-edge/core together, the two extreme anatomies APART', () => {
+    expect(familyOf('lvn')).toBe('lvn')
+    expect(familyOf('hvn-edge')).toBe('hvn')
+    expect(familyOf('hvn-core')).toBe('hvn')
+    expect(familyOf('taper-tail')).toBe('taper')
+    expect(familyOf('exhaustive-node')).toBe('exhaustive')
   })
 
   it('successfulSamples requires every tile of a sample', () => {
@@ -164,7 +174,13 @@ describe('consensus — clustering', () => {
       sample(0, [p, n({ priceLow: 6820, priceHigh: 6820 })]),
       sample(1, [p, n({ priceLow: 6826, priceHigh: 6826 })]),
     ]
-    const c = buildConsensus({ instrument: 'ES', grid, samples: 2, tilesPerSample: 1, reads })!
+    const c = buildConsensus({
+      instrument: 'ES',
+      grid,
+      samples: 2,
+      tiles: [{ index: 0, priceLow: 6800, priceHigh: 6900 }],
+      reads,
+    })!
     expect(c.nodes.filter((x) => x.priceLow < 6840)).toHaveLength(2)
   })
 
@@ -299,41 +315,129 @@ describe('consensus — primary', () => {
     expect(c.nodes.find((x) => x.primary)!.priceLow).toBe(29300)
   })
 
-  it('a primary that did not reach the agreement threshold yields no primary rather than an invented one', () => {
+  it('when every primary vote fell below threshold, the strongest surviving lvn is promoted — never lvns without a primary', () => {
+    const shared = n({ priceLow: 29250, priceHigh: 29254, prominence: 2, primary: false })
+    const reads = [
+      sample(0, [n({ priceLow: 29100, priceHigh: 29104, prominence: 1, primary: true }), shared]),
+      sample(1, [n({ priceLow: 29300, priceHigh: 29304, prominence: 1, primary: true }), shared]),
+      sample(2, [n({ priceLow: 29350, priceHigh: 29354, prominence: 1, primary: true }), shared]),
+    ]
+    const c = buildConsensus(input(reads))!
+    expect(c.nodes).toHaveLength(1)
+    expect(c.nodes[0]).toMatchObject({ priceLow: 29250, primary: true, agreement: 3 })
+  })
+
+  it('disjoint primaries with nothing shared yield no lvn at all (and therefore no primary)', () => {
     const reads = [
       sample(0, [n({ priceLow: 29100, priceHigh: 29104, prominence: 1, primary: true })]),
       sample(1, [n({ priceLow: 29300, priceHigh: 29304, prominence: 1, primary: true })]),
       sample(2, [n({ priceLow: 29350, priceHigh: 29354, prominence: 1, primary: true })]),
     ]
+    expect(buildConsensus(input(reads))!.nodes).toHaveLength(0)
+  })
+
+  it('an exhaustive-node and a taper-tail at the same extreme never blend into a majority vote', () => {
+    const reads = [
+      sample(0, [
+        PRIMARY,
+        n({ kind: 'exhaustive-node', priceLow: 29390, priceHigh: 29400, primary: false }),
+      ]),
+      sample(1, [
+        PRIMARY,
+        n({ kind: 'taper-tail', priceLow: 29390, priceHigh: 29400, primary: false }),
+      ]),
+      sample(2, [
+        PRIMARY,
+        n({ kind: 'exhaustive-node', priceLow: 29392, priceHigh: 29400, primary: false }),
+      ]),
+    ]
     const c = buildConsensus(input(reads))!
-    expect(c.nodes).toHaveLength(0)
+    const top = c.nodes.filter((x) => x.priceHigh === 29400)
+    // the 1-of-3 taper-tail misses the ceil(3/2)=2 threshold; the 2-of-3 exhaustive-node survives
+    expect(top.map((x) => [x.kind, x.agreement])).toEqual([['exhaustive-node', 2]])
   })
 })
 
 describe('consensus — tiles, caps, zones, shape', () => {
-  it('de-duplicates the same node seen in two overlapping tiles of one sample (one vote, not two)', () => {
+  it("de-duplicates the same node seen in both tiles' SHARED span within one sample (one vote, not two)", () => {
+    // PRIMARY (29200-29204) sits in the 29180-29220 overlap and is reported by both tiles.
     const reads: SuccessfulRead[] = [
-      { sample: 0, tile: 0, read: read([PRIMARY, n({ priceLow: 29300, priceHigh: 29304 })]) },
+      {
+        sample: 0,
+        tile: 0,
+        read: read([
+          PRIMARY,
+          n({ kind: 'hvn-core', priceLow: 29300, priceHigh: 29304, primary: false }),
+        ]),
+      },
       {
         sample: 0,
         tile: 1,
-        read: read([
-          n({ priceLow: 29302, priceHigh: 29306, primary: false }),
-          n({ priceLow: 29020, priceHigh: 29024, prominence: 1, primary: true }),
-        ]),
+        read: read([{ ...PRIMARY, priceLow: 29202, priceHigh: 29206, prominence: 2 }]),
       },
-      { sample: 1, tile: 0, read: read([PRIMARY, n({ priceLow: 29300, priceHigh: 29304 })]) },
-      {
-        sample: 1,
-        tile: 1,
-        read: read([n({ priceLow: 29020, priceHigh: 29024, prominence: 1, primary: true })]),
-      },
+      { sample: 1, tile: 0, read: read([PRIMARY]) },
+      { sample: 1, tile: 1, read: read([{ ...PRIMARY, prominence: 3 }]) },
     ]
     const c = buildConsensus(input(reads, 2, 2))!
-    const upper = c.nodes.filter((x) => x.priceLow >= 29300)
-    expect(upper).toHaveLength(1)
-    expect(upper[0].agreement).toBe(2)
-    expect(c.nodes.map((x) => x.priceLow)).toContain(29020)
+    const lvns = c.nodes.filter((x) => x.kind === 'lvn')
+    expect(lvns).toHaveLength(1)
+    expect(lvns[0]).toMatchObject({ primary: true, agreement: 2, prominence: 1 })
+  })
+
+  it('does NOT collapse two distinct nodes within the tolerance when one lies outside the shared span', () => {
+    // hvn-edge 29226-29228 is tile-0-only territory; hvn-edge 29210-29212 is in the overlap. 16 pts
+    // apart (inside the 20-pt tolerance) but NOT both inside the shared span -> not tile duplicates.
+    const tile0 = [
+      PRIMARY,
+      n({ kind: 'hvn-edge', priceLow: 29226, priceHigh: 29228, primary: false }),
+    ]
+    const tile1 = [n({ kind: 'hvn-edge', priceLow: 29210, priceHigh: 29212, primary: false })]
+    const reads: SuccessfulRead[] = [
+      { sample: 0, tile: 0, read: read(tile0) },
+      { sample: 0, tile: 1, read: read(tile1) },
+      { sample: 1, tile: 0, read: read(tile0) },
+      { sample: 1, tile: 1, read: read(tile1) },
+    ]
+    const c = buildConsensus(input(reads, 2, 2))!
+    const edges = c.nodes
+      .filter((x) => x.kind === 'hvn-edge')
+      .map((x) => x.priceLow)
+      .sort()
+    // each sample contributes BOTH edges; they cluster across samples into two 2-vote nodes
+    expect(edges).toEqual([29210, 29226])
+  })
+
+  it('the tile merge keeps the better prominence and OR-s the primary flag', () => {
+    const reads: SuccessfulRead[] = [
+      {
+        sample: 0,
+        tile: 0,
+        read: read([
+          { ...PRIMARY, primary: false, prominence: 3 },
+          n({ kind: 'hvn-core', priceLow: 29300, priceHigh: 29304, primary: false }),
+        ]),
+      },
+      { sample: 0, tile: 1, read: read([{ ...PRIMARY, prominence: 1 }]) },
+    ]
+    const c = buildConsensus(input(reads, 1, 2))!
+    expect(c.nodes.find((x) => x.kind === 'lvn')).toMatchObject({
+      primary: true,
+      prominence: 1,
+      agreement: 1,
+    })
+  })
+
+  it('thin zones cut by the tile seam are unioned within a sample, and overlapping outputs merge', () => {
+    const reads: SuccessfulRead[] = [
+      { sample: 0, tile: 0, read: read([PRIMARY], { thinZones: [{ low: 29190, high: 29260 }] }) },
+      { sample: 0, tile: 1, read: read([PRIMARY], { thinZones: [{ low: 29150, high: 29200 }] }) },
+      { sample: 1, tile: 0, read: read([PRIMARY], { thinZones: [{ low: 29150, high: 29262 }] }) },
+      { sample: 1, tile: 1, read: read([PRIMARY], { thinZones: [{ low: 29150, high: 29200 }] }) },
+    ]
+    const c = buildConsensus(input(reads, 2, 2))!
+    expect(c.thinZones).toHaveLength(1)
+    expect(c.thinZones[0]).toMatchObject({ low: 29150, agreement: 2 })
+    expect(c.thinZones[0].high).toBeGreaterThanOrEqual(29260)
   })
 
   it('caps at 8 nodes by agreement then prominence, always keeping the primary, ordered top-down', () => {
@@ -400,6 +504,23 @@ describe('consensus — tiles, caps, zones, shape', () => {
     )!
     expect(tie.profileShape).toBe('bell')
     expect(tie.unfinished).toBe(false)
+  })
+
+  it('is permutation-invariant: the order of reads and of nodes within a read does not change the result', () => {
+    const a = n({ priceLow: 29300, priceHigh: 29304, prominence: 2 })
+    const b = n({ priceLow: 29310, priceHigh: 29314, prominence: 1 })
+    const edge = n({ kind: 'hvn-edge', priceLow: 29120, priceHigh: 29124 })
+    const reads = [
+      sample(0, [PRIMARY, a, edge]),
+      sample(1, [b, PRIMARY]),
+      sample(2, [edge, PRIMARY, a]),
+    ]
+    const shuffled = [
+      { ...reads[2], read: { ...reads[2].read, nodes: [...reads[2].read.nodes].reverse() } },
+      reads[0],
+      { ...reads[1], read: { ...reads[1].read, nodes: [...reads[1].read.nodes].reverse() } },
+    ]
+    expect(buildConsensus(input(shuffled))).toEqual(buildConsensus(input(reads)))
   })
 
   it('is pure: does not mutate its input and is deterministic across calls', () => {

@@ -204,10 +204,12 @@ describe('identifyProfileNodes — failure tolerance (R14)', () => {
     expect(result.warnings).toEqual(['profile_nodes_unavailable:5d'])
   })
 
-  it('counts a timed-out call as a failed sample', async () => {
+  it('counts a timed-out call as a failed sample AND aborts its signal so the provider request is cancelled', async () => {
     let n = 0
-    const generate: VisionGenerate = async () => {
+    const signals: AbortSignal[] = []
+    const generate: VisionGenerate = async ({ abortSignal }) => {
       n += 1
+      signals.push(abortSignal)
       if (n === 1) await new Promise((r) => setTimeout(r, 50))
       return { object: goodRead(), cost: null, latencyMs: 1 }
     }
@@ -216,6 +218,21 @@ describe('identifyProfileNodes — failure tolerance (R14)', () => {
     expect(entry.raw.filter((r) => !r.ok)).toHaveLength(1)
     expect(entry.raw.find((r) => !r.ok)?.error).toMatch(/timed out after 10 ms/)
     expect(entry.consensus?.successfulSamples).toBe(2)
+    expect(signals).toHaveLength(3)
+    expect(signals[0].aborted).toBe(true)
+    expect(signals[1].aborted).toBe(false)
+    expect(signals[2].aborted).toBe(false)
+  })
+
+  it('passes a fresh, un-aborted signal to every call and never aborts a call that completed', async () => {
+    const signals: AbortSignal[] = []
+    const generate: VisionGenerate = async ({ abortSignal }) => {
+      signals.push(abortSignal)
+      return { object: goodRead(), cost: null, latencyMs: 1 }
+    }
+    await identifyProfileNodes(baseInput(generate))
+    expect(new Set(signals).size).toBe(3)
+    expect(signals.every((s) => !s.aborted)).toBe(true)
   })
 
   it('a non-Error rejection is captured as a string', async () => {
@@ -249,9 +266,17 @@ describe('runWithConcurrency / withTimeout', () => {
     expect(out).toEqual([3, 1, 2])
   })
 
-  it('withTimeout resolves before the deadline and rejects after it', async () => {
-    await expect(withTimeout(Promise.resolve('ok'), 10)).resolves.toBe('ok')
-    await expect(withTimeout(new Promise((r) => setTimeout(r, 30)), 5)).rejects.toThrow(/timed out/)
-    await expect(withTimeout(Promise.reject(new Error('inner')), 10)).rejects.toThrow('inner')
+  it('withTimeout resolves before the deadline, rejects + aborts after it, and passes inner errors through', async () => {
+    const fast = new AbortController()
+    await expect(withTimeout(Promise.resolve('ok'), 10, fast)).resolves.toBe('ok')
+    expect(fast.signal.aborted).toBe(false)
+    const slow = new AbortController()
+    await expect(withTimeout(new Promise((r) => setTimeout(r, 30)), 5, slow)).rejects.toThrow(
+      /timed out/
+    )
+    expect(slow.signal.aborted).toBe(true)
+    await expect(
+      withTimeout(Promise.reject(new Error('inner')), 10, new AbortController())
+    ).rejects.toThrow('inner')
   })
 })

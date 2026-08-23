@@ -48,8 +48,15 @@ export const thinZoneSchema = z.object({
 })
 export type ThinZone = z.infer<typeof thinZoneSchema>
 
+/**
+ * Per-IMAGE contract. A profile always shows at least one node (a POC-class
+ * peak, an edge, a tail), so an empty `nodes` is a refusal to do the task and
+ * is rejected; an lvn-free image (a tile that is one fat node) is legal, and
+ * then no primary is required. The profile-level "exactly one primary lvn"
+ * guarantee is consensus.ts's job once tiles and samples are combined.
+ */
 const profileNodesReadBase = z.object({
-  nodes: z.array(profileNodeSchema),
+  nodes: z.array(profileNodeSchema).min(1),
   thinZones: z.array(thinZoneSchema),
   profileShape: z.enum(PROFILE_SHAPES),
   /** No taper / exhaustive node at an extreme (corpus #69). */

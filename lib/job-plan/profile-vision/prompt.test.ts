@@ -72,9 +72,36 @@ describe('vision prompt', () => {
     expect(VISION_PROMPT_REVISION).toMatch(/^vision-\d{4}-\d{2}-\d{2}\.\d+$/)
   })
 
-  it('carries every criterion canary phrase from the corpus, one per criterion', () => {
-    expect(CRITERIA).toHaveLength(12)
-    expect(CRITERIA_CANARIES).toHaveLength(12)
+  it('every criterion quotes the corpus VERBATIM and names the sections it distils', () => {
+    const corpus = readFileSync(join(process.cwd(), 'docs/jba-research/lvn-corpus.md'), 'utf8')
+    expect(CRITERIA).toHaveLength(14)
+    for (const c of CRITERIA) {
+      expect(corpus, `not a corpus quote: ${c.example}`).toContain(c.example)
+      expect(c.corpus).toMatch(/^[BD]\d+(, [BD]\d+)*$/)
+    }
+    // perception-side coverage: B1-4, B6-8, B11-12, D3, D7, D10, D11
+    const covered = new Set(CRITERIA.flatMap((c) => c.corpus.split(', ')))
+    for (const id of [
+      'B1',
+      'B2',
+      'B3',
+      'B4',
+      'B6',
+      'B7',
+      'B8',
+      'B11',
+      'B12',
+      'D3',
+      'D7',
+      'D10',
+      'D11',
+    ]) {
+      expect(covered.has(id), `criterion for ${id} missing`).toBe(true)
+    }
+  })
+
+  it('carries every criterion canary phrase, one per criterion', () => {
+    expect(CRITERIA_CANARIES).toHaveLength(CRITERIA.length)
     for (const canary of CRITERIA_CANARIES) expect(prompt).toContain(canary)
     // the corpus rules the criteria distil (B1, B3, B4, B6, B11, B7, D)
     for (const phrase of [
@@ -82,8 +109,8 @@ describe('vision prompt', () => {
       'We left an LVN',
       'high volume edge',
       'wide LVN',
-      'bunch of sticks',
-      'taper tail',
+      'HPNs that are tiny',
+      'parabolic taper',
       'not an entry',
     ]) {
       expect(prompt).toContain(phrase)
@@ -96,7 +123,7 @@ describe('vision prompt', () => {
     expect(prompt).toContain('VAH 29995.00 / VAL 29361.00')
     expect(prompt).toContain('current price 29945.75')
     expect(prompt).toContain('5-day rolling volume profile over the last five trading sessions')
-    for (const forbidden of ['JBA', 'MGI', 'pivot', 'Pivot', 'ONH', 'PDH', 'box']) {
+    for (const forbidden of ['JBA', 'MGI', 'pivot', 'Pivot', 'ONH', 'PDH', 'box', 'Autoplot']) {
       expect(prompt).not.toContain(forbidden)
     }
   })
