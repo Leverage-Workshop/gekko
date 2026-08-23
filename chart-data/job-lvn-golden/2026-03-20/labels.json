@@ -1,0 +1,12 @@
+[
+  {
+    "instrument": "NQ",
+    "profile": "5d",
+    "kind": "hvn-core",
+    "priceLow": 24485.5,
+    "priceHigh": 24485.5,
+    "primary": false,
+    "corpusRef": 20,
+    "verbatim": "pocket is down here at the lows. So, um, 24485 half"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 6740,
+    "priceHigh": 6745,
+    "primary": false,
+    "corpusRef": 16,
+    "verbatim": "I'd expect this to be supportive to push us back into this node"
+  }
+]

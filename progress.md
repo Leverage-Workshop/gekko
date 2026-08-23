@@ -4,6 +4,18 @@
 
 **Last Updated:** 2026-08-22
 
+**Latest change (branch `feat-120-golden-labels`): feat-120 — the golden-set labels + loader.**
+`chart-data/job-lvn-golden/<date>/labels.json` (20 dates, 28 labels) transcribes every
+lvn-corpus.md A1 row that names a price; `split.json` fixes the three few-shot dates and holds
+out the rest. `lib/job-plan/profile-vision/goldenSet.ts` is the strict-Zod loader — one
+instrument per date (feat-119 exports one chartbook profile per folder), `scorable` once a
+profile file lands, and a throw if `replay.json`'s instrument contradicts the labels. The
+tests pin each `verbatim` to its exact A1 row and each `priceLow` to the full price, so a
+wrong-row citation or a wrong thousands digit fails CI. Codex caught two transcription errors
+(the 07-10 span, the 07-20 split-zone mislabeled as an LVN) — both corrected. This is the last
+prerequisite for feat-124 (config + /settings + bench), which pairs it with the feat-119
+operator exports once those land.
+
 **Latest change (branch `feat-123-profile-vision-read`): feat-123 — the profile vision read.**
 `lib/job-plan/profile-vision/` now has the module that turns feat-122's images into planner
 input: a flat `ProfileNodesRead` schema, a prompt whose 14 criteria each quote

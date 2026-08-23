@@ -1,0 +1,12 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 7600,
+    "priceHigh": 7600,
+    "primary": false,
+    "corpusRef": 33,
+    "verbatim": "We'd have to build above 7600 above this LBN in order to get going"
+  }
+]

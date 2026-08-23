@@ -1,0 +1,12 @@
+[
+  {
+    "instrument": "ES",
+    "profile": "any",
+    "kind": "lvn",
+    "priceLow": 6745,
+    "priceHigh": 6745,
+    "primary": true,
+    "corpusRef": 12,
+    "verbatim": "now we're up into this primary LVN"
+  }
+]
