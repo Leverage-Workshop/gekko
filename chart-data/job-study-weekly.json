@@ -1,0 +1,69 @@
+{
+  "meta": {
+    "contract": "gekko.job-study-weekly",
+    "schemaVersion": 1,
+    "symbol": "NQU6.CME",
+    "exchangeTz": "America/Chicago",
+    "exportedAt": "2026-08-23T22:30:45",
+    "lastBarTime": "2026-08-23T22:30:00",
+    "tradingDay": "2026-08-24",
+    "weekOf": "2026-08-24",
+    "tickSize": 0.2500,
+    "currentPrice": 29290.00,
+    "studySettings": {
+      "sessionTemplate": "Globex 17:00:00-16:59:59 CT",
+      "weekly": {
+        "Subgraph Draw Style": "User-Defined",
+        "Show Text": "None",
+        "Current Horizontal% (0-150)": 5,
+        "Current Vertical% (0-100)": 95,
+        "Developing Horizontal% (0-150)": 5,
+        "Developing Vertical% (0-100)": 80,
+        "Text Font Size": 8,
+        "Color Scheme": "User-Defined",
+        "Remove Old Subgraphs": 1
+      }
+    },
+    "diagnostics": {
+      "weeklyStudyId": 3,
+      "autoplotStudyId": 5,
+      "weeklyPeriodsSkippedZeroPivot": 25,
+      "rectanglesOnChart": 1
+    }
+  },
+  "weeklyPivots": [
+    {
+      "weekOf": "2026-08-24",
+      "pivot": 29488.00,
+      "valueLow": 29292.25,
+      "valueHigh": 29683.50,
+      "targets": [
+        { "label": "1A", "price": 30074.75 },
+        { "label": "1B", "price": 28901.00 },
+        { "label": "2A", "price": 30466.00 },
+        { "label": "2B", "price": 28509.75 },
+        { "label": "3A", "price": 30857.25 },
+        { "label": "3B", "price": 28118.50 }
+      ],
+      "extras": {},
+      "complete": false
+    },
+    {
+      "weekOf": "2026-08-17",
+      "pivot": 29488.00,
+      "valueLow": 29292.25,
+      "valueHigh": 29683.50,
+      "targets": [
+        { "label": "1A", "price": 30074.75 },
+        { "label": "1B", "price": 28901.00 },
+        { "label": "2A", "price": 30466.00 },
+        { "label": "2B", "price": 28509.75 },
+        { "label": "3A", "price": 30857.25 },
+        { "label": "3B", "price": 28118.50 }
+      ],
+      "extras": {},
+      "complete": true
+    }
+  ],
+  "autoplot": { "high": 30287.50, "low": 29863.50, "source": "rectangle", "drawingId": -59021, "color": "#0C4A8F" }
+}

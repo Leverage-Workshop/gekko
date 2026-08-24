@@ -104,7 +104,8 @@ Verified constraints the plan must respect:
 ## Proposed approach
 
 ```
-job-study.json (new Sierra export of the Job studies' own subgraphs)
+job-study-daily.json + job-study-weekly.json (new Sierra exports of the Job studies'
+own subgraphs — TWO exporter studies, one per chart, split 2026-08-23)
   → strict parser + geometry normalization        (pure, fail closed)
                                                       ┐
 5-day / 4-hour rolling .vbp.md exports                │
@@ -131,9 +132,9 @@ What the preps actually name, ordered roughly by citation frequency, with sourci
 | Reference | Used as | Source today |
 | --- | --- | --- |
 | **G line = the weekly open** (operator-confirmed 2026-08-20) | The single most-load-bearing line: bid/offer pivot, acceleration gate ("below the G line, off to the races") — frequently coincides with a JBA edge. Session-template-sensitive (03-19: "I fixed the G line… my chart changed the session times") | **Already exported** — MGI `weekly.wkOpen` |
-| **JBA box edges** ("top/bottom of the JBAs") + the LVN **splitting adjacent boxes** (02-13 "6840 splits these two JBAs") | Two-way-trade boundaries, traverse targets, continuation gates | Planned `job-study.json` — the boxes are **rectangles drawn on the chart** (operator, 2026-08-22): the exporter enumerates chart drawings and emits each rectangle's anchor prices; **no overlap/constituent computation anywhere** |
-| **Weekly Job Pivot + weekly target ladder** (1A/1B/2A/2B "on the weekly") | Pivot = bias/balance anchor when near; ladder rungs = continuation **destinations only** (08-04 "pressing the 2A", 07-23 "beeline to the 1B") — never trigger anchors, ranked last (R2) | Pivot in MGI; ladder planned `job-study.json` (study draws at least ±3 rungs, possibly ±7 — operator confirms when the exporter is built; export whatever the study exposes) |
-| **Daily Job Pivot + daily value zone/targets** (06-15 "I want to see this pivot right here around 7565 bid" — distinct from the G line and weekly structure; the deep dive is primarily about this study) | Session bias line, magnet, hold/fail anchor — **prominent at run time** because runs happen after the open and the pivot is fresh. Target citations must disambiguate daily vs weekly ladders — the preps say "on the weekly" precisely because both exist | Planned `job-study.json` `dailyPivots[]`; the procedure must define which historical daily pivots stay actionable (deep dive: untested pivots remain relevant) |
+| **JBA box edges** ("top/bottom of the JBAs") + the LVN **splitting adjacent boxes** (02-13 "6840 splits these two JBAs") | Two-way-trade boundaries, traverse targets, continuation gates | `job-study-daily.json` (shipped 2026-08-23) — the boxes are **rectangles drawn on the chart** (operator, 2026-08-22): the exporter enumerates chart drawings and emits each rectangle's anchor prices; **no overlap/constituent computation anywhere** |
+| **Weekly Job Pivot + weekly target ladder** (1A/1B/2A/2B "on the weekly") | Pivot = bias/balance anchor when near; ladder rungs = continuation **destinations only** (08-04 "pressing the 2A", 07-23 "beeline to the 1B") — never trigger anchors, ranked last (R2) | Pivot in MGI; ladder in `job-study-weekly.json` (confirmed 2026-08-23: the weekly study draws ±3 rungs, 1A..3B; the exporter exports whatever the study exposes) |
+| **Daily Job Pivot + daily value zone/targets** (06-15 "I want to see this pivot right here around 7565 bid" — distinct from the G line and weekly structure; the deep dive is primarily about this study) | Session bias line, magnet, hold/fail anchor — **prominent at run time** because runs happen after the open and the pivot is fresh. Target citations must disambiguate daily vs weekly ladders — the preps say "on the weekly" precisely because both exist | `job-study-daily.json` `dailyPivots[]` (shipped 2026-08-23; the daily study draws ±6 rungs, 1A..6B); the procedure must define which historical daily pivots stay actionable (deep dive: untested pivots remain relevant) |
 | **Overnight high/low** | The universal trigger reference: "look above/below and fail" | MGI (0.00 placeholder gotcha), `overnightSession` engine fact |
 | **Previous day's high/low** | Edge-of-structure trigger, esp. when coinciding with a JBA edge (03-06 "it's essentially the JBA low, but let's keep it real simple — just say previous day's low") | MGI |
 | **LVN / HVN / high-volume edge on the 5-day rolling profile** (02-13 "deepest LVN on the 5-day rolling"; "primary LVN"; 06-02 "exhaustive node on top of the profile") | Entry anchors, response gauges, confluence promoters | **NOT exported at this lookback — new** 5-day rolling `.vbp.md` export; nodes identified by the **vision read** (see "Profile node identification"), not `lvnDetection` |
@@ -284,8 +285,12 @@ Key decisions and rationale:
 
 1. **Export the studies' own outputs; don't reimplement them.** The pivot/value-zone/target
    construction is the study author's proprietary math. A new ACSIL exporter DLL reads the
-   Job Pivots / Weekly Job Pivots / JBA studies cross-study (pattern already proven in this
-   project) and emits one `job-study.json` (atomic temp-file + rename):
+   Job studies cross-study (pattern already proven in this project). Because the source
+   studies live on TWO charts (Daily Job Pivot + JBA boxes on one, Weekly Job Pivot +
+   Autoplot Balance Area on the other — operator, 2026-08-23), the DLL carries two
+   exporter studies, one per chart, each writing its own file (atomic temp-file + rename):
+   `job-study-daily.json` (meta + `dailyPivots[]` + `balanceAreas[]`) and
+   `job-study-weekly.json` (meta + `weeklyPivots[]` + `autoplot`):
    - `meta`: contract, exchange TZ, `exportedAt`, `tradingDay`, tick size, `schemaVersion`,
      study settings (value %, lookback, session template)
    - `dailyPivots[]`: sessionDate, pivot, valueLow, valueHigh, `targets[{label, price}]`,
@@ -319,17 +324,19 @@ Key decisions and rationale:
    task without touching analyze/eval behavior.
 
 3. **Fail closed, with an error taxonomy** (adversarial-review finding (a)):
-   - `job_study_ref` missing → non-retryable abort; message names the two usual causes
+   - `job_study_daily_ref` or `job_study_weekly_ref` missing → non-retryable abort;
+     message names the two usual causes
      (exporter not deployed / Windows checkout behind) and says "request a fresh bundle".
    - Export present but schema/settings unsupported → non-retryable abort.
    - Geometry parses but is insufficient for a plan (e.g. prior session incomplete, skew
-     between any two of `job-study.json`/MGI/bar exports' `exportedAt` **> 5 minutes**, or
+     between any two of the job-study JSONs/MGI/bar exports' `exportedAt` **> 5 minutes**, or
      `tradingDay` ≠ the bundle's session — R13) → **persist** `status='insufficient'` with
      reasons. No LLM ever "fills in" missing levels.
 
 4. **Three pure modules, not six** (review finding: pipeline ceremony). One function per
    semantic boundary:
-   - `parseJobStudy.ts` — strict parse + normalize + validate: tick alignment,
+   - `parseJobStudy.ts` — strict parse of BOTH job-study files (daily + weekly, merged
+     into one geometry) + normalize + validate: tick alignment,
      `valueLow ≤ pivot ≤ valueHigh` (exact invariants confirmed against real exports first),
      monotonic de-duplicated targets, no future sessions, MGI Job Pivot cross-check within
      tick tolerance, size caps (bytes, array lengths) so a broken exporter can't DoS the task.
@@ -401,7 +408,7 @@ Key decisions and rationale:
 6. **Evidence discipline** (review finding (e)): the 25 prep transcripts and 9 replays are
    **graded qualitative evidence** for rule design — they name selected levels and explicit
    don'ts but cannot supply exact geometry, target ladders, or acceptance timing. Golden
-   fixtures come from **real `job-study.json` snapshots**: the exporter lands first and a
+   fixtures come from **real job-study export snapshots** (daily + weekly): the exporter lands first and a
    snapshot archive starts accumulating immediately, so rule ratification and shadow testing
    run against actual study output (this also fixes the phase-ordering inversion where the
    data contract and the rule corpus would otherwise never meet until the end).
@@ -555,13 +562,16 @@ feat-127 (buildPlan + schema); step 6 → feat-128; step 7 → feat-129; step 8 
 step 9 is deliberately not tracked (out of MVP, operator opt-in). Operator-side entries carry
 status `operator` rather than `not-started` so the unattended implement loop does not pick
 them up. One deliberate deviation from the text below: the filename contract
-(`job-study.json`, `five-day-rolling.vbp.md`, `four-hour-rolling.vbp.md`) is fixed in
+(`job-study-daily.json` + `job-study-weekly.json` — split from one `job-study.json`
+2026-08-23 because the source studies live on two charts — `five-day-rolling.vbp.md`,
+`four-hour-rolling.vbp.md`) is fixed in
 feat-121 so the bundle plumbing does not wait on the DLL, and the `unused_bundles_before`
 guard lands with the `job_plans` migration (feat-128) because that is where the table it
 references is created.
 
 1. **Sierra Job-study exporter + snapshot archive** — no repo TS changes.
-   Files: new ACSIL exporter (own DLL, Windows side), `chart-data/job-study.json` sample
+   Files: new ACSIL exporter DLL (two studies, one per chart, Windows side),
+   `chart-data/job-study-daily.json` + `chart-data/job-study-weekly.json` samples
    checked in. Scope per the reference inventory: pivots/values/targets (every rung the
    study exposes — ±3 confirmed, possibly ±7), JBA boxes **read as chart-drawn rectangles**
    (anchor prices), **Autoplot high/low**; sibling `.vbp.md` exports for the **5-day
@@ -571,11 +581,11 @@ references is created.
    write; `schemaVersion`; verified against several known chart days (values eyeballed
    against the studies on screen). **Snapshot archive spec** (third-round finding — the
    evidence strategy depends on it): one immutable folder per trading day on the Windows
-   side, containing the FULL export cycle (`job-study.json` + MGI + exec/HTF CSVs + all
+   side, containing the FULL export cycle (both job-study JSONs + MGI + exec/HTF CSVs + all
    `.vbp.md` profiles) captured on every on-demand run (and optionally once pre-open),
    keyed `YYYY-MM-DD` + run time, never overwritten;
    operator labels expected outcomes when a day is used for ratification; a held-out subset
-   is reserved for out-of-sample shadow evaluation. Archiving only `job-study.json` would
+   is reserved for out-of-sample shadow evaluation. Archiving only the job-study JSONs would
    not support origin, node-selection, or coherence testing.
    **Golden-set replay exports** (same exporter, Sierra chart replay): for each prep date in
    `docs/jba-research/lvn-corpus.md` A1, the 5-day and 4-hour rolling `.vbp.md` as of the
@@ -584,10 +594,13 @@ references is created.
    the Job-study DLL and unblocks step 4's bench; it can ship first.
    Dependencies: none.
 
-2. **Bundle plumbing** — `supabase/migrations/*_job_study_ref.sql` (nullable
-   `raw_bundles.job_study_ref`) **and** the `unused_bundles_before` update in one migration;
+2. **Bundle plumbing** — `supabase/migrations/*_job_input_refs.sql` (nullable
+   `raw_bundles.job_study_ref`, renamed to `job_study_daily_ref` + new
+   `job_study_weekly_ref` by `*_job_study_split_refs.sql` on 2026-08-23) **and** the
+   `unused_bundles_before` update in one migration;
    `lib/ingest/manifest.ts` (+ record shape), `lib/uploader/bundle.ts`
-   (`LOCAL_FILENAMES_BY_FIELD.job_study`), fixture builders; `gekko-db` skill update.
+   (`LOCAL_FILENAMES_BY_FIELD.job_study_daily` / `.job_study_weekly`), fixture builders;
+   `gekko-db` skill update.
    Deploy note in PR: Windows checkout must pull + restart the uploader; until then bundles
    simply lack the ref and the task fails closed with the right message.
    Dependencies: step 1 (filename contract).
@@ -683,7 +696,7 @@ references is created.
   confirmed initiative and a fade at the same fresh edge cannot coexist; no output price
   outside supplied geometry unless explicitly derived and labeled; missing core geometry can
   never yield `ready`.
-- **Golden corpus**: archived `job-study.json` days with operator-graded expected context +
+- **Golden corpus**: archived job-study export days with operator-graded expected context +
   plays; replay-derived sequencing cases only where contemporaneous data can be joined.
   Transcript-only cases stay annotations, not goldens.
 - **Profile vision (unit, no LLM)**: `renderProfile` snapshot tests (same rows + options ⇒
@@ -705,12 +718,12 @@ references is created.
 
 ## Risks / edge cases
 
-- **Cross-file snapshot coherence**: `job-study.json` and MGI/bars are read sequentially by
+- **Cross-file snapshot coherence**: the job-study JSONs and MGI/bars are read sequentially by
   the uploader and can straddle export cycles. Mitigated (skew tolerance check, atomic
   export write), not eliminated; a cycle-id across all exporters is the eventual fix if it
   bites.
 - **Ingest retry hole** (`ignoreDuplicates: true`) can leave a bundle missing
-  `job_study_ref`; superseded within one ~15s cycle, surfaced by the fail-closed error.
+  a job-study ref; superseded within one ~15s cycle, surfaced by the fail-closed error.
 - **Cleanup select/delete race** is pre-existing; RESTRICT FK makes it loud for job_plans.
 - **Deployment ordering**: migration → server manifest+uploader mapping (same PR) → DLL on
   the trading machine → Windows checkout pull + uploader restart → task PR. Task before
@@ -805,7 +818,7 @@ timestamps and the in-progress bar never counts.
 | R10 | Mid-zone ("purgatory") | More than **2× merge tolerance** (ES 10 / NQ 40) from every edge of the enclosing zone → two-way trade declared between the named edges, stand down in the middle; within that distance = edge play |
 | R11 | Response deadline | Every hold/traverse branch carries a **30-min** deadline from arrival at the trigger band, **emitted in the plan text, never evaluated** by the planner |
 | R12 | Actionable set + origin precedence | Arm ≤ **2 bands per side** (nearest-first; skip a band with no confluence AND lowest-tier source) plus the enclosing zone's edges; **max 4 branches**. Primary lean = branch backed by the freshest origin fact in order: failed look > approach failure > building/accepted > holding side > repeated defense |
-| R13 | Export skew | Fail closed (`insufficient`, operator message) if any two of `job-study.json` / MGI / bar exports' `exportedAt` differ by **> 5 min**, or `tradingDay` ≠ the bundle's session |
+| R13 | Export skew | Fail closed (`insufficient`, operator message) if any two of the job-study JSONs / MGI / bar exports' `exportedAt` differ by **> 5 min**, or `tradingDay` ≠ the bundle's session |
 | R14 *(ratified 2026-08-22)* | What the planner does when the vision read fails for a profile | **Still produce the plan**, minus that profile's LVN/HVN levels, with a loud `profile_nodes_unavailable` warning on the card (the G line / pivots / box edges / overnight extremes still plan). Never `insufficient` for this cause alone |
 | R15 *(proposed — operator confirms or raises after seeing bench results)* | The bar the vision read must clear before it feeds the planner | On prep dates it has not seen: finds ≥ **80 %** of the LVNs Job named (within R1 tolerance), picks the same "primary" LVN ≥ **70 %** of the time, agrees with itself across repeated calls ≥ **80 %**, and beats `lvnDetection` on both the golden set and the fixtures |
 
