@@ -103,7 +103,8 @@ describe('ingestBundle', () => {
     expect(record.htf_png_ref).toBe(`${record.id}/htf.png`)
     expect(record.tpo_png_ref).toBeNull()
     expect(record.exec_csv_ref).toBeNull()
-    expect(record.job_study_ref).toBeNull()
+    expect(record.job_study_daily_ref).toBeNull()
+    expect(record.job_study_weekly_ref).toBeNull()
     expect(record.five_day_vbp_ref).toBeNull()
     expect(record.four_hour_vbp_ref).toBeNull()
     expect(record.current_price).toBeNull()
@@ -114,8 +115,14 @@ describe('ingestBundle', () => {
     const { deps, uploads, inserts } = makeDeps('job')
     const form = new FormData()
     form.set(
-      'job_study',
-      new File(['{"meta":{"schemaVersion":1}}'], 'job-study.json', {
+      'job_study_daily',
+      new File(['{"meta":{"contract":"gekko.job-study-daily"}}'], 'job-study-daily.json', {
+        type: 'application/json',
+      }),
+    )
+    form.set(
+      'job_study_weekly',
+      new File(['{"meta":{"contract":"gekko.job-study-weekly"}}'], 'job-study-weekly.json', {
         type: 'application/json',
       }),
     )
@@ -131,12 +138,14 @@ describe('ingestBundle', () => {
     await ingestBundle(form, deps)
 
     expect(uploads.map((u) => [u.bucket, u.path, u.contentType])).toEqual([
-      ['bundle-csvs', 'job/job-study.json', 'application/json'],
+      ['bundle-csvs', 'job/job-study-daily.json', 'application/json'],
+      ['bundle-csvs', 'job/job-study-weekly.json', 'application/json'],
       ['bundle-csvs', 'job/five-day-rolling.vbp.md', 'text/markdown'],
       ['bundle-csvs', 'job/four-hour-rolling.vbp.md', 'text/markdown'],
     ])
     const record = inserts[0]
-    expect(record.job_study_ref).toBe('job/job-study.json')
+    expect(record.job_study_daily_ref).toBe('job/job-study-daily.json')
+    expect(record.job_study_weekly_ref).toBe('job/job-study-weekly.json')
     expect(record.five_day_vbp_ref).toBe('job/five-day-rolling.vbp.md')
     expect(record.four_hour_vbp_ref).toBe('job/four-hour-rolling.vbp.md')
     // Nothing about the analyze/eval inputs changes when only Job inputs ship.

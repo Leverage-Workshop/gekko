@@ -32,7 +32,8 @@ function fullCandidate(id: string): CleanupCandidate {
 /** The feat-121 Job-planning input refs, all in bundle-csvs. */
 function jobInputCandidate(id: string): CleanupCandidate {
   return candidate(id, {
-    job_study_ref: `${id}/job-study.json`,
+    job_study_daily_ref: `${id}/job-study-daily.json`,
+    job_study_weekly_ref: `${id}/job-study-weekly.json`,
     five_day_vbp_ref: `${id}/five-day-rolling.vbp.md`,
     four_hour_vbp_ref: `${id}/four-hour-rolling.vbp.md`,
   })
@@ -76,7 +77,8 @@ describe('collectObjectPaths', () => {
     const byBucket = collectObjectPaths([jobInputCandidate('b7')])
     expect(byBucket.get('chart-images')).toBeUndefined()
     expect(byBucket.get('bundle-csvs')).toEqual([
-      'b7/job-study.json',
+      'b7/job-study-daily.json',
+      'b7/job-study-weekly.json',
       'b7/five-day-rolling.vbp.md',
       'b7/four-hour-rolling.vbp.md',
     ])

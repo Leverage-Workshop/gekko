@@ -35,7 +35,8 @@ const SAMPLE = {
   tpoData: 'tpo.data.md',
   dailyVa: 'daily-value-areas.csv',
   htfCsv: 'htf_bar_data.rolling.csv',
-  jobStudy: 'job-study.json',
+  jobStudyDaily: 'job-study-daily.json',
+  jobStudyWeekly: 'job-study-weekly.json',
   fiveDayVbp: 'five-day-rolling.vbp.md',
   fourHourVbp: 'four-hour-rolling.vbp.md',
   mgi: 'mgi_static_levels.json',
@@ -47,7 +48,7 @@ const SAMPLE = {
  * not carry these files yet — once feat-118 checks the samples in, fold them
  * into the sample-folder expectation below.
  */
-const JOB_INPUT_FIELDS = ['five_day_vbp', 'four_hour_vbp', 'job_study']
+const JOB_INPUT_FIELDS = ['five_day_vbp', 'four_hour_vbp', 'job_study_daily', 'job_study_weekly']
 
 const ALL_FIELDS = [
   'balance_area_vbp',
@@ -81,7 +82,8 @@ describe('readBundle', () => {
         [SAMPLE.tpoData]: '# tpo data',
         [SAMPLE.dailyVa]: 'Date,POC\n',
         [SAMPLE.htfCsv]: 'DateTime,Open\n',
-        [SAMPLE.jobStudy]: '{"meta":{}}',
+        [SAMPLE.jobStudyDaily]: '{"meta":{}}',
+        [SAMPLE.jobStudyWeekly]: '{"meta":{}}',
         [SAMPLE.fiveDayVbp]: '# five-day vbp',
         [SAMPLE.fourHourVbp]: '# four-hour vbp',
       }),
@@ -101,16 +103,20 @@ describe('readBundle', () => {
   it('ships the Job-planning inputs under their ingest fields (feat-121)', async () => {
     const bundle = await readBundle(
       reader({
-        [SAMPLE.jobStudy]: '{"meta":{"schemaVersion":1}}',
+        [SAMPLE.jobStudyDaily]: '{"meta":{"contract":"gekko.job-study-daily"}}',
+        [SAMPLE.jobStudyWeekly]: '{"meta":{"contract":"gekko.job-study-weekly"}}',
         [SAMPLE.fiveDayVbp]: '# five-day vbp',
         [SAMPLE.fourHourVbp]: '# four-hour vbp',
       }),
     )
 
-    expect(bundle.files.map((f) => f.field).sort()).toEqual(JOB_INPUT_FIELDS)
-    const jobStudy = bundle.files.find((f) => f.field === 'job_study')
-    expect(jobStudy?.filename).toBe(SAMPLE.jobStudy)
-    expect(jobStudy?.contentType).toBe('application/json')
+    expect(bundle.files.map((f) => f.field).sort()).toEqual([...JOB_INPUT_FIELDS].sort())
+    const jobStudyDaily = bundle.files.find((f) => f.field === 'job_study_daily')
+    expect(jobStudyDaily?.filename).toBe(SAMPLE.jobStudyDaily)
+    expect(jobStudyDaily?.contentType).toBe('application/json')
+    const jobStudyWeekly = bundle.files.find((f) => f.field === 'job_study_weekly')
+    expect(jobStudyWeekly?.filename).toBe(SAMPLE.jobStudyWeekly)
+    expect(jobStudyWeekly?.contentType).toBe('application/json')
     for (const field of ['five_day_vbp', 'four_hour_vbp']) {
       expect(bundle.files.find((f) => f.field === field)?.contentType).toBe('text/markdown')
     }
@@ -200,7 +206,8 @@ describe('BUNDLE_FILENAMES', () => {
       'tpo.data.md',
       'daily-value-areas.csv',
       'htf_bar_data.rolling.csv',
-      'job-study.json',
+      'job-study-daily.json',
+      'job-study-weekly.json',
       'five-day-rolling.vbp.md',
       'four-hour-rolling.vbp.md',
       'mgi_static_levels.json',

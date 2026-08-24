@@ -4,6 +4,37 @@
 
 **Last Updated:** 2026-08-23
 
+**Latest change (branch `feat-118-job-exporter-split`): the Job-study exporter split into two
+per-chart studies.** Operator decision 2026-08-23: the source studies live on TWO charts (Daily
+Job Pivot + JBA boxes on the 5-min chart; Weekly Job Pivot + Autoplot Balance Area on the 30-min
+chart), so the single `JobStudyExporter.cpp` study became two studies in the same DLL — "Gekko
+Job Daily Exporter" → `job-study-daily.json` (meta + dailyPivots + balanceAreas) and "Gekko Job
+Weekly Exporter" → `job-study-weekly.json` (meta + weeklyPivots + autoplot). Deployed and
+verified live in Sierra: daily exports 5 sessions + 2 boxes; the weekly first exported **0
+weeks** because the weekly study names its pivot subgraph **"W Pivot"** (not "Pivot" — fixed,
+exact-name match extended), and the Autoplot read was empty because the OFL "Balance Areas"
+study exposes **no named subgraphs** and the rectangle fallback's orange color filter didn't
+match the operator's `#0C4A8F` rectangle — color filtering is now opt-in (default off, most
+recent rectangle wins; the new toggle input is appended after the existing inputs so saved
+per-index settings don't shift). Observed ladders: daily ±6 rungs (1A..6B), weekly ±3 (1A..3B)
+— the plan's ±3-vs-±7 open question is settled. Repo side: `job_study_ref` renamed
+`job_study_daily_ref` + new `job_study_weekly_ref` (migration `20260823210000_job_study_split_refs.sql`,
+applied live via the claude.ai Supabase MCP — first attempt was blocked by the permission
+classifier, operator authorized the retry), manifest/uploader/ingest/loadBundle/tests updated to
+the two-field contract, task-plan + engine-ownership + feature-list (feat-118/125/128) + gekko-db
+skill updated. The rename is contract-safe: the old column was all-NULL and unread (parser is
+feat-125). Chart-defaults baked in per operator screenshot: session template
+`Globex 17:00:00-16:59:59 CT`, exchange TZ `America/Chicago`. Samples from the live exporters are
+checked in (`chart-data/job-study-daily.json`, `job-study-weekly.json`, `five-day-rolling.vbp.md`,
+`four-hour-rolling.vbp.md`) and live MGI confirmed carrying `symbol` + `pwVAH`/`pwVAL` —
+**feat-118 marked done** (observed invariants for the feat-125 parser recorded in its evidence,
+including: weekly HISTORY is not real — the weekly study back-reads current-week values at prior
+weeks' last bars, so only the current-week row is trustworthy; JBA box anchorTimes are degenerate,
+begin == end). Remaining non-blocking: the per-day snapshot archive (`C:\gekko\snapshots\`) isn't
+set up, and `chart-data/mgi_static_levels.json` was deliberately NOT regenerated (tests pin values
+from the old sample). Deploy note: the Windows uploader checkout must pull + restart before the
+new files upload (known gotcha).
+
 **Latest change (branch `chore-codex-review-gate`): Codex code review is part of the check-in
 gate.** `npm run codex:gate` (`scripts/codex-gate.ts`, `lib/codex-gate/`) runs Codex's native
 code reviewer (the one behind `/codex:review`) over `origin/main...HEAD`, fails on any `[P0]`/`[P1]`

@@ -29,8 +29,9 @@ export type RawBundleRecord = {
   tpo_data_ref: string | null
   daily_va_ref: string | null
   htf_csv_ref: string | null
-  /** Job-planning inputs (feat-121): null until feat-118's exporter ships the files. */
-  job_study_ref: string | null
+  /** Job-planning inputs (feat-121): null until feat-118's exporters ship the files. */
+  job_study_daily_ref: string | null
+  job_study_weekly_ref: string | null
   five_day_vbp_ref: string | null
   four_hour_vbp_ref: string | null
 }
@@ -145,7 +146,8 @@ export async function ingestBundle(
     tpo_data_ref: null,
     daily_va_ref: null,
     htf_csv_ref: null,
-    job_study_ref: null,
+    job_study_daily_ref: null,
+    job_study_weekly_ref: null,
     five_day_vbp_ref: null,
     four_hour_vbp_ref: null,
   }
@@ -181,7 +183,8 @@ export async function ingestBundle(
     tpo_data_ref: refs.tpo_data_ref,
     daily_va_ref: refs.daily_va_ref,
     htf_csv_ref: refs.htf_csv_ref,
-    job_study_ref: refs.job_study_ref,
+    job_study_daily_ref: refs.job_study_daily_ref,
+    job_study_weekly_ref: refs.job_study_weekly_ref,
     five_day_vbp_ref: refs.five_day_vbp_ref,
     four_hour_vbp_ref: refs.four_hour_vbp_ref,
   }

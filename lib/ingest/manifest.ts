@@ -86,13 +86,22 @@ export const FILE_FIELDS: readonly FileField[] = [
     contentType: 'text/csv',
   },
   // Job-planning inputs (feat-121, docs/job-planning-task-plan.md step 2). The local
-  // filenames are the contract feat-118's Sierra exporter emits; nothing in
-  // analyze/eval reads these refs — the job-plan task (feat-128) does.
+  // filenames are the contract feat-118's Sierra exporters emit; nothing in
+  // analyze/eval reads these refs — the job-plan task (feat-128) does. The Job study
+  // export is TWO files because its source studies live on two charts (daily pivot +
+  // JBA boxes vs weekly pivot + Autoplot), each with its own exporter study.
   {
-    field: 'job_study',
+    field: 'job_study_daily',
     bucket: 'bundle-csvs',
-    column: 'job_study_ref',
-    filename: 'job-study.json',
+    column: 'job_study_daily_ref',
+    filename: 'job-study-daily.json',
+    contentType: 'application/json',
+  },
+  {
+    field: 'job_study_weekly',
+    bucket: 'bundle-csvs',
+    column: 'job_study_weekly_ref',
+    filename: 'job-study-weekly.json',
     contentType: 'application/json',
   },
   {

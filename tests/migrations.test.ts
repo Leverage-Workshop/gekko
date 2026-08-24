@@ -150,6 +150,17 @@ describe('supabase migrations', () => {
     expect(content).not.toMatch(/create\s+or\s+replace\s+function/i)
   })
 
+  it('splits the Job study ref into daily/weekly without dropping data (feat-118 split)', () => {
+    const file = sql.files.find((f) => f.includes('job_study_split_refs'))
+    expect(file).toBeDefined()
+    const content = readFileSync(join(MIGRATIONS_DIR, file!), 'utf8')
+    // job_study_ref (all-NULL, unread until feat-125) is renamed, never dropped.
+    expect(content).toContain('rename column job_study_ref to job_study_daily_ref')
+    expect(content).toContain('add column if not exists job_study_weekly_ref text')
+    expect(content).not.toMatch(/drop\s+(table|column)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+
   it('adds the daily value-area ref column additively (feat-048)', () => {
     const file = sql.files.find((f) => f.includes('daily_va_ref'))
     expect(file).toBeDefined()
