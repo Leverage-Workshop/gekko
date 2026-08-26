@@ -399,6 +399,72 @@ describe('bundle_requests migration', () => {
   })
 })
 
+// feat-128: the Job planner's own table + image bucket + the cleanup guard.
+describe('job_plans migration (feat-128)', () => {
+  const file = sql.files.find((f) => f.includes('job_plans'))
+  const content = file ? readFileSync(join(MIGRATIONS_DIR, file), 'utf8') : ''
+
+  it('exists and sorts after the job-study split (it references the ref columns by contract)', () => {
+    expect(file).toBeDefined()
+    const splitIdx = sql.files.findIndex((f) => f.includes('job_study_split_refs'))
+    expect(sql.files.indexOf(file!)).toBeGreaterThan(splitIdx)
+  })
+
+  it('creates the table idempotently with the ratified columns', () => {
+    expect(content).toContain('create table if not exists public.job_plans')
+    for (const column of [
+      'trading_day date not null',
+      'trigger_reason text not null',
+      'planner_revision text not null',
+      'input_fingerprint text not null',
+      'run_id text not null unique',
+      'plan jsonb',
+      'warnings jsonb not null default',
+      'profile_nodes jsonb',
+      'created_at timestamptz not null default now()',
+    ]) {
+      expect(content).toContain(column)
+    }
+  })
+
+  it('binds the bundle with ON DELETE RESTRICT (audit trail: a cleanup race fails loudly) and indexes it', () => {
+    expect(content).toMatch(/bundle_id uuid not null references public\.raw_bundles \(id\) on delete restrict/)
+    expect(content).not.toMatch(/bundle_id[^;]*cascade/i)
+    expect(content).toContain('create index if not exists job_plans_bundle_id_idx')
+  })
+
+  it("constrains status to ready|insufficient and ready => plan non-null", () => {
+    expect(content).toContain("check (status in ('ready', 'insufficient'))")
+    expect(content).toMatch(/check \(status <> 'ready' or plan is not null\)/)
+  })
+
+  it('creates the private job-plan-images bucket', () => {
+    expect(content).toContain('storage.buckets')
+    expect(content).toMatch(/\('job-plan-images', 'job-plan-images', false\)/)
+    expect(content).toContain('on conflict (id) do nothing')
+  })
+
+  it('adds the job_plans guard to unused_bundles_before IN THE SAME MIGRATION, keeping the other guards', () => {
+    expect(content).toContain('create or replace function public.unused_bundles_before(')
+    expect(content).toMatch(/language sql\s+stable/)
+    expect(content).toMatch(/not exists\s*\(\s*select 1 from public\.job_plans jp where jp\.bundle_id = b\.id\s*\)/)
+    expect(content).toMatch(/not exists\s*\(\s*select 1 from public\.briefings br where br\.bundle_id = b\.id\s*\)/)
+    expect(content).toMatch(/not exists\s*\(\s*select 1 from public\.eval_results ev where ev\.bundle_id = b\.id\s*\)/)
+    expect(content).toMatch(/b\.id <> \(\s*select id from public\.raw_bundles order by received_at desc limit 1\s*\)/)
+  })
+
+  it('locks the table down: RLS enabled with NO policies (service-role only)', () => {
+    expect(content).toMatch(/alter table public\.job_plans\s+enable row level security/)
+    expect(content).not.toMatch(/create policy/i)
+  })
+
+  it('contains no destructive DDL and never touches briefings / entry_levels', () => {
+    expect(content).not.toMatch(/drop\s/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+    expect(content).not.toMatch(/alter table public\.(briefings|entry_levels)/i)
+  })
+})
+
 // feat-027: push_subscriptions storage for Web Push (VAPID).
 describe('push_subscriptions migration (feat-027)', () => {
   const file = sql.files.find((f) => f.includes('push_subscriptions'))

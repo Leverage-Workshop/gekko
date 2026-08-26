@@ -4,6 +4,89 @@
 
 **Last Updated:** 2026-08-26
 
+**Latest change (branch `feat-128-job-plan-task`): feat-128 — the `job-plan-task` + `job_plans`
+persistence.** `trigger/jobPlanTask.ts` (`job-plan-task`, schemaTask `{ triggerReason, bundleRequestId? }`,
+retry config mirroring analyzeTask, `maxDuration: 300`) is a thin wrapper over
+`lib/job-plan/runJobPlan.ts`, whose side effects are all INJECTED (`lib/job-plan/deps.ts`:
+`waitForBundle`, `fetchBundleById`, `fetchLatestBundle`, `downloadObject`, `uploadImage`,
+`fetchConfig`, `fetchJobPlanByRunId`, `insertJobPlan`, `generate`; test-only `rasterize` / `fewShot`).
+Pipeline: bind → download the exact bytes → pre-flight parse → vision read → fingerprint → `runPlanner`
+→ persist ONE row. FRESH-BUNDLE BINDING (plan "Key decisions" 2): `trigger/freshBundle.ts` gains
+`awaitBoundBundle` — the same wait as `awaitFreshBundle` but it RETURNS the `BundleWaitResult`
+(analyze/eval untouched) — and `lib/job-plan/loadJobBundle.ts` loads THE ROW THE REQUEST WAS FULFILLED
+WITH by id, never latest; timed-out / missing / fulfilled-without-id / row-gone all abort
+non-retryably with an operator-remediable message; a run without a `bundleRequestId` (trigger.dev test
+runs) uses latest and stamps `bundle_binding_latest: …` as the first warning. ERROR TAXONOMY
+(`lib/job-plan/jobPlanErrors.ts`, every code non-retryable → `AbortTaskRunError`): `bundle_ref_missing`
+(any of `job_study_daily_ref` / `job_study_weekly_ref` / `five_day_vbp_ref` / `four_hour_vbp_ref` /
+`exec_csv_ref` / `htf_csv_ref` NULL — the message names the export, the two usual causes "exporter not
+deployed / Windows uploader checkout behind main" and "request a fresh bundle"), `bundle_wait_timed_out`,
+`bundle_request_missing`, `bundle_unfulfilled`, `bundle_not_found`, `bundle_invalid` (no `mgi_json` /
+no `received_at`), `profile_unsupported` (a `.vbp.md` that does not parse); the planner's own
+`JobStudyParseError` / `PlannerInputError` ("export present but schema/settings unsupported") are in the
+non-retryable set too, and the pre-flight parse runs BEFORE the vision read so a broken export never
+spends a model call; geometry that parses but is insufficient (R13 skew, trading-day mismatch, …) is
+PERSISTED as `status: 'insufficient'` with the reasons in `plan.standDownReasons`. VISION READ
+(`lib/job-plan/visionRead.ts`): both rolling profiles → feat-123's `identifyProfileNodes` with
+`config.profile_vision_model_id` / `_effort` / `_samples` (feat-124); NULL model id = read OFF →
+`profileNodes = null` + `profile_nodes_unavailable: … OFF …` warning, plan still produced (R14 — never
+`insufficient` for this cause alone); a partial read keeps the per-profile
+`profile_nodes_unavailable:<key>` warning; the PNGs it looked at go to the new private
+`job-plan-images` bucket as `<sha256>.png` (upsert, keyed by the tile hash `identifyProfileNodes`
+reports; a failed upload is a warning, not a failed run — the images are for grading / the card
+overlay, not planner inputs); the whole `ProfileNodes` (consensus + raw samples + model/effort +
+`VISION_PROMPT_REVISION` + image hashes) is persisted verbatim in `profile_nodes`; cost / usage /
+latency / per-profile agreement land in run metadata (`vision`). FINGERPRINT
+(`lib/job-plan/fingerprint.ts`): sha256 over the exact downloaded bytes of all seven sources
+(length-framed, fixed order — the MGI "bytes" are the canonical serialization of the inline jsonb) +
+`PLANNER_REVISION` + the sorted image hashes + `VISION_PROMPT_REVISION` + the vision model id; the seven
+per-source sha256s go to `plan.meta.sourceHashes`. `asOf` = the bundle's `received_at` on the exchange
+wall clock (`exchangeTime.wallClockAt`, the inverse of `resolveWallClock`, DST-safe). WRITE CONTRACT: the
+row is built only after `runPlanner` returns; identity is the trigger.dev run id (`run_id` UNIQUE, an
+attempt retry upserts its own row); an `insufficient` result never overwrites a persisted `ready`
+(`fetchJobPlanByRunId` first → `outcome: 'kept-ready'`). Run metadata: status, outcome, jobPlanId,
+bundleId, bundleWait, tradingDay, plannerRevision, inputFingerprint, warnings, vision; the run output is
+the summary without the plan. HARD LIMITS hold: the vision read is the only LLM use, nothing reaches
+`briefings` / `entry_levels`, no push (a test greps every dep call + row column for
+briefing/entry_level/push). MIGRATION `supabase/migrations/20260826120000_job_plans.sql`: `job_plans`
+(id, `bundle_id` FK ON DELETE RESTRICT + index, `trading_day date`, `trigger_reason`, `status` CHECK
+ready|insufficient, CHECK `status <> 'ready' or plan is not null`, `planner_revision`,
+`input_fingerprint`, `run_id` UNIQUE, `plan`, `warnings`, `profile_nodes`, `created_at`), RLS on with
+no policies, the `job-plan-images` bucket, and `unused_bundles_before` re-created with the
+`NOT EXISTS job_plans` guard IN THE SAME MIGRATION. **Applied live** via the claude.ai Supabase MCP
+`apply_migration` (live version name `job_plans`) and **verified** with one query over
+information_schema.columns / pg_constraint / pg_indexes / pg_policies / pg_class / storage.buckets /
+pg_get_functiondef: all 12 columns with the declared types/defaults/nullability, `job_plans_bundle_id_fkey
+… ON DELETE RESTRICT`, `job_plans_ready_has_plan`, `job_plans_status_check`, `job_plans_run_id_key`
+UNIQUE, both indexes, `rowsecurity=true`, zero policies, bucket `public=false`, function body contains
+the `job_plans jp` guard. gekko-db skill snapshot + migration list updated in the same PR.
+**Dev-server registration verified**: `npx trigger.dev dev` started from the worktree via the trigger
+MCP (`start_dev_server`) → "Local worker ready … 20260826.1"; `get_task_schema job-plan-task` returned
+the task from `trigger/jobPlanTask.ts` with payload schema `{ triggerReason (default "manual"),
+bundleRequestId? }`; server stopped afterwards. Decisions where the spec was silent: `asOf` comes from
+`received_at` (the bundle's arrival is the run's "now"; the exports carry no single wall-clock stamp);
+all six text refs are required (the exec/HTF CSVs get the same taxonomy message as the job refs); the
+profile texts are downloaded and hashed even when the read is off (they are planner inputs by contract
+and the abort taxonomy names them); no PNGs are rendered/uploaded when the read is off (nothing to
+overlay, `profile_nodes` is null); a config row missing reads as vision OFF with a
+`config row missing …` warning. Tests (52 new): `tests/job-plan.runJobPlan.test.ts` (32 — the ready
+path on the real job-study pair + real rolling profiles through the REAL planner with fake deps, asOf on
+both sides of DST, insert-last ordering + scope, determinism, config missing, latest + warning, every
+wait outcome, every NULL ref, no mgi / no received_at, schema-v2 → parse error before any model call,
+MGI not JSON, profile unparseable, R13 skew → persisted insufficient, transient errors stay retryable,
+retry upsert on run_id, insufficient-never-overwrites-ready, ready replaces insufficient, vision
+off / on (6 calls, uploads = the read's image hashes, `ProfileNodes` persisted, nodes reach the planner
+as references, metadata roll-up) / partial (4h fails → consensus null + warning, plan ready) / upload
+failure = warning, fingerprint differs off vs on with identical source hashes),
+`tests/job-plan.fingerprint.test.ts` (11 — determinism, every input changes it, length framing,
+per-source hashes, `wallClockAt` DST, `asOfFromReceivedAt` aborts), 9 guards in
+`tests/migrations.test.ts`; helpers `tests/helpers/jobPlanFiles.ts` (bundle row, refs, storage map,
+file builders) + `tests/helpers/jobPlanDeps.ts` (journaling fake deps, canned / partial vision reads).
+./init.sh green — typecheck, lint, 2116/2117 tests (1 pre-existing skip), build. Deploy note: the
+Windows uploader checkout must pull + restart before `job_study_*` / rolling-profile refs appear in
+bundles — until then every job-plan run aborts with the `bundle_ref_missing` message (by design).
+Codex gate: see the verdict paragraph below (added after the gate ran).
+
 **Latest change (branch `feat-127-build-plan`): feat-127 — `buildPlan` + the `JobPlan` schema +
 `runPlanner`.** `knowledge/schema/job-plan.schema.ts` is the planner's output contract: a FLAT Zod
 `JobPlan` { meta (plannerRevision, asOf, instrument, symbol, tradingDay, bundleId / inputFingerprint /
