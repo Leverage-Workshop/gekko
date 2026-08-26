@@ -153,7 +153,7 @@ describe('invariants over the corpus', () => {
           expect(known.has(price), `${play.summary}: ${price}`).toBe(true)
           expect(provenance.derivation).toBeNull()
         }
-        for (const id of provenance.referenceIds) expect(ids.has(id) || id === 'enclosing-zone', id).toBe(true)
+        for (const id of provenance.referenceIds) expect(ids.has(id), id).toBe(true)
       }
     }
   })
@@ -176,6 +176,18 @@ describe('invariants over the corpus', () => {
       expect(p.lean).toMatchObject({ playId: first.id, basis: first.activation.grounding })
       expect(first.primary).toBe(true)
     }
+  })
+
+  it('the schema rejects a fabricated price, an unknown provenance id, and an unlabeled derivation', () => {
+    const p = buildPlan({ context: synthContext(SPECS.failedLook) })
+    const raw = JSON.parse(JSON.stringify(p)) as JobPlan
+    const edit = (fn: (play: Play) => Play) => ({ ...raw, plays: raw.plays.map((play, i) => (i === 0 ? fn(play) : play)) })
+    expect(JobPlanSchema.safeParse(raw).success).toBe(true)
+    expect(JobPlanSchema.safeParse(edit((x) => ({ ...x, band: { ...x.band, low: x.band.low - 7, high: x.band.high - 7 } }))).success).toBe(false)
+    expect(JobPlanSchema.safeParse(edit((x) => ({ ...x, invalidation: { ...x.invalidation, provenance: { ...x.invalidation.provenance, referenceIds: ['made-up'] } } }))).success).toBe(false)
+    expect(JobPlanSchema.safeParse(edit((x) => ({ ...x, destinations: x.destinations.map((s, i) => (i === 0 ? { ...s, low: s.low + 1 } : s)) }))).success).toBe(false)
+    expect(JobPlanSchema.safeParse(edit((x) => ({ ...x, band: { ...x.band, provenance: { kind: 'derived', referenceIds: x.band.provenance.referenceIds, derivation: null } } }))).success).toBe(false)
+    expect(JobPlanSchema.safeParse(edit((x) => ({ ...x, band: { ...x.band, low: x.band.low - 7, provenance: { kind: 'derived', referenceIds: x.band.provenance.referenceIds, derivation: 'edge − 7 (test)' } } }))).success).toBe(true)
   })
 
   it('missing core geometry / insufficient quality can never yield ready', () => {

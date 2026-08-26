@@ -94,6 +94,11 @@ describe('runPlanner: parse → classify → build as one pure entry point', () 
     expect(plan.context.references.some((r) => r.source === 'profile-5d')).toBe(true)
     const explicit = runPlanner(input({ profileNodes: nodes, meta: { visionModelId: 'override' } }))
     expect(explicit.plan.meta.visionModelId).toBe('override')
+    // An unknown meta / hash key never reaches the plan: the validated copy is what the planner consumes.
+    const loose = { bundleId: 'b', sourceHashes: { mgi: 'h', rogue: 'x' }, rogue: true } as unknown as RunPlannerInput['meta']
+    const stripped = runPlanner(input({ meta: loose })).plan.meta
+    expect(Object.keys(stripped.sourceHashes).sort()).toEqual(['execBars', 'fiveDayProfile', 'fourHourProfile', 'htfBars', 'jobStudyDaily', 'jobStudyWeekly', 'mgi'])
+    expect(stripped).not.toHaveProperty('rogue')
   })
 
   it('geometry that parses but is skewed (R13) RETURNS an insufficient plan rather than throwing', () => {

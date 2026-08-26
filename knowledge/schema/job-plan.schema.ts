@@ -57,7 +57,12 @@ export const RuleIdSchema = z.enum([
   'R1', 'R1b', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15',
 ])
 
-/** Where a quoted price comes from: inventory members by id, or a labeled derivation from them. */
+/**
+ * Where a quoted price comes from: inventory members by id, or a labeled
+ * derivation from them. The plan-level refinement checks every id against
+ * `geometryRefs.references` and, for `reference` provenance, that every
+ * quoted price IS one of those members' prices.
+ */
 export const PriceProvenance = z.object({
   kind: z.enum(['reference', 'derived']),
   /** Inventory ids (`geometryRefs.references[].id`) the price traces to. */
@@ -265,6 +270,59 @@ const jobContextSchema = z.looseObject({
 
 const MAX_PLAYS_IN_SCHEMA = 4
 
+/** Band edges are rounded to cents; inventory prices are not. */
+const PRICE_EPSILON = 0.005
+
+type Inventory = ReadonlyMap<string, z.infer<typeof GeometryReference>>
+
+type Quoted = { readonly prices: readonly number[]; readonly provenance: PriceProvenance; readonly field: string }
+
+function quotedByPlay(play: Play): Quoted[] {
+  const stages = [...play.destinations, ...(play.invalidation.thenSeek ? [play.invalidation.thenSeek] : [])]
+  return [
+    { prices: [play.band.low, play.band.high], provenance: play.band.provenance, field: 'band' },
+    { prices: [play.invalidation.low, play.invalidation.high], provenance: play.invalidation.provenance, field: 'invalidation' },
+    ...stages.map((s, i) => ({ prices: [s.low, s.high], provenance: s.provenance, field: `destinations.${i}` })),
+    ...(play.uncertaintyBand ? [{ prices: [play.uncertaintyBand.low, play.uncertaintyBand.high], provenance: play.uncertaintyBand.provenance, field: 'uncertaintyBand' }] : []),
+  ]
+}
+
+/** A beeline names the NEXT stage's band: its destination prices must be inventory prices. */
+function refineBeelines(play: Play, index: number, inventory: Inventory, ctx: z.RefinementCtx): void {
+  const prices = [...inventory.values()].map((r) => r.price)
+  play.destinations.forEach((stage, i) => {
+    if (!stage.beeline) return
+    for (const price of [stage.beeline.destinationLow, stage.beeline.destinationHigh]) {
+      if (!prices.some((k) => Math.abs(k - price) < PRICE_EPSILON)) {
+        ctx.addIssue({ code: 'custom', path: ['plays', index, 'destinations', i, 'beeline'], message: `beeline destination ${price} is not in the inventory` })
+      }
+    }
+  })
+}
+
+/** Every provenance id exists; a `reference` price is one of its members' prices; `derived` names its formula. */
+function refineProvenance(play: Play, index: number, inventory: Inventory, ctx: z.RefinementCtx): void {
+  refineBeelines(play, index, inventory, ctx)
+  for (const q of quotedByPlay(play)) {
+    const path = ['plays', index, q.field, 'provenance']
+    const members = q.provenance.referenceIds.map((id) => inventory.get(id))
+    if (members.some((m) => m === undefined)) {
+      ctx.addIssue({ code: 'custom', path, message: `unknown reference id in ${q.provenance.referenceIds.join(', ')}` })
+      continue
+    }
+    if (q.provenance.kind === 'derived') {
+      if (!q.provenance.derivation) ctx.addIssue({ code: 'custom', path, message: 'a derived price names its derivation' })
+      continue
+    }
+    const known = members.map((m) => m!.price)
+    for (const price of q.prices) {
+      if (!known.some((k) => Math.abs(k - price) < PRICE_EPSILON)) {
+        ctx.addIssue({ code: 'custom', path, message: `price ${price} is not a member of ${q.provenance.referenceIds.join(', ')}` })
+      }
+    }
+  }
+}
+
 function orderedInDirection(play: Play): boolean {
   const prices = play.destinations.map((s) => s.low)
   const ascending = prices.every((p, i) => i === 0 || p >= prices[i - 1])
@@ -341,9 +399,11 @@ export const JobPlanSchema = z
     if (plan.lean.playId !== null && !plan.plays.some((p) => p.id === plan.lean.playId && p.primary)) {
       ctx.addIssue({ code: 'custom', path: ['lean'], message: 'lean.playId must name the primary play' })
     }
+    const inventory: Inventory = new Map(plan.geometryRefs.references.map((r) => [r.id, r]))
     plan.plays.forEach((play, i) => {
       if (play.rank !== i + 1) ctx.addIssue({ code: 'custom', path: ['plays', i, 'rank'], message: 'ranks are 1..n in order' })
       refinePlay(play, ctx, i)
+      refineProvenance(play, i, inventory, ctx)
     })
     const ids = new Set(plan.plays.map((p) => p.id))
     if (ids.size !== plan.plays.length) ctx.addIssue({ code: 'custom', path: ['plays'], message: 'play ids are unique' })

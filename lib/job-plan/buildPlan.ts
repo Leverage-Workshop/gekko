@@ -1,5 +1,5 @@
 import { JobPlanSchema, type DestinationStage, type GeometryRefs, type JobPlan, type PlanMeta, type PlayBand, type PrunedBranch } from '@/knowledge/schema/job-plan.schema'
-import type { EnclosingZone, JobContext } from './contextTypes'
+import type { EnclosingZone, JobContext, Reference } from './contextTypes'
 import { rankPlays } from './planPrecedence'
 import type { PlayDraft } from './planTypes'
 import { selectCandidates } from './playCandidates'
@@ -50,6 +50,14 @@ const EMPTY_HASHES: PlanMeta['sourceHashes'] = {
   fourHourProfile: null,
 }
 
+/** Only the seven known per-source hashes are carried — an unknown key never reaches the plan. */
+function sourceHashes(meta: PlanMetaInput): PlanMeta['sourceHashes'] {
+  const given = meta.sourceHashes ?? {}
+  return Object.fromEntries(
+    (Object.keys(EMPTY_HASHES) as Array<keyof PlanMeta['sourceHashes']>).map((key) => [key, given[key] ?? null]),
+  ) as PlanMeta['sourceHashes']
+}
+
 function planMeta(context: JobContext, meta: PlanMetaInput): PlanMeta {
   return {
     plannerRevision: PLANNER_REVISION,
@@ -59,7 +67,7 @@ function planMeta(context: JobContext, meta: PlanMetaInput): PlanMeta {
     tradingDay: context.dataQuality.tradingDay.study,
     bundleId: meta.bundleId ?? null,
     inputFingerprint: meta.inputFingerprint ?? null,
-    sourceHashes: { ...EMPTY_HASHES, ...meta.sourceHashes },
+    sourceHashes: sourceHashes(meta),
     visionPromptRevision: meta.visionPromptRevision ?? null,
     visionModelId: meta.visionModelId ?? null,
   }
@@ -94,8 +102,15 @@ export function insufficiencyReasons(context: JobContext): string[] {
 
 type ZoneEdge = EnclosingZone['lowerEdge']
 
-function zoneStage(edge: ZoneEdge, order: number, expect: 'rebid' | 'reoffer', context: JobContext, fallback: PlayBand['provenance']): DestinationStage {
+/** An enclosing-zone edge always comes from the inventory (a JBA edge or a band member); anything else is a broken context. */
+function edgeMembers(context: JobContext, edge: ZoneEdge): Reference[] {
   const members = membersAtPrice(context, edge.price, edge.bandId)
+  if (members.length === 0) throw new Error(`buildPlan: enclosing zone edge ${edge.label} ${edge.price} is not in the reference inventory`)
+  return members
+}
+
+function zoneStage(edge: ZoneEdge, order: number, expect: 'rebid' | 'reoffer', context: JobContext): DestinationStage {
+  const members = edgeMembers(context, edge)
   return {
     order,
     bandId: edge.bandId,
@@ -105,12 +120,12 @@ function zoneStage(edge: ZoneEdge, order: number, expect: 'rebid' | 'reoffer', c
     expect,
     beeline: null,
     text: `${edge.label} ${fmtPrice(edge.price)}: play the edge — expect the ${expect} on arrival; a look beyond and fail is the rotation back`,
-    provenance: members.length > 0 ? referenceProvenance(members) : fallback,
+    provenance: referenceProvenance(members),
   }
 }
 
 function zoneBand(zone: EnclosingZone, context: JobContext): PlayBand {
-  const members = [...membersAtPrice(context, zone.lowerEdge.price, zone.lowerEdge.bandId), ...membersAtPrice(context, zone.upperEdge.price, zone.upperEdge.bandId)]
+  const members = [...edgeMembers(context, zone.lowerEdge), ...edgeMembers(context, zone.upperEdge)]
   return {
     bandId: null,
     label: `${zone.lowerEdge.label} ${fmtPrice(zone.lowerEdge.price)} – ${zone.upperEdge.label} ${fmtPrice(zone.upperEdge.price)}`,
@@ -122,7 +137,7 @@ function zoneBand(zone: EnclosingZone, context: JobContext): PlayBand {
     side: 'inside',
     distancePts: 0,
     triggerStatus: 'fresh',
-    provenance: members.length > 0 ? referenceProvenance(members) : { kind: 'derived', referenceIds: ['enclosing-zone'], derivation: 'enclosing zone edges' },
+    provenance: referenceProvenance(members),
   }
 }
 
@@ -152,7 +167,7 @@ function zoneDraft(zone: EnclosingZone, context: JobContext): PlayDraft {
       thenSeek: null,
       provenance: band.provenance,
     },
-    destinations: [zoneStage(zone.lowerEdge, 1, 'rebid', context, band.provenance), zoneStage(zone.upperEdge, 2, 'reoffer', context, band.provenance)],
+    destinations: [zoneStage(zone.lowerEdge, 1, 'rebid', context), zoneStage(zone.upperEdge, 2, 'reoffer', context)],
     responseDeadline: null,
     dont: "Don't trade full size in the middle — nobody wants to be full size in the middle; wait for the edges",
     uncertaintyBand: null,

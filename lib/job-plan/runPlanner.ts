@@ -99,7 +99,17 @@ const runPlannerInputSchema = z.object({
     .object({
       bundleId: z.string().nullable().optional(),
       inputFingerprint: z.string().nullable().optional(),
-      sourceHashes: z.record(z.string(), z.string().nullable()).optional(),
+      sourceHashes: z
+        .object({
+          jobStudyDaily: z.string().nullable().optional(),
+          jobStudyWeekly: z.string().nullable().optional(),
+          mgi: z.string().nullable().optional(),
+          execBars: z.string().nullable().optional(),
+          htfBars: z.string().nullable().optional(),
+          fiveDayProfile: z.string().nullable().optional(),
+          fourHourProfile: z.string().nullable().optional(),
+        })
+        .optional(),
       visionPromptRevision: z.string().nullable().optional(),
       visionModelId: z.string().nullable().optional(),
     })
@@ -140,7 +150,9 @@ export function runPlanner(input: RunPlannerInput): RunPlannerResult {
   if (!checked.success) {
     throw new PlannerInputError('input_invalid', checked.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('; '))
   }
-  const { files, profileNodes, asOf } = input
+  // The validated copy: unknown meta keys are stripped here, never spread into the plan.
+  const { files, asOf, meta } = checked.data
+  const { profileNodes } = input
 
   const jobStudy = parseJobStudy({ daily: files.jobStudyDaily, weekly: files.jobStudyWeekly })
   const mgi = parseMgiJson(files.mgi)
@@ -151,9 +163,9 @@ export function runPlanner(input: RunPlannerInput): RunPlannerResult {
   const plan = buildPlan({
     context,
     meta: {
-      ...input.meta,
-      visionPromptRevision: input.meta?.visionPromptRevision ?? profileNodes?.promptRevision ?? null,
-      visionModelId: input.meta?.visionModelId ?? profileNodes?.modelId ?? null,
+      ...meta,
+      visionPromptRevision: meta?.visionPromptRevision ?? profileNodes?.promptRevision ?? null,
+      visionModelId: meta?.visionModelId ?? profileNodes?.modelId ?? null,
     },
   })
   return { plan, warnings: plan.warnings }
