@@ -1,0 +1,415 @@
+import { z } from 'zod'
+import type { JobContext } from '@/lib/job-plan/contextTypes'
+
+/**
+ * The Job planner's output contract (feat-127, docs/job-planning-task-plan.md
+ * "Key decisions" 5): `JobPlan` = meta + geometry refs + feat-126's context +
+ * plays[] + standDownReasons[] + warnings[] + status. Persisted verbatim by the
+ * job-plan task (feat-128, `job_plans.plan`), rendered mechanically by the
+ * card (feat-129), diffed by the shadow runner (feat-130). Never fed to a
+ * model — but FLAT objects with discriminating fields all the same (no root
+ * unions), so it stays OpenAI-shaped should a prose renderer ever read it.
+ *
+ * What is deliberately NOT here: `appliesWhenOpen` / an open-location tree
+ * (runs are in-session; a pre-open run is the same planner with no session
+ * facts), a `confidence` field (sufficiency flags only: `status`,
+ * `context.dataQuality`, per-play `activation.state`), and any evaluated
+ * response deadline (R11 — text only).
+ *
+ * Every price a play quotes carries a `PriceProvenance`: `reference` prices
+ * are members of the supplied inventory (`geometryRefs.references` by id);
+ * `derived` prices name their formula. A fabricated tick has nowhere to hide.
+ */
+
+// --- shared vocab -------------------------------------------------------------
+
+export const PlayStance = z.enum(['rebid', 'reoffer', 'continuation', 'stand-down'])
+export type PlayStance = z.infer<typeof PlayStance>
+
+export const PlayDirection = z.enum(['long', 'short', 'two-way'])
+export type PlayDirection = z.infer<typeof PlayDirection>
+
+/** The five-condition grammar (plan step 4). */
+export const PlayConditionSchema = z.enum([
+  'hold-traverse',
+  'look-and-fail',
+  'build-beyond-continuation',
+  'approach-failure',
+  'mid-zone-two-way',
+])
+
+export const ActivationState = z.enum(['armed', 'conditional'])
+export type ActivationState = z.infer<typeof ActivationState>
+
+/** The origin fact a play is grounded in (R12 order), `none` for a watched band awaiting arrival, `mid-zone` for the stand-down. */
+export const GroundingKind = z.enum([
+  'failed-look',
+  'approach-failure',
+  'accepted',
+  'holding-side',
+  'defense',
+  'mid-zone',
+  'none',
+])
+export type GroundingKind = z.infer<typeof GroundingKind>
+
+export const RuleIdSchema = z.enum([
+  'R1', 'R1b', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R11', 'R12', 'R13', 'R14', 'R15',
+])
+
+/**
+ * Where a quoted price comes from: inventory members by id, or a labeled
+ * derivation from them. The plan-level refinement checks every id against
+ * `geometryRefs.references` and, for `reference` provenance, that every
+ * quoted price IS one of those members' prices.
+ */
+export const PriceProvenance = z.object({
+  kind: z.enum(['reference', 'derived']),
+  /** Inventory ids (`geometryRefs.references[].id`) the price traces to. */
+  referenceIds: z.array(z.string().min(1)).min(1),
+  /** The formula, `derived` only (e.g. "JBA 1 low ± merge tolerance 20"). */
+  derivation: z.string().nullable(),
+})
+export type PriceProvenance = z.infer<typeof PriceProvenance>
+
+// --- play parts ---------------------------------------------------------------
+
+export const PlayBand = z.object({
+  /** Null only for the stand-down play, whose "band" is the enclosing zone. */
+  bandId: z.string().nullable(),
+  label: z.string().min(1),
+  low: z.number().finite(),
+  high: z.number().finite(),
+  anchorSource: z.string().nullable(),
+  memberLabels: z.array(z.string()).min(1),
+  role: z.enum(['actionable-now', 'actionable-if-reached', 'destination', 'enclosing-zone']),
+  /** Which side of price the band sits on at run time. */
+  side: z.enum(['above', 'below', 'inside']),
+  distancePts: z.number().finite(),
+  /** R9. */
+  triggerStatus: z.enum(['fresh', 'full', 'demoted']),
+  provenance: PriceProvenance,
+})
+export type PlayBand = z.infer<typeof PlayBand>
+
+export const PlayActivation = z.object({
+  state: ActivationState,
+  grounding: GroundingKind,
+  /** The origin fact, spelled out (what / when / scope) — or why the play is conditional. */
+  evidence: z.string().min(1),
+  /** The fact's timestamp (exchange wall clock), null when conditional. */
+  factAt: z.string().nullable(),
+  asOf: z.string().min(1),
+  rulesFired: z.array(RuleIdSchema),
+  /** R9: the band was touched this session without a failed look or defense. */
+  demoted: z.boolean(),
+})
+export type PlayActivation = z.infer<typeof PlayActivation>
+
+export const StageExpectation = z.enum(['hold', 'rebid', 'reoffer', 'gate-continuation'])
+export type StageExpectation = z.infer<typeof StageExpectation>
+
+/** A beeline: don't-counter AND the beeline destination always travel together. */
+export const Beeline = z.object({
+  dontCounter: z.literal(true),
+  destinationLabel: z.string().min(1),
+  destinationLow: z.number().finite(),
+  destinationHigh: z.number().finite(),
+})
+export type Beeline = z.infer<typeof Beeline>
+
+/** One conditional stage of a destination chain: a gauge-response checkpoint. */
+export const DestinationStage = z.object({
+  order: z.number().int().min(1),
+  bandId: z.string().nullable(),
+  label: z.string().min(1),
+  low: z.number().finite(),
+  high: z.number().finite(),
+  expect: StageExpectation,
+  beeline: Beeline.nullable(),
+  text: z.string().min(1),
+  provenance: PriceProvenance,
+})
+export type DestinationStage = z.infer<typeof DestinationStage>
+
+export const PlayInvalidation = z.object({
+  /** The price the invalidation keys off: [low, high] collapse to one price except for the two-way zone. */
+  low: z.number().finite(),
+  high: z.number().finite(),
+  side: z.enum(['above', 'below', 'either']),
+  condition: z.string().min(1),
+  /** Where price is expected to go once this play is invalidated (the flip clause), or null. */
+  thenSeek: DestinationStage.nullable(),
+  provenance: PriceProvenance,
+})
+export type PlayInvalidation = z.infer<typeof PlayInvalidation>
+
+export const ResponseDeadlineSchema = z.object({
+  minutes: z.number().int().positive(),
+  evaluatedByPlanner: z.literal(false),
+  text: z.string().min(1),
+})
+
+/** UI-only: the box-expansion allowance around a provisional JBA edge. Never a trigger. */
+export const UncertaintyBand = z.object({
+  kind: z.literal('box-expansion'),
+  uiOnly: z.literal(true),
+  low: z.number().finite(),
+  high: z.number().finite(),
+  text: z.string().min(1),
+  provenance: PriceProvenance,
+})
+export type UncertaintyBand = z.infer<typeof UncertaintyBand>
+
+export const Play = z.object({
+  id: z.string().min(1),
+  /** 1 = the primary lean's slot (rank order = precedence order). */
+  rank: z.number().int().min(1),
+  primary: z.boolean(),
+  stance: PlayStance,
+  direction: PlayDirection,
+  condition: PlayConditionSchema,
+  band: PlayBand,
+  trigger: z.string().min(1),
+  activation: PlayActivation,
+  invalidation: PlayInvalidation,
+  /** Ordered in play direction (ascending for long / two-way, descending for short). */
+  destinations: z.array(DestinationStage),
+  responseDeadline: ResponseDeadlineSchema.nullable(),
+  dont: z.string().min(1),
+  uncertaintyBand: UncertaintyBand.nullable(),
+  /** The 08-11-style one-liner. */
+  summary: z.string().min(1),
+})
+export type Play = z.infer<typeof Play>
+
+// --- plan-level parts ---------------------------------------------------------
+
+export const PlanMeta = z.object({
+  plannerRevision: z.string().min(1),
+  asOf: z.string().min(1),
+  instrument: z.enum(['NQ', 'ES']),
+  symbol: z.string().min(1),
+  tradingDay: z.string().min(1),
+  /** Placeholders the job-plan task (feat-128) fills. */
+  bundleId: z.string().nullable(),
+  inputFingerprint: z.string().nullable(),
+  sourceHashes: z.object({
+    jobStudyDaily: z.string().nullable(),
+    jobStudyWeekly: z.string().nullable(),
+    mgi: z.string().nullable(),
+    execBars: z.string().nullable(),
+    htfBars: z.string().nullable(),
+    fiveDayProfile: z.string().nullable(),
+    fourHourProfile: z.string().nullable(),
+  }),
+  visionPromptRevision: z.string().nullable(),
+  visionModelId: z.string().nullable(),
+})
+export type PlanMeta = z.infer<typeof PlanMeta>
+
+export const GeometryReference = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  source: z.string().min(1),
+  price: z.number().finite(),
+  priceLow: z.number().finite(),
+  priceHigh: z.number().finite(),
+  destinationOnly: z.boolean(),
+})
+
+export const GeometryBand = z.object({
+  id: z.string().min(1),
+  low: z.number().finite(),
+  high: z.number().finite(),
+  anchorId: z.string().min(1),
+  memberIds: z.array(z.string().min(1)).min(1),
+})
+
+/** The supplied geometry every play price must trace to. */
+export const GeometryRefs = z.object({
+  price: z.number().finite(),
+  references: z.array(GeometryReference),
+  bands: z.array(GeometryBand),
+})
+export type GeometryRefs = z.infer<typeof GeometryRefs>
+
+export const PrimaryLean = z.object({
+  playId: z.string().nullable(),
+  basis: GroundingKind,
+  text: z.string().min(1),
+})
+export type PrimaryLean = z.infer<typeof PrimaryLean>
+
+/** A band or branch the precedence table pruned, with the reason (never silent). */
+export const PrunedBranch = z.object({
+  bandId: z.string().nullable(),
+  label: z.string().min(1),
+  reason: z.string().min(1),
+})
+export type PrunedBranch = z.infer<typeof PrunedBranch>
+
+export const PlanStatus = z.enum(['ready', 'insufficient'])
+export type PlanStatus = z.infer<typeof PlanStatus>
+
+/** feat-126's `JobContext`, persisted inside the plan. Shape-checked at the top level; the context module owns the detail. */
+const jobContextSchema = z.looseObject({
+  plannerRevision: z.string().min(1),
+  asOf: z.string().min(1),
+  instrument: z.enum(['NQ', 'ES']),
+  symbol: z.string().min(1),
+  price: z.looseObject({ value: z.number().finite() }),
+  references: z.array(z.looseObject({ id: z.string().min(1), price: z.number().finite() })),
+  bands: z.array(z.looseObject({ id: z.string().min(1), low: z.number().finite(), high: z.number().finite() })),
+  roles: z.array(z.looseObject({ bandId: z.string().min(1) })),
+  location: z.looseObject({}),
+  origin: z.looseObject({ bands: z.array(z.looseObject({ bandId: z.string().min(1) })) }),
+  dataQuality: z.looseObject({ sufficient: z.boolean() }),
+  warnings: z.array(z.string()),
+})
+
+const MAX_PLAYS_IN_SCHEMA = 4
+
+/** Band edges are rounded to cents; inventory prices are not. */
+const PRICE_EPSILON = 0.005
+
+type Inventory = ReadonlyMap<string, z.infer<typeof GeometryReference>>
+
+type Quoted = { readonly prices: readonly number[]; readonly provenance: PriceProvenance; readonly field: string }
+
+function quotedByPlay(play: Play): Quoted[] {
+  const stages = [...play.destinations, ...(play.invalidation.thenSeek ? [play.invalidation.thenSeek] : [])]
+  return [
+    { prices: [play.band.low, play.band.high], provenance: play.band.provenance, field: 'band' },
+    { prices: [play.invalidation.low, play.invalidation.high], provenance: play.invalidation.provenance, field: 'invalidation' },
+    ...stages.map((s, i) => ({ prices: [s.low, s.high], provenance: s.provenance, field: `destinations.${i}` })),
+    ...(play.uncertaintyBand ? [{ prices: [play.uncertaintyBand.low, play.uncertaintyBand.high], provenance: play.uncertaintyBand.provenance, field: 'uncertaintyBand' }] : []),
+  ]
+}
+
+/** A beeline names the NEXT stage's band: its destination prices must be inventory prices. */
+function refineBeelines(play: Play, index: number, inventory: Inventory, ctx: z.RefinementCtx): void {
+  const prices = [...inventory.values()].map((r) => r.price)
+  play.destinations.forEach((stage, i) => {
+    if (!stage.beeline) return
+    for (const price of [stage.beeline.destinationLow, stage.beeline.destinationHigh]) {
+      if (!prices.some((k) => Math.abs(k - price) < PRICE_EPSILON)) {
+        ctx.addIssue({ code: 'custom', path: ['plays', index, 'destinations', i, 'beeline'], message: `beeline destination ${price} is not in the inventory` })
+      }
+    }
+  })
+}
+
+/** Every provenance id exists; a `reference` price is one of its members' prices; `derived` names its formula. */
+function refineProvenance(play: Play, index: number, inventory: Inventory, ctx: z.RefinementCtx): void {
+  refineBeelines(play, index, inventory, ctx)
+  for (const q of quotedByPlay(play)) {
+    const path = ['plays', index, q.field, 'provenance']
+    const members = q.provenance.referenceIds.map((id) => inventory.get(id))
+    if (members.some((m) => m === undefined)) {
+      ctx.addIssue({ code: 'custom', path, message: `unknown reference id in ${q.provenance.referenceIds.join(', ')}` })
+      continue
+    }
+    if (q.provenance.kind === 'derived') {
+      if (!q.provenance.derivation) ctx.addIssue({ code: 'custom', path, message: 'a derived price names its derivation' })
+      continue
+    }
+    const known = members.map((m) => m!.price)
+    for (const price of q.prices) {
+      if (!known.some((k) => Math.abs(k - price) < PRICE_EPSILON)) {
+        ctx.addIssue({ code: 'custom', path, message: `price ${price} is not a member of ${q.provenance.referenceIds.join(', ')}` })
+      }
+    }
+  }
+}
+
+function orderedInDirection(play: Play): boolean {
+  const prices = play.destinations.map((s) => s.low)
+  const ascending = prices.every((p, i) => i === 0 || p >= prices[i - 1])
+  const descending = prices.every((p, i) => i === 0 || p <= prices[i - 1])
+  return play.direction === 'short' ? descending : ascending
+}
+
+function stanceMatchesDirection(play: Play): boolean {
+  switch (play.stance) {
+    case 'rebid':
+      return play.direction === 'long'
+    case 'reoffer':
+      return play.direction === 'short'
+    case 'continuation':
+      return play.direction !== 'two-way'
+    case 'stand-down':
+      return play.direction === 'two-way'
+  }
+}
+
+function invalidationOnCorrectSide(play: Play): boolean {
+  const { invalidation, band } = play
+  switch (play.direction) {
+    case 'long':
+      return invalidation.side === 'below' && invalidation.high <= band.high
+    case 'short':
+      return invalidation.side === 'above' && invalidation.low >= band.low
+    case 'two-way':
+      return invalidation.side === 'either'
+  }
+}
+
+function refinePlay(play: Play, ctx: z.RefinementCtx, index: number): void {
+  const at = (field: string, message: string) => ctx.addIssue({ code: 'custom', path: ['plays', index, field], message })
+  if (!stanceMatchesDirection(play)) at('stance', `${play.stance} does not match direction ${play.direction}`)
+  if ((play.condition === 'mid-zone-two-way') !== (play.stance === 'stand-down')) {
+    at('condition', 'mid-zone-two-way and stand-down go together')
+  }
+  if (play.stance !== 'stand-down' && play.band.bandId === null) at('band', 'a directional play names its band')
+  if ((play.condition === 'build-beyond-continuation') !== (play.stance === 'continuation')) {
+    at('condition', 'build-beyond-continuation and continuation go together')
+  }
+  if (!invalidationOnCorrectSide(play)) at('invalidation', 'invalidation must sit on the far side of activation')
+  if (!orderedInDirection(play)) at('destinations', 'destinations must be ordered in play direction')
+  if (play.responseDeadline !== null && play.condition !== 'hold-traverse') at('responseDeadline', 'R11: hold/traverse only')
+  if (play.condition === 'hold-traverse' && play.responseDeadline === null) at('responseDeadline', 'R11: hold/traverse carries the deadline')
+  if (play.activation.state === 'armed' && (play.activation.grounding === 'none')) at('activation', 'armed needs a grounding fact')
+  if (play.band.low > play.band.high) at('band', 'band low > high')
+  if (play.primary && play.rank !== 1) at('primary', 'the primary lean is rank 1')
+}
+
+export const JobPlanSchema = z
+  .object({
+    meta: PlanMeta,
+    geometryRefs: GeometryRefs,
+    context: jobContextSchema,
+    lean: PrimaryLean,
+    plays: z.array(Play).max(MAX_PLAYS_IN_SCHEMA),
+    pruned: z.array(PrunedBranch),
+    standDownReasons: z.array(z.string()),
+    warnings: z.array(z.string()),
+    status: PlanStatus,
+  })
+  .superRefine((plan, ctx) => {
+    if (plan.status === 'insufficient' && plan.plays.length > 0) {
+      ctx.addIssue({ code: 'custom', path: ['plays'], message: 'an insufficient plan carries no plays' })
+    }
+    if (plan.status === 'insufficient' && plan.standDownReasons.length === 0) {
+      ctx.addIssue({ code: 'custom', path: ['standDownReasons'], message: 'an insufficient plan says why' })
+    }
+    if (plan.plays.filter((p) => p.primary).length > 1) {
+      ctx.addIssue({ code: 'custom', path: ['plays'], message: 'at most one primary play' })
+    }
+    if (plan.lean.playId !== null && !plan.plays.some((p) => p.id === plan.lean.playId && p.primary)) {
+      ctx.addIssue({ code: 'custom', path: ['lean'], message: 'lean.playId must name the primary play' })
+    }
+    const inventory: Inventory = new Map(plan.geometryRefs.references.map((r) => [r.id, r]))
+    plan.plays.forEach((play, i) => {
+      if (play.rank !== i + 1) ctx.addIssue({ code: 'custom', path: ['plays', i, 'rank'], message: 'ranks are 1..n in order' })
+      refinePlay(play, ctx, i)
+      refineProvenance(play, i, inventory, ctx)
+    })
+    const ids = new Set(plan.plays.map((p) => p.id))
+    if (ids.size !== plan.plays.length) ctx.addIssue({ code: 'custom', path: ['plays'], message: 'play ids are unique' })
+  })
+
+type JobPlanShape = z.infer<typeof JobPlanSchema>
+
+/** The typed plan: the schema's shape with feat-126's exact context type. */
+export type JobPlan = Omit<JobPlanShape, 'context'> & { readonly context: JobContext }

@@ -10,16 +10,17 @@ import { R1_MERGE_TOLERANCE, type Instrument } from './profile-vision/instrument
  * log by rule ID, and tests pin it to the plan's table.
  *
  * Ownership split (feat-126 / feat-127 / feat-128): the table declares EVERY
- * R-id in the plan exactly once, with the feature that implements it; only the
- * feat-126 rows have predicates in this file. R15 is proposed, not ratified —
- * its numbers are the vision bench's exit criterion (feat-124) and it never
- * runs inside the planner.
+ * R-id in the plan exactly once, with the feature that implements it; the
+ * feat-126 rows (R1–R10, R13) and the feat-127 rows (R11, R12) have predicates
+ * in this file. R14 is the job-plan task's (feat-128). R15 is proposed, not
+ * ratified — its numbers are the vision bench's exit criterion (feat-124) and
+ * it never runs inside the planner.
  *
  * Bump {@link PLANNER_REVISION} whenever a number or predicate here changes:
  * it is part of every persisted plan's reproducibility fingerprint.
  */
 
-export const PLANNER_REVISION = 'job-planner/2026-08-26.1'
+export const PLANNER_REVISION = 'job-planner/2026-08-26.2'
 
 export type RuleId =
   | 'R1'
@@ -47,7 +48,7 @@ export type RuleEntry = {
   readonly owner: RuleOwner
   /** false = proposed (R15), the operator has not ratified the numbers. */
   readonly ratified: boolean
-  /** Predicate exported from this file, when the rule is feat-126's. */
+  /** Predicate exported from this file, when the rule is the planner's (feat-126 / feat-127). */
   readonly predicate: string | null
 }
 
@@ -64,8 +65,8 @@ export const RULE_TABLE: readonly RuleEntry[] = [
   { id: 'R8', title: 'Holding side (Rip / G line / box edge)', owner: 'feat-126', ratified: true, predicate: 'r8HoldingSide' },
   { id: 'R9', title: 'Already-interacted', owner: 'feat-126', ratified: true, predicate: 'r9TriggerStatus' },
   { id: 'R10', title: 'Mid-zone ("purgatory")', owner: 'feat-126', ratified: true, predicate: 'r10MidZone' },
-  { id: 'R11', title: 'Response deadline (emitted, never evaluated)', owner: 'feat-127', ratified: true, predicate: null },
-  { id: 'R12', title: 'Actionable set + origin precedence', owner: 'feat-127', ratified: true, predicate: null },
+  { id: 'R11', title: 'Response deadline (emitted, never evaluated)', owner: 'feat-127', ratified: true, predicate: 'r11ResponseDeadline' },
+  { id: 'R12', title: 'Actionable set + origin precedence', owner: 'feat-127', ratified: true, predicate: 'r12SkipBand / r12OriginRank / r12WithinPlayCap' },
   { id: 'R13', title: 'Export skew', owner: 'feat-126', ratified: true, predicate: 'r13ExportSkewExceeded / r13TradingDayMatches' },
   { id: 'R14', title: 'Vision read failure → proceed with warning', owner: 'feat-128', ratified: true, predicate: null },
   { id: 'R15', title: 'Vision exit criterion (bench)', owner: 'feat-124', ratified: false, predicate: null },
@@ -312,6 +313,92 @@ export function r10MidZone(distToLowerPts: number, distToUpperPts: number, merge
 }
 
 // ---------------------------------------------------------------------------
+// R11 — response deadline (emitted as text, never evaluated)
+// ---------------------------------------------------------------------------
+
+/** R11: minutes from arrival at the trigger band within which the response is expected. */
+export const RESPONSE_DEADLINE_MINUTES = 30
+
+/** The five-condition play grammar (docs/job-planning-task-plan.md, step 4). */
+export type PlayCondition =
+  | 'hold-traverse'
+  | 'look-and-fail'
+  | 'build-beyond-continuation'
+  | 'approach-failure'
+  | 'mid-zone-two-way'
+
+export type ResponseDeadline = {
+  readonly minutes: number
+  /** Literal false: the planner states the deadline; the operator judges timing. */
+  readonly evaluatedByPlanner: false
+  readonly text: string
+}
+
+/**
+ * R11: every hold/traverse branch carries the 30-min deadline from arrival at
+ * its trigger band, EMITTED IN THE PLAN TEXT and never evaluated — no module
+ * compares a timestamp against {@link RESPONSE_DEADLINE_MINUTES}. Other
+ * conditions carry none.
+ */
+export function r11ResponseDeadline(condition: PlayCondition, bandLabel: string): ResponseDeadline | null {
+  if (condition !== 'hold-traverse') return null
+  return {
+    minutes: RESPONSE_DEADLINE_MINUTES,
+    evaluatedByPlanner: false,
+    text: `Expect the response within ${RESPONSE_DEADLINE_MINUTES} min of arrival at ${bandLabel}; if it does not come, re-plan — operator judges timing, the planner does not evaluate this`,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// R12 — actionable set + origin precedence
+// ---------------------------------------------------------------------------
+
+/** R12: arm at most this many bands per side, nearest-first. */
+export const MAX_ARMED_BANDS_PER_SIDE = 2
+
+/** R12: the emitted plan never carries more branches than this. */
+export const MAX_PLAYS = 4
+
+/** The origin facts that can back a primary lean, freshest-first order ratified in R12. */
+export type OriginFactKind = 'failed-look' | 'approach-failure' | 'accepted' | 'holding-side' | 'defense'
+
+/** R12: failed look > approach failure > building/accepted > holding side > repeated defense. */
+export const ORIGIN_PRECEDENCE: readonly OriginFactKind[] = [
+  'failed-look',
+  'approach-failure',
+  'accepted',
+  'holding-side',
+  'defense',
+]
+
+/** R12: precedence rank of an origin fact (0 = failed look, the strongest). */
+export function r12OriginRank(kind: OriginFactKind): number {
+  return ORIGIN_PRECEDENCE.indexOf(kind)
+}
+
+export type BandArmability = {
+  readonly confluence: boolean
+  /** The anchor's R2 rank. */
+  readonly significance: number
+  readonly destinationOnly: boolean
+}
+
+/**
+ * R12: walking outward, a band with NO confluence AND a lowest-tier source is
+ * skipped for the next one. "Lowest tier" = the R2 catch-all `mgi-other` and
+ * everything below it; rungs are never armed at all (R2).
+ */
+export function r12SkipBand(band: BandArmability): boolean {
+  if (band.destinationOnly) return true
+  return !band.confluence && band.significance >= r2Significance('mgi-other')
+}
+
+/** R12: the plan holds at most {@link MAX_PLAYS} branches. */
+export function r12WithinPlayCap(count: number): boolean {
+  return count <= MAX_PLAYS
+}
+
+// ---------------------------------------------------------------------------
 // R13 — export skew
 // ---------------------------------------------------------------------------
 
@@ -328,7 +415,7 @@ export function r13TradingDayMatches(studyTradingDay: string, bundleTradingDay: 
   return studyTradingDay === bundleTradingDay
 }
 
-/** feat-126's predicates by rule ID — what the "exactly once" test walks. */
+/** The planner's predicates by rule ID (feat-126 + feat-127) — what the "exactly once" test walks. */
 export const IMPLEMENTED_RULES = {
   R1: [r1SameBand, r1WithinCap],
   R1b: [resolveBandTolerance],
@@ -341,5 +428,7 @@ export const IMPLEMENTED_RULES = {
   R8: [r8HoldingSide],
   R9: [r9TriggerStatus],
   R10: [r10MidZone],
+  R11: [r11ResponseDeadline],
+  R12: [r12SkipBand, r12OriginRank, r12WithinPlayCap],
   R13: [r13ExportSkewExceeded, r13TradingDayMatches],
 } as const

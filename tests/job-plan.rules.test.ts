@@ -10,12 +10,20 @@ import {
   FAILED_LOOK_MAX_MINUTES,
   HOLDING_WINDOW_MINUTES,
   IMPLEMENTED_RULES,
+  MAX_ARMED_BANDS_PER_SIDE,
+  MAX_PLAYS,
   MERGE_TOLERANCE_PTS,
+  ORIGIN_PRECEDENCE,
   PLANNER_REVISION,
   REACH_SIGMA,
+  RESPONSE_DEADLINE_MINUTES,
   RULE_TABLE,
   SOURCE_SIGNIFICANCE,
   r10MidZone,
+  r11ResponseDeadline,
+  r12OriginRank,
+  r12SkipBand,
+  r12WithinPlayCap,
   r13ExportSkewExceeded,
   r13TradingDayMatches,
   r1SameBand,
@@ -61,18 +69,18 @@ describe('rules.ts: the decision log by rule ID', () => {
     }
   })
 
-  it('implements exactly the feat-126 rows here; R11/R12 → feat-127, R14 → feat-128, R15 → bench', () => {
-    const mine = RULE_TABLE.filter((r) => r.owner === 'feat-126').map((r) => r.id)
-    expect([...mine].sort()).toEqual([...Object.keys(IMPLEMENTED_RULES)].sort())
-    expect(mine).toEqual(['R1', 'R1b', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R13'])
+  it('implements exactly the planner rows here (feat-126 R1–R10/R13, feat-127 R11/R12); R14 → feat-128, R15 → bench', () => {
+    const planner = RULE_TABLE.filter((r) => r.owner === 'feat-126' || r.owner === 'feat-127').map((r) => r.id)
+    expect([...planner].sort()).toEqual([...Object.keys(IMPLEMENTED_RULES)].sort())
+    expect(RULE_TABLE.filter((r) => r.owner === 'feat-126').map((r) => r.id)).toEqual(['R1', 'R1b', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10', 'R13'])
+    expect(RULE_TABLE.filter((r) => r.owner === 'feat-127').map((r) => r.id)).toEqual(['R11', 'R12'])
     for (const entry of RULE_TABLE) {
-      expect(entry.predicate !== null, entry.id).toBe(entry.owner === 'feat-126')
-      for (const fn of IMPLEMENTED_RULES[entry.id as keyof typeof IMPLEMENTED_RULES] ?? []) {
-        expect(typeof fn).toBe('function')
-      }
+      const implemented = entry.owner === 'feat-126' || entry.owner === 'feat-127'
+      expect(entry.predicate !== null, entry.id).toBe(implemented)
+      const fns = IMPLEMENTED_RULES[entry.id as keyof typeof IMPLEMENTED_RULES] ?? []
+      expect(fns.length > 0, entry.id).toBe(implemented)
+      for (const fn of fns) expect(typeof fn).toBe('function')
     }
-    expect(RULE_TABLE.find((r) => r.id === 'R11')?.owner).toBe('feat-127')
-    expect(RULE_TABLE.find((r) => r.id === 'R12')?.owner).toBe('feat-127')
     expect(RULE_TABLE.find((r) => r.id === 'R14')?.owner).toBe('feat-128')
     expect(RULE_TABLE.find((r) => r.id === 'R15')).toMatchObject({ owner: 'feat-124', ratified: false })
   })
@@ -87,6 +95,9 @@ describe('rules.ts: the decision log by rule ID', () => {
     expect(APPROACH_RECENCY_MINUTES).toBe(60)
     expect(HOLDING_WINDOW_MINUTES).toBe(20)
     expect(EXPORT_SKEW_MAX_SECONDS).toBe(300)
+    expect(RESPONSE_DEADLINE_MINUTES).toBe(30)
+    expect(MAX_ARMED_BANDS_PER_SIDE).toBe(2)
+    expect(MAX_PLAYS).toBe(4)
   })
 })
 
@@ -230,6 +241,59 @@ describe('R10 — mid-zone', () => {
     expect(r10MidZone(40, 40.25, 20)).toBe(false)
     expect(r10MidZone(100, 10, 20)).toBe(false)
     expect(r10MidZone(10.25, 10.25, 5)).toBe(true)
+  })
+})
+
+describe('R11 — response deadline (emitted, never evaluated)', () => {
+  it('positive: a hold/traverse branch carries the 30-min deadline as text, flagged not evaluated', () => {
+    const deadline = r11ResponseDeadline('hold-traverse', 'the G line 29300')
+    expect(deadline).toMatchObject({ minutes: 30, evaluatedByPlanner: false })
+    expect(deadline?.text).toContain('30 min')
+    expect(deadline?.text).toContain('the G line 29300')
+    expect(deadline?.text).toContain('does not evaluate')
+  })
+
+  it.each(['look-and-fail', 'build-beyond-continuation', 'approach-failure', 'mid-zone-two-way'] as const)(
+    'negative: %s carries no deadline',
+    (condition) => {
+      expect(r11ResponseDeadline(condition, 'x')).toBeNull()
+    },
+  )
+
+  it('boundary: nothing in the planner compares a clock against the deadline', () => {
+    const dir = join(process.cwd(), 'lib/job-plan')
+    const modules = ['buildPlan.ts', 'playGrammar.ts', 'playCandidates.ts', 'planPrecedence.ts', 'destinationChain.ts', 'runPlanner.ts']
+    for (const file of modules) {
+      const text = readFileSync(join(dir, file), 'utf8')
+      expect(text, file).not.toMatch(/RESPONSE_DEADLINE_MINUTES/)
+    }
+    expect(RULES_SOURCE.match(/RESPONSE_DEADLINE_MINUTES/g)!.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe('R12 — actionable set + origin precedence', () => {
+  it('ranks the origin facts failed look > approach failure > accepted > holding side > defense', () => {
+    expect(ORIGIN_PRECEDENCE).toEqual(['failed-look', 'approach-failure', 'accepted', 'holding-side', 'defense'])
+    expect(r12OriginRank('failed-look')).toBe(0)
+    expect(r12OriginRank('approach-failure')).toBeLessThan(r12OriginRank('accepted'))
+    expect(r12OriginRank('accepted')).toBeLessThan(r12OriginRank('holding-side'))
+    expect(r12OriginRank('holding-side')).toBeLessThan(r12OriginRank('defense'))
+  })
+
+  it.each([
+    ['positive: lone mgi-other is skipped', { confluence: false, significance: r2Significance('mgi-other'), destinationOnly: false }, true],
+    ['positive: lone rung band is skipped (never armed)', { confluence: false, significance: r2Significance('daily-rung'), destinationOnly: true }, true],
+    ['negative: lone autoplot (one tier above the catch-all) is not', { confluence: false, significance: r2Significance('autoplot'), destinationOnly: false }, false],
+    ['negative: mgi-other WITH confluence is kept', { confluence: true, significance: r2Significance('mgi-other'), destinationOnly: false }, false],
+    ['negative: a lone G line is kept', { confluence: false, significance: 0, destinationOnly: false }, false],
+  ])('%s', (_, band, expected) => {
+    expect(r12SkipBand(band)).toBe(expected)
+  })
+
+  it('boundary: the play cap is inclusive at 4', () => {
+    expect(r12WithinPlayCap(4)).toBe(true)
+    expect(r12WithinPlayCap(5)).toBe(false)
+    expect(r12WithinPlayCap(0)).toBe(true)
   })
 })
 
