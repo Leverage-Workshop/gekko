@@ -81,6 +81,21 @@ function wallPartsAt(epochMs: number, tz: string): WallParts {
   }
 }
 
+const pad2 = (n: number): string => String(n).padStart(2, '0')
+
+/**
+ * The exchange-local `YYYY-MM-DDTHH:MM:SS` wall clock at an instant — the
+ * inverse of {@link resolveWallClock}. The job-plan task (feat-128) derives a
+ * run's `asOf` from the bundle's `received_at` this way. Null for an invalid
+ * zone or a non-finite instant.
+ */
+export function wallClockAt(epochMs: number, tz: string): string | null {
+  if (!Number.isFinite(epochMs) || !isValidTimeZone(tz)) return null
+  const p = wallPartsAt(epochMs, tz)
+  if ([p.year, p.month, p.day, p.hour, p.minute, p.second].some((n) => Number.isNaN(n))) return null
+  return `${p.year}-${pad2(p.month)}-${pad2(p.day)}T${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`
+}
+
 /**
  * Resolve an exchange-local wall-clock string to UTC epoch milliseconds, or null
  * when the string is malformed, not a real calendar time, or falls in a DST gap.

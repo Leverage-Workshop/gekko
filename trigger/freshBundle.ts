@@ -1,5 +1,6 @@
 import { logger, metadata } from "@trigger.dev/sdk";
 import { waitForFreshBundle } from "@/lib/bundleRequests";
+import type { BundleWaitResult } from "@/lib/bundleRequests";
 
 // Shared task-side half of the fresh-bundle handshake: the API route inserted
 // a pending bundle_requests row and put its id in the payload; the local
@@ -35,4 +36,29 @@ export async function awaitFreshBundle(
       { bundleRequestId, outcome: result.outcome },
     );
   }
+}
+
+// Sibling for the job-plan task (feat-128): the SAME wait, but the outcome is
+// RETURNED so the task can bind to the fulfilling bundle id ("Key decisions" 2)
+// instead of loading whatever is latest. Nothing degrades here — the task
+// aborts on any outcome but "fulfilled" — so the log level says so.
+export async function awaitBoundBundle(
+  bundleRequestId: string,
+): Promise<BundleWaitResult> {
+  logger.info("waiting for the bound fresh bundle", { bundleRequestId });
+  const result = await waitForFreshBundle(bundleRequestId);
+  metadata.set("bundleWait", result.outcome);
+
+  if (result.outcome === "fulfilled") {
+    logger.info("fresh bundle received — binding to it", {
+      bundleRequestId,
+      bundleId: result.bundleId,
+    });
+  } else {
+    logger.error(
+      "fresh bundle wait ended without fulfilment — the job-plan task aborts rather than planning on a stale bundle",
+      { bundleRequestId, outcome: result.outcome },
+    );
+  }
+  return result;
 }

@@ -1,14 +1,16 @@
 ---
 name: gekko-db
-description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomxob) directly via REST, without the Supabase MCP server. Use whenever a task needs to read or write config, raw_bundles, briefings, entry_levels, eval_results, bundle_requests, or push_subscriptions, download bundle files from storage, check applied migrations, or apply schema changes. Contains the full live schema snapshot.
+description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomxob) directly via REST, without the Supabase MCP server. Use whenever a task needs to read or write config, raw_bundles, briefings, entry_levels, eval_results, job_plans, bundle_requests, or push_subscriptions, download bundle files or job-plan images from storage, check applied migrations, or apply schema changes. Contains the full live schema snapshot.
 ---
 
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-23 (33 applied migrations live;
-nothing pending — latest applied: `20260823210000_job_study_split_refs.sql` via the
-claude.ai Supabase MCP `apply_migration` tool, same day it landed in the repo).
+the project's REST APIs. Schema snapshot updated 2026-08-26 (35 applied migrations live;
+nothing pending — latest applied: `20260826120000_job_plans.sql` +
+`20260826130000_job_plans_keep_ready.sql` (feat-128) via the
+claude.ai Supabase MCP `apply_migration` tool, same day it landed in the repo, verified
+in information_schema / pg_constraint / storage.buckets / pg_get_functiondef).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -74,10 +76,12 @@ curl -s -X POST "$URL/rest/v1/rpc/unused_bundles_before" "${AUTH[@]}" -H "Conten
 JSONB columns come back as inline JSON — pipe to `jq` for readability. Filter into
 JSONB with `->`/`->>`: `?primary_obj->>direction=eq.short`.
 
-## Storage (private buckets: `bundle-csvs`, `chart-images`)
+## Storage (private buckets: `bundle-csvs`, `chart-images`, `job-plan-images`)
 
 The `*_ref` columns on `raw_bundles` are object paths inside `bundle-csvs` (CSVs/MD)
-or `chart-images` (PNGs).
+or `chart-images` (PNGs). `job-plan-images` (feat-128) holds the rendered profile
+tiles the Job planner's vision read looked at, keyed by content hash
+(`<sha256>.png`, upserted); the hashes are in `job_plans.profile_nodes.profiles.<key>.imageHashes`.
 
 ```bash
 # Download an object (ref value comes from a raw_bundles row)
@@ -173,6 +177,32 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | absorption_stack | jsonb, nullable | code-selected stall-confirmed absorption stack (ConfirmedAbsorptionCandidate, feat-072) |
 | raw_model_json | jsonb, nullable | |
 
+### job_plans — FK `bundle_id → raw_bundles.id` **ON DELETE RESTRICT** (feat-128, Job planner)
+One row per `job-plan-task` RUN; written only after computation completes; retries upsert
+their own row (`run_id` UNIQUE); an `insufficient` result never overwrites a persisted
+`ready` — enforced ATOMICALLY by the `job_plans_keep_ready` BEFORE UPDATE trigger (a demoting
+update is a no-op; RETURNING shows the kept row), plus a task-side pre-read
+(`lib/job-plan/runJobPlan.ts`).
+| column | type | notes |
+|---|---|---|
+| id | uuid | gen_random_uuid() |
+| bundle_id | uuid | NOT NULL, RESTRICT — a bundle a plan was built on cannot be deleted (cleanup race fails loudly) |
+| trading_day | date | NOT NULL — the study's trading day |
+| trigger_reason | text | NOT NULL default 'manual' |
+| status | text | NOT NULL CHECK in ('ready','insufficient'); CHECK `status <> 'ready' or plan is not null` (`job_plans_ready_has_plan`) |
+| planner_revision | text | NOT NULL — `PLANNER_REVISION` at run time |
+| input_fingerprint | text | NOT NULL — sha256 over the exact downloaded bytes + PLANNER_REVISION + image hashes + VISION_PROMPT_REVISION + vision model id; per-source hashes in `plan.meta.sourceHashes` |
+| run_id | text | NOT NULL UNIQUE — the trigger.dev run id |
+| plan | jsonb, nullable | the `JobPlan` (knowledge/schema/job-plan.schema.ts) verbatim |
+| warnings | jsonb | NOT NULL default '[]' — string[] |
+| profile_nodes | jsonb, nullable | the vision read (`ProfileNodes`: consensus + raw samples + model/effort + promptRevision + imageHashes); NULL when the read was OFF (R14) |
+| created_at | timestamptz | now() |
+Indexes: `job_plans_bundle_id_idx (bundle_id)`, `job_plans_created_at_idx (created_at desc)`.
+
+```bash
+curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,run_id,created_at&order=created_at.desc&limit=5" "${AUTH[@]}"
+```
+
 ### bundle_requests — FK `bundle_id → raw_bundles.id` (feat: on-demand bundle pulls)
 `id` uuid, `requested_at` timestamptz now(), `reason` text default 'manual',
 `status` text default 'pending' CHECK in ('pending','fulfilled'),
@@ -185,19 +215,29 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ## Functions, triggers, realtime, RLS
 
 - **`unused_bundles_before(p_cutoff timestamptz, p_limit int) → SETOF raw_bundles`** —
-  bundles older than cutoff with no briefing and no eval, excluding the newest bundle.
+  bundles older than cutoff with no briefing, no eval AND no job_plan (guard added by
+  the feat-128 migration), excluding the newest bundle.
   Used for cleanup. Call via `/rest/v1/rpc/unused_bundles_before`.
+- **`job_plans_keep_ready()`** — BEFORE UPDATE trigger fn on `job_plans` (feat-128): when an
+  update would take a `ready` row to `insufficient` it returns OLD, so the row is kept and the
+  write is a no-op. Trigger: `job_plans_keep_ready`.
 - **`gekko_broadcast_insert()`** — SECURITY DEFINER trigger fn on briefings/eval_results
   inserts; calls `realtime.send(...)` on private broadcast topic **`gekko:alerts`**
   (event `insert`, type `briefing`|`eval`). Swallows all errors so inserts never fail.
   Client topic constant: `lib/notifications/events.ts` GEKKO_ALERTS_TOPIC.
 - **RLS policies**: only one — `anon` can SELECT `entry_levels` where `active = true`.
   Everything else is service-role-only. (The frontend otherwise goes through API routes.)
-- **Buckets**: `chart-images`, `bundle-csvs` — both private.
+- **Buckets**: `chart-images`, `bundle-csvs`, `job-plan-images` — all private.
 
 ## Migrations & DDL
 
-- **Nothing is pending as of 2026-08-23.** `20260823210000_job_study_split_refs.sql`
+- **Nothing is pending as of 2026-08-26.** `20260826120000_job_plans.sql` (feat-128:
+  `job_plans` table + `job-plan-images` bucket + the `unused_bundles_before` job_plans
+  guard) and `20260826130000_job_plans_keep_ready.sql` (the atomic write-contract trigger)
+  were applied that day via the MCP tool below (live names `job_plans`,
+  `job_plans_keep_ready`) and verified with information_schema / pg_constraint / pg_indexes /
+  pg_policies / storage.buckets / pg_get_functiondef / pg_trigger queries.
+- Before that: `20260823210000_job_study_split_refs.sql`
   (renames `raw_bundles.job_study_ref` → `job_study_daily_ref`, adds
   `job_study_weekly_ref` — the feat-118 exporter split into two per-chart studies) was
   applied that day via the MCP tool below and verified in information_schema (first
@@ -220,7 +260,7 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
     ~146-pt floor while the stored row still said 50 pts. **A padded config default is
     invisible to the pipeline that consumes it; apply the migration the same day.**
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (33 rows as of 2026-08-23; repo
+  `supabase_migrations.schema_migrations` (35 rows as of 2026-08-26; repo
   `20260802200000_revalidation_action.sql` applied via the claude.ai Supabase
   MCP, so its live timestamp differs from the filename).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has
@@ -267,3 +307,6 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
   current values — read the row.
 - Writes to `briefings`/`eval_results` fire the realtime broadcast trigger → the
   operator's browser gets an alert. Don't insert test rows into these tables in prod.
+- `job_plans.bundle_id` is ON DELETE RESTRICT: deleting a `raw_bundles` row a plan was
+  built on fails (by design — the plan is the audit trail). Delete the plan first if you
+  really must.
