@@ -97,7 +97,8 @@ still reads ready with its plan); `insertJobPlan` now returns `{ id, status }` A
 shell derives `outcome` from it (`kept-ready` when the DB kept the ready row), the pre-read stays as
 the cheap sequential-retry path; new test for the overlap path + 3 migration guards; gekko-db skill
 updated (35 live migrations). The reviewer's note that Vitest could not run in its read-only sandbox is
-environmental, not a finding.
+environmental, not a finding. Round 2 (final, on `416a4c5`): PASS with NO findings — nothing
+dismissed. Next in the chain: feat-129 (surface: /api/job-plans/run + header picker + plan card).
 
 **Latest change (branch `feat-127-build-plan`): feat-127 — `buildPlan` + the `JobPlan` schema +
 `runPlanner`.** `knowledge/schema/job-plan.schema.ts` is the planner's output contract: a FLAT Zod
