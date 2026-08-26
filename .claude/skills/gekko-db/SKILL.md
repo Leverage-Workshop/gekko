@@ -6,8 +6,9 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-26 (34 applied migrations live;
-nothing pending — latest applied: `20260826120000_job_plans.sql` (feat-128) via the
+the project's REST APIs. Schema snapshot updated 2026-08-26 (35 applied migrations live;
+nothing pending — latest applied: `20260826120000_job_plans.sql` +
+`20260826130000_job_plans_keep_ready.sql` (feat-128) via the
 claude.ai Supabase MCP `apply_migration` tool, same day it landed in the repo, verified
 in information_schema / pg_constraint / storage.buckets / pg_get_functiondef).
 If migrations have been added since, re-verify against `supabase/migrations/` before
@@ -179,7 +180,9 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 ### job_plans — FK `bundle_id → raw_bundles.id` **ON DELETE RESTRICT** (feat-128, Job planner)
 One row per `job-plan-task` RUN; written only after computation completes; retries upsert
 their own row (`run_id` UNIQUE); an `insufficient` result never overwrites a persisted
-`ready` (task-side contract, `lib/job-plan/runJobPlan.ts`).
+`ready` — enforced ATOMICALLY by the `job_plans_keep_ready` BEFORE UPDATE trigger (a demoting
+update is a no-op; RETURNING shows the kept row), plus a task-side pre-read
+(`lib/job-plan/runJobPlan.ts`).
 | column | type | notes |
 |---|---|---|
 | id | uuid | gen_random_uuid() |
@@ -215,6 +218,9 @@ curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,ru
   bundles older than cutoff with no briefing, no eval AND no job_plan (guard added by
   the feat-128 migration), excluding the newest bundle.
   Used for cleanup. Call via `/rest/v1/rpc/unused_bundles_before`.
+- **`job_plans_keep_ready()`** — BEFORE UPDATE trigger fn on `job_plans` (feat-128): when an
+  update would take a `ready` row to `insufficient` it returns OLD, so the row is kept and the
+  write is a no-op. Trigger: `job_plans_keep_ready`.
 - **`gekko_broadcast_insert()`** — SECURITY DEFINER trigger fn on briefings/eval_results
   inserts; calls `realtime.send(...)` on private broadcast topic **`gekko:alerts`**
   (event `insert`, type `briefing`|`eval`). Swallows all errors so inserts never fail.
@@ -227,9 +233,10 @@ curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,ru
 
 - **Nothing is pending as of 2026-08-26.** `20260826120000_job_plans.sql` (feat-128:
   `job_plans` table + `job-plan-images` bucket + the `unused_bundles_before` job_plans
-  guard) was applied that day via the MCP tool below (live version `20260826…_job_plans`)
-  and verified with one information_schema / pg_constraint / pg_indexes / pg_policies /
-  storage.buckets / pg_get_functiondef query.
+  guard) and `20260826130000_job_plans_keep_ready.sql` (the atomic write-contract trigger)
+  were applied that day via the MCP tool below (live names `job_plans`,
+  `job_plans_keep_ready`) and verified with information_schema / pg_constraint / pg_indexes /
+  pg_policies / storage.buckets / pg_get_functiondef / pg_trigger queries.
 - Before that: `20260823210000_job_study_split_refs.sql`
   (renames `raw_bundles.job_study_ref` → `job_study_daily_ref`, adds
   `job_study_weekly_ref` — the feat-118 exporter split into two per-chart studies) was
@@ -253,7 +260,7 @@ curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,ru
     ~146-pt floor while the stored row still said 50 pts. **A padded config default is
     invisible to the pipeline that consumes it; apply the migration the same day.**
 - Migration SQL files: `supabase/migrations/*.sql` (repo). Live tracking table:
-  `supabase_migrations.schema_migrations` (34 rows as of 2026-08-26; repo
+  `supabase_migrations.schema_migrations` (35 rows as of 2026-08-26; repo
   `20260802200000_revalidation_action.sql` applied via the claude.ai Supabase
   MCP, so its live timestamp differs from the filename).
 - **Known drift**: live migration `20260719004952_entry_levels_anon_read_active` has

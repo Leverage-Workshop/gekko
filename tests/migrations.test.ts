@@ -465,6 +465,30 @@ describe('job_plans migration (feat-128)', () => {
   })
 })
 
+// feat-128 follow-up: the write contract is atomic in the database.
+describe('job_plans keep-ready trigger migration (feat-128)', () => {
+  const file = sql.files.find((f) => f.includes('job_plans_keep_ready'))
+  const content = file ? readFileSync(join(MIGRATIONS_DIR, file), 'utf8') : ''
+
+  it('exists and sorts after the job_plans table migration', () => {
+    expect(file).toBeDefined()
+    const tableIdx = sql.files.findIndex((f) => f.endsWith('_job_plans.sql'))
+    expect(sql.files.indexOf(file!)).toBeGreaterThan(tableIdx)
+  })
+
+  it('keeps a ready row when an update would demote it to insufficient (returns OLD)', () => {
+    expect(content).toContain('create or replace function public.job_plans_keep_ready()')
+    expect(content).toMatch(/if old\.status = 'ready' and new\.status = 'insufficient' then\s+(--[^\n]*\n\s*)?return old;/)
+    expect(content).toMatch(/create trigger job_plans_keep_ready\s+before update on public\.job_plans\s+for each row/)
+  })
+
+  it('is idempotent and non-destructive (drop-if-exists of the trigger only)', () => {
+    expect(content).toContain('drop trigger if exists job_plans_keep_ready')
+    expect(content).not.toMatch(/drop\s+(table|column|function)/i)
+    expect(content).not.toMatch(/delete\s+from/i)
+  })
+})
+
 // feat-027: push_subscriptions storage for Web Push (VAPID).
 describe('push_subscriptions migration (feat-027)', () => {
   const file = sql.files.find((f) => f.includes('push_subscriptions'))

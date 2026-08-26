@@ -64,13 +64,14 @@ export function realJobPlanDeps(client: SupabaseClient = getServiceClient()): Jo
     },
 
     insertJobPlan: async (row) => {
+      // RETURNING reflects the row after the keep-ready trigger, not the values sent.
       const { data, error } = await client
         .from('job_plans')
         .upsert(row, { onConflict: 'run_id' })
-        .select('id')
+        .select('id, status')
         .single()
       if (error) throw error
-      return { id: data.id as string }
+      return { id: data.id as string, status: data.status }
     },
 
     generate: async (params) => {

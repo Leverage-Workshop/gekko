@@ -58,8 +58,12 @@ export interface JobPlanDeps extends LoadJobBundleDeps {
   uploadImage: (path: string, png: Uint8Array) => Promise<void>
   /** The row a prior attempt of this run persisted, if any. */
   fetchJobPlanByRunId: (runId: string) => Promise<{ id: string; status: PlanStatus } | null>
-  /** Upsert on `run_id`; returns the row id. */
-  insertJobPlan: (row: JobPlanInsert) => Promise<{ id: string }>
+  /**
+   * Upsert on `run_id`; returns the row AS PERSISTED. The database's
+   * `job_plans_keep_ready` trigger turns a ready → insufficient demotion into a
+   * no-op, so the returned status may differ from the one written.
+   */
+  insertJobPlan: (row: JobPlanInsert) => Promise<{ id: string; status: PlanStatus }>
   /** The vision model call — the ONLY LLM use in the run. */
   generate: JobPlanVisionGenerate
   /** Test overrides for the render → PNG step and the few-shot set. */
@@ -158,7 +162,13 @@ function buildRow(
   }
 }
 
-/** The write contract: upsert on run_id, except an insufficient result never replaces a persisted ready one. */
+/**
+ * The write contract: upsert on run_id, except an insufficient result never
+ * replaces a persisted ready one. The pre-read skips the write in the common
+ * sequential-retry case; the database trigger (`job_plans_keep_ready`,
+ * 20260826130000) is the ATOMIC guard for overlapping attempts, and the
+ * outcome is read back from what the row holds after the write.
+ */
 async function persistJobPlan(
   deps: JobPlanDeps,
   row: JobPlanInsert,
@@ -167,8 +177,8 @@ async function persistJobPlan(
   if (existing !== null && existing.status === 'ready' && row.status === 'insufficient') {
     return { id: existing.id, outcome: 'kept-ready' }
   }
-  const { id } = await deps.insertJobPlan(row)
-  return { id, outcome: 'persisted' }
+  const persisted = await deps.insertJobPlan(row)
+  return { id: persisted.id, outcome: persisted.status === row.status ? 'persisted' : 'kept-ready' }
 }
 
 const dedupe = (items: readonly string[]): string[] => [...new Set(items)]

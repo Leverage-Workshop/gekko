@@ -31,6 +31,8 @@ export type FakeOptions = {
   readonly existing?: { id: string; status: PlanStatus } | null
   readonly generate?: JobPlanVisionGenerate
   readonly uploadImage?: JobPlanDeps['uploadImage']
+  /** Status the fake database reports AFTER the upsert (simulates the keep-ready trigger). */
+  readonly persistedStatus?: PlanStatus
 }
 
 export const VISION_OFF: JobPlanConfig = {
@@ -128,7 +130,7 @@ export function fakeJobPlanDeps(options: FakeOptions = {}): { deps: JobPlanDeps;
     fetchJobPlanByRunId: async () => state.existing,
     insertJobPlan: async (insert) => {
       state.inserted.push(insert)
-      return { id: `plan-${state.inserted.length}` }
+      return { id: `plan-${state.inserted.length}`, status: options.persistedStatus ?? insert.status }
     },
     generate: async (params) => {
       state.generateCalls.push({ prompt: params.prompt, model: params.model })

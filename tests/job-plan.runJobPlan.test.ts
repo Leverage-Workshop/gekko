@@ -250,6 +250,16 @@ describe('runJobPlan: the write contract', () => {
     expect(state.inserted).toEqual([])
   })
 
+  it('overlapping attempts: when the database keeps the ready row (trigger), the outcome says so', async () => {
+    // The pre-read saw no row (the other attempt had not written yet); the upsert then
+    // hit the keep-ready trigger and RETURNING reported the ready row.
+    const { result, state } = run({ texts: { jobStudyDaily: skewedDaily() }, persistedStatus: 'ready' })
+    const out = await result
+    expect(out.status).toBe('insufficient')
+    expect(out.outcome).toBe('kept-ready')
+    expect(state.inserted).toHaveLength(1)
+  })
+
   it('a ready result replaces a persisted insufficient row', async () => {
     const { result, state } = run({ existing: { id: 'plan-insufficient', status: 'insufficient' } })
     const out = await result

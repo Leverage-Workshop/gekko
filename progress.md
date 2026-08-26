@@ -85,7 +85,19 @@ file builders) + `tests/helpers/jobPlanDeps.ts` (journaling fake deps, canned / 
 ./init.sh green — typecheck, lint, 2116/2117 tests (1 pre-existing skip), build. Deploy note: the
 Windows uploader checkout must pull + restart before `job_study_*` / rolling-profile refs appear in
 bundles — until then every job-plan run aborts with the `bundle_ref_missing` message (by design).
-Codex gate: see the verdict paragraph below (added after the gate ran).
+Codex gate round 1 (`5725367`): BLOCKED — one P1, real and FIXED: the "insufficient never overwrites
+ready" invariant was a task-side read-then-upsert, so two OVERLAPPING attempts of one run could both
+read "no ready row" and the slower insufficient one could upsert over the other's ready plan
+(trigger.dev attempts are sequential in practice, but the invariant belongs in the database). Fix: a
+second migration `20260826130000_job_plans_keep_ready.sql` — a BEFORE UPDATE trigger
+(`job_plans_keep_ready`) that returns OLD when an update would take a ready row to insufficient (the
+write is a no-op, RETURNING shows the kept row) — applied live via the MCP and verified in
+`pg_trigger` plus a rolled-back behavioral probe (insert ready → update to insufficient → the row
+still reads ready with its plan); `insertJobPlan` now returns `{ id, status }` AS PERSISTED and the
+shell derives `outcome` from it (`kept-ready` when the DB kept the ready row), the pre-read stays as
+the cheap sequential-retry path; new test for the overlap path + 3 migration guards; gekko-db skill
+updated (35 live migrations). The reviewer's note that Vitest could not run in its read-only sandbox is
+environmental, not a finding.
 
 **Latest change (branch `feat-127-build-plan`): feat-127 — `buildPlan` + the `JobPlan` schema +
 `runPlanner`.** `knowledge/schema/job-plan.schema.ts` is the planner's output contract: a FLAT Zod
