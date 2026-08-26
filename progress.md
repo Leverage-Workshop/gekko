@@ -48,9 +48,18 @@ DISMISSED: "run the section checks even when the meta pair fails so the error ca
 simultaneous section failures" — the aggregation is deliberately per stage (file shape → meta
 pair → sections): section invariants are judged in the frame the meta establishes (tick size,
 TZ, trading day), so findings computed against a rejected frame would be noise; the module
-comment now states the per-stage contract explicitly. Round 3 is the final run (the 3-round
-cap — the reviewer surfaced new P2s each round; all rounds PASSED). 112 tests. Next in the
-chain: feat-126 (classifyContext + rules).
+comment now states the per-stage contract explicitly. Round 3 (final, on `6466f86`): PASS
+with two P2s, both TRIAGED AS FOLLOW-UPS rather than fixed — the reviewer surfaced new P2s
+every round (2 → 3 → 2, all rounds PASS), which is the non-convergence the 3-round cap exists
+for, so the code stays at the gated commit: (a) `contractSymbol` accepts a root that merely
+starts with NQ/ES (`NQXU6` would parse as NQ via `instrumentFromSymbol`'s `startsWith`) — no
+such root trades on CME and the symbol comes from the operator's own chart, but an exact
+allowlist (NQ/MNQ, ES/MES) is a ~3-line hardening; (b) duplicate `weekOf` among NON-current
+weekly rows is not flagged `session_duplicate` (only the current week is checked) — those rows
+are dropped and never reach the geometry, but running the daily normalizer's duplicate check
+over all weekly rows is another ~3 lines. Both are safe to fold into feat-126's first touch
+of the parser or into this PR if the orchestrator prefers a fourth gate run. 112 tests. Next
+in the chain: feat-126 (classifyContext + rules).
 
 **Latest change (branch `feat-118-job-exporter-split`): the Job-study exporter split into two
 per-chart studies.** Operator decision 2026-08-23: the source studies live on TWO charts (Daily
