@@ -4,6 +4,87 @@
 
 **Last Updated:** 2026-08-26
 
+**Latest change (branch `feat-127-build-plan`): feat-127 — `buildPlan` + the `JobPlan` schema +
+`runPlanner`.** `knowledge/schema/job-plan.schema.ts` is the planner's output contract: a FLAT Zod
+`JobPlan` { meta (plannerRevision, asOf, instrument, symbol, tradingDay, bundleId / inputFingerprint /
+per-source hashes / vision revision + model as placeholders feat-128 fills), geometryRefs (the supplied
+inventory + bands every play price must trace to), context (feat-126's object, shape-checked at the
+top level), lean, plays[] (≤ 4), pruned[] (every band the procedure walked past, with its reason),
+standDownReasons[], warnings[], status ready | insufficient }. Each play: stance (rebid / reoffer /
+continuation / stand-down), direction (long / short / two-way), condition from the FIVE-condition
+grammar, the reference band with `PriceProvenance` (inventory ids, or a labeled derivation — a
+fabricated tick has nowhere to hide), trigger text, activation { armed | conditional, grounding =
+the origin fact (failed-look / approach-failure / accepted / holding-side / defense / mid-zone /
+none), evidence, factAt, asOf, rulesFired, R9 demoted }, invalidation on the far side of activation
+with a `thenSeek` flip stage ("below yesterday's low → seek the 7720s"), a DESTINATION CHAIN of
+conditional stages (expect hold / rebid / reoffer / gate-continuation; a gating stage carries
+`beeline { dontCounter: true, destination }` — the two always travel together), the R11 response
+deadline as TEXT (`evaluatedByPlanner: false` literal; a test greps the planner modules for the
+constant), an explicit `dont`, a UI-only box-expansion `uncertaintyBand` (derived ± merge around a
+PROVISIONAL JBA edge only, never a trigger) and the 08-11-style `summary`. No `appliesWhenOpen`, no
+open-location tree, no `confidence` — sufficiency flags only; superRefine pins stance ↔ direction,
+mid-zone ↔ stand-down, continuation ↔ build-beyond, invalidation side, destinations ordered in play
+direction, deadline on hold-traverse only, one primary at rank 1, insufficient ⇒ no plays.
+`lib/job-plan/buildPlan.ts` (+ `playCandidates`, `playGrammar`, `destinationChain`,
+`planPrecedence`, `planTypes`, `playText`): (1) sufficiency — R13-insufficient data quality or
+missing CORE geometry (current daily + weekly pivot, ≥ 1 band, a price) → `insufficient`, zero
+plays, reasons; (2) R12 actionable set — ≤ 2 bands per side nearest-first within the R4 reach, a
+band with no confluence AND a lowest-tier source (`mgi-other` and below) skipped ABSOLUTELY (it
+cannot sneak back in as a between-bands "enclosing edge"), plus the enclosing zone's edges within
+reach (an edge beyond 1σ stays a destination — R4 says never armed — the stand-down still names it),
+bands price is inside always in; (3) ONE play per candidate band from the grammar, grounded in the
+band's freshest origin fact in R12 order (failed look → look-and-fail; approach failure → the fade
+near the stall; accepted → continuation with the fade at that band suppressed; holding side / ≥ 2
+session defenses → hold-traverse) or the watched default (look-and-fail at JBA / overnight /
+prior-day edges, hold-traverse elsewhere, `activation.state: conditional`) — never the band ×
+condition product; a mid-zone context (R10) adds the two-way stand-down play; (4) the PRECEDENCE
+TABLE as one deterministic sort: invalid/stale input → no plan; EARLY failed look (0) > LATE failed
+look (1) > approach failure (2) > confirmed initiative / accepted (3) > mid-zone stand-down (4,
+beats the weak directional context below it) > holding side (5) > repeated defense (6) > watched
+band (7) > R9-demoted touched band (8, unless it produced a failed look or a defense); then the
+fresher fact, then the enclosing zone's edges, then weekly-value alignment (re-orders, never
+manufactures — a test pins identical play sets in both weekly reads), then nearest-first, then
+band id; cap 4, the rest listed as pruned; the lean names the rank-1 play only when a fact backs
+it. Two guards keep a far band from grounding a lean on a trivially-true fact: the holding side
+counts only inside the R10 edge-play distance (2× merge) and only on the band's own side of price;
+acceptance counts only when the band was CROSSED inside the observation window. Stage selection
+(engineering choice, not ratified): the nearest 3 bands beyond the trigger, skipping rung-only bands
+(they ride along only when nothing else is out there) and lone low-prominence nodes. `rules.ts`
+gains the R11 / R12 predicates (`r11ResponseDeadline`, `r12SkipBand` / `r12OriginRank` /
+`r12WithinPlayCap`, `RESPONSE_DEADLINE_MINUTES` 30, `MAX_ARMED_BANDS_PER_SIDE` 2, `MAX_PLAYS` 4,
+`ORIGIN_PRECEDENCE`); `IMPLEMENTED_RULES` now covers the feat-126 + feat-127 rows and
+`PLANNER_REVISION` is `job-planner/2026-08-26.2`. `lib/job-plan/runPlanner.ts` is the ONE pure
+entry point feat-128 / feat-130 call: `runPlanner({ files: { jobStudyDaily, jobStudyWeekly, mgi,
+execBars, htfBars } (raw text as downloaded — the task does no parsing), profileNodes | null, asOf
+(exchange wall clock), meta? }) → { plan, warnings }`; a file that does not parse THROWS
+(`JobStudyParseError` with every issue, `PlannerInputError` mgi_too_large / mgi_invalid /
+exec_bars_invalid / htf_bars_invalid / input_invalid — the task maps these to a non-retryable
+abort); geometry that parses but is insufficient RETURNS `status: 'insufficient'` with reasons.
+Plan-doc ambiguities and what was chosen: "unconditional edge play" = `activation.state`
+(`armed` ⇔ an origin fact grounds it, `conditional` ⇔ awaiting arrival + response); the Goal's five
+clauses map onto four plays because "below yesterday's low → seek the 7720s" is the look-and-fail
+play's `invalidation.thenSeek` flip clause, not a fifth branch (max 4, R12); the between-bands
+"enclosing zone" does not make its edges look-and-fail defaults (that is the JBA-box / overnight /
+prior-day extreme's role — a pullback into the G line is a hold); the weekly read favours longs
+above value / shorts below / nothing at the pivot; `confirmed initiative beats responsive fades`
+is enforced both as tier 3 > 5/6/7 and as one-play-per-band. Tests (183 new):
+`tests/job-plan.buildPlan.test.ts` (30 — every condition, guards, the precedence table, EARLY /
+LATE + freshness, stand-down vs weak context vs initiative, R9 demotion, weekly re-order, R12
+cardinality / skip / edge-beyond-reach, chain cap + rung fallback, insufficient, core geometry,
+nothing armable, uncertainty band, meta, the 08-11 Goal example reproduced from an ES fixture:
+"stay inside → balance" leads, "rebid 7980–82 into the LVN → press the 8004s; build above → attack
+prior week high", "look-below-and-fail → rotate back across" at yesterday's low with "below
+yesterday's low → seek the 7720s" as its flip clause), `tests/job-plan.invariants.test.ts` (136 over
+an 18-plan corpus — every grounding, its mirror, ES, the real geometry: determinism, ≤ 4 plays,
+ordered destinations, invalidation side, mid-box never arms an edge play, initiative/fade never
+coexist, no price outside the supplied geometry unless derived and labeled, deadline text-only,
+lean rule, missing core never ready, long/short symmetry by mirroring), `tests/job-plan.runPlanner
+.test.ts` (12 — the real job-study pair + MGI + generated CSVs → ready, deterministic, meta
+passthrough, skew → insufficient returned, parse errors thrown per code), + 5 R11/R12 cases in
+`tests/job-plan.rules.test.ts`; builder in `tests/helpers/jobPlanContext.ts`. ./init.sh green —
+typecheck, lint, 2064/2065 tests (1 pre-existing skip), build. Codex gate: CODEX_GATE_PLACEHOLDER
+Next in the chain: feat-128 (job-plan task + persistence).
+
 **Latest change (branch `feat-126-classify-context`): feat-126 — `classifyContext` + the ratified
 rules R1–R10 / R13 as named predicates.** `lib/job-plan/rules.ts` is the decision log by rule ID:
 `PLANNER_REVISION` (`job-planner/2026-08-26.1`, bump on any number/predicate change — it is part of
