@@ -2,7 +2,39 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-23
+**Last Updated:** 2026-08-26
+
+**Latest change (branch `feat-125-parse-job-study`): feat-125 — parseJobStudy, the strict
+parser + normalizer for feat-118's two Job-study exports.** `lib/job-plan/parseJobStudy.ts`
+(+ `types.ts`, `jobStudySchema.ts`, `jobStudyMeta.ts`, `jobStudyRows.ts`, `pivotLadder.ts`,
+`priceChecks.ts`, `exchangeTime.ts`, `contractSymbol.ts`) takes the raw text of
+`job-study-daily.json` + `job-study-weekly.json` and returns ONE `JobStudy` geometry or throws
+`JobStudyParseError` carrying every issue found — fail closed, nothing filled in. Pure, no I/O.
+The invariants were calibrated to the real sample pair in `chart-data/` (byte-identical copies
+are the fixtures, test-asserted) and feat-118's recorded evidence; the module comment lists
+which are errors (observed on every real row / structural: size caps, strict shape, schema
+version, same contract in both files + supported NQ/ES root, same TZ / tick / tradingDay /
+weekOf, the operator's Globex template, DST-safe timestamps, `tradingDay` == the 17:00 CT roll
+of `lastBarTime` — the real sample is Sunday 22:20 CT folding into Monday — every price
+positive and on the tick grid, `valueLow <= pivot <= valueHigh`, unique + monotonic + right-side
+ladders, no future/weekend/duplicate sessions, a current daily row and a current weekly row,
+box/autoplot low < high) and which are warnings (unobserved or the caller's per R13: the 18-min
+export skew between the two manual first exports — reported as `exportSkewSeconds`, R13's
+`insufficient` spans MGI/bars too — weekly history rows dropped as feat-118's back-read, ladder
+depth/symmetry, collapsed zone, non-Monday weekOf, empty/duplicate boxes, null autoplot,
+extras). The output separates `daily.current` from `daily.history` (kept in full, newest first
+— untested-relevance is feat-126's), trusts only the current weekly row, and carries per-file
+provenance. `crossCheckWithMgi(study, mgi, toleranceTicks = 1)` compares the current daily /
+weekly pivots against MGI `daily.jobPivot` / `weekly.jobPivot` (0.00 placeholder = missing, not
+a match) and the contract identity (`NQU6.CME` vs `NQU26` compare equal on root+month+year
+digit); it returns a structured result — fatality is the feat-128 task's call. Decisions worth
+knowing: strict objects mean an additive exporter field is a schema error until
+`schemaVersion` bumps (deliberate); the session template is pinned to the operator's string
+because the 17:00 roll assumes it; the weekly `weekOf` window check is [weekOf, weekOf+6] so
+a holiday-Monday week only warns. 108 tests (`tests/job-plan.*.test.ts`, helpers in
+`tests/helpers/jobStudy.ts`, fixtures in `tests/fixtures/job-study/`). ./init.sh green —
+typecheck, lint, 1719/1720 tests (1 pre-existing skip), build. Next in the chain: feat-126
+(classifyContext + rules).
 
 **Latest change (branch `feat-118-job-exporter-split`): the Job-study exporter split into two
 per-chart studies.** Operator decision 2026-08-23: the source studies live on TWO charts (Daily

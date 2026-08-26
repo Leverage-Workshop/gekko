@@ -1,0 +1,179 @@
+{
+  "meta": {
+    "contract": "gekko.job-study-daily",
+    "schemaVersion": 1,
+    "symbol": "NQU6.CME",
+    "exchangeTz": "America/Chicago",
+    "exportedAt": "2026-08-23T22:22:20",
+    "lastBarTime": "2026-08-23T22:20:00",
+    "tradingDay": "2026-08-24",
+    "weekOf": "2026-08-24",
+    "tickSize": 0.2500,
+    "currentPrice": 29298.75,
+    "studySettings": {
+      "sessionTemplate": "Globex 17:00:00-16:59:59 CT",
+      "daily": {
+        "Pit Session": "Indexes 9:30ET",
+        "Subgraph Draw Style": "User-Defined",
+        "Show Text": "None",
+        "Current Horizontal% (0-150)": 5,
+        "Current Vertical% (0-100)": 95,
+        "Developing Horizontal% (0-150)": 5,
+        "Developing Vertical% (0-100)": 80,
+        "Text Font Size": 8,
+        "Color Scheme": "User-Defined",
+        "Value Area Zone Border Line Style": "Solid",
+        "Remove Old Subgraphs": 0,
+        "Show Developing Pivot": 0,
+        "Developing Pivot Lookback": "15 minutes",
+        "(BA) Balance Area Mode": "Off",
+        "(BA) Lookback": 5,
+        "(BA) Border Line Style": "Dot",
+        "(BA) Transparency Level": 78,
+        "(BA) Border Width": 1,
+        "(BA) Show Prices": "None",
+        "(BA) Price Position": "Right",
+        "(BA) User Drawing Mode Enabled": 1,
+        "(BA) Draw Midline": 0
+      }
+    },
+    "diagnostics": {
+      "dailyStudyId": 1,
+      "dailySessionsSkippedZeroPivot": 0,
+      "rectanglesOnChart": 2,
+      "jbaColorFilter": false
+    }
+  },
+  "dailyPivots": [
+    {
+      "sessionDate": "2026-08-24",
+      "pivot": 29393.50,
+      "valueLow": 29379.50,
+      "valueHigh": 29407.50,
+      "targets": [
+        { "label": "1A", "price": 29435.50 },
+        { "label": "1B", "price": 29351.50 },
+        { "label": "2A", "price": 29463.50 },
+        { "label": "2B", "price": 29323.50 },
+        { "label": "3A", "price": 29491.50 },
+        { "label": "3B", "price": 29295.50 },
+        { "label": "4A", "price": 29519.50 },
+        { "label": "4B", "price": 29267.50 },
+        { "label": "5A", "price": 29547.50 },
+        { "label": "5B", "price": 29239.50 },
+        { "label": "6A", "price": 29575.50 },
+        { "label": "6B", "price": 29211.50 }
+      ],
+      "extras": {},
+      "complete": false
+    },
+    {
+      "sessionDate": "2026-08-21",
+      "pivot": 29488.25,
+      "valueLow": 29445.25,
+      "valueHigh": 29531.25,
+      "targets": [
+        { "label": "1A", "price": 29617.25 },
+        { "label": "1B", "price": 29359.25 },
+        { "label": "2A", "price": 29703.25 },
+        { "label": "2B", "price": 29273.25 },
+        { "label": "3A", "price": 29789.25 },
+        { "label": "3B", "price": 29187.25 },
+        { "label": "4A", "price": 29875.25 },
+        { "label": "4B", "price": 29101.25 },
+        { "label": "5A", "price": 29961.25 },
+        { "label": "5B", "price": 29015.25 },
+        { "label": "6A", "price": 30047.25 },
+        { "label": "6B", "price": 28929.25 }
+      ],
+      "extras": {},
+      "complete": true
+    },
+    {
+      "sessionDate": "2026-08-20",
+      "pivot": 29372.50,
+      "valueLow": 29240.00,
+      "valueHigh": 29504.75,
+      "targets": [
+        { "label": "1A", "price": 29769.50 },
+        { "label": "1B", "price": 28975.25 },
+        { "label": "2A", "price": 30034.25 },
+        { "label": "2B", "price": 28710.50 },
+        { "label": "3A", "price": 30299.00 },
+        { "label": "3B", "price": 28445.75 },
+        { "label": "4A", "price": 30563.75 },
+        { "label": "4B", "price": 28181.00 },
+        { "label": "5A", "price": 30828.50 },
+        { "label": "5B", "price": 27916.25 },
+        { "label": "6A", "price": 31093.25 },
+        { "label": "6B", "price": 27651.50 }
+      ],
+      "extras": {},
+      "complete": true
+    },
+    {
+      "sessionDate": "2026-08-19",
+      "pivot": 29601.50,
+      "valueLow": 29506.75,
+      "valueHigh": 29696.25,
+      "targets": [
+        { "label": "1A", "price": 29885.75 },
+        { "label": "1B", "price": 29317.25 },
+        { "label": "2A", "price": 30075.25 },
+        { "label": "2B", "price": 29127.75 },
+        { "label": "3A", "price": 30264.75 },
+        { "label": "3B", "price": 28938.25 },
+        { "label": "4A", "price": 30454.25 },
+        { "label": "4B", "price": 28748.75 },
+        { "label": "5A", "price": 30643.75 },
+        { "label": "5B", "price": 28559.25 },
+        { "label": "6A", "price": 30833.25 },
+        { "label": "6B", "price": 28369.75 }
+      ],
+      "extras": {},
+      "complete": true
+    },
+    {
+      "sessionDate": "2026-08-18",
+      "pivot": 29724.25,
+      "valueLow": 29687.50,
+      "valueHigh": 29761.00,
+      "targets": [
+        { "label": "1A", "price": 29834.50 },
+        { "label": "1B", "price": 29614.00 },
+        { "label": "2A", "price": 29908.00 },
+        { "label": "2B", "price": 29540.50 },
+        { "label": "3A", "price": 29981.50 },
+        { "label": "3B", "price": 29467.00 },
+        { "label": "4A", "price": 30055.00 },
+        { "label": "4B", "price": 29393.50 },
+        { "label": "5A", "price": 30128.50 },
+        { "label": "5B", "price": 29320.00 },
+        { "label": "6A", "price": 30202.00 },
+        { "label": "6B", "price": 29246.50 }
+      ],
+      "extras": {},
+      "complete": true
+    }
+  ],
+  "balanceAreas": [
+    {
+      "low": 30204.00,
+      "high": 30334.00,
+      "drawingId": -297184,
+      "source": "user",
+      "anchorTimes": { "begin": "2026-08-17T02:00:00", "end": "2026-08-17T02:00:00" },
+      "color": "#565E6B",
+      "text": ""
+    },
+    {
+      "low": 29240.00,
+      "high": 29696.25,
+      "drawingId": -297193,
+      "source": "user",
+      "anchorTimes": { "begin": "2026-08-19T02:00:00", "end": "2026-08-19T02:00:00" },
+      "color": "#565E6B",
+      "text": ""
+    }
+  ]
+}
