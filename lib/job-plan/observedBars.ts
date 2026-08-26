@@ -14,7 +14,7 @@ import { EARLY_SESSION_MINUTES } from './rules'
  * The exec bars the origin facts (R5–R9) are allowed to see, as of `asOf`
  * (feat-126). Ratified: windows are wall-clock on the 750-volume bars'
  * timestamps and THE IN-PROGRESS BAR NEVER COUNTS — the export's last row is
- * always dropped, then every bar after `asOf`, then every bar of an earlier
+ * always dropped, then every bar after `asOf`, then every bar outside asOf's
  * trading day (kept aside for the historical-pivot tested check only).
  */
 
@@ -73,8 +73,11 @@ export function observeBars(execBars: readonly ExecBar[], asOfMs: number): Obser
   const allCompleted = completed.filter((bar) => bar.ms <= asOfMs)
   const afterAsOf = completed.length - allCompleted.length
 
+  // The session is asOf's trading day — never the last bar's: right after the
+  // 17:00 Globex reopen asOf has rolled forward while every completed bar still
+  // belongs to the prior day, and that day's bars must not feed R5–R9.
   const last = allCompleted.at(-1)
-  const tradingDay = last ? last.tradingDay : tradingDayOfMs(asOfMs)
+  const tradingDay = tradingDayOfMs(asOfMs)
   const bars = allCompleted.filter((bar) => bar.tradingDay === tradingDay)
   const rthOpenMs = rthOpenByDay(tradingDay)
 

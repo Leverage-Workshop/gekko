@@ -74,6 +74,19 @@ describe('observeBars: what the origin facts may see', () => {
     expect(at('2026-08-24T10:00:00')).toMatchObject({ minutesSinceOpen: 90, earlyWindow: false })
   })
 
+  it('takes the session from asOf, not the last bar: right after the Globex reopen the prior day is empty coverage', () => {
+    const bars = execBars(below('2026-08-24T15:30:00', 60), ['2026-08-24T16:59:00', 29351, 29349, 29350])
+    const observation = observeBars(bars, ms('2026-08-24T17:05:00'))
+    expect(observation.tradingDay).toBe('2026-08-25')
+    expect(observation.bars).toEqual([])
+    expect(observation.coverage).toMatchObject({ sessionStarted: false, overnightBars: 0, sessionBars: 0, firstBarAt: null, lastCompletedBarAt: '2026-08-24T16:29:00' })
+    expect(observation.coverage.excludedBars.priorTradingDays).toBe(60)
+    const f = bandOriginFacts(BAND, observation, MERGE)
+    expect(f.excursions).toEqual([])
+    expect(f.holdingSide).toBeNull()
+    expect(f.acceptance.state).toBe('none')
+  })
+
   it('uses asOf for the trading day when there are no bars at all', () => {
     const observation = observeBars([], ms('2026-08-24T10:00:00'))
     expect(observation.tradingDay).toBe('2026-08-24')

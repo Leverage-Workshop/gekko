@@ -477,6 +477,18 @@ describe('data quality (R13) — a separate field, never a pseudo-state', () => 
     expect(noTime.dataQuality.sufficient).toBe(true)
   })
 
+  it('does not flag a correctly dated study right after the Globex reopen (session comes from asOf)', () => {
+    const bars = execBars(flatBars('2026-08-24T15:30:00', 60, 1, 29350), ['2026-08-24T17:03:00', 29351, 29349, 29350])
+    const ctx = classifyContext({ ...defaultInput(), execBars: bars, asOf: '2026-08-24T17:05:00', mgi: mgiAt('17:04:00', 29350), jobStudy: studyAt('2026-08-24T17:04:30', { tradingDay: '2026-08-25' }) })
+    expect(ctx.dataQuality.tradingDay).toEqual({ study: '2026-08-25', bundle: '2026-08-25', match: true })
+    expect(ctx.dataQuality.sufficient).toBe(true)
+    expect(ctx.dataQuality.issues.map((i) => i.code)).not.toContain('trading_day_mismatch')
+    // The only completed bars are the prior session's: they are stale for this session, not this session's coverage.
+    expect(ctx.dataQuality.issues.map((i) => i.code)).toContain('bars_behind_asof')
+    expect(ctx.origin.coverage).toMatchObject({ tradingDay: '2026-08-25', sessionBars: 0, overnightBars: 0 })
+    expect(ctx.origin.coverage.excludedBars.priorTradingDays).toBe(60)
+  })
+
   it('fails closed when the study trading day is not the bundle session', () => {
     const ctx = classify({ jobStudy: studyAt(AS_OF, { tradingDay: '2026-08-25' }) })
     expect(ctx.dataQuality.tradingDay).toEqual({ study: '2026-08-25', bundle: '2026-08-24', match: false })
