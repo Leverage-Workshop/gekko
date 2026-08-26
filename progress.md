@@ -82,7 +82,19 @@ lean rule, missing core never ready, long/short symmetry by mirroring), `tests/j
 .test.ts` (12 — the real job-study pair + MGI + generated CSVs → ready, deterministic, meta
 passthrough, skew → insufficient returned, parse errors thrown per code), + 5 R11/R12 cases in
 `tests/job-plan.rules.test.ts`; builder in `tests/helpers/jobPlanContext.ts`. ./init.sh green —
-typecheck, lint, 2064/2065 tests (1 pre-existing skip), build. Codex gate: CODEX_GATE_PLACEHOLDER
+typecheck, lint, 2064/2065 tests (1 pre-existing skip), build. Codex gate round 1
+(`242130a`): PASS with two P2s, both real and FIXED — (1) `runPlanner` continued with the raw
+`input` after `safeParse`, so an unknown `meta` / `sourceHashes` key could be spread into the plan:
+it now consumes the validated copy, `sourceHashes` is a strict seven-key object, and `buildPlan`
+picks only the known hash keys (test: a rogue key never reaches the plan); (2) `JobPlanSchema`
+checked provenance shape only, never that the ids exist in `geometryRefs` or that a `reference`
+price IS one of its members' prices — a plan-level refinement now walks every band / invalidation /
+stage / uncertainty-band provenance (ids must exist; `reference` prices must match a member within
+the cent-rounding epsilon; `derived` must name its formula) and beeline destinations against the
+inventory, and the enclosing-zone fallback that minted an `enclosing-zone` pseudo-id is gone (an
+edge missing from the inventory throws — fail closed). Tests: the schema rejects a fabricated
+price, an unknown id, an off-by-one stage and an unlabeled derivation. Round 2 (final, on
+`a225fde`): PASS with NO findings — nothing dismissed.
 Next in the chain: feat-128 (job-plan task + persistence).
 
 **Latest change (branch `feat-126-classify-context`): feat-126 — `classifyContext` + the ratified
