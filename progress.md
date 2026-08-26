@@ -40,7 +40,17 @@ non-throwing results and their issues are combined; (2) any valid IANA `exchange
 accepted while the trading-day roll is 17:00 CENTRAL wall time, so a New_York export would
 fold bars into the wrong day: `exchangeTz` is now pinned to `America/Chicago`
 (`JOB_STUDY_EXCHANGE_TZ`, an unsupported-setting error like the session template). Round 2:
-see the gate verdict below. Next in the chain: feat-126 (classifyContext + rules).
+PASS with three P2s — two fixed: dropped weekly back-read rows are now fully validated too (a
+corrupt row fails the parse even though it never reaches the geometry — strict, no partial
+trust), and the MGI cross-check compares the EXACT price distance (an off-grid MGI value
+1.48 ticks away no longer rounds to a 1-tick match; `diffTicks` is reported fractional). One
+DISMISSED: "run the section checks even when the meta pair fails so the error carries
+simultaneous section failures" — the aggregation is deliberately per stage (file shape → meta
+pair → sections): section invariants are judged in the frame the meta establishes (tick size,
+TZ, trading day), so findings computed against a rejected frame would be noise; the module
+comment now states the per-stage contract explicitly. Round 3 is the final run (the 3-round
+cap — the reviewer surfaced new P2s each round; all rounds PASSED). 112 tests. Next in the
+chain: feat-126 (classifyContext + rules).
 
 **Latest change (branch `feat-118-job-exporter-split`): the Job-study exporter split into two
 per-chart studies.** Operator decision 2026-08-23: the source studies live on TWO charts (Daily

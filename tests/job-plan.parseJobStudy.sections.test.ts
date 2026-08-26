@@ -208,6 +208,13 @@ describe('parseJobStudy: weekly', () => {
     expect(warningCodes(study)).toContain('weekly_history_dropped')
   })
 
+  it('still validates a dropped back-read row (strict: no partial trust)', () => {
+    const weekly = mutate(fixture('weekly.history-backread.json'), (w) => {
+      w.weeklyPivots[1].pivot = 0
+    })
+    expectError(() => parseWith(DAILY, weekly), 'price_sentinel', '2026-08-17')
+  })
+
   it('rejects a weekly export with no current-week row', () => {
     const weekly = mutate(WEEKLY, (w) => {
       w.weeklyPivots[0].weekOf = '2026-08-17'
@@ -336,6 +343,13 @@ describe('crossCheckWithMgi', () => {
       diffTicks: 3,
     })
     expect(check.weekly.status).toBe('match')
+  })
+
+  it('compares the exact distance, so an off-grid MGI value 1.48 ticks away is a mismatch', () => {
+    const check = crossCheckWithMgi(study, mgi({ daily: { jobPivot: 29393.5 + 0.37 } }))
+    expect(check.daily.status).toBe('mismatch')
+    expect(check.daily.diffTicks).toBe(1.48)
+    expect(check.ok).toBe(false)
   })
 
   it('fails on a weekly mismatch', () => {

@@ -167,7 +167,9 @@ export type WeeklyCheck = Sink & {
 /**
  * Weekly rows: only the row for `weekOf` is trusted (feat-118: the study back-reads
  * the CURRENT week's values at prior weeks' last bars, so history rows duplicate
- * it). Other rows are shape-checked by the schema, then dropped with a warning.
+ * it). Every row is still validated in full — a corrupt row fails the parse even
+ * when it would be dropped (strict, no partial trust); only the current row's
+ * warnings are reported, since the others never reach the geometry.
  */
 export function normalizeWeeklyPivots(
   rows: readonly RawWeeklyPivot[],
@@ -194,8 +196,12 @@ export function normalizeWeeklyPivots(
       warnings: [],
     }
   }
-  const where = `weeklyPivots[${row.weekOf}]`
-  const zone = normalizeZoneRow(row, tickSize, where)
+  const checked = rows.map((r) => ({
+    row: r,
+    zone: normalizeZoneRow(r, tickSize, `weeklyPivots[${r.weekOf}]`),
+  }))
+  const zone = checked.find((c) => c.row === row)?.zone ?? normalizeZoneRow(row, tickSize, '')
+  const rowIssues = checked.flatMap((c) => c.zone.issues)
   const droppedHistoryRows = rows.length - currentRows.length
   const dropped =
     droppedHistoryRows > 0
@@ -217,7 +223,7 @@ export function normalizeWeeklyPivots(
       extras: row.extras,
     },
     droppedHistoryRows,
-    issues: [...future, ...dup, ...zone.issues],
+    issues: [...future, ...dup, ...rowIssues],
     warnings: [...zone.warnings, ...dropped],
   }
 }

@@ -24,8 +24,12 @@ import type { JobStudy, JobStudyErrorCode, JobStudyIssue, JobStudyWarning } from
  * Job-study exports (`job-study-daily.json`: meta + dailyPivots + balanceAreas;
  * `job-study-weekly.json`: meta + weeklyPivots + autoplot) into ONE `JobStudy`
  * geometry. Pure: strings in, object out, no I/O, no clock. FAILS CLOSED: any
- * error throws `JobStudyParseError` carrying every issue found; nothing is
- * "filled in" (docs/job-planning-task-plan.md, key decisions 3–4).
+ * error throws `JobStudyParseError`; nothing is "filled in"
+ * (docs/job-planning-task-plan.md, key decisions 3–4). Issues are aggregated
+ * PER STAGE — file shape (both files), then the meta pair, then every section —
+ * and the first failing stage throws with all of its issues: a later stage is
+ * judged in the frame the earlier one establishes (tick size, TZ, trading day),
+ * so its findings would be noise once that frame is wrong.
  *
  * Invariants are calibrated to the real samples `chart-data/job-study-daily.json`
  * + `job-study-weekly.json` and feat-118's recorded evidence:
@@ -84,6 +88,9 @@ export const JOB_STUDY_SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1]
 
 /** MGI Job Pivot vs study pivot: at most this many ticks apart counts as a match. */
 export const MGI_CROSS_CHECK_TOLERANCE_TICKS = 1
+
+/** Float slack on the exact price-distance comparison (prices are quarter points). */
+const PRICE_EPSILON = 1e-9
 
 export type JobStudyInput = {
   /** Raw text of `job-study-daily.json`. */
@@ -217,6 +224,7 @@ export type MgiPivotCheck = {
   readonly studyPivot: number
   /** null when the MGI export lacks the level or carries a `0.00` placeholder. */
   readonly mgiPivot: number | null
+  /** Exact distance in ticks (fractional when the MGI value is off the grid). */
   readonly diffTicks: number | null
 }
 
@@ -245,8 +253,9 @@ function checkPivot(
     return { status: 'mgi_missing', studyPivot, mgiPivot: null, diffTicks: null }
   }
   const diffTicks = ticksBetween(studyPivot, mgiPivot, tickSize)
+  const within = Math.abs(studyPivot - mgiPivot) <= toleranceTicks * tickSize + PRICE_EPSILON
   return {
-    status: diffTicks <= toleranceTicks ? 'match' : 'mismatch',
+    status: within ? 'match' : 'mismatch',
     studyPivot,
     mgiPivot,
     diffTicks,

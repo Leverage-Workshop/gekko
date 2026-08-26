@@ -13,9 +13,9 @@ export function isOnTickGrid(price: number, tickSize: number): boolean {
   return Math.abs(ticks - Math.round(ticks)) < TICK_EPSILON
 }
 
-/** Signed distance in whole ticks (rounded), for cross-checks and messages. */
+/** Absolute distance in ticks — exact (fractional when a price is off the grid), never rounded. */
 export function ticksBetween(a: number, b: number, tickSize: number): number {
-  return Math.round(Math.abs(a - b) / tickSize)
+  return Math.round((Math.abs(a - b) / tickSize) * 1e6) / 1e6
 }
 
 /**
