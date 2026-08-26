@@ -8,7 +8,7 @@ import { buildConfluenceBands } from './confluenceBands'
 import type { ContextScale, DataQualityIssue, JobContext } from './contextTypes'
 import { assessDataQuality } from './dataQuality'
 import { classifyLocation } from './locationDimensions'
-import { observeBars } from './observedBars'
+import { htfBarsAsOf, observeBars } from './observedBars'
 import { classifyOrigin } from './originFacts'
 import { crossCheckWithMgi } from './parseJobStudy'
 import { instrumentFromSymbol, type Instrument } from './profile-vision/instrument'
@@ -77,7 +77,7 @@ export type ClassifyContextInput = {
   readonly mgi: MgiStaticLevels
   /** 750-volume exec bars, chronological, in-progress bar last. */
   readonly execBars: readonly ExecBar[]
-  /** 30-min HTF bars — the volatility scale (and the overnight fallback) only. */
+  /** 30-min HTF bars — the volatility scale (and the overnight fallback) only; bars after asOf are ignored. */
   readonly htfBars: readonly HtfBar[]
   readonly profileNodes: ProfileNodes | null
   /** Exchange wall clock `YYYY-MM-DDTHH:MM:SS`; every fact is keyed off it. */
@@ -146,14 +146,16 @@ export function classifyContext(input: ClassifyContextInput): JobContext {
   const resolved = resolveInstrument(mgi, jobStudy)
   const tolerance = resolveBandTolerance(resolved.instrument)
   const price = resolvePrice(mgi, jobStudy)
-  const scale = resolveScale(htfBars, price.value, resolved.instrument)
   const observation = observeBars(execBars, wallMsOfString(asOf)!)
+  // Nothing after asOf may leak in: the scale sees the sessions completed by
+  // asOf, the overnight fallback only this trading day's bars.
+  const scale = resolveScale(htfBarsAsOf(htfBars, observation.asOfMs), price.value, resolved.instrument)
 
   const inventory = buildReferenceInventory({
     jobStudy,
     mgi,
     profileNodes,
-    htfBars,
+    htfBars: htfBarsAsOf(htfBars, observation.asOfMs, observation.tradingDay),
     completedBars: observation.allCompleted,
     price: price.value,
   })

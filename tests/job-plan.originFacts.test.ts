@@ -79,7 +79,7 @@ describe('observeBars: what the origin facts may see', () => {
     const observation = observeBars(bars, ms('2026-08-24T17:05:00'))
     expect(observation.tradingDay).toBe('2026-08-25')
     expect(observation.bars).toEqual([])
-    expect(observation.coverage).toMatchObject({ sessionStarted: false, overnightBars: 0, sessionBars: 0, firstBarAt: null, lastCompletedBarAt: '2026-08-24T16:29:00' })
+    expect(observation.coverage).toMatchObject({ sessionStarted: false, overnightBars: 0, sessionBars: 0, firstBarAt: null, lastCompletedBarAt: null })
     expect(observation.coverage.excludedBars.priorTradingDays).toBe(60)
     const f = bandOriginFacts(BAND, observation, MERGE)
     expect(f.excursions).toEqual([])

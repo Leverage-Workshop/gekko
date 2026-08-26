@@ -1,4 +1,5 @@
 import type { ExecBar } from '@/lib/engine/parseExecBars'
+import type { HtfBar } from '@/lib/engine/parseHtfBars'
 import {
   MINUTE_MS,
   minutesBetween,
@@ -76,7 +77,6 @@ export function observeBars(execBars: readonly ExecBar[], asOfMs: number): Obser
   // The session is asOf's trading day — never the last bar's: right after the
   // 17:00 Globex reopen asOf has rolled forward while every completed bar still
   // belongs to the prior day, and that day's bars must not feed R5–R9.
-  const last = allCompleted.at(-1)
   const tradingDay = tradingDayOfMs(asOfMs)
   const bars = allCompleted.filter((bar) => bar.tradingDay === tradingDay)
   const rthOpenMs = rthOpenByDay(tradingDay)
@@ -94,7 +94,7 @@ export function observeBars(execBars: readonly ExecBar[], asOfMs: number): Obser
     overnightBars: bars.filter((bar) => bar.scope === 'overnight').length,
     sessionBars: bars.filter((bar) => bar.scope === 'session').length,
     firstBarAt: bars[0]?.wall ?? null,
-    lastCompletedBarAt: last?.wall ?? null,
+    lastCompletedBarAt: bars.at(-1)?.wall ?? null,
     excludedBars: {
       inProgress: execBars.length > 0 ? 1 : 0,
       afterAsOf,
@@ -103,4 +103,21 @@ export function observeBars(execBars: readonly ExecBar[], asOfMs: number): Obser
   }
 
   return { asOfMs, tradingDay, rthOpenMs, bars, allCompleted, coverage }
+}
+
+/**
+ * The HTF bars a snapshot keyed off `asOf` may see: the export's last row is
+ * dropped as in-progress, then every bar after `asOf`. `tradingDay` further
+ * restricts to that session (the overnight fallback), so a rolling export that
+ * runs past `asOf` can never leak a later day's levels or sessions.
+ */
+export function htfBarsAsOf(
+  htfBars: readonly HtfBar[],
+  asOfMs: number,
+  tradingDay?: string,
+): HtfBar[] {
+  return htfBars.slice(0, -1).filter((bar) => {
+    const ms = wallMsOfDate(bar.dateTime)
+    return ms <= asOfMs && (tradingDay === undefined || tradingDayOfMs(ms) === tradingDay)
+  })
 }

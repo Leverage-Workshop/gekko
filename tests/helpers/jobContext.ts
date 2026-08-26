@@ -118,8 +118,22 @@ function htfBar(wall: string, o: number, h: number, l: number, c: number): HtfBa
   return { dateTime: wallDate(wall), open: o, high: h, low: l, close: c, volume: 1000, bidVolume: 500, askVolume: 500, delta: 0 }
 }
 
-/** Complete RTH sessions (15 × 30-min bars) with an overnight bar each, for the volatility scale. */
-export function htfSessions(dates: readonly string[], base: number, halfRange: number): HtfBar[] {
+/**
+ * Complete RTH sessions (15 × 30-min bars) with an overnight bar each, for the
+ * volatility scale. `trailing` appends that day's 03:00 overnight bar and an
+ * in-progress 09:00 RTH row (the export's last row, always dropped as of asOf).
+ */
+export function htfSessions(dates: readonly string[], base: number, halfRange: number, trailing?: string): HtfBar[] {
+  const tail = trailing
+    ? [
+        htfBar(`${trailing}T03:00:00`, base, base + halfRange / 2, base - halfRange / 2, base),
+        htfBar(`${trailing}T09:00:00`, base, base + 1, base - 1, base),
+      ]
+    : []
+  return [...sessions(dates, base, halfRange), ...tail]
+}
+
+function sessions(dates: readonly string[], base: number, halfRange: number): HtfBar[] {
   return dates.flatMap((date) => {
     const overnight = htfBar(`${date}T03:00:00`, base, base + halfRange / 2, base - halfRange / 2, base)
     const rth = Array.from({ length: 15 }, (_, i) => {
@@ -180,7 +194,7 @@ export function defaultInput(overrides: Partial<ClassifyContextInput> = {}): Cla
     jobStudy: studyAt(),
     mgi: mgiAt('09:29:00', 29350),
     execBars: execBars([...overnight, ...session], ['2026-08-24T09:29:00', 29351, 29349, 29350]),
-    htfBars: htfSessions(HTF_DATES, 29400, 100),
+    htfBars: htfSessions(HTF_DATES, 29400, 100, TRADING_DAY),
     profileNodes: null,
     asOf: AS_OF,
     ...overrides,

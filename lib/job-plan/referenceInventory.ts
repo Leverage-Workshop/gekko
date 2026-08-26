@@ -21,7 +21,8 @@ import type { DailyPivot, JobStudy, PivotLadder } from './types'
  * taken AS-IS (prominence / primary never recomputed). Ladder rungs are
  * destination-only (R2). Sierra's `0.00` placeholders are excluded, not
  * levels; a missing overnight extreme falls back to the HTF bars' own
- * overnight session (the engine fact the plan's inventory table names) and
+ * overnight session (the engine fact the plan's inventory table names) — over
+ * the observation day's bars at/before `asOf` only, never a later day's — and
  * says so.
  */
 
@@ -29,6 +30,7 @@ export type InventoryInput = {
   readonly jobStudy: JobStudy
   readonly mgi: MgiStaticLevels
   readonly profileNodes: ProfileNodes | null
+  /** HTF bars of the observation trading day at/before asOf ONLY (the ONH/ONL fallback). */
   readonly htfBars: readonly HtfBar[]
   /** Every completed bar at/before asOf, any trading day (historical-pivot check). */
   readonly completedBars: readonly ObservedBar[]

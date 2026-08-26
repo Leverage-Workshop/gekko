@@ -72,13 +72,22 @@ bounds of the write time, reported in `dataQuality.exportTimes`; an unknown prox
 claim, so it never manufactures a disagreement. 147 new tests: `tests/job-plan.rules.test.ts` (42),
 `tests/job-plan.originFacts.test.ts` (34), `tests/job-plan.classifyContext.test.ts` (71), builders in
 `tests/helpers/jobContext.ts` on the REAL job-study pair (export times moved into the session).
-./init.sh green — typecheck, lint, 1872/1873 tests (1 pre-existing skip), build. Codex gate round 1
+./init.sh green — typecheck, lint, 1874/1875 tests (1 pre-existing skip), build. Codex gate round 1
 (`5b1df08`): PASS with one P2, real and FIXED — `observeBars` took the observation session from the
 LAST COMPLETED BAR, so a run right after the 17:00 Globex reopen (asOf rolled forward, every
 completed bar still on the prior day) would have fed the prior session's bars into R5–R9 and flagged
 a false `trading_day_mismatch` against a correctly dated study; the session is now
 `tradingDayOfMs(asOf)` and a session with no completed bars yet is empty coverage (regression tests
-in both suites). Round 2: CODEX_GATE_ROUND2. Next in the chain: feat-127 (buildPlan + schema).
+in both suites). Round 2 (`1005fa2`): BLOCKED — one P1 and one P2, both real and FIXED: (P1) the ONH/ONL
+fallback handed ALL HTF bars to `computeOvernightSession`, which keys on the export's last bar, so
+with an `asOf` earlier than the rolling export a LATER day's overnight leaked into an asOf-keyed
+context — and the same class of leak applied to the volatility scale (complete sessions after
+`asOf`); `observedBars.htfBarsAsOf` now drops the export's last row and every bar after `asOf` for
+the scale, and additionally restricts to the observation trading day for the fallback (no bars →
+`overnight_levels_missing`); (P2) `coverage.lastCompletedBarAt` came from ANY trading day, so a
+session with no completed bars yet reported a prior-day bar as coverage and skipped
+`no_observed_bars` — it now comes from the session's own bars. Round 3 (final under the 3-round
+cap): CODEX_GATE_ROUND3. Next in the chain: feat-127 (buildPlan + schema).
 
 **Latest change (branch `feat-125-parse-job-study`): feat-125 — parseJobStudy, the strict
 parser + normalizer for feat-118's two Job-study exports.** `lib/job-plan/parseJobStudy.ts`

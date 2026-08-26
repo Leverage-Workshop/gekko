@@ -5,6 +5,7 @@ import { classifyContext } from '@/lib/job-plan/classifyContext'
 import { buildConfluenceBands } from '@/lib/job-plan/confluenceBands'
 import type { ConfluenceBand, Reference } from '@/lib/job-plan/contextTypes'
 import { enclosingZone, readBox, readValueZone } from '@/lib/job-plan/locationDimensions'
+import { htfBarsAsOf } from '@/lib/job-plan/observedBars'
 import { assignBandRoles } from '@/lib/job-plan/referenceRoles'
 import { PLANNER_REVISION, r2Significance, type ReferenceSource } from '@/lib/job-plan/rules'
 import {
@@ -129,6 +130,22 @@ describe('reference inventory (R2)', () => {
     expect(byId(noRip, 'g-line')).toBeUndefined()
     expect(noRip.excludedReferences).toContainEqual({ label: 'Rip', price: 0, reason: 'sentinel' })
     expect(noRip.excludedReferences).toContainEqual({ label: 'G line (week open)', price: null, reason: 'missing' })
+  })
+
+  it('never lets HTF bars after asOf into the snapshot: the overnight fallback and the scale see only what asOf could', () => {
+    const rolling = htfSessions([...HTF_DATES, '2026-08-24', '2026-08-25'], 29400, 100)
+    const noOn = mgiAt('09:29:00', 29350, { daily: { onh: 0, onl: 0 } })
+    const ctx = classify({ mgi: noOn, htfBars: rolling })
+    // 08-24's own overnight bar (03:00) is the fallback source, never 08-25's.
+    expect(byId(ctx, 'onh')).toMatchObject({ price: 29450, origin: 'htf-bars' })
+    expect(ctx.scale.sessionsAnalyzed).toBe(5)
+    expect(htfBarsAsOf(rolling, Date.UTC(2026, 7, 24, 9, 30)).every((b) => b.dateTime.getDate() <= 24)).toBe(true)
+    expect(htfBarsAsOf(rolling, Date.UTC(2026, 7, 24, 9, 30), '2026-08-24').map((b) => b.dateTime.getHours())).toEqual([3, 8, 9, 9])
+
+    // With an asOf before this day's overnight there is no fallback source at all.
+    const early = classify({ mgi: noOn, htfBars: rolling, asOf: '2026-08-24T02:00:00', execBars: [] })
+    expect(byId(early, 'onh')).toBeUndefined()
+    expect(early.dataQuality.issues.map((i) => i.code)).toContain('overnight_levels_missing')
   })
 
   it('falls back to the HTF bars for ONH/ONL when the MGI carries 0.00, and says so', () => {
@@ -483,8 +500,9 @@ describe('data quality (R13) — a separate field, never a pseudo-state', () => 
     expect(ctx.dataQuality.tradingDay).toEqual({ study: '2026-08-25', bundle: '2026-08-25', match: true })
     expect(ctx.dataQuality.sufficient).toBe(true)
     expect(ctx.dataQuality.issues.map((i) => i.code)).not.toContain('trading_day_mismatch')
-    // The only completed bars are the prior session's: they are stale for this session, not this session's coverage.
-    expect(ctx.dataQuality.issues.map((i) => i.code)).toContain('bars_behind_asof')
+    // The only completed bars are the prior session's: this session has no coverage at all.
+    expect(ctx.dataQuality.issues.map((i) => i.code)).toContain('no_observed_bars')
+    expect(ctx.origin.coverage.lastCompletedBarAt).toBeNull()
     expect(ctx.origin.coverage).toMatchObject({ tradingDay: '2026-08-25', sessionBars: 0, overnightBars: 0 })
     expect(ctx.origin.coverage.excludedBars.priorTradingDays).toBe(60)
   })
