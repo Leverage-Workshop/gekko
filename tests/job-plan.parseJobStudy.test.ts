@@ -286,6 +286,26 @@ describe('parseJobStudy: schema and meta', () => {
     expectError(() => parseWith(ny), 'exchange_tz_mismatch')
   })
 
+  it('rejects a valid but non-Central exchange TZ in BOTH files (the 17:00 roll is CT)', () => {
+    const daily = mutate(DAILY, (d) => {
+      d.meta.exchangeTz = 'America/New_York'
+    })
+    const weekly = mutate(WEEKLY, (w) => {
+      w.meta.exchangeTz = 'America/New_York'
+    })
+    expectError(() => parseWith(daily, weekly), 'exchange_tz_invalid', 'America/Chicago')
+  })
+
+  it("collects both files' schema issues into one error", () => {
+    const err = expectError(
+      () => parseWith('{not json', fixture('daily.schema-v2.json')),
+      'json_invalid'
+    )
+    const codes = err.issues.map((i) => i.code)
+    expect(codes).toContain('schema_version_unsupported')
+    expect(err.message).toContain('weekly')
+  })
+
   it('rejects an unsupported or mismatched session template', () => {
     const daily = mutate(DAILY, (d) => {
       d.meta.studySettings.sessionTemplate = 'RTH 08:30:00-15:15:00 CT'

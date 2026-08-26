@@ -26,6 +26,13 @@ export const JOB_STUDY_WEEKLY_CONTRACT = 'gekko.job-study-weekly'
 /** The operator's chart session template; the 17:00 CT roll in exchangeTime.ts assumes it. */
 export const JOB_STUDY_SESSION_TEMPLATE = 'Globex 17:00:00-16:59:59 CT'
 
+/**
+ * The exchange TZ the exporter bakes in. Pinned, not merely validated: the trading-day
+ * roll is 17:00 CENTRAL wall time, so an export in any other zone would fold bars into
+ * the wrong day. Another zone is an unsupported setting (task-plan key decision 3).
+ */
+export const JOB_STUDY_EXCHANGE_TZ = 'America/Chicago'
+
 /** R13: exports further apart than this are reported (the caller decides `insufficient`). */
 export const JOB_STUDY_EXPORT_SKEW_WARN_SECONDS = 300
 
@@ -99,10 +106,15 @@ function checkFileClock(
   meta: AnyMeta,
   kind: FileKind
 ): { source: JobStudySource | null; issues: JobStudyIssue[] } {
-  if (!isValidTimeZone(meta.exchangeTz)) {
+  if (!isValidTimeZone(meta.exchangeTz) || meta.exchangeTz !== JOB_STUDY_EXCHANGE_TZ) {
     return {
       source: null,
-      issues: [issue('exchange_tz_invalid', `${kind} exchangeTz "${meta.exchangeTz}" is unknown`)],
+      issues: [
+        issue(
+          'exchange_tz_invalid',
+          `${kind} exchangeTz "${meta.exchangeTz}" is not the supported ${JOB_STUDY_EXCHANGE_TZ}`
+        ),
+      ],
     }
   }
   const exported = toInstant(meta.exportedAt, meta.exchangeTz, `${kind} exportedAt`)

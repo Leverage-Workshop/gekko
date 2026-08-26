@@ -34,9 +34,10 @@ import type { JobStudy, JobStudyErrorCode, JobStudyIssue, JobStudyWarning } from
  *   - byte / array / map-key size caps (a broken exporter cannot DoS the task)
  *   - valid JSON, strict shape (unknown keys rejected), supported `schemaVersion`
  *   - `meta.contract` names the right file; both files carry the SAME symbol
- *     (rollover mixing rejected) and a supported NQ/ES root; same exchangeTz
- *     (valid IANA), same tick size, same tradingDay and weekOf; the operator's
- *     Globex session template (the 17:00 CT roll assumes it)
+ *     (rollover mixing rejected) and a supported NQ/ES root; the Central exchange
+ *     TZ (`America/Chicago` — the 17:00 CT roll below assumes it, so another zone
+ *     is unsupported, not merely different); same tick size, tradingDay and
+ *     weekOf; the operator's Globex session template
  *   - timestamps resolve in the exchange TZ (DST gaps rejected); lastBarTime is
  *     not after exportedAt; `tradingDay` equals the day lastBarTime's 17:00 CT
  *     roll derives (Sunday Globex folds into Monday); tradingDay lies in weekOf's week
@@ -73,6 +74,7 @@ export {
 } from './jobStudySchema'
 export {
   JOB_STUDY_DAILY_CONTRACT,
+  JOB_STUDY_EXCHANGE_TZ,
   JOB_STUDY_EXPORT_SKEW_WARN_SECONDS,
   JOB_STUDY_SESSION_TEMPLATE,
   JOB_STUDY_WEEKLY_CONTRACT,
@@ -107,18 +109,21 @@ export class JobStudyParseError extends Error {
 
 type FileKind = 'daily' | 'weekly'
 
-const fail = (code: JobStudyErrorCode, message: string): never => {
-  throw new JobStudyParseError([{ code, message }])
-}
+type FileResult<T> = { readonly data: T | null; readonly issues: readonly JobStudyIssue[] }
 
-function parseJsonText(text: string, kind: FileKind): unknown {
+const failed = <T>(code: JobStudyErrorCode, message: string): FileResult<T> => ({
+  data: null,
+  issues: [{ code, message }],
+})
+
+function parseJsonText(text: string, kind: FileKind): FileResult<unknown> {
   if (Buffer.byteLength(text, 'utf8') > JOB_STUDY_MAX_FILE_BYTES) {
-    fail('file_too_large', `${kind} file exceeds ${JOB_STUDY_MAX_FILE_BYTES} bytes`)
+    return failed('file_too_large', `${kind} file exceeds ${JOB_STUDY_MAX_FILE_BYTES} bytes`)
   }
   try {
-    return JSON.parse(text) as unknown
+    return { data: JSON.parse(text) as unknown, issues: [] }
   } catch (error) {
-    return fail('json_invalid', `${kind} file is not valid JSON: ${(error as Error).message}`)
+    return failed('json_invalid', `${kind} file is not valid JSON: ${(error as Error).message}`)
   }
 }
 
@@ -129,20 +134,22 @@ function formatZodIssues(kind: FileKind, error: z.ZodError): JobStudyIssue[] {
   }))
 }
 
-function parseFile<T>(text: string, kind: FileKind, schema: z.ZodType<T>): T {
+/** Size cap, JSON, schema version, then the strict shape — never throws; issues are collected. */
+function parseFile<T>(text: string, kind: FileKind, schema: z.ZodType<T>): FileResult<T> {
   const json = parseJsonText(text, kind)
-  const envelope = envelopeSchema.safeParse(json)
-  if (!envelope.success) throw new JobStudyParseError(formatZodIssues(kind, envelope.error))
+  if (json.issues.length > 0) return { data: null, issues: json.issues }
+  const envelope = envelopeSchema.safeParse(json.data)
+  if (!envelope.success) return { data: null, issues: formatZodIssues(kind, envelope.error) }
   const version = envelope.data.meta.schemaVersion
   if (!JOB_STUDY_SUPPORTED_SCHEMA_VERSIONS.includes(version)) {
-    fail(
+    return failed(
       'schema_version_unsupported',
       `${kind} schemaVersion ${version} is not supported (supported: ${JOB_STUDY_SUPPORTED_SCHEMA_VERSIONS.join(',')})`
     )
   }
-  const result = schema.safeParse(json)
-  if (!result.success) throw new JobStudyParseError(formatZodIssues(kind, result.error))
-  return result.data
+  const result = schema.safeParse(json.data)
+  if (!result.success) return { data: null, issues: formatZodIssues(kind, result.error) }
+  return { data: result.data, issues: [] }
 }
 
 function mergeStudy(daily: RawDailyFile, weekly: RawWeeklyFile): JobStudy {
@@ -197,7 +204,10 @@ function mergeStudy(daily: RawDailyFile, weekly: RawWeeklyFile): JobStudy {
 export function parseJobStudy(input: JobStudyInput): JobStudy {
   const daily = parseFile(input.daily, 'daily', dailyFileSchema)
   const weekly = parseFile(input.weekly, 'weekly', weeklyFileSchema)
-  return mergeStudy(daily, weekly)
+  if (daily.data === null || weekly.data === null) {
+    throw new JobStudyParseError([...daily.issues, ...weekly.issues])
+  }
+  return mergeStudy(daily.data, weekly.data)
 }
 
 export type MgiCrossCheckStatus = 'match' | 'mismatch' | 'mgi_missing'

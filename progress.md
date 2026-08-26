@@ -31,10 +31,16 @@ digit); it returns a structured result — fatality is the feat-128 task's call.
 knowing: strict objects mean an additive exporter field is a schema error until
 `schemaVersion` bumps (deliberate); the session template is pinned to the operator's string
 because the 17:00 roll assumes it; the weekly `weekOf` window check is [weekOf, weekOf+6] so
-a holiday-Monday week only warns. 108 tests (`tests/job-plan.*.test.ts`, helpers in
+a holiday-Monday week only warns. 110 tests (`tests/job-plan.*.test.ts`, helpers in
 `tests/helpers/jobStudy.ts`, fixtures in `tests/fixtures/job-study/`). ./init.sh green —
-typecheck, lint, 1719/1720 tests (1 pre-existing skip), build. Next in the chain: feat-126
-(classifyContext + rules).
+typecheck, lint, 1721/1722 tests (1 pre-existing skip), build. Codex gate round 1: PASS with
+two P2s, both real and both fixed — (1) `parseFile` threw on the first bad file so a broken
+weekly file's issues were dropped from the "every issue" error: both files now parse to
+non-throwing results and their issues are combined; (2) any valid IANA `exchangeTz` was
+accepted while the trading-day roll is 17:00 CENTRAL wall time, so a New_York export would
+fold bars into the wrong day: `exchangeTz` is now pinned to `America/Chicago`
+(`JOB_STUDY_EXCHANGE_TZ`, an unsupported-setting error like the session template). Round 2:
+see the gate verdict below. Next in the chain: feat-126 (classifyContext + rules).
 
 **Latest change (branch `feat-118-job-exporter-split`): the Job-study exporter split into two
 per-chart studies.** Operator decision 2026-08-23: the source studies live on TWO charts (Daily
