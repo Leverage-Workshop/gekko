@@ -4,6 +4,91 @@
 
 **Last Updated:** 2026-08-26
 
+**Latest change (branch `feat-126-classify-context`): feat-126 — `classifyContext` + the ratified
+rules R1–R10 / R13 as named predicates.** `lib/job-plan/rules.ts` is the decision log by rule ID:
+`PLANNER_REVISION` (`job-planner/2026-08-26.1`, bump on any number/predicate change — it is part of
+the plan fingerprint), a `RULE_TABLE` that declares EVERY R-id in the plan's "Ratified rules" table
+exactly once with its OWNER (R1, R1b, R2–R10, R13 here with predicates; R11/R12 → feat-127, R14 →
+feat-128, R15 → the feat-124 bench, `predicate: null`) — `tests/job-plan.rules.test.ts` parses the
+doc's table and pins set equality, uniqueness (`id: 'Rn'` appears once in the source) and that the
+feat-126 rows are exactly the `IMPLEMENTED_RULES` keys — and every ratified default as a named
+constant (NQ merge 20 / cap 40, ES 5 / 10 resolved from the MGI `symbol` root; R4 reach 1.0σ with a
+FLAGGED plain-points fallback 283 NQ / 70 ES when `computeVolatilityScale` is null; 30 / 90 / 20 /
+2× / 1× / 60 / 20 min; 300 s skew). `classifyContext({ jobStudy, mgi, execBars, htfBars,
+profileNodes, asOf })` → `JobContext` (`contextTypes.ts`), pure and deterministic — `asOf` is an
+exchange wall-clock string and EVERYTHING is keyed off it; `chartClock.ts` reduces bar `Date`s, the
+study's wall strings and `asOf` to wall-milliseconds so the R5–R9 windows never depend on the process
+TZ; a test greps the module for `Date.now` / `new Date()`. Output: (a) the reference inventory in R2
+order (`referenceInventory.ts`: G line = `weekly.wkOpen` > weekly pivot > daily pivot — the current
+one plus UNTESTED / unknown historical pivots at `subRank` 1, tested ones excluded with the reason,
+the deep-dive rule — > JBA edges per box > Rip > ONH/ONL > PDH/PDL > 5-day nodes > 4-hour nodes >
+Autoplot > other MGI incl. pwVAH/pwVAL via `computeMgiPriority` > weekly rungs > daily rungs,
+rungs destination-only; profile nodes are the `ProfileNodes` input AS-IS with prominence / primary /
+agreement carried and the band midpoint as the clustering price; Sierra 0.00 placeholders and absent
+levels go to `excludedReferences`; ONH/ONL 0.00 falls back to `computeOvernightSession` over the HTF
+bars with an `overnight_levels_from_htf` warning — the plan's inventory table names that engine fact
+as the alternate source); (b) confluence bands (`confluenceBands.ts`: transitive chain within the
+merge tolerance, a chain over the cap splits at its largest internal gap recursively, quoted
+[lowest member, highest member], anchored on the highest-significance member with deterministic
+tie-breaks: within-tier order → profile prominence → closeness to the midpoint → id); (c) roles
+(`referenceRoles.ts`: `destination` = rungs or beyond the R4 reach; `actionable-now` = within reach
+AND (AT per R3 OR the nearest structurally-strong band on its side); `actionable-if-reached` = the
+rest within reach — "structural quality" is an engineering proxy for 03-20 / 07-23: a LONE band
+whose anchor is a profile node at prominence ≥ 4 or a lowest-tier MGI level reads weak and is skipped
+for the next strong one, kept on arrival; `nearestRank` per side and `distanceSigma` ride along for
+R12); (d) orthogonal dimensions (`locationDimensions.ts`: `vsWeeklyValue` / `vsDailyValue` below /
+lower-half / at-pivot / upper-half / above with at-pivot = one merge tolerance; `vsBoxes` per box
+inside-middle / at-lower-edge / at-upper-edge / outside-near (≤ 2×, the R7 approach zone) /
+outside-extended; `enclosingZone` = the narrowest containing JBA box, else the nearest armable band
+each side, with R10 `midZone`; `crossRead` lists every weekly / daily / JBA disagreement as text —
+never a bias); (e) origin facts per band (`observedBars.ts` + `originFacts.ts` +
+`approachFailure.ts`): the export's LAST ROW is always dropped as in-progress, then bars after
+`asOf`, then prior trading days (kept only for the historical-pivot check); R5 excursions open on the
+first PRINT beyond an edge FROM THE ORIGINAL SIDE (the previous completed close at/inside that edge —
+so a bar that is merely below a band is not a "look below") and close on the first close back:
+≤ 30 min = failed look graded EARLY when it began inside open + 90 min else LATE (overnight looks are
+scoped `overnight` and grade LATE, the ratified "else"), longer = extended-return, still open =
+`open`; R6 is the TRAILING RUN of completed closes beyond the band measured to the last completed bar
+(≥ 20 min accepted, else testing; a close back inside breaks the run) — price parked beyond a band
+since the window opened is accepted from its first bar; R7 is measured over the approach EPISODE
+since the last touch from that side (an overnight touch does not spoil a fresh session approach),
+retreat = last completed close vs the closest print, recency vs `asOf`; R8 = closes in the last
+20 min → ABOVE / BELOW / STRADDLING (null with no closes; scope session / overnight / mixed); R9 =
+session-only prints in the band, defenses (print in, close back on the arrival side) counted per
+scope, `triggerStatus` fresh / full / demoted; every fact stamped `asOf`; (f) `dataQuality`
+(`dataQuality.ts`, a separate field): `insufficient` on `export_skew` > 300 s between ANY two of
+daily / weekly / MGI / bars, `trading_day_mismatch` (study vs the bars' session), and
+`instrument_mismatch` (MGI root ≠ study root); warnings for `boxes_provisional` (daily export before
+the RTH open), `bars_behind_asof`, `no_observed_bars`, `session_not_started`,
+`profile_nodes_unavailable` (null or per-profile partial — R14, still sufficient),
+`volatility_scale_unavailable`, the overnight fallback, the MGI pivot cross-check
+(`crossCheckWithMgi` mismatch / missing — the study is the source) and `mgi_symbol_missing`
+(instrument falls back to the study's). Decisions where the plan was silent: the MGI and bar exports
+carry no `exportedAt`, so their R13 proxies are MGI `current.time` placed on the export's last-bar
+calendar date (±1 day when > 12 h off) and the export's last (in-progress) bar timestamp — both lower
+bounds of the write time, reported in `dataQuality.exportTimes`; an unknown proxy is an
+`export_time_unknown` warning, not `insufficient`. Price = MGI `current.price`, else the study's
+`currentPrice` (recorded in `price.source`). `crossRead.jba` = `between` / `none` makes no coarse
+claim, so it never manufactures a disagreement. 147 new tests: `tests/job-plan.rules.test.ts` (42),
+`tests/job-plan.originFacts.test.ts` (34), `tests/job-plan.classifyContext.test.ts` (71), builders in
+`tests/helpers/jobContext.ts` on the REAL job-study pair (export times moved into the session).
+./init.sh green — typecheck, lint, 1873/1874 tests (1 pre-existing skip), build. Codex gate round 1
+(`5b1df08`): PASS with one P2, real and FIXED — `observeBars` took the observation session from the
+LAST COMPLETED BAR, so a run right after the 17:00 Globex reopen (asOf rolled forward, every
+completed bar still on the prior day) would have fed the prior session's bars into R5–R9 and flagged
+a false `trading_day_mismatch` against a correctly dated study; the session is now
+`tradingDayOfMs(asOf)` and a session with no completed bars yet is empty coverage (regression tests
+in both suites). Round 2 (`1005fa2`): BLOCKED — one P1 and one P2, both real and FIXED: (P1) the ONH/ONL
+fallback handed ALL HTF bars to `computeOvernightSession`, which keys on the export's last bar, so
+with an `asOf` earlier than the rolling export a LATER day's overnight leaked into an asOf-keyed
+context — and the same class of leak applied to the volatility scale (complete sessions after
+`asOf`); `observedBars.htfBarsAsOf` now drops the export's last row and every bar after `asOf` for
+the scale, and additionally restricts to the observation trading day for the fallback (no bars →
+`overnight_levels_missing`); (P2) `coverage.lastCompletedBarAt` came from ANY trading day, so a
+session with no completed bars yet reported a prior-day bar as coverage and skipped
+`no_observed_bars` — it now comes from the session's own bars. Round 3 (final under the 3-round
+cap, on `19e6ac4`): PASS with NO findings — nothing dismissed. Next in the chain: feat-127 (buildPlan + schema).
+
 **Latest change (branch `feat-125-parse-job-study`): feat-125 — parseJobStudy, the strict
 parser + normalizer for feat-118's two Job-study exports.** `lib/job-plan/parseJobStudy.ts`
 (+ `types.ts`, `jobStudySchema.ts`, `jobStudyMeta.ts`, `jobStudyRows.ts`, `pivotLadder.ts`,
