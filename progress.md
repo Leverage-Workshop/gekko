@@ -93,6 +93,15 @@ script); the eslint unsafe-`any` boundary glob widened from `lib/*/deps.ts` to `
 `lib/job-plan/dashboard/deps.ts`; `job-plan-images` objects are served through the app, not signed URLs (no
 expiry, content-addressed, nothing leaves the local machine). ./init.sh green — typecheck, lint, 2163/2164
 tests (1 pre-existing skip), build (both routes listed).
+Codex gate round 1 (`2eb8cf2`): PASS with one P2, real and FIXED — a failed `localStorage.setItem` left the
+picker's in-memory `fallback` set for the page's lifetime, so a later successful write was ignored by
+`getSnapshot()` (and cross-tab updates with it); the fallback is now cleared on every successful write.
+Round 2 (`e9cc0a4`): PASS with one P2, real and FIXED — the vision banner's heading said "plan built without
+the vision read" for a PARTIAL read (one profile survived and the plan used it) and for persisted nodes that
+are merely unreadable for display (the planner consumed them at run time); `visionBannerHeading` now picks
+the heading per case (off / partial / unreadable — `data-vision-warning="<kind>"`), with the card tests
+pinning each. Round 3 (final, on `cc86732`): PASS with NO findings — nothing dismissed. Next in the chain:
+feat-130 (shadow evaluation + operator grading of the vision read).
 
 **Latest change (branch `feat-128-job-plan-task`): feat-128 — the `job-plan-task` + `job_plans`
 persistence.** `trigger/jobPlanTask.ts` (`job-plan-task`, schemaTask `{ triggerReason, bundleRequestId? }`,
