@@ -63,17 +63,35 @@ function MetaStrip({ data }: { data: JobPlanCardData }) {
   )
 }
 
-/** The R14 degradation, said LOUDLY: the plan stands, but it was built without profile nodes. */
+/**
+ * The R14 degradation, said LOUDLY — and accurately: the read was OFF (no
+ * nodes at all), PARTIAL (a profile produced no consensus; the plan used the
+ * rest), or the persisted nodes are unreadable for DISPLAY only (the planner
+ * consumed them at run time; only the overlay is missing).
+ */
+export function visionBannerHeading(data: JobPlanCardData): string {
+  if (data.visionOff) return 'Profile nodes unavailable — plan built without the vision read'
+  if (data.profileNodesError) {
+    return 'Profile nodes unreadable on this row — overlay unavailable; the plan did use them'
+  }
+  return 'Profile nodes partial — a profile produced no consensus; plan built without it'
+}
+
 function VisionWarningBanner({ data }: { data: JobPlanCardData }) {
   const lines = [
     ...data.visionWarnings,
     ...(data.profileNodesError ? [data.profileNodesError] : []),
   ]
   if (lines.length === 0 && !data.visionOff) return null
+  const kind = data.visionOff ? 'off' : data.profileNodesError ? 'unreadable' : 'partial'
   return (
-    <div role="alert" data-vision-warning className="border-l-4 border-m-red bg-surface-card p-6">
+    <div
+      role="alert"
+      data-vision-warning={kind}
+      className="border-l-4 border-m-red bg-surface-card p-6"
+    >
       <span className="text-xs font-bold uppercase tracking-[1.5px] text-m-red">
-        Profile nodes unavailable — plan built without the vision read
+        {visionBannerHeading(data)}
       </span>
       <ul className="mt-2 space-y-1">
         {(lines.length > 0 ? lines : ['profile_nodes is empty on this row']).map((line) => (
