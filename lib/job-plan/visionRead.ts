@@ -22,7 +22,7 @@ import type { ProfileKey, ProfileNodes } from './profile-vision/types'
  * operator grading and the card overlay, not planner inputs.
  */
 
-export const JOB_PLAN_IMAGES_BUCKET = 'job-plan-images'
+export { JOB_PLAN_IMAGES_BUCKET } from './jobPlanImages'
 
 export const VISION_OFF_WARNING =
   'profile_nodes_unavailable: the profile vision read is OFF (config.profile_vision_model_id is NULL) — plan produced without 5-day / 4-hour profile nodes (R14)'
@@ -42,7 +42,7 @@ export type VisionUsage = {
 
 /** feat-123's `VisionGenerate`, plus optional token usage for run metadata. */
 export type JobPlanVisionGenerate = (
-  params: Parameters<VisionGenerate>[0],
+  params: Parameters<VisionGenerate>[0]
 ) => Promise<Awaited<ReturnType<VisionGenerate>> & { readonly usage?: VisionUsage }>
 
 export type ProfileAgreement = {
@@ -111,10 +111,11 @@ function agreementOf(nodes: ProfileNodes): Partial<Record<ProfileKey, ProfileAgr
           successfulSamples: consensus?.successfulSamples ?? 0,
           samples: nodes.samples,
           nodes: ratios.length,
-          meanAgreement: ratios.length === 0 ? null : ratios.reduce((s, r) => s + r, 0) / ratios.length,
+          meanAgreement:
+            ratios.length === 0 ? null : ratios.reduce((s, r) => s + r, 0) / ratios.length,
         },
       ]
-    }),
+    })
   )
 }
 
@@ -137,7 +138,7 @@ function summarize(nodes: ProfileNodes, usage: VisionUsage): VisionSummary {
 async function uploadImages(
   hashes: readonly string[],
   captured: ReadonlyMap<string, Uint8Array>,
-  uploadImage: VisionReadInput['uploadImage'],
+  uploadImage: VisionReadInput['uploadImage']
 ): Promise<string[]> {
   const warnings: string[] = []
   for (const hash of hashes) {
@@ -149,7 +150,9 @@ async function uploadImages(
     try {
       await uploadImage(`${hash}.png`, png)
     } catch (error) {
-      warnings.push(`image_upload_failed:${hash}: ${error instanceof Error ? error.message : String(error)}`)
+      warnings.push(
+        `image_upload_failed:${hash}: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
   }
   return warnings
