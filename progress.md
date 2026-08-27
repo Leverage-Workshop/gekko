@@ -4,6 +4,96 @@
 
 **Last Updated:** 2026-08-26
 
+**Latest change (branch `feat-129-job-plan-surface`): feat-129 — the Job plan surface: run route, header
+version picker (Gekko | Job), mechanical plan card with profile overlays, failed-run surfacing.**
+ROUTE `app/api/job-plans/run/route.ts` mirrors `/api/briefings/run`: `requestFreshBundle('job-plan')` →
+`tasks.trigger('job-plan-task', { triggerReason, bundleRequestId })` → 202 `{ runId, publicAccessToken }`; the
+task does the fresh-bundle wait and BINDS to the fulfilling bundle (`awaitBoundBundle`, feat-128). Body is an
+optional `{ triggerReason? }` (Zod `.strict()` — a caller can never hand in a `bundleRequestId`; malformed JSON
+/ unknown keys → 400 + `fieldErrors` with nothing recorded); same intentionally-unauthenticated local-only
+posture as the briefing route, documented in the header. PICKER `app/components/dashboard-version.tsx`:
+`DashboardVersionProvider` + `DashboardVersionPicker` (in the TopNav `actions` slot next to the Advisory Only
+wordmark, category-tab styling, bmw-blue underline) + `VersionPane`. The choice lives in localStorage
+(`gekko.dashboard.version`) behind `useSyncExternalStore` — the server snapshot is Gekko, so SSR and hydration
+render the briefing view exactly as before and the stored choice is adopted on the client (the React Compiler
+lint rule rejects the setState-in-effect version). BOTH panes are server-rendered into one page under a
+client-owned `hidden` toggle: switching never re-fetches (headless: zero page/API requests on the click). The
+briefing view's markup and behavior are unchanged (`app/page.tsx` diff is the wrapper + the Job load). JOB VIEW
+`app/components/job-plan-view.tsx` = `JobPlanRunControls` ("Run Job plan" on `use-triggered-run`) over
+`JobPlanCard`, a MECHANICAL rendering of the latest `job_plans` row — no prose generation, no model.
+Data layer `lib/job-plan/dashboard/` (`dashboardData.ts` loader with injected deps, `deps.ts` real
+service-role reads, `schema.ts` boundary Zod for the row / persisted `ProfileNodes` / the context slice the
+card renders, `format.ts`, `overlay.ts`, `runFailure.ts`, `profileImage.ts`): the plan is re-validated
+against `JobPlanSchema` (a row that fails → a "Plan unreadable" block, never a half card, the briefing
+loader's rule); malformed `profile_nodes` degrade to null WITH a loud line. Card sections: meta strip
+(status / price+source / trading day + asOf / planner revision + vision model + fingerprint / created + run +
+bundle), the LOUD `profile_nodes_unavailable` banner (`role="alert"`, m-red left rule, every
+`profile_nodes_unavailable*` warning verbatim — fires for read OFF, partial reads, and malformed nodes), an
+explicit INSUFFICIENT block with `standDownReasons`, the context header (vs weekly / daily value with
+VAL·pivot·VAH evidence, JBA boxes, enclosing zone + mid-zone R10, cross-read with each disagreement in warning
+tone, observation asOf + session/overnight bar coverage + scale, data quality with every issue by severity +
+export times + max skew + trading-day match + `profileNodes` present/partial/null), the primary lean, play
+cards (`job-plan-play.tsx`: stance·direction badge long bmw-blue / short m-red / two-way hairline like the
+objective cards, the trigger band with members named by MGI/study label + role/side/distance/R9 status,
+activation state·grounding + evidence + factAt/asOf + `rulesFired` chips, the destination chain IN ORDER with
+beeline/don't-counter, the R11 deadline as text, invalidation + `thenSeek`, the `dont`, the box-expansion
+`uncertaintyBand` labelled "not a trigger"), pruned, stand-down reasons, warnings. PROFILE OVERLAYS
+(`job-plan-profiles.tsx`): each persisted tile is served BY HASH from the PRIVATE `job-plan-images` bucket
+through a local read-only proxy `GET /api/job-plans/images/[hash]` (sha256 hex validated before storage is
+touched; 400 / 404 / 500; `private, max-age=1y, immutable` since content-addressed; the bucket never becomes
+public — the dashboard already downloads private objects server-side, this is the same posture as an image)
+under an SVG in the image's own coordinate space: `overlay.ts` uses the renderer's newly exported
+`tileGeometry` + `priceToY` (same margins / axis width the PNG was drawn with), so a band lands where the
+model saw it; kinds are DESIGN.md tokens via CSS variables (LVN m-red, HVN edge bmw-blue, HVN core
+electric-blue, tails warning, thin zones dashed muted), ★ marks the primary, label = `KIND low–high · k/S`;
+a node table below repeats kind / band / prominence / position·shape / agreement k/S, and a profile without
+consensus shows "No consensus · profile_nodes_unavailable:<key>". Images go through `next/image`
+`unoptimized` (the operator grades the EXACT render). Per-node missed/spurious marks are feat-130's.
+FAILED-RUN SURFACING: `use-triggered-run` now also returns `runError` (the Realtime `SerializedError`;
+`error` is not in the skipped columns) and `runFailure.ts` maps status + message to a titled remediation
+(`bundle_ref_missing` → "Export missing from the bundle", every wait outcome, `bundle_not_found` /
+`bundle_invalid` / `profile_unsupported`; no prefix → "Run failed" with the raw message; CANCELED / TIMED_OUT /
+CRASHED with no error still say what happened); `JobRunFailureCallout` renders it full-width as an alert with
+"No job_plans row was written — the plan below is the previous run", so an abort never reads as nothing
+happened. TESTS (43 new): `tests/job-plans.run.route.test.ts` (6), `tests/job-plans.images.route.test.ts`
+(5), `tests/job-plan.dashboardData.test.ts` (19 — rows the REAL pipeline produced via
+`tests/helpers/jobPlanRows.ts` for ready vision-on / off / partial and insufficient; schema-invalid, plan
+null, malformed nodes; every failure code; overlay geometry checked against `tileGeometry` / `priceToY`;
+a canary that the dashboard layer never statically imports the vision / rasterizer graph),
+`tests/job-plan.card.test.ts` (11 — react-dom/server markup per state: every play / warning / reason string
+verbatim, hashes + rects + k/S, LOUD banner, insufficient, callout, view frames),
+`tests/dashboard.version.test.ts` (2). HEADLESS CHROMIUM (feat-115's approach: playwright-core + the cached
+chromium-1228 driving `next dev -p 3129`; the operator's own server on :3000 untouched) — 41/41 checks: the
+default Gekko view with the briefing tabs / objective cards intact; Job click → zero page/API requests, pane
+swap, localStorage `job`, restored after reload with the picker pressed; a fixture `job_plans` row built by
+the REAL pipeline (`run_id fixture-feat-129-*`, `bundle_id` = the live latest bundle so the FK holds, canned
+vision reads, real @resvg PNGs uploaded by hash) rendered READY with 4 plays, both profile panels, PNGs
+loaded through the proxy (probe: 200 `image/png` 900×1400, immutable), 4 overlay rects, ★ primaries, k/S in
+the tables; the vision-off row → the alert banner, no panels, plays intact; the insufficient row → the
+explicit block + data-quality insufficient; the run route 400s on malformed / spoofed bodies; the image
+route 400 / 404; the failure callout injected for its visual; fixture rows + PNGs DELETED afterwards
+(`job_plans` empty, bucket empty, no `bundle_requests` row created — no live run was triggered). No console
+or page errors. Screenshots in the session scratchpad (`shots/01…11`). The drive caught ONE REAL BUG: the
+first cut of `dashboard/deps.ts` imported the bucket name from `visionRead.ts`, which dragged
+`identifyProfileNodes` → `rasterize` → `@resvg` (native) into the page's server graph — Turbopack could not
+resolve `@resvg/resvg-js-linux-x64-gnu` and `GET /` was a 500 (typecheck and `next build` both passed, the
+page is force-dynamic). The constant now lives in `lib/job-plan/jobPlanImages.ts` (re-exported from
+`visionRead.ts`, `lib/job-plan/deps.ts` unchanged) and the canary test pins the boundary. LIVE FINDING (not
+triggered, observed while building the fixture): the latest live bundle (`26e6eb8a…`, 2026-08-26 18:10Z)
+carries all six job refs — the Windows uploader already emits them — but its job-study export is
+`ESH6.CME` / tradingDay 2026-03-20 (a replay export stamped 2026-08-24T23:58) and its five-day profile has a
+bin gap (`Row spacing violation at price 6599.25`), while the MGI is `NQU6` at 29289.75; a real run on it
+would abort at pre-flight as `profile_unsupported` (the callout above is what the operator would see) —
+worth a fresh non-replay export before the first live Job plan. `config.profile_vision_model_id` is NULL, so
+the first live plan will carry the LOUD banner by design (R14). Decisions where the spec was silent: the
+route accepts an optional `triggerReason` only (the button posts no body); the version picker replaces the
+"Advisory Only" fallback in the TopNav actions slot but keeps the wordmark beside it; a stored `job` choice
+paints one Gekko frame before the client snapshot flips (SSR stays the default by design — no inline
+script); the eslint unsafe-`any` boundary glob widened from `lib/*/deps.ts` to `lib/**/deps.ts` for the new
+`lib/job-plan/dashboard/deps.ts`; `job-plan-images` objects are served through the app, not signed URLs (no
+expiry, content-addressed, nothing leaves the local machine). ./init.sh green — typecheck, lint, 2163/2164
+tests (1 pre-existing skip), build (both routes listed).
+
 **Latest change (branch `feat-128-job-plan-task`): feat-128 — the `job-plan-task` + `job_plans`
 persistence.** `trigger/jobPlanTask.ts` (`job-plan-task`, schemaTask `{ triggerReason, bundleRequestId? }`,
 retry config mirroring analyzeTask, `maxDuration: 300`) is a thin wrapper over

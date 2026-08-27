@@ -42,7 +42,7 @@ const eslintConfig = defineConfig([
   // unsafe-`any` family can't be satisfied here without typing the client;
   // everything outside the boundary stays fully checked.
   {
-    files: ['lib/*/deps.ts', 'lib/config/fetchConfig.ts', 'lib/supabase/server.ts'],
+    files: ['lib/**/deps.ts', 'lib/config/fetchConfig.ts', 'lib/supabase/server.ts'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',

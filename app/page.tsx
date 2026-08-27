@@ -18,11 +18,22 @@ import {
 } from '@/lib/briefing'
 import type { PersistedBriefing } from '@/knowledge/schema/briefing.schema'
 import { loadFeatureList, type FeatureRow } from '@/lib/features/featureList'
+import {
+  loadJobPlanDashboard,
+  type JobPlanDashboardData,
+} from '@/lib/job-plan/dashboard/dashboardData'
+import { realJobPlanDashboardDeps } from '@/lib/job-plan/dashboard/deps'
 import { BriefingTabs } from './components/briefing-tabs'
+import {
+  DashboardVersionPicker,
+  DashboardVersionProvider,
+  VersionPane,
+} from './components/dashboard-version'
 import { EvalStrip } from './components/eval-strip'
 import { FeatureTable } from './components/feature-table'
 import { Footer } from './components/footer'
 import { HighlightedText } from './components/highlighted-text'
+import { JobPlanView } from './components/job-plan-view'
 import { MStripe } from './components/m-stripe'
 import { ObjectiveDirectiveInput } from './components/objective-directive-input'
 import { RunBriefingButton, RunUpdateButton } from './components/trigger-run-button'
@@ -41,6 +52,11 @@ import { UpdateGlow } from './components/update-glow'
  * "Briefing" (feat-020) and "Update" (feat-038) right-aligned in the tab row,
  * "Eval" (feat-025) inside the EvalStrip. Update briefings additionally
  * carry an UPDATE chip and an Immediate Tactical Read strip.
+ *
+ * feat-129: a header version picker (Gekko | Job) switches between this
+ * briefing view and the Job plan view. Both are server-rendered into the same
+ * page under one client-owned visibility toggle, so switching never
+ * re-fetches; the briefing view's markup and behavior are unchanged.
  */
 
 // Always render at request time: the page reads the live DB and must never be
@@ -536,14 +552,34 @@ export default async function Home() {
     featureError = error instanceof Error ? error.message : 'Failed to read feature_list.json'
   }
 
+  // The Job view reads the latest job_plans row; its failure is independent
+  // of the briefing load and renders inside its own pane.
+  let jobData: JobPlanDashboardData | null = null
+  let jobLoadError: string | null = null
+  try {
+    jobData = await loadJobPlanDashboard(realJobPlanDashboardDeps())
+  } catch (error) {
+    jobLoadError = error instanceof Error ? error.message : 'Failed to load the latest Job plan'
+  }
+
   return (
-    <>
-      <TopNav />
+    <DashboardVersionProvider>
+      <TopNav
+        actions={
+          <>
+            <DashboardVersionPicker />
+            <span className="hidden text-xs font-light uppercase tracking-[0.3em] text-muted lg:block">
+              Advisory Only
+            </span>
+          </>
+        }
+      />
       {/* Full-width tricolor divider between the header and the meta row,
           mirroring the footer's stripe. */}
       <MStripe />
 
       <main className="flex flex-1 flex-col">
+        <VersionPane version="gekko">
         {loadError && (
           <div className="mx-auto w-full max-w-[1800px] px-6 pt-6">
             <div className="border-l-4 border-m-red bg-surface-card p-6">
@@ -680,9 +716,13 @@ export default async function Home() {
             </section>
           </>
         )}
+        </VersionPane>
+        <VersionPane version="job">
+          <JobPlanView data={jobData} loadError={jobLoadError} />
+        </VersionPane>
       </main>
 
       <Footer />
-    </>
+    </DashboardVersionProvider>
   )
 }

@@ -236,7 +236,7 @@ export function tileRanges(rowCount: number, tiles: 1 | 2): { start: number; end
   ]
 }
 
-type Geometry = {
+export type Geometry = {
   width: number
   height: number
   plotLeft: number
@@ -258,6 +258,18 @@ function geometry(width: number, height: number, priceLow: number, priceHigh: nu
     priceLow,
     priceHigh,
   }
+}
+
+/**
+ * The plot geometry a persisted tile was drawn with, from its `RenderMeta` and
+ * `TileSpan` — so the dashboard's node overlay (feat-129) maps prices onto the
+ * stored PNG with the same margins and axis width the image used.
+ */
+export function tileGeometry(
+  meta: Pick<RenderMeta, 'width' | 'height'>,
+  tile: Pick<TileSpan, 'priceLow' | 'priceHigh'>
+): Geometry {
+  return geometry(meta.width, meta.height, tile.priceLow, tile.priceHigh)
 }
 
 /** Price -> y (higher prices up). Exported so tests can assert marker placement. */

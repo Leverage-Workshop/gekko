@@ -61,6 +61,12 @@ export function statusLabel(status: string | undefined): string {
   }
 }
 
+/** The serialized error a failed run carries (trigger.dev `SerializedError`). */
+export interface TriggeredRunError {
+  name?: string
+  message: string
+}
+
 export interface TriggeredRun {
   state: RunState
   /** Raw Realtime status while watching, for `statusLabel`. */
@@ -69,6 +75,11 @@ export interface TriggeredRun {
   completed: boolean
   /** Terminal status other than COMPLETED, else null. */
   failedStatus: string | null
+  /**
+   * The failed run's error as Realtime delivers it (an AbortTaskRunError's
+   * message is the operator-facing remediation, feat-129), else null.
+   */
+  runError: TriggeredRunError | null
   /** Realtime subscription died while the run is still going. */
   watchBroken: boolean
   runAction: (body?: Record<string, unknown>) => Promise<void>
@@ -100,6 +111,7 @@ export function useTriggeredRun(url: string): TriggeredRun {
       : null
   const completed = terminalStatus === 'COMPLETED'
   const failedStatus = terminalStatus && !completed ? terminalStatus : null
+  const runError = failedStatus !== null && run?.error ? run.error : null
 
   useEffect(() => {
     if (completed) {
@@ -154,5 +166,5 @@ export function useTriggeredRun(url: string): TriggeredRun {
     state.phase === 'queuing' ||
     (state.phase === 'watching' && !watchBroken && terminalStatus === null)
 
-  return { state, runStatus, inFlight, completed, failedStatus, watchBroken, runAction }
+  return { state, runStatus, inFlight, completed, failedStatus, runError, watchBroken, runAction }
 }
