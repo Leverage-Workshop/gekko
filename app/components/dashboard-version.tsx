@@ -59,6 +59,9 @@ function subscribe(listener: () => void): () => void {
 function storeVersion(version: DashboardVersion): void {
   try {
     window.localStorage.setItem(DASHBOARD_VERSION_STORAGE_KEY, version)
+    // Storage is authoritative again: a fallback left by an earlier failed
+    // write would otherwise pin the snapshot for the page's lifetime.
+    fallback = null
   } catch {
     // The choice then lasts this page's lifetime.
     fallback = version
