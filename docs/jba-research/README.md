@@ -13,7 +13,9 @@ that produced it.
 | --- | --- |
 | [`jba-analysis-process.md`](./jba-analysis-process.md) | **The deliverable.** 14 rules across five phases reconstructing the planning method, plus negative rules, a phrasebook and a worked example |
 | [`jba-prep-video-notes.md`](./jba-prep-video-notes.md) | **The evidence log.** Per-video findings, resolved and open questions, and the corrections made along the way |
-| [`execution-process.md`](./execution-process.md) | **The execution deliverable.** 39 rules across seven phases for acting on a plan once the session is live — v1, grounded in 9 trade replays |
+| [`v1-vpoc-flip-and-refresh-marks.md`](./v1-vpoc-flip-and-refresh-marks.md) | **Start here for building.** The two studies the operator asked for first (2026-08-27): Period VPOC & Flip, and Refresh Marks as two General Purpose DOM columns — T&S + per-bar VAP only, buildable next session |
+| [`execution-steps.md`](./execution-steps.md) | **The entry sequence (2026-08-27).** Job's entry process as five gated steps — arrive → locate the defense → withdraw → take → accept — each an observable with a Sierra Chart study proposal; self-contained, sourced from the replays and reference material only. Supersedes the 39-rule catalogue below for entry work |
+| [`execution-process.md`](./execution-process.md) | Earlier execution distillation: 39 rules across seven phases — **not used as a reference by `execution-steps.md`** (operator instruction, 2026-08-27) |
 | [`execution-notes.md`](./execution-notes.md) | **Evidence log for execution.** Replay-by-replay findings, tool inventory, and the data/studies an implementation would need |
 | `transcripts/` | Raw auto-caption transcripts for the 25 prep videos, named `YYYY-MM-DD_<youtube-id>.txt` |
 | `replays/` | 9 trade-replay transcripts (~5.4 hrs), the execution evidence base |
