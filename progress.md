@@ -2,9 +2,27 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-26
+**Last Updated:** 2026-08-27
 
-**Latest change (branch `feat-129-job-plan-surface`): feat-129 — the Job plan surface: run route, header
+**Latest change (main, docs + Sierra-side only, no feature_list entry): Job's entry process distilled and
+the first two Sierra studies written.** `docs/jba-research/execution-steps.md` — the entry process as
+five gated steps (ARRIVE → LOCATE THE DEFENSE → WITHDRAW → TAKE, the entry → ACCEPT), every claim cited to a
+replay timestamp, no use of the 39-rule `execution-process.md` (operator instruction 2026-08-27, now in
+memory), one Codex independent pass + one adversarial pass with the material corrections recorded in the
+doc's "How this document was produced". `docs/jba-research/v1-vpoc-flip-and-refresh-marks.md` — the operator
+scoped the first build to two things: the VPOC flip and order-refreshing marks as two DOM columns (tick band,
+time fade). Sierra engineering confirmed on the support board (threads 44036, 93622, 29465) that General
+Purpose DOM columns are GDI drawing surfaces for ACSIL. Written to `D:\SierraChart\ACS_Source` as own DLLs,
+**UNCOMPILED** (no Windows compiler in WSL): `GekkoPeriodVpocFlip.cpp` (per-bar VAP, 30-min periods
+anchored to RTH open, 4-tick compression, midpoint-cross flip + tie rule, prior-period POC, badge, hidden
+Position/Flip/PeriodVolume subgraphs) and `GekkoRefreshMarks.cpp` (T&S-only; bands = DOM combine increment;
+decayed volume, visits, `R` refresh flag from record-level BidSize/AskSize at the inside; clear after N trades
+through; step chevron; GDI into General Purpose 1 (bid) / 2 (ask) with right-edge fallback; CSV log). Next:
+build both in Sierra (Analysis ›› Build Custom Studies DLL), fix any compile errors, verify the band grid
+lines up with DOM rows, calibrate Mark Volume from the dim unmarked cells. README in `docs/jba-research/`
+updated. Codex gate on the branch: BLOCKED with one P1 pointing at `tests/job-lvn-golden.test.ts:274` — **dismissed**: that file is not in the branch diff (`git diff origin/main...HEAD` = the four doc files only); the reviewer read the pre-existing uncommitted feat-119 working-tree edits, which stay uncommitted and out of this PR. Docs-only change, no code touched.
+
+**Previous change (branch `feat-129-job-plan-surface`): feat-129 — the Job plan surface: run route, header
 version picker (Gekko | Job), mechanical plan card with profile overlays, failed-run surfacing.**
 ROUTE `app/api/job-plans/run/route.ts` mirrors `/api/briefings/run`: `requestFreshBundle('job-plan')` →
 `tasks.trigger('job-plan-task', { triggerReason, bundleRequestId })` → 202 `{ runId, publicAccessToken }`; the
