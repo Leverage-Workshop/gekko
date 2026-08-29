@@ -32,18 +32,23 @@ different compressions — his chart runs **4-tick compression** to match his DO
 | Bins | `bin = floor(PriceInTicks / compression)`, integer ticks from `sc.VolumeAtPriceForBars` (`GetSizeAtBarIndex` / `GetVAPElementAtIndex`), never floating-point prices. Compression input, default **4** (the operator's NQ setting, not a universal rule) |
 | Developing POC | the max-volume bin over the period's bars so far. **Tie rule:** keep the prior POC bin if it is still tied; otherwise the tied bin nearest the prior POC. Without this, ties print false flips |
 | Position | `pos = (POC − periodLow) / (periodHigh − periodLow)` in 0..1; badge `POC LOW · crowded` (pos ≤ 0.2), `central · two-way` (0.2–0.8), `POC HIGH · crowded` (≥ 0.8) |
-| **Flip** | developing POC crosses the developing range **midpoint** and lands at least one bin from its prior side — **after** the period has ≥ `V_min` volume (default: 20 % of the prior period's total; a plain minimum contracts input as fallback for A period). One definition, deterministic |
+| **Flip (shift)** | *Job's definition, adopted 2026-08-27 evening after the midpoint version was tried and rejected:* the developing POC **relocates to a different node** — it lands ≥ `Min POC Relocation` points (default 20, plain points per symbol) from its anchor, the POC "where it was" (the POC at the end of the settling window, then the POC of the last shift). Nothing is evaluated during the first `Settling Minutes` of the period (default 2 — *"in the first 2 minutes you're looking at a 2-minute candle POC"*, 04-30 @31:46). No range midpoint, no dead zone, no volume gate: the midpoint version fired whenever a new period high/low moved the midpoint under a *stationary* POC (8 of 24 flips on 2026-08-27 had the POC unchanged), which is not something Job looks at |
 | Prior period | the previous period's final POC kept as a dotted line, labelled `Prior Period POC` — the "where it was" he looks back to; not labelled as a target |
 
-**Outputs (subgraphs).** `POC` (price; line) · `Position` (0..1) · `Flip` (+1 = flipped up, −1 =
-flipped down, on the bar it happened) · `PriorPOC` (dotted line) · `PeriodVolume`.
+**Outputs (subgraphs).** `POC` (price; line) · `Position` (0..1) · `Push` (+1 up arrow / −1 down arrow /
+0, on the shift bar) · `POC Move` (+1 POC moved up / −1 down, on the shift bar) · `PriorPOC` (dotted
+line) · `PeriodVolume`.
 
-**Render.** POC line coloured by position (red-ish at the low extreme, green-ish at the high, grey
-central); flip → a marker on the bar plus text `FLIP ▲ B period` ; badge text at the right edge of the
-current bar. Optional second instance for the RTH session POC — same code, period = session.
+**Render.** POC line coloured by position (orange at the low extreme, blue at the high, grey central).
+On a shift the marker says what Job would *do* with it — **the expected push, away from where the POC
+landed** (04-30 @30:14: extremes → trade away from it; middle → rotation): POC lands in the extreme
+high band (pos ≥ 0.8) → **▼ above the bar**; lands in the extreme low band (pos ≤ 0.2) → **▲ below the
+bar**; lands central → grey diamond at the new POC (shift, no push). Badge text at the right edge of
+the current bar. Optional second instance for the RTH session POC — same code, period = session.
 
-**Inputs.** compression ticks (4) · period (30 min, anchored to RTH open) · `V_min` rule (% of prior
-period, default 20; absolute fallback) · extreme thresholds (0.2 / 0.8) · colours.
+**Inputs.** compression ticks (4) · period (30 min, anchored to RTH open) · settling minutes (2) · min
+POC relocation in points (20) · extreme thresholds (0.2 / 0.8) · colours · diagnostics / trace to the
+Message Log.
 
 **Deferred.** Rolling-N-minute mode; T&S-exact period boundaries; TPO (time) POC — a different object,
 kept separate if it is ever added.
@@ -175,11 +180,24 @@ happens inside Sierra Chart.
 **Build:** Analysis ›› Build Custom Studies DLL ›› select one file ›› Build. Repeat for the other.
 Compiler errors, if any, print in the Build window — send them back and they get fixed.
 
-**Study 1 setup.** Add to the NQ execution chart. Inputs to check: *Period Anchor Time* = the RTH
-open in the chart's time zone (default 08:30, Chicago); *Compression* 4. The badge at the last bar
-reads `B · POC 21873.50 · LOW · crowded · pos 0.12 · vol 41k` and says `· warming` until the period
-has traded its minimum volume (flips are suppressed until then). Hidden subgraphs `Position In
-Range`, `Flip (+1/-1)` and `Period Volume` are there for alerts or other studies.
+**Study 1 setup.** Add to the NQ execution chart (after a rebuild that changes the input list, remove
+and re-add the study so the defaults load — Sierra keeps input values by index). Inputs to check:
+*Period Anchor Time* = the RTH open in the chart's time zone (default 08:30, Chicago); *Compression*
+4; *Settling Minutes* 2; *Min POC Relocation* 20. The badge at the last bar reads
+`B · POC 29586.38 · HIGH · crowded · pos 0.94 · vol 32k · <shift state>` where the last field is
+`settling 1:12/2:00`, `FLIP DOWN 09:19:41 (POC up 29516.38->29586.38)` (arrow = expected push; the
+parenthesis says which way the POC actually moved), `SHIFT 09:44:04 central (POC …)` for a landing
+in the middle, or `no shift yet`. *Log Period / Shift Diagnostics* and *Trace Every POC Change*
+(both default on) write to the Message Log for the last two trading days — one line per completed
+period, one per shift, one per POC bin change with the node's volume and the runner-up bin — so the
+20-point threshold can be tuned by eye; turn them off once trusted.
+
+What the 2026-08-27 review established, in order: the badge had no flip field; the 20 %-of-prior
+volume gate silenced B for ten minutes after a heavy A; the midpoint-cross rule printed arrows at
+price lows with the POC not moving (range expansion under a stationary POC) and printed an *up*
+arrow when the POC went to the high; and Job's own description (04-30, 07-17) has none of that
+machinery — a POC line on a 30-minute bar, a shift = the POC relocating relative to where it was,
+extremes = trade away, first two minutes = noise. The study now implements exactly that.
 
 **Study 2 setup.** Add to the chart the Trading DOM is based on (Trade ›› Trading Chart DOM On, or
 the Trading DOM window's chart). Enable the two General Purpose columns: Chart ›› Chart Settings ››
