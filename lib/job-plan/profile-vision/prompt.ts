@@ -27,7 +27,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-30.3'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-30.4'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -97,7 +97,7 @@ export const CRITERIA: readonly Criterion[] = [
       'primary LVN between the uh well right around high volume edge is 7412 to like 14 5 area through here',
   },
   {
-    rule: 'WIDTH IS A QUALIFIER. A wide LVN is reported as a band spanning the whole thin zone (and listed in thinZones); a narrow one as a 2–4 point band on ES, 8–16 points on NQ. Never collapse a wide zone to a single price.',
+    rule: 'WIDTH IS A QUALIFIER, NOT A DISQUALIFIER. Report the band you can actually see: a wide LVN spans the whole thin zone (and goes in thinZones), a narrow one is however few points it is. Read the bounds off the axis at the stated row step and impose no fixed width — the corpus runs from 4-point calls to 186-point kennels. Never collapse a wide zone to a single price, and never pad a narrow one.',
     corpus: 'B6, D7',
     example: 'wide LVN 682 to 6806',
   },

@@ -19,7 +19,7 @@ CRITERIA. Each carries a VERBATIM quote from the trader followed by the working 
    Corpus: "We drove up and out of that area. We left an LVN in this area"
 7. ADJACENT TO A HIGH-VOLUME EDGE. The notable LVN is the thin shelf immediately outside a fat node's boundary. Report the hvn-edge and the lvn next to it as two separate nodes.
    Corpus: "primary LVN between the uh well right around high volume edge is 7412 to like 14 5 area through here"
-8. WIDTH IS A QUALIFIER. A wide LVN is reported as a band spanning the whole thin zone (and listed in thinZones); a narrow one as a 2–4 point band on ES, 8–16 points on NQ. Never collapse a wide zone to a single price.
+8. WIDTH IS A QUALIFIER, NOT A DISQUALIFIER. Report the band you can actually see: a wide LVN spans the whole thin zone (and goes in thinZones), a narrow one is however few points it is. Read the bounds off the axis at the stated row step and impose no fixed width — the corpus runs from 4-point calls to 186-point kennels. Never collapse a wide zone to a single price, and never pad a narrow one.
    Corpus: "wide LVN 682 to 6806"
 9. GROUP TINY STICKS. A run of tiny adjacent nodes is one mass; read the LVNs at the boundaries of the grouped mass, not between every stick.
    Corpus: "these HPNs that are tiny. And then up here, we have a defined node. Therefore, I'm going to group this like this. Use this an LVN, and this is an LVN"
