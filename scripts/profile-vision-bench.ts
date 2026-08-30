@@ -379,7 +379,7 @@ async function scoreCase(
   let costUsd = 0
   let latencyMs = 0
   let anyConsensus = false
-  const errors = new Set<string>()
+  const errors: string[] = []
   let calls = 0
   let okCalls = 0
 
@@ -390,7 +390,10 @@ async function scoreCase(
       latencyMs += r.latencyMs ?? 0
       calls += 1
       if (r.ok) okCalls += 1
-      if (r.error) errors.add(r.error)
+      // Every occurrence, not a per-case set: three identical timeouts in one
+      // case are three failures, and collapsing them understates the rate the
+      // model selection is being judged on.
+      if (r.error) errors.push(r.error)
     }
     const consensus = entry?.consensus
     // A failed consensus contributes an empty prediction set — its labels become
@@ -438,7 +441,7 @@ async function scoreCase(
     costUsd,
     latencyMs,
     failed: !anyConsensus,
-    errors: [...errors],
+    errors,
     calls,
     okCalls,
   }
