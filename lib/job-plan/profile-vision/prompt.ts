@@ -27,7 +27,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-30.5'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-30.6'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -74,7 +74,7 @@ export const CRITERIA: readonly Criterion[] = [
       "that's a secondary LVN and although it can offer an initial uh response that it's more likely to be filled",
   },
   {
-    rule: 'DISTRIBUTIONS ARE THE ZONES BETWEEN PRIMARY LVNs. Count the humps first: one = bell, two = double, three or more = multi (trend-up / trend-down when the mass climbs or falls across the image, thin when there is no real hump). Set profileShape from that count: one = bell, two = double, three or more = multi; trend-up / trend-down when the mass sits at one end and thins steadily toward the other; thin when no hump dominates at all. Put the primary lvn on a wall BETWEEN humps, never inside one.',
+    rule: 'DISTRIBUTIONS ARE THE ZONES BETWEEN PRIMARY LVNs. Count the humps first: one = bell, two = double, three or more = multi (trend-up / trend-down when the mass climbs or falls across the image, thin when there is no real hump). Set profileShape by this ladder, first match wins: no hump dominates at all = thin; two humps = double; three or more = multi; ONE hump that sits at an end and thins steadily toward the other = trend-up (mass high) or trend-down (mass low); one hump otherwise = bell. Put the primary lvn on a wall BETWEEN humps, never inside one.',
     corpus: 'B14, B15',
     example:
       "here's a primary obn right there and one right here so between the two we have a distribution of volume",
