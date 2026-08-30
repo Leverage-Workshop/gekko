@@ -45,7 +45,7 @@ CRITERIA. Each carries a VERBATIM quote from the trader followed by the working 
 Output JSON only, matching the schema. Rules:
 - nodes: at most 8 — a ceiling, not a quota, and fewer is better. When more than 8 are visible keep them in this order: the primary lvn, clear extreme anatomy, secondary lvns, the dominant hvn-core of each distribution, then the most significant hvn-edges. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
 - priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step.
-- prominence: ordinal WITHIN each kind — 1 = the clearest example of that kind in this image, 5 = the weakest one worth keeping; a secondary lvn gets 3-5. Two nodes of different kinds may both be 1.
+- prominence: 1 (most structurally important in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. TIES ARE ALLOWED: a dominant peak and the primary lvn may both be 1. A secondary lvn gets 3-5.
 - primary: when you report any lvn, exactly one carries true; when the image shows no lvn at all, every node is false.
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
 - shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | ledge (a stack of near-equal bars where the build stops) | ledge (a stack of near-equal bars where the build stops) | notch (a fat peak — hvn-core, and the build of an exhaustive-node).
