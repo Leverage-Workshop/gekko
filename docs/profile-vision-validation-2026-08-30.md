@@ -130,6 +130,34 @@ which drives the entry anchor — and is simultaneously the cheapest and fastest
 > `openai/gpt-5.6-terra` the briefing path runs on today (AA 56.6, $2/$12). Smarter and 2.4×
 > cheaper on the production path. Untested for briefings — flagged, not recommended.
 
+## Enabled — operator decision, 2026-08-30
+
+The operator enabled the read after the self-agreement gap was closed:
+
+```
+profile_vision_model_id      openai/gpt-5.6-sol
+profile_vision_model_effort  low
+profile_vision_samples       3
+```
+
+Written to the live `config` row. **R15 is left `ratified: false`** in
+`lib/job-plan/rules.ts`: enabling is an operator decision taken with the proposed
+numbers unmet, not a claim that they were met. No thresholds were invented on the
+operator's behalf.
+
+**Self-agreement: 81%** — measured after the fact on 4 dates (2026-02-17,
+2026-08-11, 2026-03-20, 2026-07-10) at the true production configuration
+(`samples: 3`, low effort), 24/24 calls valid, $0.52. This is the gate that
+matters most for the consensus: the read sends each image 3 times and
+`consensus.ts` keeps only nodes appearing in a majority, so an unstable model
+yields a thin or empty read regardless of how well it scores on recall.
+**81% clears the R15 bar of ≥ 0.80** — the one proposed threshold that passes.
+
+Running cost: ~6 calls per job-plan run (2 profiles × 3 samples) ≈ **$0.17/run**.
+
+To revert: set `profile_vision_model_id` to NULL in /settings. R14 then applies —
+plans build with the `profile_nodes_unavailable` banner.
+
 ## R15 verdict — NOT MET
 
 R15 asks for recall ≥ 0.8, primary agreement ≥ 0.7, self-agreement ≥ 0.8, and beating the
@@ -139,10 +167,13 @@ detector on both sources.
 |---|---|---|---|
 | recall | ≥ 0.80 | 0.40 | **fail** |
 | primary agreement | ≥ 0.70 | 0.67 (2/3) | **fail** (by one date) |
-| self-agreement | ≥ 0.80 | **not measured** (samples 1) | — |
+| self-agreement | ≥ 0.80 | **0.81** (samples 3, 4 dates) | **pass** |
 | beats detector | both sources | no (fixtures not run) | **fail** |
 
-**The vision read should stay OFF (R14).** What this run does establish:
+**The proposed R15 numbers are not met.** The operator enabled the read anyway
+(see *Enabled* above) — a decision the rule was always meant to leave open, since
+`rules.ts` records R15 as "proposed, not ratified" and the plan lists "ratified
+numbers are first guesses" as a known risk. What this run establishes:
 
 - The pipeline **works end to end** — 24/24 calls schema-valid on three of four models, prompt
   revision `vision-2026-08-30.1`, no `superRefine` rejections.
