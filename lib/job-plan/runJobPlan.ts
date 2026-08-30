@@ -184,12 +184,24 @@ async function persistJobPlan(
 
 const dedupe = (items: readonly string[]): string[] => [...new Set(items)]
 
+/**
+ * Wall-clock the vision read is allowed, measured from when it starts.
+ *
+ * `job-plan-task` runs under `maxDuration: 300` and may already have burned
+ * WAIT_TIMEOUT_MS (120s) in `waitForFreshBundle`, leaving ~180s. Reserve ~60s of
+ * that for what happens AFTER the read - image uploads, plan build, persistence -
+ * so a slow provider cannot get the run killed before the R14 degraded plan is
+ * written (which would also re-bill every call on retry).
+ */
+export const VISION_READ_BUDGET_MS = 120_000
+
 async function visionRead(
   deps: JobPlanDeps,
   config: JobPlanConfig,
   preflight: Preflight,
 ): Promise<VisionReadResult> {
   return readProfileNodes({
+    deadlineAt: Date.now() + VISION_READ_BUDGET_MS,
     config,
     instrument: preflight.instrument,
     currentPrice: preflight.currentPrice,

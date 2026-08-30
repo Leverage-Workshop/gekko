@@ -87,6 +87,22 @@ export type IdentifyProfileNodesInput = {
   readonly rasterize?: (svg: string) => Uint8Array
   readonly concurrency?: number
   readonly timeoutMs?: number
+  /**
+   * Absolute wall-clock deadline (epoch ms) for the WHOLE read, when the caller
+   * runs inside a bounded task.
+   *
+   * Calls share a concurrency cap, so the read can span several waves and its
+   * total time is NOT bounded by `timeoutMs`. `job-plan-task` has
+   * `maxDuration: 300` and may already have spent WAIT_TIMEOUT_MS (120s) waiting
+   * for a fresh bundle, so an unbounded read can be killed by trigger.dev before
+   * the R14 degraded plan is persisted - losing the plan and re-billing the calls
+   * on retry. Each call's timeout becomes `min(timeoutMs, time remaining)`, and
+   * once the deadline passes the remaining calls fail immediately rather than
+   * starting paid work that cannot finish (feat-131).
+   */
+  readonly deadlineAt?: number
+  /** Injectable clock for the deadline arithmetic; defaults to Date.now. */
+  readonly now?: () => number
   readonly telemetry?: TelemetryOptions
 }
 
@@ -206,6 +222,17 @@ function buildCalls(
 async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<RawSample> {
   const base = { sample: call.sample, tile: call.tile.index, imageSha256: call.imageSha256 }
   const controller = new AbortController()
+  const budget = effectiveTimeoutMs(input)
+  if (budget <= 0) {
+    return {
+      ...base,
+      ok: false,
+      read: null,
+      error: 'deadline exceeded before the call started',
+      latencyMs: null,
+      cost: null,
+    }
+  }
   try {
     const result = await withTimeout(
       input.generate({
@@ -217,7 +244,7 @@ async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<Ra
         abortSignal: controller.signal,
         ...(input.telemetry ? { telemetry: input.telemetry } : {}),
       }),
-      input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      budget,
       controller
     )
     return {
@@ -238,6 +265,22 @@ async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<Ra
       cost: null,
     }
   }
+}
+
+/**
+ * Budget for the next call: the per-call ceiling clamped to whatever is left of
+ * the caller's overall deadline. <= 0 means the deadline already passed, which
+ * the caller turns into an immediate failed sample rather than a paid request
+ * that cannot complete.
+ */
+export function effectiveTimeoutMs(input: {
+  readonly timeoutMs?: number
+  readonly deadlineAt?: number
+  readonly now?: () => number
+}): number {
+  const perCall = input.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  if (input.deadlineAt === undefined) return perCall
+  return Math.min(perCall, input.deadlineAt - (input.now ?? Date.now)())
 }
 
 function entryFor(
