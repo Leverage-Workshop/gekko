@@ -132,15 +132,15 @@ type LooseRead = {
 /** Which pair of bound fields a schema reads a band from. */
 export type BoundsMode = 'price' | 'normalized' | 'either'
 
-function hasPair(a: number | undefined, b: number | undefined): boolean {
-  return a !== undefined && b !== undefined
-}
-
 /**
- * Resolve one band under `mode`. Under `either` exactly one pair must be
- * present — a node carrying both is contradictory (which one is the truth?) and
- * a node carrying neither says nothing about where it is; both are rejected
- * here rather than silently preferred one way at the conversion boundary.
+ * Resolve one band under `mode`.
+ *
+ * Under `either` EXACTLY ONE pair must be present, and the other pair must be
+ * wholly absent: a band carrying both is contradictory (which one is the
+ * truth?), one carrying neither says nothing about where it is, and one
+ * carrying a complete pair plus a stray half of the other is a read whose two
+ * halves disagree — accepting it would let an arm-specific `z.object` parse
+ * strip the stray field and replay the band as if it had been clean.
  */
 function resolveBand(
   v: {
@@ -155,19 +155,16 @@ function resolveBand(
   ctx: z.RefinementCtx,
   path: (string | number)[]
 ): Band | null {
+  // Nodes name their price edges priceLow/priceHigh, thin zones low/high.
   const priceLow = v.priceLow ?? v.low
   const priceHigh = v.priceHigh ?? v.high
-  const priceField =
-    v.priceLow !== undefined || v.low !== undefined
-      ? v.low !== undefined && v.priceLow === undefined
-        ? 'low'
-        : 'priceLow'
-      : 'priceLow'
-  const price = hasPair(priceLow, priceHigh)
-  const norm = hasPair(v.yLow, v.yHigh)
+  const priceField = v.low !== undefined || v.high !== undefined ? 'low' : 'priceLow'
   if (mode === 'price') return { low: priceLow!, high: priceHigh!, lowField: priceField }
   if (mode === 'normalized') return { low: v.yLow!, high: v.yHigh!, lowField: 'yLow' }
-  if (price && norm) {
+
+  const priceAny = priceLow !== undefined || priceHigh !== undefined
+  const normAny = v.yLow !== undefined || v.yHigh !== undefined
+  if (priceAny && normAny) {
     ctx.addIssue({
       code: 'custom',
       path: [...path, 'yLow'],
@@ -175,11 +172,15 @@ function resolveBand(
     })
     return null
   }
-  if (price) return { low: priceLow!, high: priceHigh!, lowField: priceField }
-  if (norm) return { low: v.yLow!, high: v.yHigh!, lowField: 'yLow' }
+  if (priceAny && priceLow !== undefined && priceHigh !== undefined) {
+    return { low: priceLow, high: priceHigh, lowField: priceField }
+  }
+  if (normAny && v.yLow !== undefined && v.yHigh !== undefined) {
+    return { low: v.yLow, high: v.yHigh, lowField: 'yLow' }
+  }
   ctx.addIssue({
     code: 'custom',
-    path: [...path, priceField],
+    path: [...path, normAny ? 'yLow' : priceField],
     message:
       'a band needs either price bounds (priceLow/priceHigh) or normalized bounds (yLow/yHigh)',
   })

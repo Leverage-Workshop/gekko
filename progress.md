@@ -4651,3 +4651,11 @@ only** — the axis-mode prompt text is identical to `vision-2026-08-30.7`'s.
    "is ABOVE this image; its orange label is pinned to the top edge and is not a scale anchor".
 
 Nothing dismissed.
+
+**Gate round 2 (after the two fixes above): PASS, 1 new P2 — also real, also fixed.**
+*"Reject partial alternate bounds."* The either-schema accepted a complete pair plus a stray HALF of
+the other pair (`priceLow` + `priceHigh` + `yLow`): `price` was true, `norm` false, so it resolved as
+a clean price band. A later arm-specific `z.object` parse strips the stray field, so a cached read
+whose two halves disagree would replay as if it had been clean. `resolveBand` now rejects on the
+PRESENCE of any field of the non-selected pair, not on the pair being complete. Round 3: **findings:
+none.** Nothing dismissed across all three rounds.

@@ -248,6 +248,31 @@ describe('profileNodesReadEitherSchema — exactly one pair of bounds', () => {
     ).toBe(false)
   })
 
+  /**
+   * A complete pair plus a stray half of the other pair is a band whose two
+   * halves disagree. Accepting it would let an arm-specific `z.object` parse
+   * strip the stray field and replay the band as if it had been clean — a
+   * cached read silently changing meaning. (Codex P2, feat-135.)
+   */
+  it('REJECTS a complete pair plus a stray half of the other', () => {
+    const withStrayY = profileNodesReadEitherSchema.safeParse(
+      bounds({ yLow: undefined, yHigh: 0.5, priceLow: 100, priceHigh: 102 })
+    )
+    expect(withStrayY.success).toBe(false)
+    expect(JSON.stringify(withStrayY.error?.issues)).toMatch(/never both/)
+
+    const withStrayPrice = profileNodesReadEitherSchema.safeParse(bounds({ priceHigh: 102 }))
+    expect(withStrayPrice.success).toBe(false)
+    expect(JSON.stringify(withStrayPrice.error?.issues)).toMatch(/never both/)
+
+    const zoneWithStray = profileNodesReadEitherSchema.safeParse({
+      ...base,
+      nodes: [normalizedNode()],
+      thinZones: [{ low: 1, high: 2, yLow: 0.1 }],
+    })
+    expect(zoneWithStray.success).toBe(false)
+  })
+
   it('applies the same both/neither rule to thin zones', () => {
     const zones = (thinZones: unknown[]) =>
       profileNodesReadEitherSchema.safeParse({ ...base, nodes: [normalizedNode()], thinZones })
