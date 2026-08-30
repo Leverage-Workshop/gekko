@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_TIMEOUT_MS, effectiveTimeoutMs } from '@/lib/job-plan/profile-vision/identifyProfileNodes'
-import { VISION_READ_BUDGET_MS } from '@/lib/job-plan/runJobPlan'
+import { VISION_READ_BUDGET_MS } from '@/lib/job-plan/profile-vision/identifyProfileNodes'
 import { WAIT_TIMEOUT_MS } from '@/lib/bundleRequests'
 
 /**

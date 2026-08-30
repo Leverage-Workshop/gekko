@@ -77,6 +77,11 @@ export type RunJobPlanOptions = {
   readonly triggerReason: string
   /** The pending `bundle_requests` row the dashboard inserted; absent on test runs. */
   readonly bundleRequestId?: string
+  /**
+   * Absolute deadline (epoch ms) for the vision read, from the TASK's own
+   * budget. This module is clock-free by contract, so the task computes it.
+   */
+  readonly visionDeadlineAt?: number
 }
 
 export type JobPlanRunResult = {
@@ -184,24 +189,14 @@ async function persistJobPlan(
 
 const dedupe = (items: readonly string[]): string[] => [...new Set(items)]
 
-/**
- * Wall-clock the vision read is allowed, measured from when it starts.
- *
- * `job-plan-task` runs under `maxDuration: 300` and may already have burned
- * WAIT_TIMEOUT_MS (120s) in `waitForFreshBundle`, leaving ~180s. Reserve ~60s of
- * that for what happens AFTER the read - image uploads, plan build, persistence -
- * so a slow provider cannot get the run killed before the R14 degraded plan is
- * written (which would also re-bill every call on retry).
- */
-export const VISION_READ_BUDGET_MS = 120_000
-
 async function visionRead(
   deps: JobPlanDeps,
   config: JobPlanConfig,
   preflight: Preflight,
+  visionDeadlineAt: number | undefined,
 ): Promise<VisionReadResult> {
   return readProfileNodes({
-    deadlineAt: Date.now() + VISION_READ_BUDGET_MS,
+    ...(visionDeadlineAt === undefined ? {} : { deadlineAt: visionDeadlineAt }),
     config,
     instrument: preflight.instrument,
     currentPrice: preflight.currentPrice,
@@ -220,7 +215,7 @@ export async function runJobPlan(deps: JobPlanDeps, options: RunJobPlanOptions):
 
   const bundle = await loadJobBundle(deps, options.bundleRequestId)
   const preflight = preflightParse(bundle.texts)
-  const vision = await visionRead(deps, config, preflight)
+  const vision = await visionRead(deps, config, preflight, options.visionDeadlineAt)
 
   const visionModelId = vision.profileNodes?.modelId ?? null
   const visionPromptRevision = vision.profileNodes?.promptRevision ?? null

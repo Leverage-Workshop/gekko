@@ -88,7 +88,8 @@ export type VisionReadInput = {
    * Absolute wall-clock deadline (epoch ms) for the vision read. Forwarded to
    * `identifyProfileNodes` so a slow provider cannot eat the whole
    * `job-plan-task` budget and get the run killed before the R14 degraded plan
-   * is persisted (feat-131).
+   * is persisted (feat-131). Supplied by the TASK, which owns its own budget;
+   * absent for standalone callers like the bench.
    */
   readonly deadlineAt?: number
 }
