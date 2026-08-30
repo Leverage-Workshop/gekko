@@ -1,0 +1,9 @@
+{
+  "replayAt": "2026-02-13T07:45:00-06:00",
+  "instrument": "NQ",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "24960 lvn (PRIMARY) on 5-day rolling [A1 row 3: \"It's the deepest LVN on the 5day rolling\"].",
+    "observed": "LVN is closer to 24930 or 24950s."
+  }
+}

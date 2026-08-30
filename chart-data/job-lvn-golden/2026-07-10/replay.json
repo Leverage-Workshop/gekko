@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "7600 lvn on either profile [A1 row 33: \"We'd have to build above 7600 above this LBN in order to get going\"].",
+    "observed": "Specified level is not good. Use 7531 on the 5-day rolling profile."
+  }
+}

@@ -2,9 +2,40 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-27
+**Last Updated:** 2026-08-29
 
-**Latest change (main, docs + Sierra-side only, no feature_list entry): Job's entry process distilled and
+**Latest change (branch `feat-119-golden-replay-exports`): feat-119 — the operator's replayed profiles
+land, and the replay corrects the labels.** The operator replayed all 20 feat-120 dates in the Gekko
+chartbook, exported `five-day-rolling.vbp.md` + `four-hour-rolling.vbp.md` per date, and recorded in each
+`replay.json` what the profile actually shows (`note.expects` pre-filled from the corpus, `note.observed`
+the operator's read). `replayAt` is now optional — the operator replays to the prep video itself, so the
+timestamp is provenance only. The replay is what turns this from a transcription into ground truth: where
+the replayed profile disagreed with the transcript, **the profile wins**.
+
+- **Five dates dropped** (folders + `split.json` entries removed): `2026-03-02`, `2026-03-19`, `2026-06-15`,
+  `2026-07-07` had no usable read on the replayed profile ("this is not a good one, don't include it");
+  `2026-06-18` cited only an overnight profile the operator is not exporting. 20 dates → **15** (3 few-shot
+  unchanged, 12 test), and `overnight.vbp.md` leaves the set.
+- **Six dates pinned to a lookback** — lenient `any` (or a wrong named profile) became the profile the node
+  actually sits on, so they now score strictly: 02-17 `any`→`4h`, 02-20 `5d`→`4h` (the corpus says 5-day
+  rolling, the profile says 4-hour), 03-16 `any`→`5d`, 03-18 `any`→`5d`, 06-02 `any`→`5d` ×3,
+  06-16 `any`→`5d` ×2.
+- **Five bands corrected** off the replayed profile, marked `source: 'replay'`: 02-13 24960→**24950**
+  (the 5-day trough bottoms at 24950–55; 24960 is a bump inside it — the note offered "24930 or 24950s" and
+  the operator confirmed 24950), 03-06 24700→**24715**, 03-20 row-20's 24485.5 `hvn-core` → row-21's
+  **24690–24780** `lvn` (the wide shelf between the 24670–90 and 24820+ HVNs; the note's "27480s" is a typo
+  for 24780s, operator-confirmed), 06-16 7607–7615→**7602–7604**, 07-10 7600→**7531**.
+
+Code: `goldenLabelSchema` gains `source: 'corpus' | 'replay'` (default `corpus`, omitted in the files). A
+`replay` label still cites its A1 `corpusRef`/`verbatim` — the read is the corpus's, only the price is the
+operator's — so it is exempt from the A1 price assertions. To keep that exemption from becoming a hole, a new
+test **pins the exempt set by date+band** and requires each one to be justified by its `replay.json` note;
+the A1 price test filters to `source: 'corpus'`. `listGoldenDates` now counts only `YYYY-MM-DD` folders: the
+operator stages the exporter's live output as `chart-data/job-lvn-golden/*.vbp.md` + `es/` + `nq/`, now
+gitignored. README carries the full correction tables. `./init.sh` green — typecheck, lint, 2166/2167 tests
+(1 skipped), build. Unblocks running feat-124's bench for real (15 scorable dates, 12 scored).
+
+**Previous change (main, docs + Sierra-side only, no feature_list entry): Job's entry process distilled and
 the first two Sierra studies written.** `docs/jba-research/execution-steps.md` — the entry process as
 five gated steps (ARRIVE → LOCATE THE DEFENSE → WITHDRAW → TAKE, the entry → ACCEPT), every claim cited to a
 replay timestamp, no use of the 39-rule `execution-process.md` (operator instruction 2026-08-27, now in

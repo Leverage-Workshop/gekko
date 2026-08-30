@@ -1,7 +1,7 @@
 [
   {
     "instrument": "ES",
-    "profile": "any",
+    "profile": "4h",
     "kind": "lvn",
     "priceLow": 6840,
     "priceHigh": 6840,

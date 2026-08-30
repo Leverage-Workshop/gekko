@@ -1,0 +1,8 @@
+{
+  "instrument": "NQ",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "24700 lvn (PRIMARY) on either profile [A1 row 11: \"We have an L primary LBN below us in the 7 700 range\"].",
+    "observed": "lvn is at ~24715 on 5-day rolling profile"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "6745 lvn (PRIMARY) on either profile [A1 row 12: \"now we're up into this primary LVN\"].",
+    "observed": "LVN is on 5-day rolling profile."
+  }
+}

@@ -3,10 +3,11 @@
     "instrument": "NQ",
     "profile": "5d",
     "kind": "lvn",
-    "priceLow": 24960,
-    "priceHigh": 24960,
+    "priceLow": 24950,
+    "priceHigh": 24950,
     "primary": true,
     "corpusRef": 3,
-    "verbatim": "It's the deepest LVN on the 5day rolling"
+    "verbatim": "It's the deepest LVN on the 5day rolling",
+    "source": "replay"
   }
 ]

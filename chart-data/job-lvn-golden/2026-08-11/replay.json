@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "7779-7782 lvn on either profile [A1 row 40: \"re-bidding from the 79 to 82 area into this LVN right through here\"].",
+    "observed": "as described."
+  }
+}

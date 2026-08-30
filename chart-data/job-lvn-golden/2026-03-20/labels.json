@@ -2,11 +2,12 @@
   {
     "instrument": "NQ",
     "profile": "5d",
-    "kind": "hvn-core",
-    "priceLow": 24485.5,
-    "priceHigh": 24485.5,
+    "kind": "lvn",
+    "priceLow": 24690,
+    "priceHigh": 24780,
     "primary": false,
-    "corpusRef": 20,
-    "verbatim": "pocket is down here at the lows. So, um, 24485 half"
+    "corpusRef": 21,
+    "verbatim": "gauge for continuation up into this LVN, potentially up into the weekly VWOP, which is 758",
+    "source": "replay"
   }
 ]

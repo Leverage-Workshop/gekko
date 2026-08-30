@@ -41,6 +41,7 @@ describe('bench — conversions', () => {
       primary: true,
       corpusRef: 1,
       verbatim: 'x',
+      source: 'corpus',
     }
     expect(labelToScored(label)).toEqual({ price: 6805, family: 'lvn' })
     const node: ConsensusNode = {

@@ -1,0 +1,8 @@
+{
+  "instrument": "NQ",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "29200 lvn on 4-hour rolling [A1 row 37: \"this 29,200 area this LVN on the 4-hour rolling\"].",
+    "observed": "as described."
+  }
+}
