@@ -54,16 +54,21 @@ export const DEFAULT_CONCURRENCY = 6
 export const DEFAULT_TIMEOUT_MS = 180_000
 
 /**
- * Wall-clock the vision read gets inside `job-plan-task`.
+ * How long after `job-plan-task` STARTS the vision read must be finished.
  *
- * The task runs under `maxDuration: 300` and may already have burned
- * WAIT_TIMEOUT_MS (120s) in `waitForFreshBundle`, leaving ~180s. Reserve ~60s of
- * that for what happens AFTER the read - image uploads, plan build, persistence
- * - so a slow provider cannot get the run killed before the R14 degraded plan is
- * written (which would also re-bill every call on the retry). The TASK owns this
- * deadline and passes it in; the planner modules stay clock-free.
+ * Measured from task start, not from when the read begins, because the task
+ * spends an unknown slice of its budget in `waitForFreshBundle` first (up to
+ * WAIT_TIMEOUT_MS). An "N seconds from now" budget set before that wait would
+ * be eaten by a slow bundle and report `deadline exceeded` on every call while
+ * the task still had minutes left.
+ *
+ * `maxDuration` is 300s; this leaves 60s after the read for image uploads, plan
+ * build and persistence, so a slow provider cannot get the run killed by
+ * trigger.dev before the R14 degraded plan is written - which would lose the
+ * plan AND re-bill every call on the retry. The TASK owns this deadline and
+ * passes it in; the planner modules stay clock-free.
  */
-export const VISION_READ_BUDGET_MS = 120_000
+export const VISION_READ_DEADLINE_FROM_TASK_START_MS = 240_000
 
 /** The slice of `generateStructured` this module needs — injectable so tests never call a model. */
 export type VisionGenerate = (params: {

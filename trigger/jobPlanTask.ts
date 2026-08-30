@@ -6,7 +6,7 @@ import {
   isNonRetryableJobPlanError,
 } from "@/lib/job-plan/jobPlanErrors";
 import { runJobPlan } from "@/lib/job-plan/runJobPlan";
-import { VISION_READ_BUDGET_MS } from "@/lib/job-plan/profile-vision/identifyProfileNodes";
+import { VISION_READ_DEADLINE_FROM_TASK_START_MS } from "@/lib/job-plan/profile-vision/identifyProfileNodes";
 import type { JobPlanRunResult } from "@/lib/job-plan/runJobPlan";
 import { awaitBoundBundle } from "./freshBundle";
 
@@ -36,10 +36,11 @@ export const jobPlanTask = schemaTask({
   },
   maxDuration: 300,
   run: async (payload, { ctx }) => {
-    // The task owns its own wall-clock budget: maxDuration is 300s and the
-    // bundle wait can burn 120s of it, so the vision read is deadlined here and
-    // the (clock-free) planner modules just forward the number.
-    const visionDeadlineAt = Date.now() + VISION_READ_BUDGET_MS;
+    // The task owns its own wall-clock budget. This is an ABSOLUTE deadline
+    // measured from task start, so the up-to-120s bundle wait that follows eats
+    // into it rather than being added on top; the planner modules stay
+    // clock-free and just forward the number.
+    const visionDeadlineAt = Date.now() + VISION_READ_DEADLINE_FROM_TASK_START_MS;
     let result: JobPlanRunResult;
     try {
       result = await runJobPlan(
