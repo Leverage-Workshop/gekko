@@ -97,6 +97,8 @@ type Args = {
   source: 'golden' | 'fixtures' | 'both'
   dates: string[] | null
   report: boolean
+  /** Print per-case labels vs vision vs detector predictions. */
+  detail: boolean
   /** Per-call timeout override in ms; null = identifyProfileNodes' default. */
   timeoutMs: number | null
 }
@@ -110,6 +112,7 @@ function parseArgs(argv: string[]): Args {
     source: 'both',
     dates: null,
     report: false,
+    detail: false,
     timeoutMs: null,
   }
   for (let i = 0; i < argv.length; i++) {
@@ -122,6 +125,7 @@ function parseArgs(argv: string[]): Args {
     else if (a === '--source') args.source = next() as Args['source']
     else if (a === '--dates') args.dates = next().split(',')
     else if (a === '--report') args.report = true
+    else if (a === '--detail') args.detail = true
     else if (a === '--timeout') args.timeoutMs = Number(argv[++i]) * 1000
   }
   if (!(args.variant in VARIANTS)) {
@@ -409,6 +413,52 @@ async function scoreCase(
   }
 
   const vision = scoreCaseNodes(visionPreds, named, anyLabels, tolerance)
+
+  if (args.detail) {
+    const fmt = (n: { price: number }) => n.price.toFixed(2)
+    console.log(`\n--- ${pc.id} (${pc.instrument}, tol ${tolerance})`)
+    for (const { key, labels } of named) {
+      if (labels.length === 0) continue
+      console.log(`  labels[${key}]: ${labels.map(fmt).join(', ')}`)
+    }
+    if (anyLabels.length > 0) console.log(`  labels[any]: ${anyLabels.map(fmt).join(', ')}`)
+    for (const vp of visionPreds) {
+      const nearestTo = (t: number) =>
+        vp.nodes.length === 0
+          ? 'n/a'
+          : Math.min(...vp.nodes.map((n) => Math.abs(n.price - t))).toFixed(2)
+      const targets = [...(named.find((n) => n.key === vp.key)?.labels ?? []), ...anyLabels]
+      console.log(
+        `  vision[${vp.key}] ${vp.nodes.length} nodes: ${vp.nodes.map(fmt).join(', ')}` +
+          (targets.length > 0 ? `  | miss-distance: ${targets.map((t) => nearestTo(t.price)).join(', ')}` : '')
+      )
+    }
+    for (const dp of detectorPreds) {
+      const targets = [...(named.find((n) => n.key === dp.key)?.labels ?? []), ...anyLabels]
+      const nearestTo = (t: number) =>
+        dp.nodes.length === 0
+          ? 'n/a'
+          : Math.min(...dp.nodes.map((n) => Math.abs(n.price - t))).toFixed(2)
+      console.log(
+        `  detect[${dp.key}] ${dp.nodes.length} nodes` +
+          (targets.length > 0
+            ? `  | miss-distance: ${targets.map((t) => nearestTo(t.price)).join(', ')}`
+            : '')
+      )
+    }
+    // How far off is the read when the label's profile binding is ignored? A
+    // label naming the 5-day that the model found on the 4-hour is a labeling
+    // detail, not a misread - Job named a PRICE.
+    const allVision = visionPreds.flatMap((v) => v.nodes)
+    const allLabels = [...named.flatMap((n) => n.labels), ...anyLabels]
+    if (allLabels.length > 0 && allVision.length > 0) {
+      console.log(
+        `  vision[any-profile] miss-distance: ${allLabels
+          .map((t) => Math.min(...allVision.map((n) => Math.abs(n.price - t.price))).toFixed(2))
+          .join(', ')}`
+      )
+    }
+  }
 
   // The labeled primary is scored against the primary of ITS profile (a named
   // label) or, for an `any` primary, any profile's primary (the union).
