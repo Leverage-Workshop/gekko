@@ -4381,3 +4381,65 @@ guesses" as a known risk. No thresholds were invented on the operator's behalf, 
 
 Running cost ~$0.17 per job-plan run (6 calls). Balance ~$3.4 at the time of writing — roughly
 20 runs. Revert by setting the model id to NULL in /settings; R14 then applies.
+---
+
+## 2026-08-30 — feat-134 (explainer doc: the LVN vision criteria)
+
+**Branch `feat-134-lvn-criteria-explainer`.** Started off `feat-132-vision-prompt-vp101` because
+PR #174 was still open and `main` did not yet carry the 18 CRITERIA or corpus B13–B16; rebased onto
+`main` once #174 merged, so the branch is a single docs commit. New file: **`docs/jba-research/lvn-criteria-explained.md`** (824 lines, 4 diagrams,
+107 verbatim quotes, 66 timestamped YouTube links) plus four Excalidraw diagrams in
+`docs/jba-research/diagrams/` (`.png` + `.excalidraw` source each):
+
+- `lvn-01-primary-by-bar-tip` — why the shortest bar across the whole image wins over a locally
+  deep dip inside a fat node (B13).
+- `lvn-02-distributions-and-walls` — humps separated by primary LVNs, a secondary inside a hump,
+  and how the hump count sets `profileShape` (B14/B15).
+- `lvn-03-shelf-edge-vs-valley` — a trough between two nodes (one node reported) vs a thin shelf
+  outside one node's boundary (two nodes: `hvn-edge` + `lvn`) (B4).
+- `lvn-04-taper-ledge-exhaustive` — the three outcomes at a profile extreme, side by side (B16/B7).
+
+Written to the `explainer-doc` skill's contract, matching `refreshing-explained.md`: terminology
+decoder ring up front, every claim carrying a receipt, a per-source timestamped index, and a
+standalone one-paragraph summary. The 18 criteria are organised into **six passes** over the same
+picture (shape → find the primary → qualify the thin places → mark the fat side → read the two
+ends → stop) rather than listed flat, with a cross-reference table back to the prompt's numbering.
+Section 5 documents the **perception contract's exclusions** — B5, B9, B10 and D1, D2, D4, D5, D6,
+D8, D9, D12 are trade-selection rules that need the boxes, the clock, or another timeframe, so the
+image cannot carry them.
+
+**Verification of the citations was mechanical, not eyeballed.** A script checks every `*"…"*`
+quote is a substring of the file it is attributed to (107/107 pass; the single reported miss is a
+regex artefact spanning a non-quote), and every `@MM:SS` link's arithmetic against its `?t=`
+seconds *and* against a real caption line in that video's transcript (66/66 pass). Bar-length
+figures in the two worked examples are read out of the actual `.vbp.md` exports.
+
+### Findings for the operator (no code changed — these are for feat-132/131 follow-up)
+
+1. **Criteria 17 and 18 quote the corpus editor, not Job.** The prompt bills its list as "each
+   with the trader's own words from the corpus", but criterion 17's example is corpus rule D10's
+   *heading* and criterion 18's is a sentence of B8 prose. Job's own words for both exist
+   (`06-26 @04:38` and `04-30 @03:42`) and would be drop-in replacements.
+2. **Criteria 1 and 2 define depth differently and nothing adjudicates.** [1] is local ("relative
+   to the nodes on either side"), [2] is absolute ("against every trough in the image"). The ES
+   few-shot is a real profile where they disagree — 7550 is measurably thinner (0.05 of the peak)
+   than the labeled primary at 7570 (0.09) — and only the few-shot resolves it, in favour of the
+   shelf against the fat node. Suggested fix: state the wide-span rule in the prompt, or drop the
+   local clause from [1].
+3. **`shape: ledge` has no legal `kind`.** Criterion 5 asks for it; a ledge is explicitly not an
+   exhaustive node and is not thin, so none of `lvn | hvn-edge | hvn-core | exhaustive-node |
+   taper-tail` fits, and the prompt is silent.
+4. **No few-shot example carries a ledge, and both are `unfinished: false`.** B16 — the newest and
+   most operator-emphasised rule — ships as text with no picture.
+5. Minor: `trend-up` / `trend-down` / `thin` in `profileShape` are unsourced engineering
+   conveniences; the "8–16 points on NQ" band in criterion 8 is the ES figure ×4 (the R1 ratio),
+   not a spoken number; "tiny" in criterion 9 is undefined; and the ES few-shot's secondary sits in
+   the *void between* distributions rather than *inside* one, which stretches B14's wording.
+6. **Sourcing gap:** `docs/jba-research/reference/volume_profile_101.txt` — the source of B13–B16 —
+   has no timestamps and no video URL anywhere in the repo, so those four rules are the only ones
+   in the document that cannot be clicked and watched. Adding a `# Source: https://youtu.be/…`
+   header line to that file would close it.
+
+Also noted, not fixed: `docs/job-planning-task-plan.md` "The perception contract" is stale — it
+still says the criteria come from "B1–B12" and lists `shape` without `'ledge'`. `schema.ts` does
+carry `'ledge'`, so this is doc drift only.
