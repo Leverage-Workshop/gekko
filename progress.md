@@ -4299,3 +4299,65 @@ not new extraction. Completed so far:
 **Verification.** `npx tsc --noEmit` clean; full suite **2187 passed / 1 skipped**; `./init.sh`
 green. Bench dry-run with `OPENROUTER_API_KEY` stripped: **12 golden cases load and score**,
 0 skipped, detector baseline **recall 67%** — the number feat-131's vision read must beat.
+
+## 2026-08-30 — feat-131 (profile-vision validation) + feat-133 (settings recommendation)
+
+**Scope changed by the operator mid-session.** feat-131 specified a 5-model × 6-variant bake-off
+(432 calls/model). Two facts killed it: the OpenRouter balance was **$9.87** against a
+**$52–$100** sweep, and the golden test set carries only **15 labels / 3 primaries / 0 extremes**
+across 12 dates — it cannot resolve what the matrix would have measured. The operator's call:
+"scrap the bench and just do a few tests with the top candidates and make sure it works
+correctly." Report: `docs/profile-vision-validation-2026-08-30.md`.
+
+**Result — PICK: `openai/gpt-5.6-sol` at `low` effort, samples 3.** Best primary agreement
+(67%, 2/3 — the metric that drives the planner's entry anchor), cheapest, fastest.
+`gemini-3.1-pro-preview` leads raw recall (47%) but halves primary agreement.
+`claude-sonnet-5` is worst (33% / 0%). **`qwen/qwen3.8-27b` eliminated at smoke** — 0/2 calls
+returned an object even with routing pinned to `structured_outputs` endpoints.
+
+**Effort matters more than anything else.** `low` vs provider-default `medium` on sol:
+identical recall (40%) and identical primary agreement (67%), at **36% less cost and 2× the
+speed**. An isolated timing probe: 48.7s → 12.9s, $0.0589 → $0.0290 per call. Latency is
+**reasoning tokens, not prompt size** — removing both few-shot images changed wall time by
+nothing (48.7 → 49.6s). The uncached few-shot prefix is a ~$0.01/call cost drag, worth fixing,
+but it is not the latency driver.
+
+**R15 NOT MET — the read stays OFF (R14).** recall 0.40 vs 0.80; primary agreement 0.67 vs 0.70
+(one date short); self-agreement unmeasured because samples was 1 to save budget. But the raw
+recall badly understates the read, and the `--detail` miss-distance analysis shows why:
+- the detector is **uncapped** (230 excess nodes vs vision's 8/profile cap) — on the 3 dates it
+  clearly wins it emits 10/20/22 nodes; on the 2 dates it is sparse, **vision beats it**;
+- **named-profile binding** scores a correct price found on the sibling profile as a miss
+  (03-17 label `5d:6745`, found 6745.75 on the 4h; 06-16 label `5d:7636`, found 7637.25 on the 4h);
+- recall is **kind-sensitive** — right price, wrong family = zero.
+Ignoring the binding, sol lands **11/15 within tolerance**, median miss ~2.5 pts against a 5-pt
+ES tolerance. The read locates prices accurately; it is not hallucinating levels.
+**One genuine misread: 2026-03-20 NQ — label 24735, nearest node 81.75 pts away** (detector: 4.50).
+
+Before R15 is re-tested the label set needs work, not the prompt: score against the profiles the
+labels actually name, relax the binding to a price match, and add `extreme`-family labels — there
+are currently **none**, so the criteria covering exhaustive nodes, tapers and ledges are entirely
+unmeasured.
+
+**Harness fixes the run required** (the bench had never been run live): 60s timeout → 180s +
+`--timeout` (sonnet-5 was blowing it and being scored as a failed read); failure *reasons*
+surfaced in the report with per-call counts (a schema refusal and a `superRefine` rejection are
+different problems, and no `superRefine` rule is expressible in JSON Schema so no model is
+constrained by them); `requireParameters` pins OpenRouter routing to endpoints that support
+`structured_outputs`, on the bench **and** the live job-plan path; `--detail` prints per-case
+labels vs predictions vs miss distances, free from cache.
+
+**feat-133.** The vision Model/Effort/Samples fields already shipped in feat-124. Added
+`RECOMMENDED_PROFILE_VISION` sourced from the validation, a **Use recommended** control in
+/settings, and a test pinning the recommendation to an evidence doc that must exist and name the
+model. `PROFILE_VISION_DEFAULTS.profile_vision_model_id` stays **NULL** deliberately: a null id
+is the R14 safety property (read OFF, planner degrades with a banner), not a preference. Making a
+real model the fallback would start paid vision calls wherever the config row predates the
+migration. Enabling the read remains an explicit operator action.
+
+**Spend: $5.90** of the $9.87 balance ($3.96 left).
+
+**Process note.** `gh pr merge 174 --squash --delete-branch` merged on GitHub but failed locally
+at the post-merge checkout ("local changes would be overwritten"), so three later commits were
+pushed to an already-merged PR and never reached `main`. Recovered by cherry-pick onto the
+feat-131 branch. Check `git show origin/main:<file>` after a merge that reports a local error.
