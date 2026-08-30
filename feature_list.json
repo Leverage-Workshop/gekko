@@ -1365,6 +1365,37 @@
         "feat-124"
       ],
       "status": "not-started"
+    },
+    {
+      "id": "feat-132",
+      "name": "Vision prompt criteria refresh from Volume Profile 101 + few-shot from golden exports",
+      "description": "Gates feat-131's bench. (1) CORPUS: docs/jba-research/reference/volume_profile_101.txt was never mined into docs/jba-research/lvn-corpus.md; add section A4 (rows #111-#122) and synthesis rows B13-B16 covering the four perception facts the preps never state outright: how to SPOT the primary (absolute bar-tip shortness across the whole image, not local depth), the SECONDARY LVN class (demoted, not dropped), distributions as the zones BETWEEN primary LVNs (sets profileShape), and the taper / LEDGE / exhaustive discrimination at an extreme (the ledge is the unfinished-auction tell B7 missed). (2) PROMPT: four new CRITERIA in lib/job-plan/profile-vision/prompt.ts quoting those corpus rows verbatim; widen NODE_SHAPES with 'ledge' (backward-compatible enum widening); bump VISION_PROMPT_REVISION. (3) FEW-SHOT: replace the lvn-fixtures stand-ins with feat-119 golden replay exports for the FIXED few-shot dates that actually show the anatomy - 2026-02-13 NQ 5-day (double distribution, primary on the wall at 24948-59, Job's 24950) and 2026-06-02 ES 5-day (shelf-edge primary at 7568-72 + exhaustive node on top at 7624-28, both corpus-cited). 2026-08-07 is EXCLUDED with the reason recorded: its labeled 7758-60 sits under the POC inside the value bulk on the replayed 5-day, and its 4-hour export is a degenerate 13.5-pt / 55-row window. (4) BLOCKER FIX: feat-118's Sierra exporter omits zero-volume rows, so 4 of the 12 golden test dates crashed parseVbpProfile with a spacing violation and the bench died before its first call; add opt-in parseVbpProfile(text, { fillMissingRows: true }) (ingest keeps the strict contract; a gap that is not a multiple of the step still throws) and wire it at the bench / render / few-shot / runJobPlan call sites, with a test that parses every golden export. (5) Bench --report filenames carry model + variant so a sweep stops clobbering itself. Tests: prompt snapshot + criteria/canary coverage, few-shot loader over the refreshed set, golden-export parse guard. ./init.sh green.",
+      "dependencies": [
+        "feat-119",
+        "feat-124"
+      ],
+      "status": "done",
+      "evidence": "Corpus: docs/jba-research/lvn-corpus.md section A4 (#111-#122) + B13-B16 from reference/volume_profile_101.txt. Prompt: 14 -> 18 CRITERIA, VISION_PROMPT_REVISION vision-2026-08-22.2 -> vision-2026-08-30.1, NODE_SHAPES widened with 'ledge'. Few-shot: lvn-fixtures stand-ins replaced by 2026-02-13 NQ 5d + 2026-06-02 ES 5d golden replay exports (2026-08-07 excluded, reason recorded in the feature description and progress.md). Blocker: parseVbpProfile({ fillMissingRows: true }) unblocks the 4 sparse golden test dates; the bench now loads all 12 (verified with the key stripped: 12 cases scored, detector recall 67%). tests/golden-profiles-parse.test.ts (33 tests) guards every golden export. Full suite 2187 passed / 1 skipped; ./init.sh green."
+    },
+    {
+      "id": "feat-133",
+      "name": "Settings UI: vision model + reasoning effort defaults from the bench",
+      "description": "feat-124 already ships the Profile Vision Model / Effort / Samples fields in app/components/settings-form.tsx as free-text + select. This feature turns the free-text model box into a curated SELECT over the feat-131 bench shortlist (keeping a free-text escape hatch so an unlisted OpenRouter id is still settable), pairs it with the reasoning-effort select, and sets the code-level defaults (lib/config/fetchConfig.ts DEFAULT_PROFILE_VISION_*) to the model + effort the bench picked. R14 semantics are preserved where they matter: a NULL profile_vision_model_id still means the read is OFF, and flipping the live config row stays the operator's action. Tests: config schema/route round-trip over the new default, settings-form render.",
+      "dependencies": [
+        "feat-131"
+      ],
+      "status": "not-started",
+      "evidence": ""
+    },
+    {
+      "id": "feat-134",
+      "name": "Explainer doc: the LVN vision criteria",
+      "description": "Run the explainer-doc skill over the 18 CRITERIA in lib/job-plan/profile-vision/prompt.ts: a plain-English walkthrough of every criterion the vision prompt uses to identify LVNs, grounded in docs/jba-research/lvn-corpus.md (sections B and D) and reference/volume_profile_101.txt, with Excalidraw diagrams for the anatomies that are genuinely visual (primary-by-bar-tip, distributions and their walls, shelf-edge vs valley, taper vs ledge vs exhaustive node) and timestamped citations back to the source videos. Audience: the operator checking that the prompt encodes his method.",
+      "dependencies": [
+        "feat-132"
+      ],
+      "status": "not-started",
+      "evidence": ""
     }
   ]
 }

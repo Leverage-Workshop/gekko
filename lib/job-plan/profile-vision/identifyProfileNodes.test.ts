@@ -126,7 +126,7 @@ describe('identifyProfileNodes — calls', () => {
     expect(result.modelId).toBe('test/model')
     expect(result.effort).toBe('medium')
     expect(result.promptRevision).toBe(VISION_PROMPT_REVISION)
-    expect(result.fewShotSource).toMatch(/lvn-fixtures stand-in/)
+    expect(result.fewShotSource).toMatch(/golden-set replay exports/)
     expect(result.samples).toBe(3)
     const entry = result.profiles['5d']!
     expect(entry.imageHashes).toHaveLength(1)

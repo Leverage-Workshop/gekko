@@ -10,7 +10,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * The vision prompt for the profile read (feat-123, docs/job-planning-task-plan.md
  * "The perception contract"). Three parts:
  *
- *   1. CRITERIA — distilled from docs/jba-research/lvn-corpus.md sections B1–B12
+ *   1. CRITERIA — distilled from docs/jba-research/lvn-corpus.md sections B1–B16
  *      (what makes an LVN notable / primary) and D (the negative set), each with
  *      one quoted example from the corpus. Static across calls.
  *   2. FEW-SHOT — a fixed set of example profiles with their expected JSON,
@@ -27,11 +27,11 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-22.2'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-30.1'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
-  'lvn-fixtures stand-in (fixture-5 double distribution, fixture-3 trend-up) until feat-119/120 golden exports'
+  'golden-set replay exports (feat-119): 2026-02-13 NQ 5-day rolling (double distribution, primary LVN on the wall) and 2026-06-02 ES 5-day rolling (shelf-edge primary + exhaustive node on top)'
 
 export const FEW_SHOT_DIR = 'knowledge/job-plan/few-shot'
 
@@ -41,8 +41,11 @@ export const FEW_SHOT_DIR = 'knowledge/job-plan/few-shot'
  * `example` is a substring of that file, so a quote can never drift from the
  * source).
  *
- * Coverage of the corpus: B1, B2, B3, B4, B6, B7, B8, B11, B12 and D3, D7,
- * D10, D11 are perception criteria and live here. B5 (position vs the JBA
+ * Coverage of the corpus: B1, B2, B3, B4, B6, B7, B8, B11, B12, B13, B14, B15,
+ * B16 and D3, D7, D10, D11 are perception criteria and live here. B13-B16 come
+ * from reference/volume_profile_101.txt (corpus section A4, added 2026-08-30):
+ * how to SPOT the primary, the secondary class, distributions-between-primaries,
+ * and the taper / ledge / exhaustive discrimination at an extreme. B5 (position vs the JBA
  * boxes), B9 (lookback by purpose), B10 (tolerance scales with lookback) and
  * D1, D2, D4, D5, D6, D8, D9, D12 concern trade selection against structure
  * and are planner / consensus rules by the perception contract — the image
@@ -55,6 +58,30 @@ export const CRITERIA: readonly Criterion[] = [
     rule: 'DEPTH RANKS. The primary LVN is the deepest trough — the least volume relative to the nodes on either side — ranked WITHIN this profile only. Mark exactly one lvn primary (prominence 1).',
     corpus: 'B1, B2',
     example: 'this is the deepest LVN. So deepest meaning primary',
+  },
+  {
+    rule: 'FIND IT BY BAR TIP, ACROSS THE WHOLE IMAGE. Bars grow left from the price axis, so the primary is the lvn whose bars stay NEAREST the axis — compare tip lengths against every trough in the image, not just its two neighbours.',
+    corpus: 'B13',
+    example:
+      "the easiest way to spot a primary LVN is just look all the way to the right and see which ones are closest",
+  },
+  {
+    rule: 'SECONDARY LVNs ARE DEMOTED, NOT DROPPED. A shallower trough sitting INSIDE a distribution is a secondary lvn: still report it, with prominence 3-5 and primary false. It gives a first response but gets filled; it never competes for primary.',
+    corpus: 'B13, B14',
+    example:
+      "that's a secondary LVN and although it can offer an initial uh response that it's more likely to be filled",
+  },
+  {
+    rule: 'DISTRIBUTIONS ARE THE ZONES BETWEEN PRIMARY LVNs. Count the humps first: one = bell, two = double, three or more = multi (trend-up / trend-down when the mass climbs or falls across the image, thin when there is no real hump). Set profileShape from that count, and put the primary lvn on a wall BETWEEN humps, never inside one.',
+    corpus: 'B14, B15',
+    example:
+      "here's a primary obn right there and one right here so between the two we have a distribution of volume",
+  },
+  {
+    rule: 'EXTREME ANATOMY: TAPER vs LEDGE vs EXHAUSTIVE. A taper falls off PROGRESSIVELY away from a fat node (parabolic or a straight 45-degree ramp) — that is taper-tail, and the extreme is finished. A LEDGE is a stack of near-EQUAL-length bars where the build just stops — shape ledge, unfinished = true, and never a taper-tail. An exhaustive node is a spike, a small build, then an immediate step off.',
+    corpus: 'B16, B7',
+    example:
+      'we have a volume build and then we basically have a flat line let it smack you in the face',
   },
   {
     rule: 'DEPARTURE SCAR, NOT RANDOM DIP. A notable LVN is where price drove through quickly and left a thin zone behind — the initiation of a leg — not any dip inside a fat node.',
@@ -105,9 +132,9 @@ export const CRITERIA: readonly Criterion[] = [
       'where we just absolutely slammed through, where we expanded very quickly and left a wide kennel',
   },
   {
-    rule: 'UNFINISHED. Set unfinished = true when an extreme shows neither a taper nor an exhaustive node — the build just stops.',
-    corpus: 'B7, B8',
-    example: 'parabolic taper',
+    rule: 'UNFINISHED. Set unfinished = true when an extreme shows neither a taper nor an exhaustive node — the build just stops on a flat ledge. It should be obvious at a glance, not something you squint for.',
+    corpus: 'B7, B8, B16',
+    example: "it's not finished it's not finished",
   },
   {
     rule: 'SMALL HVN UNDER AN LVN. A little high-volume node sitting just under a notable LVN is reported as a low-prominence hvn-edge, never as a core — it is a warning the trader watches, not a base.',
@@ -136,9 +163,9 @@ function criteriaText(): string {
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - nodes: at most 8. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
 - priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step.
-- prominence: 1 (most prominent in THIS image) to 5. primary: true on exactly one lvn.
+- prominence: 1 (most prominent in THIS image) to 5; a secondary lvn inside a distribution gets 3-5. primary: true on exactly one lvn.
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
-- shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | notch (a fat peak, for hvn kinds).
+- shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | ledge (a stack of near-equal bars where the build stops) | notch (a fat peak, for hvn kinds).
 - rationale: at most 20 words.
 - thinZones: at most 3 { low, high } spans. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: boolean.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
@@ -180,7 +207,9 @@ export function loadFewShot(baseDir: string = process.cwd()): FewShotExample[] {
   return manifest.examples.map((ex) => ({
     id: ex.id,
     instrument: ex.instrument,
-    profile: parseVbpProfile(readFileSync(join(dir, ex.profile), 'utf8')),
+    profile: parseVbpProfile(readFileSync(join(dir, ex.profile), 'utf8'), {
+      fillMissingRows: true,
+    }),
     expected: profileNodesReadSchema.parse(
       JSON.parse(readFileSync(join(dir, ex.expected), 'utf8'))
     ),

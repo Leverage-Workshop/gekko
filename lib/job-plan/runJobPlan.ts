@@ -110,7 +110,8 @@ type Preflight = {
 
 function parseProfile(text: string, what: string): VbpProfile {
   try {
-    return parseVbpProfile(text)
+    // The Sierra job-plan exporter omits zero-volume rows (feat-131).
+    return parseVbpProfile(text, { fillMissingRows: true })
   } catch (error) {
     throw new JobPlanAbortError(
       'profile_unsupported',

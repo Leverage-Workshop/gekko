@@ -63,7 +63,7 @@ function main(): void {
   const args = parseArgs(process.argv.slice(2))
   mkdirSync(args.out, { recursive: true })
   for (const file of args.files) {
-    const profile = parseVbpProfile(readFileSync(file, 'utf8'))
+    const profile = parseVbpProfile(readFileSync(file, 'utf8'), { fillMissingRows: true })
     const instrument = args.instrument ?? inferInstrumentFromPrice(profile.meta.pocPrice)
     const result = renderProfile(profile, {
       instrument,

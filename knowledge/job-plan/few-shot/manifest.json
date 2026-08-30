@@ -1,7 +1,17 @@
 {
-  "source": "lvn-fixtures stand-in: chart-data/lvn-fixtures/fixture-5 (clean double distribution) and fixture-3 (trend / elongated up leg), labels re-read under the corpus criteria (docs/jba-research/lvn-corpus.md B1-B12, D). Replace with feat-120's few-shot dates (2026-02-13, 2026-08-07, 2026-06-02) once feat-119's golden exports exist; bump VISION_PROMPT_REVISION when you do.",
+  "source": "golden-set replay exports (feat-119) for the two FIXED few-shot dates whose replayed profile shows the anatomy the corpus cites: 2026-02-13 NQ 5-day rolling and 2026-06-02 ES 5-day rolling",
   "examples": [
-    { "id": "double-distribution", "instrument": "NQ", "profile": "double-distribution.vbp.md", "expected": "double-distribution.expected.json" },
-    { "id": "trend-up", "instrument": "NQ", "profile": "trend-up.vbp.md", "expected": "trend-up.expected.json" }
+    {
+      "id": "nq-double-distribution",
+      "instrument": "NQ",
+      "profile": "nq-double-distribution.vbp.md",
+      "expected": "nq-double-distribution.expected.json"
+    },
+    {
+      "id": "es-shelf-edge-exhaustion",
+      "instrument": "ES",
+      "profile": "es-shelf-edge-exhaustion.vbp.md",
+      "expected": "es-shelf-edge-exhaustion.expected.json"
+    }
   ]
 }

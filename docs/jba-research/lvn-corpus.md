@@ -146,6 +146,30 @@ No LVN/HVN mentions in: 05-26, 06-10, 06-17, 07-23 (07-23 has only the exhaustio
 | 109 | `replays/2026-05-19_RaJRUnHR_Rg.txt:147–148` | "we also have an LVN in the 60 or we have high volume edge in 68s." | session | ES 7560 / 7568 | LVN below, HVE above | lean zone |
 | 110 | `reference/ofl-101-time-and-sales.txt:69–73` | "coupling with the Dom volume profile top and bottom range activity for reversion absorption initiative activity and breakout activity so this here is an LVN return watch the offer" | DOM volume profile | — | "LVN return" | DOM read at an LVN |
 
+### A4. Volume Profile 101 (`reference/volume_profile_101.txt`)
+
+The one-on-one teaching session in which Job defines the vocabulary from the ground up. Unlike
+the preps (which name prices) this one names the **anatomy** — it is the only source that
+states how to *spot* a primary LVN, that a secondary class exists, and what a volume ledge
+looks like. Auto-captioned, one phrase per line; citations are line ranges, quotes are the
+lines joined with whitespace normalised. Garbles: "LBN"/"obn"/"lvan"/"Lans" = LVN, "HPN" = HVN.
+
+| # | Source | Verbatim | Concept |
+|---|---|---|---|
+| 111 | `:19-33` | "one is a high volume node and those are the Peaks volume the large projections of volume out there a low volume node is where we're lacking in volume the low areas the point of control is the highest of the high volume node" | base terminology: HVN = peak, LVN = lack, POC = highest HVN |
+| 112 | `:33-48` | "a volume build is when we're in an area and building out of note even if it's small if it's transacting and we're gaining volume there um it's a build a taper is a little bit of a different thing" | **build vs taper** — the two things that can happen away from a node |
+| 113 | `:44-48` | "that looks like bit of a parabolic taper or you can also have a 45 degree taper but it's a it's a lack of um accumulation As you move away from the high volume node" | **taper anatomy**: progressive fall-off, parabolic or 45-degree |
+| 114 | `:81-86` | "the easiest way to spot a primary LVN is just look all the way to the right and see which ones are closest think of it an inverse and so the deepest one's primary" | **how to find the primary**: absolute bar-tip shortness across the whole image, not local depth |
+| 115 | `:87-92` | "that's a secondary LVN and although it can offer an initial uh response that it's more likely to be filled in between the distributions" | **secondary LVN class** — responds, but gets filled; not primary |
+| 116 | `:95-99` | "here's a primary obn right there and one right here so between the two we have a distribution of volume" | **distributions are the zones between primary LVNs**; the primary is the wall, not the hump |
+| 117 | `:93-96` | "when I say distribution I don't mean um accumulation versus distribution I mean the Zone in which that auction is located" | disambiguation: "distribution" = the auction's zone |
+| 118 | `:142-148` | "the out sides that it's not escaping are the lvns because when it escapes it's can head into the next distribution" | LVNs are the walls price escapes through (reinforces B12) |
+| 119 | `:328-335` | "we come to the edge of a profile we have a firm uh clean distribution nice LVN and it immediately steps off" | **exhaustive-node anatomy** at a profile extreme |
+| 120 | `:403-414` | "we have a volume build and then we basically have a flat line let it smack you in the face" ... "we're just building a Le literally a ledge well how to use this this is a sign of temporary exhaustion" | **volume ledge**: a flat stack of equal-length bars = temporary exhaustion |
+| 121 | `:427-434` | "here's a volume ledge watch this up here as price is moving up it's not finished it's not finished" | the ledge is the *unfinished auction* tell |
+| 122 | `:476-486` | "where you'd want to be looking is where those zones of initiation are for a toe touch into that" | zones of initiation = the LVNs (trade selection, not perception) |
+
+
 ## B. Synthesis — what makes an LVN "notable / primary / deepest"
 
 1. **Depth is the ranking axis, stated outright.** "this is the deepest LVN. So deepest
@@ -197,6 +221,31 @@ No LVN/HVN mentions in: 05-26, 06-10, 06-17, 07-23 (07-23 has only the exhaustio
 12. **Semantics.** LVN = initiation, acceleration, and the place a trend ends when breached
     back through (#45, #74). HVN/HVE = destination and the edge to lean on (#44, #81).
 
+13. **How to *spot* the primary: absolute thinness, read across the whole image.** "the
+    easiest way to spot a primary LVN is just look all the way to the right and see which
+    ones are closest think of it an inverse and so the deepest one's primary" (#114). Bars
+    grow left from the price axis, so the primary is the LVN whose bar tips stay *nearest
+    the axis* — compared against every other trough in the image, not just its two
+    neighbours. B1's "deepest" is the same fact stated as a ranking; #114 is the procedure.
+14. **Secondary LVNs are a real class, and they are demoted, not dropped.** "that's a
+    secondary LVN and although it can offer an initial uh response that it's more likely to
+    be filled in between the distributions" (#115). A shallower trough *inside* a
+    distribution still gets reported — it can produce a first response — but it never
+    competes for primary. This is the positive half of D3/D10: report it, rank it low.
+15. **Distributions are the zones *between* primary LVNs.** "here's a primary obn right there
+    and one right here so between the two we have a distribution of volume" (#116);
+    "distribution… I mean the Zone in which that auction is located" (#117); "the out sides
+    that it's not escaping are the lvns" (#118). So the count of humps sets the profile
+    shape, and the primary LVN sits on a wall between humps — never inside one.
+16. **Extreme anatomy has three outcomes, and the ledge is the one B7 missed.** A *taper* is a
+    progressive fall-off away from a fat node, "parabolic… or you can also have a 45 degree
+    taper… a lack of accumulation As you move away from the high volume node" (#113). An
+    *exhaustive node* is a spike, a build, then "it immediately steps off" (#119, B7). A
+    *ledge* is neither: "we have a volume build and then we basically have a flat line let it
+    smack you in the face" (#120) — a stack of near-equal bars where the auction simply
+    stopped, "it's not finished it's not finished" (#121), i.e. the `unfinished` case. It is
+    meant to be obvious: "you shouldn't have to squint your eyes to see it" (#120).
+
 ## C. Visual configuration of the profile / chart
 
 - Profiles displayed to the right of the candles: "looking at this overall in the profile
@@ -238,7 +287,8 @@ No LVN/HVN mentions in: 05-26, 06-10, 06-17, 07-23 (07-23 has only the exhaustio
 Read in full: all 25 transcripts; `README.md`, `jba-prep-video-notes.md`,
 `jba-analysis-process.md`, `execution-notes.md`, `execution-process.md`;
 `reference/job-pivots-deep-dive.txt` (lines 60–376); `reference/ofl-101-time-and-sales.txt`
-(hit context). Replays read at every LVN/HVN/node/profile hit with context: 04-08, 04-24,
+(hit context); `reference/volume_profile_101.txt` in full (added 2026-08-30 — sections A4 and
+B13–B16). Replays read at every LVN/HVN/node/profile hit with context: 04-08, 04-24,
 04-30, 05-04, 05-19, 05-28, 06-26, 06-30, 07-17. No Job-specific LVN content in the
 Dominator / DOM / time-and-sales references. Unresolved garbles: "PAC up high" (02-13,
 probably POC), "previous week's fiery high" (03-17), "OVN" in 06-22, "POSA" (06-26).

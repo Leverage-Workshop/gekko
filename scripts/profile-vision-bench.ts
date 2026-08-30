@@ -27,7 +27,7 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { detectLvnHvn } from '../lib/engine/lvnDetection'
 import { loadLvnFixtures } from '../lib/engine/loadLvnFixtures'
 import { parseVbpProfile, type VbpProfile } from '../lib/engine/parseProfile'
@@ -257,7 +257,8 @@ function readableProfiles(d: GoldenDate): Partial<Record<ProfileKey, VbpProfile>
   for (const key of READABLE_KEYS) {
     if (!d.profilesPresent.includes(key)) continue
     const path = join('chart-data/job-lvn-golden', d.date, PROFILE_FILES[key])
-    out[key] = parseVbpProfile(readFileSync(path, 'utf8'))
+    // feat-118's exporter omits zero-volume rows; zero-fill them (feat-131).
+    out[key] = parseVbpProfile(readFileSync(path, 'utf8'), { fillMissingRows: true })
   }
   return out
 }
@@ -557,7 +558,11 @@ async function main(): Promise<void> {
   console.log(body)
 
   if (args.report) {
-    const path = `docs/profile-vision-bench-${dateStamp()}.md`
+    // One process = one model x one variant, so the filename must carry both:
+    // a sweep writing to a bare date stamp would leave only the last run's
+    // numbers and the bake-off table would never materialise (feat-131).
+    const path = `docs/bench-runs/profile-vision-${dateStamp()}--${slug(args.model)}--${args.variant}.md`
+    mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, body)
     console.log(`\nReport written to ${path}`)
   }
@@ -566,6 +571,11 @@ async function main(): Promise<void> {
 /** YYYY-MM-DD from the wall clock (report filenames only — never used in scoring). */
 function dateStamp(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+/** `anthropic/claude-sonnet-5` -> `anthropic-claude-sonnet-5` (filename-safe). */
+function slug(modelId: string): string {
+  return modelId.replace(/[^a-zA-Z0-9.-]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
 void main()

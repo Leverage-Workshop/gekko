@@ -15,7 +15,13 @@ export type NodeKind = (typeof NODE_KINDS)[number]
 export const NODE_POSITIONS = ['top', 'upper', 'mid', 'lower', 'bottom'] as const
 export type NodePosition = (typeof NODE_POSITIONS)[number]
 
-export const NODE_SHAPES = ['valley', 'shelf-edge', 'wide-gap', 'notch'] as const
+/**
+ * `ledge` (corpus B16, added 2026-08-30): a stack of near-equal-length bars at an
+ * extreme where the build simply stops — the unfinished-auction tell, distinct from
+ * a taper's progressive fall-off. Widening this enum is backward compatible: every
+ * previously persisted shape is still legal.
+ */
+export const NODE_SHAPES = ['valley', 'shelf-edge', 'wide-gap', 'ledge', 'notch'] as const
 export type NodeShape = (typeof NODE_SHAPES)[number]
 
 export const PROFILE_SHAPES = ['bell', 'double', 'multi', 'trend-up', 'trend-down', 'thin'] as const

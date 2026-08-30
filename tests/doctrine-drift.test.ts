@@ -39,11 +39,19 @@ import { DEFAULT_NEAR_ENTRY_POINTS } from '@/lib/eval/proximity'
 
 const KNOWLEDGE = join(__dirname, '..', 'knowledge')
 
-/** Every doctrine/system prose file under /knowledge, discovered dynamically. */
+/**
+ * Every doctrine/system PROSE file under /knowledge, discovered dynamically.
+ *
+ * `.vbp.md` files are excluded: despite the extension they are Sierra CSV
+ * exports (the few-shot profile data), not prose. Their delta column is full of
+ * bare negative integers that trip the numeric drift patterns, and there is no
+ * doctrine in them to drift (feat-131).
+ */
 function listProseFiles(dir = KNOWLEDGE): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name)
     if (entry.isDirectory()) return listProseFiles(path)
+    if (entry.name.endsWith('.vbp.md')) return []
     return entry.name.endsWith('.md') ? [path] : []
   })
 }

@@ -44,9 +44,14 @@ describe('few-shot set', () => {
         expect(node.priceHigh).toBeLessThanOrEqual(hi)
       }
     }
-    expect(set.map((s) => s.id)).toEqual(['double-distribution', 'trend-up'])
-    expect(FEW_SHOT_SOURCE).toMatch(/fixture-5/)
-    expect(FEW_SHOT_SOURCE).toMatch(/fixture-3/)
+    // feat-131: the fixture stand-ins are replaced by feat-119 golden replay exports.
+    expect(set.map((s) => s.id)).toEqual(['nq-double-distribution', 'es-shelf-edge-exhaustion'])
+    expect(set.map((s) => s.instrument)).toEqual(['NQ', 'ES'])
+    expect(FEW_SHOT_SOURCE).toMatch(/2026-02-13/)
+    expect(FEW_SHOT_SOURCE).toMatch(/2026-06-02/)
+    // every example's primary LVN is a price the corpus actually names for that date
+    const primaries = set.map((s) => s.expected.nodes.find((n) => n.primary))
+    expect(primaries.every((n) => n !== undefined)).toBe(true)
   })
 
   it('throws on a missing directory (a packaging error must fail loudly)', () => {
@@ -74,12 +79,12 @@ describe('vision prompt', () => {
 
   it('every criterion quotes the corpus VERBATIM and names the sections it distils', () => {
     const corpus = readFileSync(join(process.cwd(), 'docs/jba-research/lvn-corpus.md'), 'utf8')
-    expect(CRITERIA).toHaveLength(14)
+    expect(CRITERIA).toHaveLength(18)
     for (const c of CRITERIA) {
       expect(corpus, `not a corpus quote: ${c.example}`).toContain(c.example)
       expect(c.corpus).toMatch(/^[BD]\d+(, [BD]\d+)*$/)
     }
-    // perception-side coverage: B1-4, B6-8, B11-12, D3, D7, D10, D11
+    // perception-side coverage: B1-4, B6-8, B11-16, D3, D7, D10, D11
     const covered = new Set(CRITERIA.flatMap((c) => c.corpus.split(', ')))
     for (const id of [
       'B1',
@@ -91,6 +96,10 @@ describe('vision prompt', () => {
       'B8',
       'B11',
       'B12',
+      'B13',
+      'B14',
+      'B15',
+      'B16',
       'D3',
       'D7',
       'D10',
@@ -103,15 +112,21 @@ describe('vision prompt', () => {
   it('carries every criterion canary phrase, one per criterion', () => {
     expect(CRITERIA_CANARIES).toHaveLength(CRITERIA.length)
     for (const canary of CRITERIA_CANARIES) expect(prompt).toContain(canary)
-    // the corpus rules the criteria distil (B1, B3, B4, B6, B11, B7, D)
+    // the corpus rules the criteria distil (B1, B3, B4, B6, B11, B7, B13-16, D)
     for (const phrase of [
       'deepest meaning primary',
       'We left an LVN',
       'high volume edge',
       'wide LVN',
       'HPNs that are tiny',
-      'parabolic taper',
       'not an entry',
+      // B13-B16, from reference/volume_profile_101.txt (corpus A4)
+      'look all the way to the right',
+      "that's a secondary LVN",
+      'we have a distribution of volume',
+      'flat line let it smack you in the face',
+      '45-degree ramp',
+      'shape ledge',
     ]) {
       expect(prompt).toContain(phrase)
     }
@@ -136,7 +151,9 @@ describe('vision prompt', () => {
       prompt.indexOf('Profile to read (image 3)')
     )
     expect(prompt).toContain('"profileShape":"double"')
-    expect(prompt).toContain('"profileShape":"trend-up"')
+    // both golden examples are double distributions; the primaries are Job's own prices
+    expect(prompt).toContain('"priceLow":24948')
+    expect(prompt).toContain('"priceLow":7568')
   })
 
   it('describes a tile by its index and the full span', () => {
