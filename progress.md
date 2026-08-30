@@ -4381,3 +4381,182 @@ guesses" as a known risk. No thresholds were invented on the operator's behalf, 
 
 Running cost ~$0.17 per job-plan run (6 calls). Balance ~$3.4 at the time of writing — roughly
 20 runs. Revert by setting the model id to NULL in /settings; R14 then applies.
+---
+
+## 2026-08-30 — feat-134 (explainer doc: the LVN vision criteria)
+
+**Branch `feat-134-lvn-criteria-explainer`.** Started off `feat-132-vision-prompt-vp101` because
+PR #174 was still open and `main` did not yet carry the 18 CRITERIA or corpus B13–B16; rebased onto
+`main` once #174 merged, so the branch is a single docs commit. New file: **`docs/jba-research/lvn-criteria-explained.md`** (836 lines, 4 diagrams,
+107 verbatim quotes, 66 timestamped YouTube links) plus four Excalidraw diagrams in
+`docs/jba-research/diagrams/` (`.png` + `.excalidraw` source each):
+
+- `lvn-01-primary-by-bar-tip` — why the shortest bar across the whole image wins over a locally
+  deep dip inside a fat node (B13).
+- `lvn-02-distributions-and-walls` — humps separated by primary LVNs, a secondary inside a hump,
+  and how the hump count sets `profileShape` (B14/B15).
+- `lvn-03-shelf-edge-vs-valley` — a trough between two nodes (one node reported) vs a thin shelf
+  outside one node's boundary (two nodes: `hvn-edge` + `lvn`) (B4).
+- `lvn-04-taper-ledge-exhaustive` — the three outcomes at a profile extreme, side by side (B16/B7).
+
+Written to the `explainer-doc` skill's contract, matching `refreshing-explained.md`: terminology
+decoder ring up front, every claim carrying a receipt, a per-source timestamped index, and a
+standalone one-paragraph summary. The 18 criteria are organised into **six passes** over the same
+picture (shape → find the primary → qualify the thin places → mark the fat side → read the two
+ends → stop) rather than listed flat, with a cross-reference table back to the prompt's numbering.
+Section 5 documents the **perception contract's exclusions** — B5, B9, B10 and D1, D2, D4, D5, D6,
+D8, D9, D12 are trade-selection rules that need the boxes, the clock, or another timeframe, so the
+image cannot carry them.
+
+**Verification of the citations was mechanical, not eyeballed.** A script checks every `*"…"*`
+quote is a substring of the file it is attributed to (107/107 pass; the single reported miss is a
+regex artefact spanning a non-quote), and every `@MM:SS` link's arithmetic against its `?t=`
+seconds *and* against a real caption line in that video's transcript (66/66 pass). Bar-length
+figures in the two worked examples are read out of the actual `.vbp.md` exports.
+
+### Findings for the operator (no code changed — these are for feat-132/131 follow-up)
+
+1. **Criteria 17 and 18 quote the corpus editor, not Job.** The prompt bills its list as "each
+   with the trader's own words from the corpus", but criterion 17's example is corpus rule D10's
+   *heading* and criterion 18's is a sentence of B8 prose. Job's own words for both exist
+   (`06-26 @04:38` and `04-30 @03:42`) and would be drop-in replacements.
+2. **Criteria 1 and 2 define depth differently and nothing adjudicates.** [1] is local ("relative
+   to the nodes on either side"), [2] is absolute ("against every trough in the image"). The ES
+   few-shot is a real profile where they disagree — 7550 is measurably thinner (0.05 of the peak)
+   than the labeled primary at 7570 (0.09) — and only the few-shot resolves it, in favour of the
+   shelf against the fat node. Suggested fix: state the wide-span rule in the prompt, or drop the
+   local clause from [1].
+3. **`shape: ledge` has no legal `kind`.** Criterion 5 asks for it; a ledge is explicitly not an
+   exhaustive node and is not thin, so none of `lvn | hvn-edge | hvn-core | exhaustive-node |
+   taper-tail` fits, and the prompt is silent.
+4. **No few-shot example carries a ledge, and both are `unfinished: false`.** B16 — the newest and
+   most operator-emphasised rule — ships as text with no picture.
+5. Minor: `trend-up` / `trend-down` / `thin` in `profileShape` are unsourced engineering
+   conveniences; the "8–16 points on NQ" band in criterion 8 is the ES figure ×4 (the R1 ratio),
+   not a spoken number; "tiny" in criterion 9 is undefined; and the ES few-shot's secondary sits in
+   the *void between* distributions rather than *inside* one, which stretches B14's wording.
+6. **Sourcing gap:** `docs/jba-research/reference/volume_profile_101.txt` — the source of B13–B16 —
+   has no timestamps and no video URL anywhere in the repo, so those four rules are the only ones
+   in the document that cannot be clicked and watched. Adding a `# Source: https://youtu.be/…`
+   header line to that file would close it.
+
+Also noted, not fixed: `docs/job-planning-task-plan.md` "The perception contract" is stale — it
+still says the criteria come from "B1–B12" and lists `shape` without `'ledge'`. `schema.ts` does
+carry `'ledge'`, so this is doc drift only.
+
+**Codex gate: PASS** on `7d26591` (no P0/P1). Two P2s, triaged:
+
+- **P2 "Recompute the worked-example bar lengths" — VALID, fixed.** Codex compared single raw bins
+  (0.25-pt on the ES export) against the table and got different ratios. The table aggregates raw
+  bins into readable rows — 2 pts on ES, 10 pts on NQ — and normalises against the tallest
+  aggregated row; the document never said so. Section 4 now opens with a "How to read the numbers"
+  paragraph stating the bin sizes, the aggregation, and the normalisation, and the tables' first
+  column is labelled `Row (2 pts)` / `Row (10 pts)`. Every cited figure was then re-derived
+  independently and matches (ES tallest 2-pt row is 7594 at 273,014; 7570 = 0.087, 7550 = 0.051 —
+  the pair the B13-vs-B4 argument rests on).
+- **P2 "Add timestamps to the prep-video citations" — DISMISSED.** The 25 prep transcripts are
+  stored as single-line files with no timing data of any kind, so there is nothing in the
+  repository to derive a `?t=` offset from; producing one would mean inventing it. The document
+  already declares this in its "About the links" preamble, and the three prep citations it uses are
+  each verified verbatim against the transcript text. Every replay and deep-dive citation — 66 of
+  them — is timestamped and machine-checked.
+
+**Codex gate re-run on `caff354`: PASS.** One further P2, **valid and fixed**: the "What comes
+back" paragraph said exactly one LVN is flagged primary, which is the *per-profile* guarantee, not
+the per-image one. `profileNodesReadSchema` legitimately allows an LVN-free image — a tile that is
+nothing but one fat node — with no primary, and `consensus.ts` establishes the profile-level primary
+once tiles and samples are combined. The paragraph now says so.
+
+### 2026-08-30 (later still) — criteria defects found by the feat-134 explainer
+
+Writing the explainer surfaced six problems in the criteria. Three were fixed in the same PR
+(`VISION_PROMPT_REVISION` → `vision-2026-08-30.2`):
+
+1. **`shape: 'ledge'` had no legal `kind`** — a defect introduced by feat-132. Criterion 5 told
+   the model to report a ledge with `shape: ledge`, but a ledge is explicitly *not* an
+   exhaustive-node and is not thin, so none of `lvn | hvn-edge | hvn-core | exhaustive-node |
+   taper-tail` fit and the prompt was silent. A model spotting a textbook ledge had no
+   unambiguous way to report it. Now stated: **`kind: hvn-edge` with `shape: ledge`** — which is
+   what it is, the boundary of a build that stopped and "a line in sand" once traversed
+   (`volume_profile_101.txt:420-426`). No schema change needed.
+2. **Criteria 1 and 2 defined depth differently with nothing adjudicating.** [1] is local ("least
+   volume relative to the nodes on either side"), [2] absolute ("against every trough in the
+   image"). This is real, not pedantic: on the ES few-shot the secondary at 7550 is measurably
+   THINNER (0.05 of peak) than the labeled primary at 7570 (0.09). Only the few-shot resolved it.
+   The adjudicating sentence is now in criterion 2: **when the thin region is a wide span rather
+   than a narrow notch, the primary anchors at the span edge against the fat node and the
+   deepest point inside the span is the secondary.**
+3. **Criteria 17 and 18 quoted the corpus EDITOR, not Job**, while the prompt bills the list as
+   "the trader's own words from the corpus". #17 was D10's heading, #18 a sentence of B8 prose.
+   Both replaced with real Job quotes already in the corpus (#76 and #98).
+
+Also fixed: `docs/job-planning-task-plan.md` "The perception contract" was stale (B1–B12).
+
+**Open, not fixed** (recorded for the operator):
+- **No few-shot example carries a ledge**, and both are `unfinished: false`. B16 — the one shape
+  the source says should "smack you in the face" — ships as text with no worked picture. This is
+  the weakest-supported criterion in the set.
+- `trend-up` / `trend-down` / `thin` in `profileShape` have no corpus basis (bell/double/multi do);
+  the "8–16 points on NQ" band is the ES figure ×4 per the R1 ratio, never a spoken number;
+  "tiny" in the grouping criterion is undefined.
+- **`reference/volume_profile_101.txt` has no video URL or timestamps**, so B13–B16 are the only
+  rules in the explainer that cannot be clicked and watched. Only the operator knows the source
+  video; a `# Source: https://youtu.be/...` header would close it.
+
+Note: the 2026-08-30 validation numbers were measured on `vision-2026-08-30.1`. These are
+correctness fixes to the contract, not threshold tuning, but the live config now points at a
+prompt revision one patch newer than the one benched.
+
+### 2026-08-30 — adversarial review of the vision prompt (operator-requested)
+
+Codex reviewed the fully rendered prompt for cohesion, self-contradiction and sourcing.
+42 findings; the accepted ones are below. `VISION_PROMPT_REVISION` → `vision-2026-08-30.3`.
+
+**Sourcing — the operator's main concern.** `lvn-corpus.md` section A is a table of verbatim
+trader quotes with transcript citations; sections B/C/D are **synthesis prose written by an
+earlier AI session**. The prompt test only checked a quote against the *whole file*, so criteria
+could quote the editor while the prompt billed them "the trader's own words". **Three did:**
+D10's heading, a sentence of B8 prose, and — found independently here, missed by Codex, which
+traced the concept to a real replay but not the literal string — an **ellipsis-compressed
+rendering of row #87** (`"high volume edge, 34s… LVN… at 34 to 32"`) that the trader never
+uttered. All three now quote section A. **`tests/…/prompt.test.ts` gains a guard**: every
+criterion quote must be a substring of section A, so this cannot recur.
+
+Also reframed the criteria header. It now says the quote is the trader's while the thresholds,
+category names and output limits are the system's reading of him — the old wording laundered
+editor-authored policy (node caps, prominence 1–5, the 20-word rationale limit, ES/NQ band
+widths) as trader doctrine.
+
+**Contradictions fixed:**
+- **Criterion 11 mandated two hvn-edges for every fat node.** With the 8-node cap a
+  two-distribution profile needs 9+ observations, so the model had to violate one rule or the
+  other — and both few-shot examples already disobeyed the criterion. Now: report the edges that
+  are clearly visible, not two per node, since a tapering extreme already carries its boundary.
+  OUTPUT_RULES gains an explicit priority order for what to keep under the cap.
+- **Prominence was incoherent.** "1 = most prominent in THIS image" while both examples give 1 to
+  the primary LVN *and* an hvn-core. Now stated as ordinal **within kind**, which is what the
+  examples always did.
+- **Prompt and schema disagreed on `primary`.** Prompt said "exactly one lvn"; the schema allows
+  zero when no LVN is present. The prompt now says what the schema enforces.
+- **`shape: notch` was "for hvn kinds"** but both examples use it for an `exhaustive-node`.
+  Definition widened to cover the exhaustive node's build.
+- **Criterion 2 said compare "every trough in the image"** — but a profile thins to nothing at
+  both extremes by construction, so the literal reading makes a tail the primary, contradicting
+  example 1's "thinnest bars in the image". Now restricted to INTERNAL troughs.
+- **`profileShape`** had no assignment rule for `trend-up` / `trend-down` / `thin`. Added.
+- Few-shot rationales corrected: one cited "the departure scar of the leg up" — temporal
+  evidence a static histogram cannot show — and the ES secondary was described as the "deeper
+  trough", teaching the opposite of the primary rule it is meant to illustrate.
+
+**Rejected, with reasons.** Codex's top recommendation was to delete criterion 2's wide-span
+adjudication and make primary selection purely absolute. **Declined:** that overrules the
+trader's own labeled example. On 06-02 he names "68 72 LVN right down here" — the shelf against
+the fat node — while a measurably deeper trough sits at 7548 (0.05 of peak vs 0.09). Codex would
+have the procedural reading of one 101 quote beat his actual call; for a prompt whose purpose is
+to encode his method, the labeled example wins. Also declined its suggestion to drop the
+value-area negative (D3 / corpus #98) as "execution policy" — it is a ranking rule about which
+LVN is primary, and it is corpus-sourced.
+
+**Not fixed, recorded:** no few-shot example carries a ledge (both are `unfinished: false`), so
+B16 still ships without a worked picture; `reference/volume_profile_101.txt` has no video URL, so
+B13–B16 cannot be clicked and watched.

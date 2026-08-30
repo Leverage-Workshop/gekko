@@ -77,6 +77,33 @@ describe('vision prompt', () => {
     expect(VISION_PROMPT_REVISION).toMatch(/^vision-\d{4}-\d{2}-\d{2}\.\d+$/)
   })
 
+  /**
+   * feat-131 adversarial review. `lvn-corpus.md` has section A — a table of
+   * VERBATIM trader quotes, each with a transcript citation — and sections
+   * B/C/D, which are SYNTHESIS PROSE written by an earlier session. Checking a
+   * quote against the whole file cannot tell the two apart, so criteria drifted
+   * into quoting the corpus EDITOR while the prompt billed them as the trader's
+   * own words. Three had (D10's heading, a sentence of B8 prose, and an
+   * ellipsis-compressed rendering of row #87 that the trader never uttered).
+   *
+   * Every criterion quote must come from section A. If a rule needs support
+   * that only exists in the synthesis, the fix is to cite the section-A row the
+   * synthesis was built from — not to quote the synthesis.
+   */
+  it('every criterion quotes the TRADER (corpus section A), never the editor', () => {
+    const corpus = readFileSync(join(process.cwd(), 'docs/jba-research/lvn-corpus.md'), 'utf8')
+    const start = corpus.indexOf('## A. The corpus')
+    const end = corpus.indexOf('## B. Synthesis')
+    expect(start, 'corpus section A missing').toBeGreaterThanOrEqual(0)
+    expect(end, 'corpus section B missing').toBeGreaterThan(start)
+    const sectionA = corpus.slice(start, end)
+    for (const c of CRITERIA) {
+      expect(sectionA, `criterion quotes editor prose, not the trader: ${c.example}`).toContain(
+        c.example
+      )
+    }
+  })
+
   it('every criterion quotes the corpus VERBATIM and names the sections it distils', () => {
     const corpus = readFileSync(join(process.cwd(), 'docs/jba-research/lvn-corpus.md'), 'utf8')
     expect(CRITERIA).toHaveLength(18)
@@ -119,14 +146,14 @@ describe('vision prompt', () => {
       'high volume edge',
       'wide LVN',
       'HPNs that are tiny',
-      'not an entry',
+      'back inside of value',
       // B13-B16, from reference/volume_profile_101.txt (corpus A4)
       'look all the way to the right',
       "that's a secondary LVN",
       'we have a distribution of volume',
       'flat line let it smack you in the face',
       '45-degree ramp',
-      'shape ledge',
+      'kind hvn-edge with shape ledge',
     ]) {
       expect(prompt).toContain(phrase)
     }

@@ -1395,8 +1395,8 @@
       "dependencies": [
         "feat-132"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "docs/jba-research/lvn-criteria-explained.md (836 lines) + 4 Excalidraw diagrams in docs/jba-research/diagrams/ (lvn-01-primary-by-bar-tip, lvn-02-distributions-and-walls, lvn-03-shelf-edge-vs-valley, lvn-04-taper-ledge-exhaustive; .png + .excalidraw each). All 18 CRITERIA covered, organised into six passes with a cross-reference table back to prompt.ts numbering; section 5 documents the perception contract's exclusions (B5, B9, B10, D1, D2, D4, D5, D6, D8, D9, D12). Citations verified mechanically: 107/107 quotes are substrings of the file they are attributed to, 66/66 timestamped links have correct arithmetic and land on a real caption line. Worked examples use bar lengths read from the few-shot .vbp.md exports. Six findings recorded in progress.md (criteria 17/18 quote the corpus editor not Job; criteria 1 vs 2 depth definitions conflict unadjudicated; shape 'ledge' has no legal kind; no few-shot ledge example; unsourced profileShape values and NQ band widths; volume_profile_101.txt has no video URL)."
     }
   ]
 }

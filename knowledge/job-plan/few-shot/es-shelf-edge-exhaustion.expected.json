@@ -8,7 +8,7 @@
       "primary": true,
       "position": "lower",
       "shape": "shelf-edge",
-      "rationale": "Thin shelf immediately below the main node's edge; the departure scar of the leg up"
+      "rationale": "Thin shelf immediately below the main distribution, sharp transition into the build"
     },
     {
       "kind": "hvn-edge",
@@ -28,7 +28,7 @@
       "primary": false,
       "position": "lower",
       "shape": "valley",
-      "rationale": "Deeper trough further inside the void; secondary, likely to be filled"
+      "rationale": "Distinct internal trough, but it sits in the void rather than against the node edge"
     },
     {
       "kind": "hvn-core",
@@ -82,9 +82,18 @@
     }
   ],
   "thinZones": [
-    { "low": 7546, "high": 7574 },
-    { "low": 7616, "high": 7622 },
-    { "low": 7506, "high": 7518 }
+    {
+      "low": 7546,
+      "high": 7574
+    },
+    {
+      "low": 7616,
+      "high": 7622
+    },
+    {
+      "low": 7506,
+      "high": 7518
+    }
   ],
   "profileShape": "double",
   "unfinished": false

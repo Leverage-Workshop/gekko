@@ -27,7 +27,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-30.1'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-30.7'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -55,12 +55,14 @@ type Criterion = { readonly rule: string; readonly corpus: string; readonly exam
 
 export const CRITERIA: readonly Criterion[] = [
   {
-    rule: 'DEPTH RANKS. The primary LVN is the deepest trough — the least volume relative to the nodes on either side — ranked WITHIN this profile only. Mark exactly one lvn primary (prominence 1).',
+    rule: 'DEPTH RANKS. Rank LVN candidates by depth — the least volume relative to the nodes on either side — WITHIN this profile only, and mark one lvn primary (prominence 1). Depth decides the ranking, with ONE exception, stated in full in the next two criteria: where the thin region is a wide span rather than a narrow notch, the primary is the span edge against the fat node and the deepest point inside the span is the secondary. Apply that exception when it fits; otherwise the deepest candidate is primary.',
     corpus: 'B1, B2',
     example: 'this is the deepest LVN. So deepest meaning primary',
   },
   {
-    rule: 'FIND IT BY BAR TIP, ACROSS THE WHOLE IMAGE. Bars grow left from the price axis, so the primary is the lvn whose bars stay NEAREST the axis — compare tip lengths against every trough in the image, not just its two neighbours.',
+    rule:
+      'FIND IT BY BAR TIP, ACROSS THE WHOLE IMAGE. Bars grow left from the price axis, so the primary is the lvn whose bars stay NEAREST the axis — compare tip lengths against every trough in the image, not just its two neighbours. ' +
+      'When the thin region is a WIDE SPAN rather than a narrow notch, the primary anchors at the span EDGE against the fat node and the deepest point inside the span is the secondary. Compare INTERNAL troughs only — the profile thins to nothing at both extremes by construction, and a completed taper or exhaustive tail never competes for primary.',
     corpus: 'B13',
     example:
       "the easiest way to spot a primary LVN is just look all the way to the right and see which ones are closest",
@@ -72,13 +74,13 @@ export const CRITERIA: readonly Criterion[] = [
       "that's a secondary LVN and although it can offer an initial uh response that it's more likely to be filled",
   },
   {
-    rule: 'DISTRIBUTIONS ARE THE ZONES BETWEEN PRIMARY LVNs. Count the humps first: one = bell, two = double, three or more = multi (trend-up / trend-down when the mass climbs or falls across the image, thin when there is no real hump). Set profileShape from that count, and put the primary lvn on a wall BETWEEN humps, never inside one.',
+    rule: 'DISTRIBUTIONS ARE THE ZONES BETWEEN PRIMARY LVNs. Count the humps first: one = bell, two = double, three or more = multi (trend-up / trend-down when the mass climbs or falls across the image, thin when there is no real hump). Set profileShape by this ladder, first match wins: no hump dominates at all = thin; two humps = double; three or more = multi; ONE hump that sits at an end and thins steadily toward the other = trend-up (mass high) or trend-down (mass low); one hump otherwise = bell. Put the primary lvn on a wall BETWEEN humps, never inside one.',
     corpus: 'B14, B15',
     example:
       "here's a primary obn right there and one right here so between the two we have a distribution of volume",
   },
   {
-    rule: 'EXTREME ANATOMY: TAPER vs LEDGE vs EXHAUSTIVE. A taper falls off PROGRESSIVELY away from a fat node (parabolic or a straight 45-degree ramp) — that is taper-tail, and the extreme is finished. A LEDGE is a stack of near-EQUAL-length bars where the build just stops — shape ledge, unfinished = true, and never a taper-tail. An exhaustive node is a spike, a small build, then an immediate step off.',
+    rule: 'EXTREME ANATOMY: TAPER vs LEDGE vs EXHAUSTIVE. A taper falls off PROGRESSIVELY away from a fat node (parabolic or a straight 45-degree ramp) — that is taper-tail, and the extreme is finished. A LEDGE is a stack of near-EQUAL-length bars where the build just stops — report it as kind hvn-edge with shape ledge and unfinished = true, never as a taper-tail: it is the boundary of a build that stopped, and the line in the sand once price traverses it. An exhaustive node is a spike, a small build, then an immediate step off.',
     corpus: 'B16, B7',
     example:
       'we have a volume build and then we basically have a flat line let it smack you in the face',
@@ -95,7 +97,7 @@ export const CRITERIA: readonly Criterion[] = [
       'primary LVN between the uh well right around high volume edge is 7412 to like 14 5 area through here',
   },
   {
-    rule: 'WIDTH IS A QUALIFIER. A wide LVN is reported as a band spanning the whole thin zone (and listed in thinZones); a narrow one as a 2–4 point band on ES, 8–16 points on NQ. Never collapse a wide zone to a single price.',
+    rule: 'WIDTH IS A QUALIFIER, NOT A DISQUALIFIER. Report the band you can actually see: a wide LVN spans the whole thin zone (and goes in thinZones), a narrow one is however few points it is. Read the bounds off the axis at the stated row step and impose no fixed width — the corpus runs from 4-point calls to 186-point kennels. Never collapse a wide zone to a single price, and never pad a narrow one.',
     corpus: 'B6, D7',
     example: 'wide LVN 682 to 6806',
   },
@@ -111,9 +113,9 @@ export const CRITERIA: readonly Criterion[] = [
     example: 'you get a spike up, and you get a volume build from that, traverse back across',
   },
   {
-    rule: 'HIGH-VOLUME EDGES ON BOTH SIDES. Every fat node has a boundary above and below where volume drops off a cliff; report both as hvn-edge. They are distribution boundaries, the edges to lean on.',
+    rule: 'HIGH-VOLUME EDGES. A fat node has a boundary where volume drops off a cliff — report that as hvn-edge; it is the distribution boundary, the edge to lean on. Report the edges that are clearly visible, NOT two for every node: an extreme that tapers or exhausts already carries its outer boundary.',
     corpus: 'B4, B12',
-    example: 'high volume edge, 34s… LVN… at 34 to 32',
+    example: 'there are two locations here that are pretty clean. One is high volume edge, 34s',
   },
   {
     rule: 'HVN-CORE ONLY FOR THE PEAK. Use hvn-core only for the POC-class peak of each distribution (usually one per hump), never for every fat bar.',
@@ -144,12 +146,14 @@ export const CRITERIA: readonly Criterion[] = [
   {
     rule: 'NEGATIVE — DO NOT PAD. Report only what is there; fewer nodes is better than invented ones. Do not mark every minor local minimum.',
     corpus: 'D10',
-    example: 'Which of several is most prominent cannot always be eyeballed',
+    example:
+      "if you want to tag that as saying which one is the most prominent, then you're gonna have to do some work on your back end",
   },
   {
     rule: 'NEGATIVE — NO PRIMARY INSIDE THE VALUE BULK. A trough inside the value-area bulk of a fat distribution is not the primary LVN; the primary sits at a distribution edge or between distributions.',
     corpus: 'B8, D3',
-    example: 'An LVN inside value is not an entry',
+    example:
+      "not looking to just dive in like a dragon with a hemorrhoid at that LVN because we're back inside of value.",
   },
 ] as const
 
@@ -161,11 +165,12 @@ function criteriaText(): string {
 }
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
-- nodes: at most 8. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
+- nodes: at most 8 — a ceiling, not a quota, and fewer is better. When more than 8 are visible keep them in this order: the primary lvn, clear extreme anatomy, secondary lvns, the dominant hvn-core of each distribution, then the most significant hvn-edges. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
 - priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step.
-- prominence: 1 (most prominent in THIS image) to 5; a secondary lvn inside a distribution gets 3-5. primary: true on exactly one lvn.
+- prominence: 1 (most structurally important in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. TIES ARE ALLOWED: a dominant peak and the primary lvn may both be 1. A secondary lvn gets 3-5.
+- primary: when you report any lvn, exactly one carries true; when the image shows no lvn at all, every node is false.
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
-- shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | ledge (a stack of near-equal bars where the build stops) | notch (a fat peak, for hvn kinds).
+- shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | ledge (a stack of near-equal bars where the build stops) | ledge (a stack of near-equal bars where the build stops) | notch (a fat peak — hvn-core, and the build of an exhaustive-node).
 - rationale: at most 20 words.
 - thinZones: at most 3 { low, high } spans. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: boolean.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
@@ -274,7 +279,7 @@ export function buildVisionPrompt(
   )
   return [
     ROLE,
-    "CRITERIA (each with the trader's own words from the corpus):",
+    "CRITERIA. Each carries a VERBATIM quote from the trader followed by the working rule distilled from it. The quote is his; the thresholds, category names and output limits are the system's reading of him — follow the rule, and use the quote to judge what he actually meant:",
     criteriaText(),
     OUTPUT_RULES,
     fewShot.length > 0 ? `WORKED EXAMPLES:\n${examples}` : '',

@@ -48,3 +48,26 @@ describe('vision read stays inside the task budget', () => {
     expect(effectiveTimeoutMs({ timeoutMs: 240_000 })).toBe(240_000)
   })
 })
+
+
+/**
+ * feat-131 Codex P1. `prominence` must stay a PROFILE-WIDE scale: the planner
+ * ranks nodes against each other regardless of kind
+ * (`confluenceBands.ts` sorts by it across all references) and treats an
+ * absolute value as weak (`referenceRoles.ts` WEAK_NODE_PROMINENCE). A per-kind
+ * ordinal would silently promote a lone weak node of some kind to rank 1.
+ */
+describe('prominence stays a profile-wide scale', () => {
+  it('the prompt does not tell the model to rank within kind', async () => {
+    const { CRITERIA } = await import('@/lib/job-plan/profile-vision/prompt')
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const src = readFileSync(
+      join(process.cwd(), 'lib/job-plan/profile-vision/prompt.ts'),
+      'utf8'
+    )
+    expect(src).not.toMatch(/prominence: ordinal WITHIN each kind/)
+    expect(src).toContain('on ONE scale across all kinds')
+    expect(CRITERIA.length).toBeGreaterThan(0)
+  })
+})
