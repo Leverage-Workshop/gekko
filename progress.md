@@ -4387,7 +4387,7 @@ Running cost ~$0.17 per job-plan run (6 calls). Balance ~$3.4 at the time of wri
 
 **Branch `feat-134-lvn-criteria-explainer`.** Started off `feat-132-vision-prompt-vp101` because
 PR #174 was still open and `main` did not yet carry the 18 CRITERIA or corpus B13–B16; rebased onto
-`main` once #174 merged, so the branch is a single docs commit. New file: **`docs/jba-research/lvn-criteria-explained.md`** (824 lines, 4 diagrams,
+`main` once #174 merged, so the branch is a single docs commit. New file: **`docs/jba-research/lvn-criteria-explained.md`** (836 lines, 4 diagrams,
 107 verbatim quotes, 66 timestamped YouTube links) plus four Excalidraw diagrams in
 `docs/jba-research/diagrams/` (`.png` + `.excalidraw` source each):
 
@@ -4460,3 +4460,9 @@ carry `'ledge'`, so this is doc drift only.
   already declares this in its "About the links" preamble, and the three prep citations it uses are
   each verified verbatim against the transcript text. Every replay and deep-dive citation — 66 of
   them — is timestamped and machine-checked.
+
+**Codex gate re-run on `caff354`: PASS.** One further P2, **valid and fixed**: the "What comes
+back" paragraph said exactly one LVN is flagged primary, which is the *per-profile* guarantee, not
+the per-image one. `profileNodesReadSchema` legitimately allows an LVN-free image — a tile that is
+nothing but one fat node — with no primary, and `consensus.ts` establishes the profile-level primary
+once tiles and samples are combined. The paragraph now says so.

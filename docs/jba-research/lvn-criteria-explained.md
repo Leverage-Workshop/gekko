@@ -76,7 +76,11 @@ what keeps it an independent witness.
 
 At most eight nodes. Each one is a price band, a kind, a rank, a position in the image, a shape,
 and a rationale under twenty words. Plus up to three thin zones, a one-word profile shape, and a
-single `unfinished` flag for the whole picture. Exactly one of the LVNs is flagged primary.
+single `unfinished` flag for the whole picture. If the image reports any LVNs at all, exactly one
+of them is flagged primary — and if a big profile is split into two overlapping tiles, a tile that
+happens to be nothing but one fat node may legitimately come back with **no** LVN and no primary.
+The one-primary-per-profile guarantee is settled afterwards, when the tiles and the repeat samples
+are combined, not inside a single call.
 
 The five kinds are: **lvn**, **hvn-edge** (the boundary of a fat node), **hvn-core** (its peak),
 **exhaustive-node**, and **taper-tail**.
