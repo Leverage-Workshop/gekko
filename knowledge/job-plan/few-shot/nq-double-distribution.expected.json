@@ -1,0 +1,91 @@
+{
+  "nodes": [
+    {
+      "kind": "lvn",
+      "priceLow": 24948,
+      "priceHigh": 24959,
+      "prominence": 1,
+      "primary": true,
+      "position": "lower",
+      "shape": "valley",
+      "rationale": "Thinnest bars in the image; the wall separating the lower node from the upper distribution"
+    },
+    {
+      "kind": "hvn-edge",
+      "priceLow": 24922,
+      "priceHigh": 24930,
+      "prominence": 2,
+      "primary": false,
+      "position": "lower",
+      "shape": "shelf-edge",
+      "rationale": "Upper boundary of the lower node where volume drops off a cliff"
+    },
+    {
+      "kind": "hvn-core",
+      "priceLow": 24895,
+      "priceHigh": 24912,
+      "prominence": 2,
+      "primary": false,
+      "position": "lower",
+      "shape": "notch",
+      "rationale": "Peak of the lower distribution"
+    },
+    {
+      "kind": "hvn-edge",
+      "priceLow": 25075,
+      "priceHigh": 25100,
+      "prominence": 3,
+      "primary": false,
+      "position": "mid",
+      "shape": "shelf-edge",
+      "rationale": "Lower boundary of the upper distribution where the build begins"
+    },
+    {
+      "kind": "hvn-core",
+      "priceLow": 25350,
+      "priceHigh": 25380,
+      "prominence": 1,
+      "primary": false,
+      "position": "top",
+      "shape": "notch",
+      "rationale": "POC-class peak of the upper distribution"
+    },
+    {
+      "kind": "hvn-edge",
+      "priceLow": 25405,
+      "priceHigh": 25420,
+      "prominence": 3,
+      "primary": false,
+      "position": "top",
+      "shape": "shelf-edge",
+      "rationale": "Upper boundary of the upper distribution before the tail"
+    },
+    {
+      "kind": "taper-tail",
+      "priceLow": 24621,
+      "priceHigh": 24660,
+      "prominence": 4,
+      "primary": false,
+      "position": "bottom",
+      "shape": "wide-gap",
+      "rationale": "Progressive fall-off into the profile low"
+    },
+    {
+      "kind": "taper-tail",
+      "priceLow": 25434,
+      "priceHigh": 25465,
+      "prominence": 4,
+      "primary": false,
+      "position": "top",
+      "shape": "wide-gap",
+      "rationale": "Progressive fall-off into the profile high"
+    }
+  ],
+  "thinZones": [
+    { "low": 24928, "high": 25040 },
+    { "low": 24621, "high": 24665 },
+    { "low": 25440, "high": 25465 }
+  ],
+  "profileShape": "double",
+  "unfinished": false
+}

@@ -4244,3 +4244,58 @@ not new extraction. Completed so far:
 [planning notes](https://claude.ai/code/artifact/46957b20-7ea1-4784-ae9c-62337ad78cd2) ·
 [execution process](https://claude.ai/code/artifact/bcebab65-9d8f-4ba8-8e31-16e4b85c896c) ·
 [execution notes](https://claude.ai/code/artifact/010913d6-4d0e-4f14-9b19-754087079ebd)
+
+## 2026-08-30 — feat-132 (vision prompt criteria refresh) + feat-131 prep
+
+**feat-132 — done.** Gates feat-131's bench run.
+
+- **Corpus.** `docs/jba-research/reference/volume_profile_101.txt` (committed 7ecdb86) had never
+  been mined into `docs/jba-research/lvn-corpus.md`. Added section **A4** (rows #111–#122) and
+  synthesis rows **B13–B16**. The 101 session is the only source that states the *anatomy* rather
+  than naming prices, and it supplied four things the prompt was missing:
+  - **B13** how to *spot* the primary — "look all the way to the right and see which ones are
+    closest": absolute bar-tip shortness across the whole image, not local depth between two
+    neighbours. B1's "deepest" was the ranking; this is the procedure.
+  - **B14** the **secondary LVN** class — reported and demoted (prominence 3–5), never dropped.
+  - **B15** distributions are the zones *between* primary LVNs — which is also what sets
+    `profileShape` (the prompt previously gave no guidance for that field at all).
+  - **B16** extreme anatomy has *three* outcomes: taper (progressive fall-off), exhaustive node
+    (spike → build → step off), and **ledge** (a flat stack of near-equal bars) — the ledge is the
+    `unfinished` tell and B7 had missed it entirely.
+- **Prompt.** `lib/job-plan/profile-vision/prompt.ts`: 14 → **18 CRITERIA**, each quoting the new
+  corpus rows verbatim (the prompt test still enforces every `example` is a substring of the
+  corpus). `NODE_SHAPES` widened with `'ledge'` — a backward-compatible enum widening; consensus
+  votes over `NODE_SHAPES` generically, nothing switches exhaustively on it.
+  `VISION_PROMPT_REVISION` → `vision-2026-08-30.1`.
+- **Few-shot refresh.** The `lvn-fixtures` stand-ins are gone. The set is now two feat-119 golden
+  replay exports whose replayed profile actually shows the anatomy:
+  - `nq-double-distribution` = 2026-02-13 NQ 5-day. Primary LVN 24948–59 — the wall between the
+    lower node and the upper distribution, and the thinnest bars in the image. Job's label is
+    24950 and the replay note says "closer to 24930 or 24950s". Teaches B13/B14/B15.
+  - `es-shelf-edge-exhaustion` = 2026-06-02 ES 5-day. Primary 7568–72 (corpus #24 "68 72 LVN
+    right down here") plus the exhaustive node at 7624–28 (corpus #23 "exhaust of note on top of
+    the volume profile"). Teaches B4 and B16 — and deliberately teaches the **tension**: the
+    numerically deepest trough on this profile is 7548–52, but Job names the shelf immediately
+    below the fat node's edge. The deeper trough is included as the *secondary*, prominence 3.
+  - **2026-08-07 excluded.** Its label (7758–60) sits just under the POC *inside the value bulk*
+    on the replayed 5-day, and its 4-hour export is a degenerate 13.5-pt / 55-row window. Using it
+    would teach the model the opposite of criterion "no primary inside the value bulk".
+- **BLOCKER found and fixed.** feat-118's Sierra exporter **omits zero-volume rows**, so 4 of the
+  12 golden *test* dates (03-06, 03-20, 06-16, 08-04) crashed `parseVbpProfile` with
+  `Row spacing violation` — and because `goldenCases` loads every date up front, the bench died
+  before its first call, with no partial results. No test caught it: the exports landed in
+  c44d906 (PR #173) *after* the bench shipped in PR #163, and `tests/job-lvn-golden.test.ts` only
+  validated the JSON sidecars. Fix: opt-in `parseVbpProfile(text, { fillMissingRows: true })` —
+  ingest keeps its strict contract (a hole is still an error), and a gap that is **not** an exact
+  multiple of the step still throws even with the option on, because that is a real bin-size
+  mismatch. Wired at the bench, `render-profile`, the few-shot loader and `runJobPlan` (the live
+  job-plan path reads the same exporter output). `tests/golden-profiles-parse.test.ts` now parses
+  **every** golden export, so this class of breakage cannot land silently again.
+- **Bench report filenames** now carry model + variant (`docs/bench-runs/profile-vision-<date>--<model>--<variant>.md`);
+  previously a variant sweep left only the last run's numbers under a bare date stamp.
+- **`tests/doctrine-drift.test.ts`** now skips `*.vbp.md` — those are Sierra CSV exports, not
+  doctrine prose, and their delta column trips the numeric drift patterns.
+
+**Verification.** `npx tsc --noEmit` clean; full suite **2187 passed / 1 skipped**; `./init.sh`
+green. Bench dry-run with `OPENROUTER_API_KEY` stripped: **12 golden cases load and score**,
+0 skipped, detector baseline **recall 67%** — the number feat-131's vision read must beat.

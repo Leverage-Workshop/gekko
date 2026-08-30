@@ -103,29 +103,59 @@ function parseCsvRows(csv: string): {
   return { header, rows }
 }
 
-function validateSpacing(rows: { price: number }[], step: number): void {
+type ParsedRow = { price: number; value: number; delta?: number }
+
+/**
+ * Enforce a contiguous price grid, optionally repairing it.
+ *
+ * The Sierra job-plan exporter (feat-118) OMITS zero-volume rows, so a profile
+ * with a genuinely untraded price leaves a hole in the grid. That is not
+ * corruption — the missing rows carry volume 0 by definition — but the strict
+ * ingest contract cannot tell the two apart, so repair is opt-in:
+ *
+ *   - `fill = false` (default, the ingest contract): any gap throws.
+ *   - `fill = true`: a gap that is an exact positive MULTIPLE of `step` is
+ *     zero-filled. A gap that is not a multiple still throws — that is a real
+ *     bin-size mismatch or a corrupt export, and silently interpolating it
+ *     would put invented prices on the grid.
+ */
+function normalizeSpacing(rows: ParsedRow[], step: number, fill: boolean): ParsedRow[] {
+  const out: ParsedRow[] = rows.length > 0 ? [rows[0]] : []
+  const hasDelta = rows.some(r => r.delta !== undefined)
   for (let i = 1; i < rows.length; i++) {
     const gap = round4(rows[i - 1].price - rows[i].price)
-    if (Math.abs(gap - step) > 0.0001) {
+    if (Math.abs(gap - step) <= 0.0001) {
+      out.push(rows[i])
+      continue
+    }
+    const multiple = gap / step
+    const isPositiveMultiple =
+      gap > 0 && Math.abs(multiple - Math.round(multiple)) <= 0.0001 && Math.round(multiple) > 1
+    if (!fill || !isPositiveMultiple) {
       throw new Error(
         `Row spacing violation at price ${rows[i].price}: expected ${step}, got ${gap}`,
       )
     }
+    for (let k = 1; k < Math.round(multiple); k++) {
+      const price = round4(rows[i - 1].price - k * step)
+      out.push(hasDelta ? { price, value: 0, delta: 0 } : { price, value: 0 })
+    }
+    out.push(rows[i])
   }
+  return out
 }
 
-function parseProfileFile(content: string): SingleProfile {
+function parseProfileFile(content: string, fill: boolean): SingleProfile {
   const { tickSize, binSize } = extractMeta(content)
   const summary = extractSummary(content)
   const step = round4(tickSize * binSize)
   const csv = extractCsvBlock(content)
   const { header, rows } = parseCsvRows(csv)
   const { type } = detectType(header)
-  validateSpacing(rows, step)
   return {
     type,
     meta: { tickSize, binSize, step, ...summary },
-    rows,
+    rows: normalizeSpacing(rows, step, fill),
   }
 }
 
@@ -141,14 +171,27 @@ export type VbpProfile = {
   meta: ProfileMeta
 }
 
+export type ParseProfileOptions = {
+  /**
+   * Zero-fill rows the exporter omitted because nothing traded there (feat-118's
+   * Sierra job-plan exporter does this). Off by default: the briefing ingest
+   * contract wants a hole to be an error. On for the job-plan / bench / render
+   * paths, which read that exporter's output directly.
+   */
+  readonly fillMissingRows?: boolean
+}
+
 /**
  * Parse a standalone Volume (VbP) profile file (e.g. the 400-pt rotation or
  * balance-area HTF export, and the LVN/HVN fixtures' `.vbp.md`). The structural
  * exports may carry a third `Delta` column (feat-050); it is optional so
  * pre-delta exports keep parsing during the deploy window.
  */
-export function parseVbpProfile(vbpContent: string): VbpProfile {
-  const vbp = parseProfileFile(vbpContent)
+export function parseVbpProfile(
+  vbpContent: string,
+  options: ParseProfileOptions = {},
+): VbpProfile {
+  const vbp = parseProfileFile(vbpContent, options.fillMissingRows === true)
   if (vbp.type !== 'vbp') {
     throw new Error('Expected a Volume (VbP) profile, got a Delta profile')
   }
@@ -174,7 +217,7 @@ export type DeltaProfile = {
  * consumer is absorption-stack detection (lib/engine/absorption.ts).
  */
 export function parseDeltaProfile(deltaContent: string): DeltaProfile {
-  const delta = parseProfileFile(deltaContent)
+  const delta = parseProfileFile(deltaContent, false)
   if (delta.type !== 'delta') {
     throw new Error('Expected a Delta profile, got a Volume (VbP) profile')
   }
