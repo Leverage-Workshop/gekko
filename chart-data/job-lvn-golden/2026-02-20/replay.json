@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "6888 lvn on 5-day rolling [A1 row 7: \"That's kind of like an LBN return on the higher time frame on a 5day rolling\"].",
+    "observed": "6888 lvn is on the 4-hour rolling, not the 5-day rolling."
+  }
+}

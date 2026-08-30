@@ -1,0 +1,8 @@
+{
+  "instrument": "NQ",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "24485.5 hvn-core on 5-day rolling [A1 row 20: \"pocket is down here at the lows. So, um, 24485 half\"].",
+    "observed": "That LVN wasn't good. There is a good one from 24690 to 27480s on the 5-day rolling. It is a good one to include."
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "6840 lvn (PRIMARY) on either profile [A1 row 4: \"naturally, we do have this primary LVN up here in the low 40s\"]; 6816-6818 lvn on 4-hour rolling [A1 row 5: \"we've got a nice little LVN right here. So this 6816 area is what I want to key on 16 to 18\"].",
+    "observed": "both on 4hr"
+  }
+}

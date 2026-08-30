@@ -1,9 +1,10 @@
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
   GOLDEN_ROOT,
+  PROFILE_FILES,
   goldenLabelSchema,
   instrumentOf,
   isTickAligned,
@@ -73,6 +74,29 @@ describe('golden labels', () => {
     }
   })
 
+  it('a replay-sourced label is an operator correction that still cites its A1 row', () => {
+    // feat-119: the operator replayed each date; where the profile disagreed with the
+    // transcript the band became the replayed one. Those labels are exempt from the A1
+    // price assertions below (the price is the operator's, not the transcript's) — so
+    // pin the exempt set here rather than letting a stray `source` silently opt out.
+    const corrected = all
+      .filter(({ label }) => label.source === 'replay')
+      .map(({ date, label }) => `${date}:${label.priceLow}-${label.priceHigh}`)
+      .sort()
+    expect(corrected).toEqual([
+      '2026-02-13:24950-24950',
+      '2026-03-06:24715-24715',
+      '2026-03-20:24690-24780',
+      '2026-06-16:7602-7604',
+      '2026-07-10:7531-7531',
+    ])
+    for (const { date } of all.filter(({ label }) => label.source === 'replay')) {
+      const observed = set.dates.find((d) => d.date === date)!.replay?.note?.observed
+      expect(observed, `${date}: a replay-sourced label needs the note that justifies it`)
+        .toBeTruthy()
+    }
+  })
+
   it('the A1 row names priceLow as its full price, and priceHigh as full or a colloquial short form', () => {
     // priceLow is the strict anchor: the A1 Price column carries the fully-expanded low
     // endpoint, so requiring the boundary-delimited full price catches a wrong-row citation
@@ -80,7 +104,9 @@ describe('golden labels', () => {
     // No last-N fallback for the low (that is exactly the false-pass). priceHigh of a band is
     // often spoken colloquially ("68 to 72"), so it is a softer full/last3/last2 check.
     const boundary = (n: number, s: string) => new RegExp(`\\b${n}s?\\b`).test(s)
-    for (const { date, label } of all) {
+    // a `replay` label's band is the operator's, read off the replayed profile — the
+    // transcript never speaks it. Its corpusRef/verbatim are still asserted above.
+    for (const { date, label } of all.filter(({ label }) => label.source === 'corpus')) {
       const row = A1_ROWS.get(label.corpusRef)!
       const low = Math.floor(label.priceLow)
       expect(
@@ -175,6 +201,7 @@ describe('schemas reject malformed input', () => {
     primary: false,
     corpusRef: 1,
     verbatim: 'x',
+    source: 'corpus',
   }
 
   it('goldenLabelSchema is strict and enforces band + primary-is-lvn', () => {
@@ -246,13 +273,32 @@ describe('schemas reject malformed input', () => {
 })
 
 describe('loader', () => {
-  it('reports present/missing profiles + scorable without throwing (feat-119 lands incrementally)', () => {
+  it('reports present/missing profiles + scorable consistently with disk (feat-119 lands incrementally)', () => {
     for (const d of set.dates) {
-      expect(d.profilesPresent).toEqual([])
-      expect(d.profilesMissing).toEqual(referencedProfiles(d.labels))
-      expect(d.replay).toBeNull()
-      expect(d.scorable).toBe(false)
+      const dir = join(GOLDEN_ROOT, d.date)
+      const onDisk = (Object.keys(PROFILE_FILES) as (keyof typeof PROFILE_FILES)[]).filter((p) =>
+        existsSync(join(dir, PROFILE_FILES[p]))
+      )
+      expect(d.profilesPresent).toEqual(onDisk)
+      expect(d.profilesMissing).toEqual(
+        referencedProfiles(d.labels).filter((p) => !onDisk.includes(p))
+      )
+      expect(d.replay === null).toBe(!existsSync(join(dir, 'replay.json')))
+      expect(d.scorable).toBe(
+        d.labels.some((l) => (l.profile === 'any' ? onDisk.length > 0 : onDisk.includes(l.profile)))
+      )
     }
+  })
+
+  it('every landed replay.json names the instrument its labels use (replayAt optional, offset when present)', () => {
+    for (const d of set.dates.filter((x) => x.replay !== null)) {
+      expect(d.replay?.instrument).toBe(instrumentOf(d.labels, null))
+      if (d.replay?.replayAt !== undefined) expect(d.replay.replayAt).toMatch(/[+-]\d{2}:\d{2}$/)
+    }
+  })
+
+  it('every date folder carries a replay.json (operator, 2026-08-24)', () => {
+    for (const d of set.dates) expect(d.replay, d.date).not.toBeNull()
   })
 
   it('instrumentOf prefers replay.json over the price magnitude', () => {
@@ -266,6 +312,7 @@ describe('loader', () => {
         primary: false,
         corpusRef: 1,
         verbatim: 'x',
+        source: 'corpus',
       },
     ]
     expect(instrumentOf(es, null)).toBe('ES')
@@ -300,6 +347,7 @@ describe('loader', () => {
       primary: false,
       corpusRef: 1,
       verbatim: 'x',
+      source: 'corpus',
       ...over,
     })
 

@@ -27,6 +27,16 @@ export const PROFILE_FILES: Readonly<Record<Exclude<GoldenProfile, 'any'>, strin
   overnight: 'overnight.vbp.md',
 }
 
+/**
+ * Where a label's band came from. `corpus` = transcribed straight from the A1 row (the
+ * price is spoken in the transcript). `replay` = feat-119: the operator replayed the date
+ * and the profile disagreed with the transcript, so the band is the one the replayed
+ * profile actually shows. `corpusRef`/`verbatim` still cite the row the read came from —
+ * only the price is the operator's, so the A1 price assertions do not apply to it.
+ */
+export const LABEL_SOURCES = ['corpus', 'replay'] as const
+export type LabelSource = (typeof LABEL_SOURCES)[number]
+
 const INSTRUMENTS = ['NQ', 'ES'] as const
 
 const price = z.number().finite()
@@ -52,6 +62,8 @@ export const goldenLabelSchema = z
     primary: z.boolean(),
     corpusRef: z.number().int().positive(),
     verbatim: z.string().min(1),
+    /** Defaults to `corpus`; `replay` marks an operator correction from feat-119's replay. */
+    source: z.enum(LABEL_SOURCES).default('corpus'),
   })
   .strict()
   .refine((l) => l.priceLow <= l.priceHigh, {
@@ -102,13 +114,19 @@ export const splitSchema = z
   })
 export type GoldenSplit = z.infer<typeof splitSchema>
 
-/** feat-119's per-date sidecar (operator-side). Parsed here so the loader validates it when present. */
+/**
+ * feat-119's per-date sidecar (operator-side). Parsed here so the loader validates it when
+ * present. `replayAt` is optional: the operator replays to the prep video itself, so the
+ * timestamp is provenance only (operator, 2026-08-24). `note` is where the operator records
+ * differences between the LVNs the corpus says to look for and what the replayed profile shows.
+ */
 export const replaySchema = z
   .object({
-    replayAt: z.string().datetime({ offset: true }),
+    replayAt: z.string().datetime({ offset: true }).optional(),
     instrument: z.enum(INSTRUMENTS),
     sessionTemplate: z.string().min(1),
-    note: z.string().optional(),
+    /** `expects` = what the corpus says to look for (pre-filled from labels.json); `observed` = what the operator actually sees on the replayed profile. */
+    note: z.object({ expects: z.string(), observed: z.string() }).strict().optional(),
   })
   .strict()
 export type GoldenReplay = z.infer<typeof replaySchema>
@@ -216,10 +234,14 @@ export function loadGoldenSet(root: string = GOLDEN_ROOT): GoldenSet {
   return { split, dates }
 }
 
-/** Every date folder on disk (whether or not it is in the split) — for the coverage test. */
+/**
+ * Every date folder on disk (whether or not it is in the split) — for the coverage test.
+ * Only `YYYY-MM-DD` directories count: the operator stages the exporter's live output in
+ * sibling scratch folders (`es/`, `nq/`), which are not golden dates and are gitignored.
+ */
 export function listGoldenDates(root: string = GOLDEN_ROOT): string[] {
   return readdirSync(root, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
+    .filter((e) => e.isDirectory() && isCalendarDate(e.name))
     .map((e) => e.name)
     .sort()
 }

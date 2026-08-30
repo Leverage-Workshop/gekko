@@ -1,7 +1,7 @@
 [
   {
     "instrument": "ES",
-    "profile": "any",
+    "profile": "5d",
     "kind": "hvn-edge",
     "priceLow": 7568,
     "priceHigh": 7572,
@@ -11,7 +11,7 @@
   },
   {
     "instrument": "ES",
-    "profile": "any",
+    "profile": "5d",
     "kind": "exhaustive-node",
     "priceLow": 7620,
     "priceHigh": 7624,
@@ -21,7 +21,7 @@
   },
   {
     "instrument": "ES",
-    "profile": "any",
+    "profile": "5d",
     "kind": "lvn",
     "priceLow": 7568,
     "priceHigh": 7572,

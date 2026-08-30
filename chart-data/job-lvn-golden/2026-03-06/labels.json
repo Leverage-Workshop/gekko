@@ -1,12 +1,13 @@
 [
   {
     "instrument": "NQ",
-    "profile": "any",
+    "profile": "5d",
     "kind": "lvn",
-    "priceLow": 24700,
-    "priceHigh": 24700,
+    "priceLow": 24715,
+    "priceHigh": 24715,
     "primary": true,
     "corpusRef": 11,
-    "verbatim": "We have an L primary LBN below us in the 7 700 range"
+    "verbatim": "We have an L primary LBN below us in the 7 700 range",
+    "source": "replay"
   }
 ]

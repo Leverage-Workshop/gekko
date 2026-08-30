@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "6740-6745 lvn on either profile [A1 row 16: \"I'd expect this to be supportive to push us back into this node\"].",
+    "observed": "LVN is on 5-day rolling profile."
+  }
+}

@@ -45,3 +45,9 @@ docs/jba-research/replays/.condensed/
 # Codex review gate stamp (scripts/codex-gate.ts) — bound to a local HEAD,
 # never meaningful in another checkout.
 .codex-gate/
+
+# job-lvn-golden: the operator's live exporter output staged in the golden root
+# (only <YYYY-MM-DD>/ folders are golden dates)
+chart-data/job-lvn-golden/*.vbp.md
+chart-data/job-lvn-golden/es/
+chart-data/job-lvn-golden/nq/

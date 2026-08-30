@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "7568-7572 hvn-edge on either profile [A1 row 22: \"This down here 68 to 72, want to see it defend\"]; 7620-7624 exhaustive-node on either profile [A1 row 23: \"I want to watch this as an exhaust of note on top of the volume profile\"]; 7568-7572 lvn on either profile [A1 row 24: \"68 72 LVN right down here\"].",
+    "observed": "All on the 5-day rolling profile."
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "7758-7760 lvn (PRIMARY) on either profile [A1 row 38: \"primary LBN right here around the 77 58 to 60 area. And so, that's just above the JBA lows here\"].",
+    "observed": "as described."
+  }
+}

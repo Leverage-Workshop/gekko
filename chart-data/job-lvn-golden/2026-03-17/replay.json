@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "6745 hvn-edge on 5-day rolling [A1 row 15: \"we have this 45 area on the uh, 5-day rolling aspect here\"]; 6781-6785 hvn-edge on 5-day rolling [A1 row 15: \"And the 81s right here as well. So, 81 to 85 area\"].",
+    "observed": "LVNs are as described."
+  }
+}

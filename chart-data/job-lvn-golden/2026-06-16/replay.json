@@ -1,0 +1,8 @@
+{
+  "instrument": "ES",
+  "sessionTemplate": "Globex/Chicago",
+  "note": {
+    "expects": "7636 lvn on either profile [A1 row 27: \"test up into this 36 to gauge for continuation. That OBN can be pretty prominent today\"]; 7607-7615 lvn on either profile [A1 row 28: \"I would expect to come and explore some into this LVN um and put a little pressure on the 1A\"].",
+    "observed": "Both on 5-day rolling profile. Second one is around 7602-7604."
+  }
+}

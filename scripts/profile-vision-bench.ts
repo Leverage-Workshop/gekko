@@ -293,6 +293,7 @@ function label(
     primary: false,
     corpusRef: i + 1,
     verbatim: 'fixture',
+    source: 'corpus',
   }
 }
 
