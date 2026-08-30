@@ -82,6 +82,11 @@ export function realJobPlanDeps(client: SupabaseClient = getServiceClient()): Jo
         prompt: params.prompt,
         images: params.images,
         abortSignal: params.abortSignal,
+        // The profile read is structured-output-only: an endpoint that ignores
+        // the schema returns prose the caller cannot use. Restrict routing to
+        // endpoints supporting every parameter we send, so a mis-route surfaces
+        // as a routing error instead of a confusing parse failure (feat-131).
+        requireParameters: true,
         ...(params.telemetry ? { telemetry: params.telemetry } : {}),
       })
       return {

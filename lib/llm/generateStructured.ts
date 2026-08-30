@@ -31,13 +31,26 @@ export const DEFAULT_MODEL_ID = 'anthropic/claude-sonnet-5'
  */
 export function openrouterModelSettings(
   effort?: ReasoningEffort | null,
-): { usage: { include: true }; reasoning?: { effort: Exclude<ReasoningEffort, 'max'> } } {
+  requireParameters = false,
+): {
+  usage: { include: true }
+  reasoning?: { effort: Exclude<ReasoningEffort, 'max'> }
+  provider?: { require_parameters: true }
+} {
   return {
     usage: { include: true },
     // 'max' is documented by the OpenRouter API but absent from
     // @openrouter/ai-sdk-provider's effort union (as of 3.0.0), so it is cast
     // through here; the API still rejects efforts a model doesn't support.
     ...(effort ? { reasoning: { effort: effort as Exclude<ReasoningEffort, 'max'> } } : {}),
+    // OpenRouter load-balances one model id across many provider endpoints, and
+    // they do not all support the same parameters. For an open-weights model in
+    // particular, some endpoints advertise no `structured_outputs` — a call
+    // routed there comes back as unconstrained prose and fails schema parsing
+    // for a reason that looks nothing like the real cause. `require_parameters`
+    // restricts routing to endpoints supporting everything the request carries,
+    // turning a silent mis-route into an honest routing error (feat-131).
+    ...(requireParameters ? { provider: { require_parameters: true as const } } : {}),
   }
 }
 
@@ -52,6 +65,13 @@ export interface ChartImage {
 export interface GenerateStructuredParams<T> {
   /** OpenRouter model id, e.g. `config.model_id`. Defaults to {@link DEFAULT_MODEL_ID}. */
   model?: string
+  /**
+   * Restrict OpenRouter routing to provider endpoints that support every
+   * parameter in the request — crucially `structured_outputs`. Off by default so
+   * the briefing path's routing is unchanged; on for the profile-vision read,
+   * which benches open-weights models whose endpoints differ (feat-131).
+   */
+  requireParameters?: boolean
   /**
    * OpenRouter `reasoning.effort` for this call (the config row's per-model
    * effort column). Null/undefined sends no reasoning parameter — the
@@ -193,7 +213,8 @@ export async function generateStructured<T>(
     images = [],
     abortSignal,
     telemetry,
-    resolveModel = (id) => getOpenRouter()(id, openrouterModelSettings(effort)),
+    requireParameters = false,
+    resolveModel = (id) => getOpenRouter()(id, openrouterModelSettings(effort, requireParameters)),
     generate,
     getTelemetry = getLlmTelemetry,
   } = params

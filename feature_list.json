@@ -1364,7 +1364,8 @@
         "feat-119",
         "feat-124"
       ],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "SCOPE CHANGED by operator 2026-08-30: full 5-model x 6-variant sweep scrapped ($52-100 vs a $9.87 balance; and the 12 test dates carry only 15 labels / 3 primaries / 0 extremes, so the matrix could not resolve what it measured). Ran a correctness validation instead. Report: docs/profile-vision-validation-2026-08-30.md. Research: OpenRouter models API via MCP, 5-model shortlist w/ pricing + structured-output risk. Few-shot refreshed in feat-132. Result: PICK = openai/gpt-5.6-sol @ low effort, samples 3 (RECOMMENDED_PROFILE_VISION, offered in /settings, NOT the config fallback - R14 preserved). 24/24 calls schema-valid on sol/gemini/sonnet; qwen3.8-27b eliminated (0/2). R15 NOT MET (recall 0.40 vs 0.80; primary agreement 0.67 vs 0.70; self-agreement unmeasured at samples 1) -> the read STAYS OFF (R14). Miss-distance analysis shows the read locates prices accurately (11/15 within tolerance ignoring profile binding; median ~2.5 pts on a 5-pt ES tolerance); the recall gap is largely scoring artifacts (uncapped detector, named-profile binding, kind-sensitive matching). One genuine misread: 2026-03-20 NQ, 81.75 pts. Spend $5.90 of $9.87. ./init.sh green."
     },
     {
       "id": "feat-132",
@@ -1384,8 +1385,8 @@
       "dependencies": [
         "feat-131"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "The Profile Vision Model / Effort / Samples fields already shipped in feat-124; this added RECOMMENDED_PROFILE_VISION (lib/job-plan/profile-vision/recommended.ts) sourced from the 2026-08-30 validation, a 'Use recommended' control + placeholder in app/components/settings-form.tsx, and tests/profile-vision-recommended.test.ts pinning the recommendation to an evidence doc that must exist and name the model. PROFILE_VISION_DEFAULTS.profile_vision_model_id stays NULL on purpose - a null id is the R14 safety property (read OFF), not a preference; making a real model the fallback would start paid vision calls wherever the config row predates the migration."
     },
     {
       "id": "feat-134",

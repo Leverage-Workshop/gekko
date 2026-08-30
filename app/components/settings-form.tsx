@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { RECOMMENDED_PROFILE_VISION } from '@/lib/job-plan/profile-vision/recommended'
 import { REASONING_EFFORTS, type ReasoningEffort } from '@/lib/llm/reasoning'
 import { Button } from './button'
 
@@ -366,13 +367,30 @@ export function SettingsForm({
             value={pvModelId}
             onChange={(e) => setPvModelId(e.target.value)}
             className={inputClass}
-            placeholder="provider/model (blank = read OFF)"
+            placeholder={`${RECOMMENDED_PROFILE_VISION.modelId} (blank = read OFF)`}
           />
           <FieldError messages={fieldErrors.profile_vision_model_id} />
           <p className="mt-1 text-xs font-light text-muted">
             Blank turns the vision read off; feat-128 then reports profile nodes
             unavailable rather than calling a model.
           </p>
+          <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <button
+              type="button"
+              onClick={() => {
+                setPvModelId(RECOMMENDED_PROFILE_VISION.modelId)
+                setPvEffort(RECOMMENDED_PROFILE_VISION.effort)
+                setPvSamples(String(RECOMMENDED_PROFILE_VISION.samples))
+              }}
+              className="text-xs font-light uppercase tracking-wide text-accent underline underline-offset-4 hover:no-underline"
+            >
+              Use recommended
+            </button>
+            <span className="text-xs font-light text-muted">
+              {RECOMMENDED_PROFILE_VISION.modelId} · {RECOMMENDED_PROFILE_VISION.effort} effort ·{' '}
+              {RECOMMENDED_PROFILE_VISION.samples} samples ({RECOMMENDED_PROFILE_VISION.evidence})
+            </span>
+          </div>
           <EffortSelect
             id="profile_vision_model_effort"
             value={pvEffort}

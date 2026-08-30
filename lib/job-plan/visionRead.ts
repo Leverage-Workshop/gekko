@@ -84,6 +84,14 @@ export type VisionReadInput = {
   /** Test overrides. */
   readonly rasterize?: (svg: string) => Uint8Array
   readonly fewShot?: readonly FewShotExample[]
+  /**
+   * Absolute wall-clock deadline (epoch ms) for the vision read. Forwarded to
+   * `identifyProfileNodes` so a slow provider cannot eat the whole
+   * `job-plan-task` budget and get the run killed before the R14 degraded plan
+   * is persisted (feat-131). Supplied by the TASK, which owns its own budget;
+   * absent for standalone callers like the bench.
+   */
+  readonly deadlineAt?: number
 }
 
 const NO_USAGE: VisionUsage = { inputTokens: null, outputTokens: null, totalTokens: null }
@@ -189,6 +197,7 @@ export async function readProfileNodes(input: VisionReadInput): Promise<VisionRe
     generate,
     rasterize,
     ...(input.fewShot ? { fewShot: input.fewShot } : {}),
+    ...(input.deadlineAt === undefined ? {} : { deadlineAt: input.deadlineAt }),
     telemetry: { functionId: 'job-plan-task' },
   })
 

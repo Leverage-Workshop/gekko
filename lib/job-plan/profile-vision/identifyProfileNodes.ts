@@ -42,7 +42,33 @@ import {
  */
 
 export const DEFAULT_CONCURRENCY = 6
-export const DEFAULT_TIMEOUT_MS = 60_000
+/**
+ * Per-sample budget for one vision call.
+ *
+ * Raised from 60s (feat-131): the first live runs showed reasoning models take
+ * 30-60s on a single 900x1400 profile at their default effort — `gpt-5.6-sol`
+ * averaged ~41s and `claude-sonnet-5` blew the 60s budget outright, which the
+ * bench then reported as a failed read when the model was merely slow. Samples
+ * run concurrently, so this is wall-clock per call, not per profile.
+ */
+export const DEFAULT_TIMEOUT_MS = 180_000
+
+/**
+ * How long after `job-plan-task` STARTS the vision read must be finished.
+ *
+ * Measured from task start, not from when the read begins, because the task
+ * spends an unknown slice of its budget in `waitForFreshBundle` first (up to
+ * WAIT_TIMEOUT_MS). An "N seconds from now" budget set before that wait would
+ * be eaten by a slow bundle and report `deadline exceeded` on every call while
+ * the task still had minutes left.
+ *
+ * `maxDuration` is 300s; this leaves 60s after the read for image uploads, plan
+ * build and persistence, so a slow provider cannot get the run killed by
+ * trigger.dev before the R14 degraded plan is written - which would lose the
+ * plan AND re-bill every call on the retry. The TASK owns this deadline and
+ * passes it in; the planner modules stay clock-free.
+ */
+export const VISION_READ_DEADLINE_FROM_TASK_START_MS = 240_000
 
 /** The slice of `generateStructured` this module needs — injectable so tests never call a model. */
 export type VisionGenerate = (params: {
@@ -78,6 +104,22 @@ export type IdentifyProfileNodesInput = {
   readonly rasterize?: (svg: string) => Uint8Array
   readonly concurrency?: number
   readonly timeoutMs?: number
+  /**
+   * Absolute wall-clock deadline (epoch ms) for the WHOLE read, when the caller
+   * runs inside a bounded task.
+   *
+   * Calls share a concurrency cap, so the read can span several waves and its
+   * total time is NOT bounded by `timeoutMs`. `job-plan-task` has
+   * `maxDuration: 300` and may already have spent WAIT_TIMEOUT_MS (120s) waiting
+   * for a fresh bundle, so an unbounded read can be killed by trigger.dev before
+   * the R14 degraded plan is persisted - losing the plan and re-billing the calls
+   * on retry. Each call's timeout becomes `min(timeoutMs, time remaining)`, and
+   * once the deadline passes the remaining calls fail immediately rather than
+   * starting paid work that cannot finish (feat-131).
+   */
+  readonly deadlineAt?: number
+  /** Injectable clock for the deadline arithmetic; defaults to Date.now. */
+  readonly now?: () => number
   readonly telemetry?: TelemetryOptions
 }
 
@@ -197,6 +239,17 @@ function buildCalls(
 async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<RawSample> {
   const base = { sample: call.sample, tile: call.tile.index, imageSha256: call.imageSha256 }
   const controller = new AbortController()
+  const budget = effectiveTimeoutMs(input)
+  if (budget <= 0) {
+    return {
+      ...base,
+      ok: false,
+      read: null,
+      error: 'deadline exceeded before the call started',
+      latencyMs: null,
+      cost: null,
+    }
+  }
   try {
     const result = await withTimeout(
       input.generate({
@@ -208,7 +261,7 @@ async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<Ra
         abortSignal: controller.signal,
         ...(input.telemetry ? { telemetry: input.telemetry } : {}),
       }),
-      input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      budget,
       controller
     )
     return {
@@ -229,6 +282,22 @@ async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<Ra
       cost: null,
     }
   }
+}
+
+/**
+ * Budget for the next call: the per-call ceiling clamped to whatever is left of
+ * the caller's overall deadline. <= 0 means the deadline already passed, which
+ * the caller turns into an immediate failed sample rather than a paid request
+ * that cannot complete.
+ */
+export function effectiveTimeoutMs(input: {
+  readonly timeoutMs?: number
+  readonly deadlineAt?: number
+  readonly now?: () => number
+}): number {
+  const perCall = input.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  if (input.deadlineAt === undefined) return perCall
+  return Math.min(perCall, input.deadlineAt - (input.now ?? Date.now)())
 }
 
 function entryFor(

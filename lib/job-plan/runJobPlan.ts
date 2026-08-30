@@ -77,6 +77,11 @@ export type RunJobPlanOptions = {
   readonly triggerReason: string
   /** The pending `bundle_requests` row the dashboard inserted; absent on test runs. */
   readonly bundleRequestId?: string
+  /**
+   * Absolute deadline (epoch ms) for the vision read, from the TASK's own
+   * budget. This module is clock-free by contract, so the task computes it.
+   */
+  readonly visionDeadlineAt?: number
 }
 
 export type JobPlanRunResult = {
@@ -188,8 +193,10 @@ async function visionRead(
   deps: JobPlanDeps,
   config: JobPlanConfig,
   preflight: Preflight,
+  visionDeadlineAt: number | undefined,
 ): Promise<VisionReadResult> {
   return readProfileNodes({
+    ...(visionDeadlineAt === undefined ? {} : { deadlineAt: visionDeadlineAt }),
     config,
     instrument: preflight.instrument,
     currentPrice: preflight.currentPrice,
@@ -208,7 +215,7 @@ export async function runJobPlan(deps: JobPlanDeps, options: RunJobPlanOptions):
 
   const bundle = await loadJobBundle(deps, options.bundleRequestId)
   const preflight = preflightParse(bundle.texts)
-  const vision = await visionRead(deps, config, preflight)
+  const vision = await visionRead(deps, config, preflight, options.visionDeadlineAt)
 
   const visionModelId = vision.profileNodes?.modelId ?? null
   const visionPromptRevision = vision.profileNodes?.promptRevision ?? null
