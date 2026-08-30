@@ -199,7 +199,7 @@ const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
  */
 const OUTPUT_RULES_AXIS_FREE = `Output JSON only, matching the schema. Rules:
 - nodes: at most 8 — a ceiling, not a quota, and fewer is better. When more than 8 are visible keep them in this order: the primary lvn, clear extreme anatomy, secondary lvns, the dominant hvn-core of each distribution, then the most significant hvn-edges. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
-- yLow / yHigh: WHERE the band sits vertically, as a fraction of the image — 0.000 is the BOTTOM edge of the image, 1.000 is the TOP edge. yLow is the band's lower edge, yHigh its upper edge; equal for a point. Give three decimals. NEVER output a price: this image has no price axis, and code converts your fractions to prices from the span stated below.
+- yLow / yHigh: WHERE the band sits vertically, as a fraction of the PROFILE — 0.000 is the bottom of the LOWEST bar, 1.000 is the top of the HIGHEST bar, and the narrow blank margins above and below the bars are outside that scale. yLow is the band's lower edge, yHigh its upper edge; equal for a point. Give three decimals. NEVER output a price: this image has no price axis, and code converts your fractions to prices from the span stated below.
 - prominence: 1 (most structurally important in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. TIES ARE ALLOWED: a dominant peak and the primary lvn may both be 1. A secondary lvn gets 3-5.
 - primary: when you report any lvn, exactly one carries true; when the image shows no lvn at all, every node is false.
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
@@ -296,14 +296,29 @@ function frac2(n: number): string {
 
 /**
  * One marker as the axis-free text states it: its price AND its fraction, so
- * the model can check its own scale against a line it can see. A marker outside
- * this tile's span is not drawn, and saying so is better than quoting a
- * fraction clamped to an edge the line is not on.
+ * the model can check its own scale against a line it can see. A POC / VAH /
+ * VAL outside this tile's span is not drawn at all, and saying so is better
+ * than quoting a fraction clamped to an edge the line is not on.
  */
 function markerPhrase(tag: string, price: number, tile: TileSpan): string {
   if (price < tile.priceLow || price > tile.priceHigh)
-    return `${tag} ${price2(price)} (not in this image)`
+    return `${tag} ${price2(price)} (no line for it in this image)`
   return `${tag} ${price2(price)} at y=${frac2(priceToFraction(tile, price))}`
+}
+
+/**
+ * The current price is the one marker the renderer still LABELS when it falls
+ * outside the span — pinned to the nearest plot edge, so the image and the text
+ * would contradict each other if this said "not in this image". Say where the
+ * label actually is, and that it is not a scale anchor.
+ */
+function currentPhrase(current: number | null, tile: TileSpan): string {
+  if (current === null) return 'current price not shown'
+  if (current > tile.priceHigh)
+    return `current price ${price2(current)} is ABOVE this image; its orange label is pinned to the top edge and is not a scale anchor`
+  if (current < tile.priceLow)
+    return `current price ${price2(current)} is BELOW this image; its orange label is pinned to the bottom edge and is not a scale anchor`
+  return `current price ${price2(current)} at y=${frac2(priceToFraction(tile, current))} (orange line)`
 }
 
 function describeImageAxisFree(
@@ -316,15 +331,18 @@ function describeImageAxisFree(
     tile.of > 1
       ? ` This is tile ${tile.index + 1} of ${tile.of}; the full profile spans ${price2(meta.priceLow)}–${price2(meta.priceHigh)} and the tiles overlap.`
       : ''
-  const current =
-    meta.currentPrice === null
-      ? 'current price not shown'
-      : `${markerPhrase('current price', meta.currentPrice, tile)} (orange line)`
   return (
-    `${label}: ${instrument}, row step ${meta.step} pts. The image has NO price axis:` +
-    ` its BOTTOM edge (y=0.000) is ${price2(tile.priceLow)} and its TOP edge (y=1.000) is ${price2(tile.priceHigh)}, linear in between.` +
-    ` Scale anchors on the image: ${markerPhrase('POC', meta.poc, tile)} (solid line),` +
-    ` ${markerPhrase('VAH', meta.vah, tile)} / ${markerPhrase('VAL', meta.val, tile)} (dashed, value area shaded), ${current}.` +
+    `${label}: ${instrument}, row step ${meta.step} pts. The image has NO price axis.` +
+    // The bars fill the plot area, which is inset from the image by a small
+    // blank margin top and bottom. Anchoring the scale to the BARS rather than
+    // to the image edges keeps the model's fractions on the same scale the
+    // conversion uses; anchoring them to the image would bias every read toward
+    // the middle by the margin (about 3 % of the height at the default size,
+    // which is more than the NQ match tolerance on a wide profile).
+    ` Vertical scale: y=0.000 is the BOTTOM of the lowest bar (${price2(tile.priceLow)}) and y=1.000 is the TOP of the highest bar (${price2(tile.priceHigh)}), linear in between.` +
+    ` The narrow blank margins above and below the bars are outside that scale.` +
+    ` Scale anchors: ${markerPhrase('POC', meta.poc, tile)} (solid line),` +
+    ` ${markerPhrase('VAH', meta.vah, tile)} / ${markerPhrase('VAL', meta.val, tile)} (dashed, value area shaded), ${currentPhrase(meta.currentPrice, tile)}.` +
     tileNote
   )
 }

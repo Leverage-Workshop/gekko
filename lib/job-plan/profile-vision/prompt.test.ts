@@ -243,6 +243,11 @@ describe('vision prompt', () => {
 // feat-135: axis-free mode. Same builder, same criteria, different way of
 // saying WHERE — because the image the model is shown has no axis to read.
 // ---------------------------------------------------------------------------
+/** Text content of every `<text>` element in an SVG. */
+function textOf(svg: string): string[] {
+  return [...svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1])
+}
+
 function axisFreeTarget() {
   const profile = parseVbpProfile(readFileSync(FIXTURE, 'utf8'))
   const { meta, tiles } = renderProfile(profile, {
@@ -282,7 +287,7 @@ describe('vision prompt — axis-free mode (feat-135)', () => {
 
   it('asks for yLow / yHigh and forbids prices in the output', () => {
     expect(prompt).toContain('yLow / yHigh')
-    expect(prompt).toContain('0.000 is the BOTTOM edge')
+    expect(prompt).toContain('0.000 is the bottom of the LOWEST bar')
     expect(prompt).toContain('NEVER output a price')
     expect(prompt).toContain('thinZones: at most 3 { yLow, yHigh } spans')
     // the price-mode instructions must be gone, or the model gets both
@@ -297,10 +302,21 @@ describe('vision prompt — axis-free mode (feat-135)', () => {
     for (const canary of CRITERIA_CANARIES) expect(prompt).toContain(canary)
   })
 
-  it('states the image edges and every marker as a FRACTION alongside its price', () => {
-    expect(prompt).toContain('its BOTTOM edge (y=0.000) is 28910.00')
-    expect(prompt).toContain('and its TOP edge (y=1.000) is 30073.00')
-    // POC 29900 sits (29900 - 28910) / 1163 = 0.851 up the image
+  /**
+   * The scale is anchored to the BARS, not to the image edges. The plot area is
+   * inset 40 px top and bottom of 1400, so "bottom edge of the image" would bias
+   * every fraction toward the middle by ~2.9 % — about 24 pts on the widest NQ
+   * profile, more than the 20-pt match tolerance. (Codex P2, feat-135.)
+   */
+  it('anchors the scale to the lowest and highest BARS, not the image edges', () => {
+    expect(prompt).toContain('y=0.000 is the BOTTOM of the lowest bar (28910.00)')
+    expect(prompt).toContain('y=1.000 is the TOP of the highest bar (30073.00)')
+    expect(prompt).toContain('blank margins above and below the bars are outside that scale')
+    expect(prompt).not.toContain('BOTTOM edge of the image')
+  })
+
+  it('states every marker as a FRACTION alongside its price', () => {
+    // POC 29900 sits (29900 - 28910) / 1163 = 0.851 up the profile
     expect(prompt).toContain('POC 29900.00 at y=0.851 (solid line)')
     expect(prompt).toContain('VAH 29995.00 at y=0.933')
     expect(prompt).toContain('VAL 29361.00 at y=0.388')
@@ -314,7 +330,13 @@ describe('vision prompt — axis-free mode (feat-135)', () => {
     expect(prompt).not.toContain('"priceHigh"')
   })
 
-  it('says a marker outside a tile is not on the image instead of clamping its fraction', () => {
+  /**
+   * An out-of-span POC / VAH / VAL is not drawn at all, but the renderer DOES
+   * still label an out-of-span current price, pinned to the nearest plot edge —
+   * so the text must not claim it is absent, or the image and the prompt
+   * contradict each other. (Codex P2, feat-135.)
+   */
+  it('distinguishes a marker with no line from the pinned current-price label', () => {
     const profile = parseVbpProfile(readFileSync(FIXTURE, 'utf8'))
     const { meta: m2, tiles } = renderProfile(profile, {
       instrument: 'NQ',
@@ -326,8 +348,12 @@ describe('vision prompt — axis-free mode (feat-135)', () => {
       { instrument: 'NQ', profileName: 'x', lookback: 'y', meta: m2, tile: tiles[1].tile },
       []
     )
-    expect(lower).toContain('POC 29900.00 (not in this image)')
-    expect(lower).toContain('current price 29945.75 (not in this image)')
+    expect(lower).toContain('POC 29900.00 (no line for it in this image)')
+    expect(lower).toContain(
+      'current price 29945.75 is ABOVE this image; its orange label is pinned to the top edge and is not a scale anchor'
+    )
     expect(lower).toContain('tile 2 of 2')
+    // and the label the renderer actually drew is the one the text describes
+    expect(textOf(tiles[1].svg)).toContain('current (above this image)')
   })
 })

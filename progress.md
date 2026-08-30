@@ -4632,3 +4632,22 @@ only** — the axis-mode prompt text is identical to `vision-2026-08-30.7`'s.
 **Verification.** `./init.sh` green — typecheck, lint, **2241/2242 tests** (1 skipped), build.
 190 tests in `lib/job-plan/profile-vision` (was 151). **No live LLM calls at any point**
 (`RUN_LLM_INTEGRATION` never set; every test stubs `generate`).
+
+**Codex gate: PASS on the first run (0 P0, 0 P1, 2 P2) — both P2s were real and both are FIXED.**
+
+1. *"Normalize positions against the plot area, not image edges."* Correct and material, not a nit.
+   The bars occupy `plotTop = 40` … `plotBottom = height - 40`, and `normalized.ts` maps `y` linearly
+   across that band — but the prompt said "0.000 is the BOTTOM edge of the **image**". A model taking
+   that literally reports `0.0286 + 0.9429·f` instead of `f`: a bias of **±2.9 % at the extremes,
+   ≈ ±24 pts on the widest NQ profile**, which is *more* than the 20-pt match tolerance. It would have
+   looked like "the model can't judge position" when it was the prompt lying about the scale. The
+   text now anchors to the content — "y=0.000 is the BOTTOM of the lowest bar, y=1.000 the TOP of the
+   highest bar; the narrow blank margins above and below the bars are outside that scale" — in both
+   `OUTPUT_RULES_AXIS_FREE` and the per-call description, with a test pinning it.
+2. *"Describe out-of-span current markers that remain visible."* Also correct. POC / VAH / VAL outside
+   a tile's span are not drawn at all, but `markerLinesSvg` still LABELS an out-of-span current price
+   pinned to the nearest plot edge — so "not in this image" contradicted the picture. Split into two
+   phrasings: `(no line for it in this image)` for the undrawn markers, and, for the current price,
+   "is ABOVE this image; its orange label is pinned to the top edge and is not a scale anchor".
+
+Nothing dismissed.
