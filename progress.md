@@ -4361,3 +4361,23 @@ migration. Enabling the read remains an explicit operator action.
 at the post-merge checkout ("local changes would be overwritten"), so three later commits were
 pushed to an already-merged PR and never reached `main`. Recovered by cherry-pick onto the
 feat-131 branch. Check `git show origin/main:<file>` after a merge that reports a local error.
+
+### 2026-08-30 (later) — vision read ENABLED by the operator
+
+Self-agreement was the one R15 gate never measured (samples was 1 to save budget). Measured it
+at the true production configuration — `openai/gpt-5.6-sol`, low effort, **samples 3**, 4 dates —
+and it came back **81%**, clearing the ≥ 0.80 bar. That is the gate that matters most for the
+consensus: each image is read 3 times and `consensus.ts` keeps only nodes appearing in a
+majority, so an unstable model produces a thin or empty read no matter how it scores elsewhere.
+24/24 calls valid, $0.52.
+
+Live `config` row set to `openai/gpt-5.6-sol` / `low` / `3`. The read is ON.
+
+**R15 stays `ratified: false`.** Enabling is an operator decision taken with the proposed numbers
+unmet (recall 0.40 vs 0.80; primary agreement 0.67 vs 0.70), not a claim they were met — and
+`rules.ts` already records R15 as proposed, with the plan listing "ratified numbers are first
+guesses" as a known risk. No thresholds were invented on the operator's behalf, and
+`PLANNER_REVISION` is untouched.
+
+Running cost ~$0.17 per job-plan run (6 calls). Balance ~$3.4 at the time of writing — roughly
+20 runs. Revert by setting the model id to NULL in /settings; R14 then applies.
