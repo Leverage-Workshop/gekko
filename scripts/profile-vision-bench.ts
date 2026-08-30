@@ -24,6 +24,14 @@
  * under the scratchpad keyed by (image sha256, VISION_PROMPT_REVISION, model,
  * effort) — an ORDERED list of the S reads, so a warm rerun replays each
  * sample's distinct read (self-agreement stays honest) with its real cost/latency.
+ *
+ * feat-135 adds the `axis-free` variant, whose model answers in normalized
+ * positions rather than prices. Two consequences here: the wrapper must send the
+ * SCHEMA identifyProfileNodes hands it (price-shaped or fraction-shaped) rather
+ * than a hardcoded one, and the cache validates entries with the either-form
+ * schema and replays one only when it parses under the current arm's schema.
+ * Everything downstream — scoring, the detector comparison, the report — is
+ * untouched: the fractions become prices at the call boundary.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -67,8 +75,9 @@ import {
 } from '../lib/job-plan/profile-vision/identifyProfileNodes'
 import type { Instrument } from '../lib/job-plan/profile-vision/instrument'
 import {
-  profileNodesReadSchema,
+  profileNodesReadEitherSchema,
   type ProfileNodesRead,
+  type ProfileNodesReadEither,
 } from '../lib/job-plan/profile-vision/schema'
 import { VISION_PROMPT_REVISION } from '../lib/job-plan/profile-vision/prompt'
 import { PROFILE_KEYS, type ProfileKey } from '../lib/job-plan/profile-vision/types'
@@ -84,6 +93,14 @@ const VARIANTS: Readonly<Record<string, Omit<RenderOptions, 'instrument' | 'curr
   tiles: { tiles: 2 },
   'left-anchor': { barAnchor: 'left' },
   'dark-envelope': { theme: 'dark', envelope: true },
+  /**
+   * feat-135: no price axis at all. The model reports normalized vertical
+   * positions and `identifyProfileNodes` converts them to prices, so this arm
+   * is scored by exactly the same code as every other. ONE tile on purpose —
+   * tiling exists because a tall profile's axis text shrinks until it is
+   * illegible, and there is no axis text here.
+   */
+  'axis-free': { axis: false, tiles: 1 },
 }
 
 /** Vision-readable profile keys (feat-123). Golden `overnight` profiles have no vision key. */
@@ -142,7 +159,7 @@ function parseArgs(argv: string[]): Args {
 // ---------------------------------------------------------------------------
 const CACHE_DIR = join(tmpdir(), 'gekko-profile-vision-bench-cache')
 
-type CachedRead = { read: ProfileNodesRead; cost: number | null; latencyMs: number | null }
+type CachedRead = { read: ProfileNodesReadEither; cost: number | null; latencyMs: number | null }
 type CacheFile = { reads: CachedRead[] }
 
 function cacheKey(imageSha: string, model: string, effort: ReasoningEffort | null): string {
@@ -158,7 +175,9 @@ function loadCacheFile(key: string): CacheFile {
   const reads: CachedRead[] = []
   for (const entry of raw.reads ?? []) {
     const e = entry as { read?: unknown; cost?: number | null; latencyMs?: number | null }
-    const parsed = profileNodesReadSchema.safeParse(e.read)
+    // Either form: the axis arms cache price reads, `axis-free` caches
+    // fractions, and both live in the same key space (feat-135).
+    const parsed = profileNodesReadEitherSchema.safeParse(e.read)
     if (parsed.success) {
       reads.push({ read: parsed.data, cost: e.cost ?? null, latencyMs: e.latencyMs ?? null })
     }
@@ -192,7 +211,7 @@ function makeGenerate(model: string, effort: ReasoningEffort | null): VisionGene
     }
     return list
   }
-  return async ({ prompt, images, abortSignal }) => {
+  return async ({ schema, prompt, images, abortSignal }) => {
     const targetImage = images[images.length - 1]
     const imageSha = createHash('sha256').update(targetImage.base64).digest('hex')
     const key = cacheKey(imageSha, model, effort)
@@ -201,12 +220,19 @@ function makeGenerate(model: string, effort: ReasoningEffort | null): VisionGene
     cursor.set(key, i + 1)
     if (i < list.length) {
       const hit = list[i]
-      return { object: hit.read, cost: hit.cost, latencyMs: hit.latencyMs ?? 0 }
+      // A cached entry is only usable if it is in the form THIS arm asked for.
+      const replay = schema.safeParse(hit.read)
+      if (replay.success) {
+        return { object: replay.data, cost: hit.cost, latencyMs: hit.latencyMs ?? 0 }
+      }
     }
+    // The schema comes from identifyProfileNodes, never from this module: it is
+    // price-shaped for the axis variants and fraction-shaped for `axis-free`,
+    // and substituting one here would ask the model for the wrong thing.
     const result = await generateStructured({
       model,
       effort,
-      schema: profileNodesReadSchema,
+      schema,
       prompt,
       images: [...images],
       abortSignal,
@@ -430,7 +456,9 @@ async function scoreCase(
       const targets = [...(named.find((n) => n.key === vp.key)?.labels ?? []), ...anyLabels]
       console.log(
         `  vision[${vp.key}] ${vp.nodes.length} nodes: ${vp.nodes.map(fmt).join(', ')}` +
-          (targets.length > 0 ? `  | miss-distance: ${targets.map((t) => nearestTo(t.price)).join(', ')}` : '')
+          (targets.length > 0
+            ? `  | miss-distance: ${targets.map((t) => nearestTo(t.price)).join(', ')}`
+            : '')
       )
     }
     for (const dp of detectorPreds) {
@@ -604,7 +632,9 @@ function reportBody(
           ``,
           `| count | message |`,
           `| --- | --- |`,
-          ...s.errors.map((e) => `| ${e.count} | ${e.message.replace(/\|/g, '\\|').slice(0, 300)} |`),
+          ...s.errors.map(
+            (e) => `| ${e.count} | ${e.message.replace(/\|/g, '\\|').slice(0, 300)} |`
+          ),
           ``,
         ]),
     `### R15 (proposed exit criterion)`,

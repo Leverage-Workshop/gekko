@@ -12,6 +12,7 @@ import {
   VISION_PROMPT_REVISION,
   type FewShotExample,
 } from './prompt'
+import { toPriceRead } from './normalized'
 import { rasterizePng } from './rasterize'
 import {
   renderProfile,
@@ -20,7 +21,12 @@ import {
   type RenderOptions,
   type TileSpan,
 } from './renderProfile'
-import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
+import {
+  profileNodesReadNormalizedSchema,
+  profileNodesReadSchema,
+  type ProfileNodesRead,
+  type ProfileNodesReadNormalized,
+} from './schema'
 import {
   PROFILE_KEYS,
   PROFILE_NAMES,
@@ -39,6 +45,15 @@ import {
  *
  * Model id and effort are parameters: never hardcoded, the caller supplies
  * them from `config` (feat-124 adds the columns).
+ *
+ * THE CONVERSION BOUNDARY (feat-135). With the axis-free render variant
+ * (`render.axis === false`) the model answers in normalized vertical positions
+ * rather than prices, because the image it was shown has no axis to read. That
+ * form gets exactly this far: `runCall` validates the read against the
+ * axis-free schema and converts it to prices against the span its own image
+ * covers, so `RawSample.read`, consensus, the bench scorer, the planner and the
+ * persisted `job_plans.profile_nodes` all keep seeing prices and none of them
+ * knows the variant existed.
  */
 
 export const DEFAULT_CONCURRENCY = 6
@@ -70,18 +85,27 @@ export const DEFAULT_TIMEOUT_MS = 180_000
  */
 export const VISION_READ_DEADLINE_FROM_TASK_START_MS = 240_000
 
+/**
+ * What one vision call returns: a PRICE read from an axis variant, or a
+ * NORMALIZED one from the axis-free variant. Which is asked for is decided by
+ * the `schema` this module passes in, and the caller only has to hand back what
+ * that schema produced.
+ */
+export type VisionCallOutput = ProfileNodesRead | ProfileNodesReadNormalized
+
 /** The slice of `generateStructured` this module needs — injectable so tests never call a model. */
 export type VisionGenerate = (params: {
   readonly model: string
   readonly effort: ReasoningEffort | null
-  readonly schema: z.ZodType<ProfileNodesRead>
+  /** The wire schema for THIS call — price or normalized. Use it; do not substitute one. */
+  readonly schema: z.ZodType<VisionCallOutput>
   readonly prompt: string
   readonly images: readonly ChartImage[]
   /** Aborted at the per-call timeout — a real `generate` MUST honour it (generateStructured does). */
   readonly abortSignal: AbortSignal
   readonly telemetry?: TelemetryOptions
 }) => Promise<{
-  readonly object: ProfileNodesRead
+  readonly object: VisionCallOutput
   readonly cost: number | null
   readonly latencyMs: number
 }>
@@ -130,6 +154,8 @@ type Call = {
   readonly imageSha256: string
   readonly prompt: string
   readonly images: readonly ChartImage[]
+  /** The image has no price axis: the answer comes back as fractions (feat-135). */
+  readonly axisFree: boolean
 }
 
 function toBase64(png: Uint8Array): string {
@@ -232,8 +258,25 @@ function buildCalls(
       imageSha256: rendered.sha256,
       prompt,
       images,
+      axisFree: !meta.axis,
     }))
   })
+}
+
+/**
+ * THE CONVERSION BOUNDARY. Validate what came back against the schema the call
+ * asked for, and — for an axis-free call — turn its fractions into prices using
+ * the span of the very image the model was shown (the TILE's span, not the
+ * profile's, so a tiled axis-free render converts against the right window).
+ *
+ * A read that fails here throws inside `runCall`'s try, so it is recorded as a
+ * failed sample with the validation error rather than smuggled downstream:
+ * `superRefine` rules are not expressible in JSON Schema, so no provider is
+ * actually constrained by them.
+ */
+function readToPrices(object: VisionCallOutput, call: Call): ProfileNodesRead {
+  if (!call.axisFree) return profileNodesReadSchema.parse(object)
+  return toPriceRead(profileNodesReadNormalizedSchema.parse(object), call.tile)
 }
 
 async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<RawSample> {
@@ -255,7 +298,7 @@ async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<Ra
       input.generate({
         model: input.modelId,
         effort: input.effort,
-        schema: profileNodesReadSchema,
+        schema: call.axisFree ? profileNodesReadNormalizedSchema : profileNodesReadSchema,
         prompt: call.prompt,
         images: call.images,
         abortSignal: controller.signal,
@@ -267,7 +310,7 @@ async function runCall(call: Call, input: IdentifyProfileNodesInput): Promise<Ra
     return {
       ...base,
       ok: true,
-      read: result.object,
+      read: readToPrices(result.object, call),
       error: null,
       latencyMs: result.latencyMs,
       cost: result.cost,

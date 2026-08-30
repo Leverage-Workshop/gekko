@@ -3,7 +3,7 @@
  *
  *   npx tsx scripts/render-profile.ts <file.vbp.md> [more files...] [--out <dir>]
  *       [--instrument NQ|ES] [--price <current>] [--theme light|dark]
- *       [--envelope] [--tiles 2] [--anchor left|right]
+ *       [--envelope] [--tiles 2] [--anchor left|right] [--axis-free]
  *
  * Writes `<basename>[.t<i>].<theme>[.env][.left].png` (+ `.svg`) into `--out`
  * (default: <tmpdir>/gekko-profile-render) and prints one summary line per
@@ -32,6 +32,8 @@ type Args = {
   envelope: boolean
   tiles: 1 | 2
   anchor: BarAnchor
+  /** feat-135: suppress the price axis (and every digit on the image). */
+  axis: boolean
 }
 
 function parseArgs(argv: string[]): Args {
@@ -42,6 +44,7 @@ function parseArgs(argv: string[]): Args {
     envelope: false,
     tiles: 1,
     anchor: 'right',
+    axis: true,
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
@@ -53,6 +56,7 @@ function parseArgs(argv: string[]): Args {
     else if (a === '--envelope') args.envelope = true
     else if (a === '--tiles') args.tiles = Number(next()) === 2 ? 2 : 1
     else if (a === '--anchor') args.anchor = next() as BarAnchor
+    else if (a === '--axis-free') args.axis = false
     else args.files.push(a)
   }
   if (args.files.length === 0) throw new Error('usage: render-profile.ts <file.vbp.md> [...]')
@@ -72,9 +76,15 @@ function main(): void {
       envelope: args.envelope,
       tiles: args.tiles,
       barAnchor: args.anchor,
+      axis: args.axis,
     })
     const stem = basename(file).replace(/\.vbp\.md$/, '')
-    const variant = [args.theme, args.envelope ? 'env' : '', args.anchor === 'left' ? 'left' : '']
+    const variant = [
+      args.theme,
+      args.envelope ? 'env' : '',
+      args.anchor === 'left' ? 'left' : '',
+      args.axis ? '' : 'axis-free',
+    ]
       .filter(Boolean)
       .join('.')
     for (const tile of result.tiles) {

@@ -22,6 +22,13 @@ import { MAJOR_LABEL_INTERVAL, type Instrument } from './instrument'
  *
  * Bin convention: a row at price P with step s covers [P, P + s) — Sierra's
  * Volume by Price bins start at the row price and extend one bin upward.
+ *
+ * feat-135 adds the AXIS-FREE variant (`axis: false`). The price axis is the
+ * one thing on the image the model has to READ rather than SEE, and reading it
+ * is the error-prone step. With `axis: false` nothing on the image carries a
+ * digit; the model reports normalized vertical positions and the caller turns
+ * those into prices from the span it already knows the image covers. See
+ * `normalized.ts` for the conversion and `prompt.ts` for the axis-free rules.
  */
 
 export type RenderTheme = 'light' | 'dark'
@@ -39,6 +46,20 @@ export type RenderOptions = {
   tiles?: 1 | 2
   /** Bake-off variable: bars grow from the right-hand axis (Sierra) or from the left edge. Default 'right'. */
   barAnchor?: BarAnchor
+  /**
+   * Bake-off variable (feat-135): draw the price axis (ticks + labels), or omit
+   * it entirely. Default true.
+   *
+   * `false` is the AXIS-FREE variant: the model is never asked to read a number
+   * off the chart. It reports a node's normalized vertical position (0 = bottom
+   * edge of the plot, 1 = top) and `identifyProfileNodes` converts that to price
+   * from the span the image is known to cover. The POC / VAH / VAL / current
+   * lines and the value-area shade STAY — with the axis gone they are the only
+   * visible calibration anchors — but their labels lose the price and keep the
+   * tag, so the image carries no digits at all. The freed axis gutter goes to
+   * the bars, which are the actual signal.
+   */
+  axis?: boolean
   /** Row budget after aggregation (the 2-px-per-row target at the default height). Default 660. */
   maxRows?: number
   /** Image size in px. Long edge must stay <= 1568 so no provider downscales the labels. */
@@ -67,6 +88,8 @@ export type RenderMeta = {
   readonly theme: RenderTheme
   readonly envelope: boolean
   readonly barAnchor: BarAnchor
+  /** False = axis-free variant (feat-135): no ticks, no labels, no digits on the image. */
+  readonly axis: boolean
   readonly width: number
   readonly height: number
   /** Source bin step (points) from the export. */
@@ -120,6 +143,8 @@ const MARGIN_TOP = 40
 const MARGIN_BOTTOM = 40
 const MARGIN_LEFT = 24
 const AXIS_WIDTH = 132
+/** Right gutter when there is no axis to reserve room for (feat-135). */
+const MARGIN_RIGHT = 24
 const TICK_MAJOR = 10
 const TICK_MINOR = 5
 /** Below these the plot area collapses to nothing (margins + axis only). */
@@ -247,12 +272,19 @@ export type Geometry = {
   priceHigh: number
 }
 
-function geometry(width: number, height: number, priceLow: number, priceHigh: number): Geometry {
+function geometry(
+  width: number,
+  height: number,
+  priceLow: number,
+  priceHigh: number,
+  axis: boolean
+): Geometry {
   return {
     width,
     height,
     plotLeft: MARGIN_LEFT,
-    plotRight: width - AXIS_WIDTH,
+    // No axis, no axis gutter: the bars get the width back (feat-135).
+    plotRight: width - (axis ? AXIS_WIDTH : MARGIN_RIGHT),
     plotTop: MARGIN_TOP,
     plotBottom: height - MARGIN_BOTTOM,
     priceLow,
@@ -266,10 +298,14 @@ function geometry(width: number, height: number, priceLow: number, priceHigh: nu
  * stored PNG with the same margins and axis width the image used.
  */
 export function tileGeometry(
-  meta: Pick<RenderMeta, 'width' | 'height'>,
+  // `axis` is typed loosely because the dashboard passes a `z.looseObject`
+  // parse of a persisted RenderMeta, whose extra keys are `unknown`. A row
+  // persisted before feat-135 has no `axis` key at all and must read as the
+  // axis variant it was drawn with.
+  meta: Pick<RenderMeta, 'width' | 'height'> & { readonly axis?: unknown },
   tile: Pick<TileSpan, 'priceLow' | 'priceHigh'>
 ): Geometry {
-  return geometry(meta.width, meta.height, tile.priceLow, tile.priceHigh)
+  return geometry(meta.width, meta.height, tile.priceLow, tile.priceHigh, meta.axis !== false)
 }
 
 /** Price -> y (higher prices up). Exported so tests can assert marker placement. */
@@ -382,6 +418,16 @@ function valueAreaShadeSvg(g: Geometry, vah: number, val: number, pal: Palette):
   return `<rect x="${px(g.plotLeft)}" y="${px(y1)}" width="${px(g.plotRight - g.plotLeft)}" height="${px(y2 - y1)}" fill="${pal.vaFill}"/>`
 }
 
+/**
+ * Marker tag. With the axis on it carries the price, as it always has; with the
+ * axis off it is the bare tag — the axis-free image must hold no digits at all,
+ * or the model is back to reading numbers off the chart. The prompt states each
+ * marker's FRACTION (and its price) in text instead.
+ */
+function markerText(tag: string, price: number, axis: boolean): string {
+  return axis ? `${tag} ${price2(price)}` : tag
+}
+
 /** POC / VAH / VAL / current-price lines and labels. Drawn ABOVE the bars. */
 function markerLinesSvg(
   g: Geometry,
@@ -389,6 +435,7 @@ function markerLinesSvg(
   vah: number,
   val: number,
   current: number | null,
+  axis: boolean,
   pal: Palette
 ): string {
   const parts: string[] = []
@@ -396,21 +443,21 @@ function markerLinesSvg(
     const y = priceToY(g, vah)
     parts.push(
       hLine(g, y, pal.va, true),
-      markerLabel(g, y, `VAH ${price2(vah)}`, pal.va, true, pal)
+      markerLabel(g, y, markerText('VAH', vah, axis), pal.va, true, pal)
     )
   }
   if (inSpan(g, val)) {
     const y = priceToY(g, val)
     parts.push(
       hLine(g, y, pal.va, true),
-      markerLabel(g, y, `VAL ${price2(val)}`, pal.va, false, pal)
+      markerLabel(g, y, markerText('VAL', val, axis), pal.va, false, pal)
     )
   }
   if (inSpan(g, poc)) {
     const y = priceToY(g, poc)
     parts.push(
       hLine(g, y, pal.poc, false),
-      markerLabel(g, y, `POC ${price2(poc)}`, pal.poc, true, pal)
+      markerLabel(g, y, markerText('POC', poc, axis), pal.poc, true, pal)
     )
   }
   if (current === null) return parts.join('\n')
@@ -418,12 +465,12 @@ function markerLinesSvg(
     const y = priceToY(g, current)
     parts.push(
       hLine(g, y, pal.current, false),
-      markerLabel(g, y, `current ${price2(current)}`, pal.current, current < poc, pal)
+      markerLabel(g, y, markerText('current', current, axis), pal.current, current < poc, pal)
     )
   } else {
     const above = current > g.priceHigh
     const y = above ? g.plotTop : g.plotBottom
-    const text = `current ${price2(current)} (${above ? 'above' : 'below'} this image)`
+    const text = `${markerText('current', current, axis)} (${above ? 'above' : 'below'} this image)`
     parts.push(markerLabel(g, y, text, pal.current, !above, pal))
   }
   return parts.join('\n')
@@ -440,14 +487,16 @@ function renderTile(
   pal: Palette,
   maxVolume: number
 ): RenderedTile {
-  const g = geometry(meta.width, meta.height, tile.priceLow, tile.priceHigh)
+  const g = geometry(meta.width, meta.height, tile.priceLow, tile.priceHigh, meta.axis)
   const body = [
     `<rect x="0" y="0" width="${meta.width}" height="${meta.height}" fill="${pal.bg}"/>`,
-    axisSvg(g, meta.majorInterval, meta.minorInterval, pal),
+    // Axis-free (feat-135) drops the axis line, the ticks, the labels AND the
+    // major gridlines: the gridlines exist only to carry the eye to a label.
+    meta.axis ? axisSvg(g, meta.majorInterval, meta.minorInterval, pal) : '',
     valueAreaShadeSvg(g, meta.vah, meta.val, pal),
     barsSvg(g, rows, maxVolume, meta.barAnchor, pal),
     meta.envelope ? envelopeSvg(g, rows, maxVolume, meta.barAnchor, pal) : '',
-    markerLinesSvg(g, meta.poc, meta.vah, meta.val, meta.currentPrice, pal),
+    markerLinesSvg(g, meta.poc, meta.vah, meta.val, meta.currentPrice, meta.axis, pal),
   ]
     .filter((s) => s.length > 0)
     .join('\n')
@@ -542,6 +591,7 @@ function buildMeta(
     theme: layout.theme,
     envelope: opts.envelope ?? false,
     barAnchor: opts.barAnchor ?? 'right',
+    axis: opts.axis ?? true,
     width: layout.width,
     height: layout.height,
     binStep: profile.meta.step,

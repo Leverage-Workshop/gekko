@@ -10,8 +10,15 @@ import {
   type IdentifyProfileNodesInput,
   type VisionGenerate,
 } from './identifyProfileNodes'
+import { priceToFraction } from './normalized'
 import { loadFewShot, VISION_PROMPT_REVISION } from './prompt'
-import type { ProfileNodesRead } from './schema'
+import { renderProfile } from './renderProfile'
+import {
+  profileNodesReadNormalizedSchema,
+  profileNodesReadSchema,
+  type ProfileNodesRead,
+  type ProfileNodesReadNormalized,
+} from './schema'
 
 const FIXTURE = join(process.cwd(), 'chart-data/four-hundred-rotation.vbp.md')
 const fiveDay = () => parseVbpProfile(readFileSync(FIXTURE, 'utf8'))
@@ -254,6 +261,167 @@ describe('identifyProfileNodes — failure tolerance (R14)', () => {
     expect(result.profiles['5d']?.consensus).not.toBeNull()
     expect(result.profiles['4h']?.consensus).toBeNull()
     expect(result.warnings).toEqual(['profile_nodes_unavailable:4h'])
+  })
+})
+
+/**
+ * feat-135. The axis-free variant is the ONLY place a fraction exists: the model
+ * answers in normalized positions and this module converts them to prices before
+ * anything else sees them. If a fraction ever leaked past here, consensus would
+ * cluster 0.4 against a 25 000-point grid and quietly drop every node.
+ */
+describe('identifyProfileNodes — axis-free conversion boundary (feat-135)', () => {
+  /** The same two nodes as `goodRead`, expressed as fractions of the 5d render span. */
+  function normalizedRead(span: {
+    priceLow: number
+    priceHigh: number
+  }): ProfileNodesReadNormalized {
+    const y = (p: number) => priceToFraction(span, p)
+    return {
+      nodes: [
+        {
+          kind: 'lvn',
+          yLow: y(29400),
+          yHigh: y(29404),
+          prominence: 1,
+          primary: true,
+          position: 'mid',
+          shape: 'valley',
+          rationale: 'deepest',
+        },
+        {
+          kind: 'hvn-core',
+          yLow: y(29880),
+          yHigh: y(29920),
+          prominence: 1,
+          primary: false,
+          position: 'upper',
+          shape: 'notch',
+          rationale: 'poc',
+        },
+      ],
+      thinZones: [{ yLow: y(29380), yHigh: y(29420) }],
+      profileShape: 'double',
+      unfinished: false,
+    }
+  }
+
+  const spanOf5d = () => {
+    const { meta } = renderProfile(fiveDay(), { instrument: 'NQ', axis: false })
+    return { priceLow: meta.priceLow, priceHigh: meta.priceHigh }
+  }
+
+  it('asks for the normalized schema, and every read that comes back carries PRICES', async () => {
+    const span = spanOf5d()
+    const schemas: unknown[] = []
+    const generate = vi.fn<VisionGenerate>(async ({ schema }) => {
+      schemas.push(schema)
+      return { object: normalizedRead(span), cost: 0.01, latencyMs: 5 }
+    })
+    const result = await identifyProfileNodes(
+      baseInput(generate, { render: { axis: false }, samples: 3 })
+    )
+
+    // the wire schema is the normalized one, and it rejects a price read
+    for (const schema of schemas) {
+      const s = schema as typeof profileNodesReadNormalizedSchema
+      expect(s.safeParse(normalizedRead(span)).success).toBe(true)
+      expect(s.safeParse(goodRead()).success).toBe(false)
+    }
+
+    const entry = result.profiles['5d']!
+    expect(entry.raw).toHaveLength(3)
+    expect(entry.raw.every((r) => r.ok)).toBe(true)
+    for (const r of entry.raw) {
+      for (const node of r.read!.nodes) {
+        expect(node).not.toHaveProperty('yLow')
+        expect(node).not.toHaveProperty('yHigh')
+        expect(node.priceLow).toBeGreaterThan(28000)
+        expect(node.priceHigh).toBeGreaterThan(28000)
+      }
+      for (const zone of r.read!.thinZones) {
+        expect(zone).not.toHaveProperty('yLow')
+        expect(zone.low).toBeGreaterThan(28000)
+      }
+    }
+
+    // and consensus, which only ever sees prices, lands on the right band
+    const nodes = entry.consensus!.nodes
+    expect(nodes.find((n) => n.primary)?.priceLow).toBeCloseTo(29400, 0)
+    expect(nodes.find((n) => n.kind === 'hvn-core')?.priceHigh).toBeCloseTo(29920, 0)
+    expect(entry.render.axis).toBe(false)
+  })
+
+  it('records a normalized read that breaks the contract as a failed sample, never converts it', async () => {
+    const span = spanOf5d()
+    const bad = normalizedRead(span)
+    const generate: VisionGenerate = async () => ({
+      // two primaries: structurally valid JSON, contradictory read
+      object: { ...bad, nodes: [bad.nodes[0], { ...bad.nodes[0], primary: true }] },
+      cost: null,
+      latencyMs: 1,
+    })
+    const result = await identifyProfileNodes(
+      baseInput(generate, { render: { axis: false }, samples: 1 })
+    )
+    const raw = result.profiles['5d']!.raw[0]
+    expect(raw.ok).toBe(false)
+    expect(raw.read).toBeNull()
+    expect(raw.error).toMatch(/primary/)
+    expect(result.warnings).toEqual(['profile_nodes_unavailable:5d'])
+  })
+
+  it('still asks for prices — and gets them — on the default axis variant', async () => {
+    const schemas: unknown[] = []
+    const generate = vi.fn<VisionGenerate>(async ({ schema }) => {
+      schemas.push(schema)
+      return { object: goodRead(), cost: null, latencyMs: 1 }
+    })
+    const result = await identifyProfileNodes(baseInput(generate, { samples: 1 }))
+    const s = schemas[0] as typeof profileNodesReadSchema
+    expect(s.safeParse(goodRead()).success).toBe(true)
+    expect(result.profiles['5d']!.raw[0].read!.nodes[0].priceLow).toBe(29400)
+    expect(result.profiles['5d']!.render.axis).toBe(true)
+  })
+
+  it('converts against the TILE span, not the profile span, when the variant is tiled', async () => {
+    // Every call answers "the very top of the image I was shown" (y = 1). The
+    // two tiles cover different spans, so the two converted prices must differ.
+    const generate: VisionGenerate = async () => {
+      return {
+        object: {
+          nodes: [
+            {
+              kind: 'lvn',
+              yLow: 1,
+              yHigh: 1,
+              prominence: 1,
+              primary: true,
+              position: 'top',
+              shape: 'valley',
+              rationale: 'top edge',
+            },
+          ],
+          thinZones: [],
+          profileShape: 'thin',
+          unfinished: false,
+        },
+        cost: null,
+        latencyMs: 1,
+      }
+    }
+    const result = await identifyProfileNodes(
+      baseInput(generate, { render: { axis: false, tiles: 2 }, samples: 1 })
+    )
+    const entry = result.profiles['5d']!
+    const tiles = entry.render.tiles
+    expect(tiles).toHaveLength(2)
+    // y = 1 on each tile is that tile's own high, and they differ
+    const highs = entry.raw.map((r) => r.read!.nodes[0].priceHigh).sort((a, b) => a - b)
+    const expected = tiles.map((t) => t.priceHigh).sort((a, b) => a - b)
+    expect(highs[0]).toBeCloseTo(expected[0], 2)
+    expect(highs[1]).toBeCloseTo(expected[1], 2)
+    expect(expected[0]).not.toBe(expected[1])
   })
 })
 

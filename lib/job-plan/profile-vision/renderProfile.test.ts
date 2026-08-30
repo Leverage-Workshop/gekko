@@ -13,9 +13,11 @@ import {
   MAX_LONG_EDGE,
   renderProfile,
   renderProfileSvg,
+  tileGeometry,
   tileRanges,
   TILE_OVERLAP,
 } from './renderProfile'
+import { pngDimensions, rasterizePng } from './rasterize'
 
 /** A tiny synthetic profile: 12 one-point bins, 100..112, bell-ish with a valley at 106. */
 function synthetic(overrides: Partial<VbpProfile['meta']> = {}): VbpProfile {
@@ -515,5 +517,102 @@ describe('renderProfile — tiles', () => {
     const { meta } = renderProfileSvg(realProfile(), { instrument: 'NQ' })
     expect(meta.tiles).toHaveLength(1)
     expect(meta.requestedTiles).toBe(1)
+  })
+})
+
+/**
+ * feat-135: the axis-free variant. The price axis is the one thing on the image
+ * the model has to READ rather than SEE, and reading it is the error-prone
+ * step; `axis: false` removes it — and every other digit — so the model can
+ * only be asked WHERE something is.
+ */
+describe('renderProfile — axis-free (feat-135)', () => {
+  it('draws no axis line, no ticks, no gridlines and NO text carrying a digit', () => {
+    const { svg, meta } = renderProfileSvg(realProfile(), {
+      instrument: 'NQ',
+      axis: false,
+      currentPrice: 29945.75,
+    })
+    expect(meta.axis).toBe(false)
+
+    // No price labels — the whole point of the variant.
+    const texts = textNodes(svg).map((t) => t.text)
+    expect(texts.filter((t) => /^\d+\.\d{2}$/.test(t))).toEqual([])
+    // and nothing else on the image carries a digit either.
+    for (const t of texts) expect(t, `text "${t}" carries a digit`).not.toMatch(/\d/)
+    // the marker tags survive: they are the model's only calibration anchors
+    expect(texts).toEqual(expect.arrayContaining(['VAH', 'VAL', 'POC', 'current']))
+
+    // No axis line, no ticks, no major gridlines.
+    expect(svg).not.toContain('stroke="#e2e2e2"')
+    expect(svg.match(/<line /g) ?? []).toHaveLength(4) // POC + VAH + VAL + current, nothing else
+  })
+
+  it('keeps POC / VAH / VAL / current lines and the value-area shade', () => {
+    const { svg, meta } = renderProfileSvg(synthetic(), {
+      instrument: 'ES',
+      axis: false,
+      currentPrice: 104.5,
+    })
+    const lines = markerLines(svg)
+    const y = (p: number) =>
+      40 + ((meta.priceHigh - p) / (meta.priceHigh - meta.priceLow)) * (meta.height - 80)
+    expect(lines.find((l) => l.color === '#1e6fd9' && !l.dashed)?.y).toBeCloseTo(y(101), 1) // POC
+    expect(lines.filter((l) => l.dashed)).toHaveLength(2) // VAH + VAL
+    expect(lines.find((l) => l.color === '#d9601a')?.y).toBeCloseTo(y(104.5), 1) // current
+    expect(svg).toContain('fill="rgba(30,111,217,0.08)"') // value-area shade
+  })
+
+  it('gives the freed axis gutter to the bars', () => {
+    const widest = (svg: string) =>
+      Math.max(
+        ...[
+          ...svg.matchAll(
+            /<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)" height="[\d.]+" fill="#8c8c8c"\/>/g
+          ),
+        ].map((m) => Number(m[2]))
+      )
+    const withAxis = renderProfileSvg(synthetic(), { instrument: 'ES' }).svg
+    const without = renderProfileSvg(synthetic(), { instrument: 'ES', axis: false }).svg
+    expect(widest(withAxis)).toBeCloseTo(DEFAULT_WIDTH - 132 - 24, 1)
+    expect(widest(without)).toBeCloseTo(DEFAULT_WIDTH - 24 - 24, 1)
+    expect(widest(without)).toBeGreaterThan(widest(withAxis))
+  })
+
+  it('rasterizes to a valid PNG at the declared size', () => {
+    const { svg } = renderProfileSvg(realProfile(), { instrument: 'NQ', axis: false })
+    const png = rasterizePng(svg)
+    expect(pngDimensions(png)).toEqual({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT })
+  })
+
+  it('labels an out-of-range current price without quoting its number', () => {
+    const { svg } = renderProfileSvg(synthetic(), {
+      instrument: 'ES',
+      axis: false,
+      currentPrice: 500,
+    })
+    const texts = textNodes(svg).map((t) => t.text)
+    expect(texts).toContain('current (above this image)')
+    for (const t of texts) expect(t).not.toMatch(/\d/)
+  })
+
+  it('leaves the axis variant byte-identical (axis defaults to true)', () => {
+    const a = renderProfileSvg(realProfile(), { instrument: 'NQ', currentPrice: 29945.75 })
+    const b = renderProfileSvg(realProfile(), {
+      instrument: 'NQ',
+      currentPrice: 29945.75,
+      axis: true,
+    })
+    expect(a.meta.axis).toBe(true)
+    expect(b.sha256).toBe(a.sha256)
+  })
+
+  it('tileGeometry reads an axis-free render at its wider plot, a legacy row as axis', () => {
+    const { meta } = renderProfileSvg(synthetic(), { instrument: 'ES', axis: false })
+    expect(tileGeometry(meta, meta.tiles[0]).plotRight).toBe(DEFAULT_WIDTH - 24)
+    // a row persisted before feat-135 carries no `axis` key at all
+    expect(tileGeometry({ width: 900, height: 1400 }, meta.tiles[0]).plotRight).toBe(
+      DEFAULT_WIDTH - 132
+    )
   })
 })

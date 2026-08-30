@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_NODES, profileNodesReadSchema, type ProfileNode } from './schema'
+import {
+  MAX_NODES,
+  profileNodesReadEitherSchema,
+  profileNodesReadNormalizedSchema,
+  profileNodesReadSchema,
+  type ProfileNode,
+  type ProfileNodeNormalized,
+} from './schema'
 
 function node(overrides: Partial<ProfileNode> = {}): ProfileNode {
   return {
@@ -123,5 +130,139 @@ describe('profileNodesReadSchema', () => {
       'thinZones',
       'unfinished',
     ])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// feat-135: the same read, positioned by fraction instead of by price.
+// ---------------------------------------------------------------------------
+
+function normalizedNode(overrides: Partial<ProfileNodeNormalized> = {}): ProfileNodeNormalized {
+  return {
+    kind: 'lvn',
+    yLow: 0.4,
+    yHigh: 0.42,
+    prominence: 1,
+    primary: true,
+    position: 'mid',
+    shape: 'valley',
+    rationale: 'deepest trough',
+    ...overrides,
+  }
+}
+
+describe('profileNodesReadNormalizedSchema (axis-free wire contract)', () => {
+  it('accepts a normalized read and applies the same cross-field rules', () => {
+    expect(
+      profileNodesReadNormalizedSchema.safeParse({ ...base, nodes: [normalizedNode()] }).success
+    ).toBe(true)
+    // two primaries, an lvn with no primary, a non-lvn primary: identical rules
+    const two = profileNodesReadNormalizedSchema.safeParse({
+      ...base,
+      nodes: [normalizedNode(), normalizedNode({ yLow: 0.6, yHigh: 0.62 })],
+    })
+    expect(two.success).toBe(false)
+    expect(JSON.stringify(two.error?.issues)).toMatch(/exactly one primary/)
+    expect(
+      profileNodesReadNormalizedSchema.safeParse({
+        ...base,
+        nodes: [normalizedNode({ primary: false })],
+      }).success
+    ).toBe(false)
+  })
+
+  it('rejects a fraction outside [0,1], an inverted band and a non-number', () => {
+    for (const bad of [{ yLow: -0.01 }, { yHigh: 1.01 }, { yLow: NaN }]) {
+      expect(
+        profileNodesReadNormalizedSchema.safeParse({ ...base, nodes: [normalizedNode(bad)] })
+          .success
+      ).toBe(false)
+    }
+    const inverted = profileNodesReadNormalizedSchema.safeParse({
+      ...base,
+      nodes: [normalizedNode({ yLow: 0.8, yHigh: 0.2 })],
+    })
+    expect(inverted.success).toBe(false)
+    expect(JSON.stringify(inverted.error?.issues)).toMatch(/yLow 0.8 > yHigh 0.2/)
+  })
+
+  it('rejects a normalized read that carries prices instead of fractions', () => {
+    expect(profileNodesReadNormalizedSchema.safeParse({ ...base, nodes: [node()] }).success).toBe(
+      false
+    )
+    expect(
+      profileNodesReadNormalizedSchema.safeParse({
+        ...base,
+        nodes: [normalizedNode()],
+        thinZones: [{ low: 1, high: 2 }],
+      }).success
+    ).toBe(false)
+  })
+
+  it('is a flat object at the root, like the price contract', () => {
+    const r = profileNodesReadNormalizedSchema.safeParse({ ...base, nodes: [normalizedNode()] })
+    expect(Object.keys(r.data!).sort()).toEqual([
+      'nodes',
+      'profileShape',
+      'thinZones',
+      'unfinished',
+    ])
+  })
+})
+
+describe('profileNodesReadEitherSchema — exactly one pair of bounds', () => {
+  const bounds = (n: Record<string, unknown>) => ({
+    ...base,
+    nodes: [{ ...normalizedNode(), ...n }],
+  })
+
+  it('accepts price bounds alone', () => {
+    const r = profileNodesReadEitherSchema.safeParse(
+      bounds({ yLow: undefined, yHigh: undefined, priceLow: 100, priceHigh: 102 })
+    )
+    expect(r.success).toBe(true)
+  })
+
+  it('accepts normalized bounds alone', () => {
+    expect(profileNodesReadEitherSchema.safeParse(bounds({})).success).toBe(true)
+  })
+
+  it('REJECTS a node carrying both price and normalized bounds', () => {
+    const r = profileNodesReadEitherSchema.safeParse(bounds({ priceLow: 100, priceHigh: 102 }))
+    expect(r.success).toBe(false)
+    expect(JSON.stringify(r.error?.issues)).toMatch(/EITHER price bounds or normalized bounds/)
+  })
+
+  it('REJECTS a node carrying neither', () => {
+    const r = profileNodesReadEitherSchema.safeParse(bounds({ yLow: undefined, yHigh: undefined }))
+    expect(r.success).toBe(false)
+    expect(JSON.stringify(r.error?.issues)).toMatch(/needs either price bounds/)
+  })
+
+  it('REJECTS a half pair (one edge without the other)', () => {
+    expect(profileNodesReadEitherSchema.safeParse(bounds({ yHigh: undefined })).success).toBe(false)
+    expect(
+      profileNodesReadEitherSchema.safeParse(
+        bounds({ yLow: undefined, yHigh: undefined, priceLow: 100 })
+      ).success
+    ).toBe(false)
+  })
+
+  it('applies the same both/neither rule to thin zones', () => {
+    const zones = (thinZones: unknown[]) =>
+      profileNodesReadEitherSchema.safeParse({ ...base, nodes: [normalizedNode()], thinZones })
+    expect(zones([{ low: 1, high: 2 }]).success).toBe(true)
+    expect(zones([{ yLow: 0.1, yHigh: 0.2 }]).success).toBe(true)
+    expect(zones([{ low: 1, high: 2, yLow: 0.1, yHigh: 0.2 }]).success).toBe(false)
+    expect(zones([{}]).success).toBe(false)
+  })
+
+  it('keeps every other rule (node ceiling, primary, rationale length)', () => {
+    const many = Array.from({ length: MAX_NODES + 1 }, (_, i) =>
+      normalizedNode({ primary: i === 0, yLow: i / 20, yHigh: i / 20 + 0.01 })
+    )
+    expect(profileNodesReadEitherSchema.safeParse({ ...base, nodes: many }).success).toBe(false)
+    const wordy = Array.from({ length: 21 }, () => 'word').join(' ')
+    expect(profileNodesReadEitherSchema.safeParse(bounds({ rationale: wordy })).success).toBe(false)
   })
 })

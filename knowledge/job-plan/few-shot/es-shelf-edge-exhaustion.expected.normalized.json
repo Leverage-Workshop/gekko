@@ -1,0 +1,100 @@
+{
+  "nodes": [
+    {
+      "kind": "lvn",
+      "yLow": 0.491124,
+      "yHigh": 0.522682,
+      "prominence": 1,
+      "primary": true,
+      "position": "lower",
+      "shape": "shelf-edge",
+      "rationale": "Thin shelf immediately below the main distribution, sharp transition into the build"
+    },
+    {
+      "kind": "hvn-edge",
+      "yLow": 0.538462,
+      "yHigh": 0.56213,
+      "prominence": 2,
+      "primary": false,
+      "position": "lower",
+      "shape": "shelf-edge",
+      "rationale": "Lower boundary of the main distribution where volume drops off a cliff"
+    },
+    {
+      "kind": "lvn",
+      "yLow": 0.333333,
+      "yHigh": 0.364892,
+      "prominence": 3,
+      "primary": false,
+      "position": "lower",
+      "shape": "valley",
+      "rationale": "Distinct internal trough, but it sits in the void rather than against the node edge"
+    },
+    {
+      "kind": "hvn-core",
+      "yLow": 0.680473,
+      "yHigh": 0.7357,
+      "prominence": 1,
+      "primary": false,
+      "position": "upper",
+      "shape": "notch",
+      "rationale": "POC-class peak of the main distribution"
+    },
+    {
+      "kind": "hvn-edge",
+      "yLow": 0.278107,
+      "yHigh": 0.309665,
+      "prominence": 3,
+      "primary": false,
+      "position": "lower",
+      "shape": "shelf-edge",
+      "rationale": "Upper boundary of the lower distribution below the void"
+    },
+    {
+      "kind": "hvn-core",
+      "yLow": 0.230769,
+      "yHigh": 0.278107,
+      "prominence": 2,
+      "primary": false,
+      "position": "bottom",
+      "shape": "notch",
+      "rationale": "Peak of the lower distribution"
+    },
+    {
+      "kind": "exhaustive-node",
+      "yLow": 0.932939,
+      "yHigh": 0.964497,
+      "prominence": 2,
+      "primary": false,
+      "position": "top",
+      "shape": "notch",
+      "rationale": "Spike with a small build above the thin patch, then an immediate step off to nothing"
+    },
+    {
+      "kind": "taper-tail",
+      "yLow": 0.001972,
+      "yHigh": 0.080868,
+      "prominence": 4,
+      "primary": false,
+      "position": "bottom",
+      "shape": "wide-gap",
+      "rationale": "Progressive fall-off into the profile low"
+    }
+  ],
+  "thinZones": [
+    {
+      "yLow": 0.317554,
+      "yHigh": 0.538462
+    },
+    {
+      "yLow": 0.869822,
+      "yHigh": 0.91716
+    },
+    {
+      "yLow": 0.001972,
+      "yHigh": 0.096647
+    }
+  ],
+  "profileShape": "double",
+  "unfinished": false
+}

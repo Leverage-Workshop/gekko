@@ -4,7 +4,13 @@ import { z } from 'zod'
 import { parseVbpProfile, type VbpProfile } from '@/lib/engine/parseProfile'
 import type { Instrument } from './instrument'
 import type { RenderMeta, TileSpan } from './renderProfile'
-import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
+import { priceToFraction } from './normalized'
+import {
+  profileNodesReadNormalizedSchema,
+  profileNodesReadSchema,
+  type ProfileNodesRead,
+  type ProfileNodesReadNormalized,
+} from './schema'
 
 /**
  * The vision prompt for the profile read (feat-123, docs/job-planning-task-plan.md
@@ -25,9 +31,19 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  *
  * VISION_PROMPT_REVISION bumps whenever the criteria or the few-shot set change;
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
+ *
+ * feat-135 adds an AXIS-FREE MODE, selected by `meta.axis === false` (the
+ * `axis-free` render variant). The image then has no price axis and no digits
+ * at all, so the OUTPUT RULES ask for `yLow`/`yHigh` — normalized vertical
+ * positions, 0 = bottom edge, 1 = top — instead of prices, the per-call text
+ * gives POC / VAH / VAL / current as fractions ALONGSIDE their prices as
+ * calibration anchors, and the few-shot examples ship their expected JSON in
+ * the same normalized form. Everything else (role, criteria, image order) is
+ * shared: one builder, two modes, so the two arms of the A/B differ only where
+ * they must.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-30.7'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-30.8'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -65,7 +81,7 @@ export const CRITERIA: readonly Criterion[] = [
       'When the thin region is a WIDE SPAN rather than a narrow notch, the primary anchors at the span EDGE against the fat node and the deepest point inside the span is the secondary. Compare INTERNAL troughs only — the profile thins to nothing at both extremes by construction, and a completed taper or exhaustive tail never competes for primary.',
     corpus: 'B13',
     example:
-      "the easiest way to spot a primary LVN is just look all the way to the right and see which ones are closest",
+      'the easiest way to spot a primary LVN is just look all the way to the right and see which ones are closest',
   },
   {
     rule: 'SECONDARY LVNs ARE DEMOTED, NOT DROPPED. A shallower trough sitting INSIDE a distribution is a secondary lvn: still report it, with prominence 3-5 and primary false. It gives a first response but gets filled; it never competes for primary.',
@@ -175,14 +191,49 @@ const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - thinZones: at most 3 { low, high } spans. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: boolean.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
 
+/**
+ * Axis-free OUTPUT RULES (feat-135). Same rules, different way of saying WHERE:
+ * this image has no axis and no digits, so a band is a normalized vertical
+ * position and code turns it into price afterwards. The two blocks are kept
+ * side by side rather than string-patched so a reader can diff them.
+ */
+const OUTPUT_RULES_AXIS_FREE = `Output JSON only, matching the schema. Rules:
+- nodes: at most 8 — a ceiling, not a quota, and fewer is better. When more than 8 are visible keep them in this order: the primary lvn, clear extreme anatomy, secondary lvns, the dominant hvn-core of each distribution, then the most significant hvn-edges. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
+- yLow / yHigh: WHERE the band sits vertically, as a fraction of the image — 0.000 is the BOTTOM edge of the image, 1.000 is the TOP edge. yLow is the band's lower edge, yHigh its upper edge; equal for a point. Give three decimals. NEVER output a price: this image has no price axis, and code converts your fractions to prices from the span stated below.
+- prominence: 1 (most structurally important in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. TIES ARE ALLOWED: a dominant peak and the primary lvn may both be 1. A secondary lvn gets 3-5.
+- primary: when you report any lvn, exactly one carries true; when the image shows no lvn at all, every node is false.
+- position: top | upper | mid | lower | bottom — where the node sits in this image.
+- shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | ledge (a stack of near-equal bars where the build stops) | notch (a fat peak — hvn-core, and the build of an exhaustive-node).
+- rationale: at most 20 words.
+- thinZones: at most 3 { yLow, yHigh } spans, as fractions on the same 0-1 scale. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: boolean.
+- Ignore anything you believe about the market — this is perception only.`
+
+/**
+ * Overrides the two criteria that speak of the price axis, so an axis-free call
+ * is never asked to do something the image cannot support. Placed AFTER the
+ * criteria and before the output rules, where a later instruction wins.
+ */
+const AXIS_FREE_NOTE = `THIS IMAGE HAS NO PRICE AXIS. Two consequences for the criteria above:
+- Where a criterion says "nearest the axis", read it as nearest the RIGHT EDGE of the image: the bars still grow leftward from there, and the primary lvn is still the one whose bar tips stay closest to that edge.
+- Where a criterion says to read bounds off the axis, give the band as a vertical FRACTION of the image instead (see the output rules). The width rule is unchanged: report the band you can actually see, never collapsing a wide zone to a point nor padding a narrow one.
+The horizontal lines that remain — POC, VAH, VAL and the current price — are your only scale anchors. Their fractions are stated with the image; use them to check that your own numbers are on the same scale (e.g. a node you place just under the POC line must have a y just under the POC's y).`
+
 const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. Identify the low-volume nodes (LVNs), high-volume edges, peaks, and extreme anatomy the trader would mark, using the criteria below.`
 
-/** A loaded few-shot example: the parsed profile plus its expected read. */
+const ROLE_AXIS_FREE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the right-hand edge; a longer bar means more volume traded at that price. This image carries NO price axis and no numbers — you are not asked to read a price, only to say WHERE things are. Identify the low-volume nodes (LVNs), high-volume edges, peaks, and extreme anatomy the trader would mark, using the criteria below.`
+
+/**
+ * A loaded few-shot example: the parsed profile plus its expected read in BOTH
+ * forms. `expectedNormalized` is the axis-free equivalent of `expected`, derived
+ * mechanically from it (`scripts/few-shot-normalize.ts`, checked by
+ * prompt.test.ts) so the two example sets can never disagree about the answer.
+ */
 export type FewShotExample = {
   readonly id: string
   readonly instrument: Instrument
   readonly profile: VbpProfile
   readonly expected: ProfileNodesRead
+  readonly expectedNormalized: ProfileNodesReadNormalized
 }
 
 const manifestSchema = z.object({
@@ -194,6 +245,8 @@ const manifestSchema = z.object({
         instrument: z.enum(['NQ', 'ES']),
         profile: z.string().min(1),
         expected: z.string().min(1),
+        /** Axis-free (feat-135) expected read; same answer, positioned by fraction. */
+        expectedNormalized: z.string().min(1),
       })
     )
     .min(1)
@@ -218,6 +271,9 @@ export function loadFewShot(baseDir: string = process.cwd()): FewShotExample[] {
     expected: profileNodesReadSchema.parse(
       JSON.parse(readFileSync(join(dir, ex.expected), 'utf8'))
     ),
+    expectedNormalized: profileNodesReadNormalizedSchema.parse(
+      JSON.parse(readFileSync(join(dir, ex.expectedNormalized), 'utf8'))
+    ),
   }))
 }
 
@@ -234,12 +290,52 @@ function price2(n: number): string {
   return n.toFixed(2)
 }
 
+function frac2(n: number): string {
+  return n.toFixed(3)
+}
+
+/**
+ * One marker as the axis-free text states it: its price AND its fraction, so
+ * the model can check its own scale against a line it can see. A marker outside
+ * this tile's span is not drawn, and saying so is better than quoting a
+ * fraction clamped to an edge the line is not on.
+ */
+function markerPhrase(tag: string, price: number, tile: TileSpan): string {
+  if (price < tile.priceLow || price > tile.priceHigh)
+    return `${tag} ${price2(price)} (not in this image)`
+  return `${tag} ${price2(price)} at y=${frac2(priceToFraction(tile, price))}`
+}
+
+function describeImageAxisFree(
+  label: string,
+  instrument: Instrument,
+  meta: RenderMeta,
+  tile: TileSpan
+): string {
+  const tileNote =
+    tile.of > 1
+      ? ` This is tile ${tile.index + 1} of ${tile.of}; the full profile spans ${price2(meta.priceLow)}–${price2(meta.priceHigh)} and the tiles overlap.`
+      : ''
+  const current =
+    meta.currentPrice === null
+      ? 'current price not shown'
+      : `${markerPhrase('current price', meta.currentPrice, tile)} (orange line)`
+  return (
+    `${label}: ${instrument}, row step ${meta.step} pts. The image has NO price axis:` +
+    ` its BOTTOM edge (y=0.000) is ${price2(tile.priceLow)} and its TOP edge (y=1.000) is ${price2(tile.priceHigh)}, linear in between.` +
+    ` Scale anchors on the image: ${markerPhrase('POC', meta.poc, tile)} (solid line),` +
+    ` ${markerPhrase('VAH', meta.vah, tile)} / ${markerPhrase('VAL', meta.val, tile)} (dashed, value area shaded), ${current}.` +
+    tileNote
+  )
+}
+
 function describeImage(
   label: string,
   instrument: Instrument,
   meta: RenderMeta,
   tile: TileSpan
 ): string {
+  if (!meta.axis) return describeImageAxisFree(label, instrument, meta, tile)
   const tileNote =
     tile.of > 1
       ? ` This is tile ${tile.index + 1} of ${tile.of}; the full profile spans ${price2(meta.priceLow)}–${price2(meta.priceHigh)} and the tiles overlap.`
@@ -264,11 +360,15 @@ export function buildVisionPrompt(
   ctx: ProfileCallContext,
   fewShot: readonly { example: FewShotExample; meta: RenderMeta; tile: TileSpan }[]
 ): string {
+  // The render variant decides the mode; the few-shot images are rendered with
+  // the SAME options, so their expected JSON is quoted in the matching form.
+  const axisFree = !ctx.meta.axis
   const examples = fewShot
     .map(
       (f, i) =>
         `${describeImage(`Example ${i + 1} (image ${i + 1})`, f.example.instrument, f.meta, f.tile)}\n` +
-        `Expected JSON for example ${i + 1}:\n${JSON.stringify(f.example.expected)}`
+        `Expected JSON for example ${i + 1}:\n` +
+        JSON.stringify(axisFree ? f.example.expectedNormalized : f.example.expected)
     )
     .join('\n\n')
   const target = describeImage(
@@ -278,10 +378,11 @@ export function buildVisionPrompt(
     ctx.tile
   )
   return [
-    ROLE,
+    axisFree ? ROLE_AXIS_FREE : ROLE,
     "CRITERIA. Each carries a VERBATIM quote from the trader followed by the working rule distilled from it. The quote is his; the thresholds, category names and output limits are the system's reading of him — follow the rule, and use the quote to judge what he actually meant:",
     criteriaText(),
-    OUTPUT_RULES,
+    axisFree ? AXIS_FREE_NOTE : '',
+    axisFree ? OUTPUT_RULES_AXIS_FREE : OUTPUT_RULES,
     fewShot.length > 0 ? `WORKED EXAMPLES:\n${examples}` : '',
     `${target}\nThis is the ${ctx.profileName} over ${ctx.lookback}. Read it now and return the JSON.`,
   ]

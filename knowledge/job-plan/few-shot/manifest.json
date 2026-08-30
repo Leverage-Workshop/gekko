@@ -5,13 +5,15 @@
       "id": "nq-double-distribution",
       "instrument": "NQ",
       "profile": "nq-double-distribution.vbp.md",
-      "expected": "nq-double-distribution.expected.json"
+      "expected": "nq-double-distribution.expected.json",
+      "expectedNormalized": "nq-double-distribution.expected.normalized.json"
     },
     {
       "id": "es-shelf-edge-exhaustion",
       "instrument": "ES",
       "profile": "es-shelf-edge-exhaustion.vbp.md",
-      "expected": "es-shelf-edge-exhaustion.expected.json"
+      "expected": "es-shelf-edge-exhaustion.expected.json",
+      "expectedNormalized": "es-shelf-edge-exhaustion.expected.normalized.json"
     }
   ]
 }

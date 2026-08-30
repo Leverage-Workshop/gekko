@@ -10,6 +10,7 @@ import {
   loadFewShot,
   VISION_PROMPT_REVISION,
 } from './prompt'
+import { toNormalizedRead, toPriceRead } from './normalized'
 import { renderProfile } from './renderProfile'
 import { profileNodesReadSchema } from './schema'
 
@@ -56,6 +57,42 @@ describe('few-shot set', () => {
 
   it('throws on a missing directory (a packaging error must fail loudly)', () => {
     expect(() => loadFewShot('/nonexistent')).toThrow()
+  })
+
+  /**
+   * feat-135. The axis-free expectations are DERIVED, never authored: they must
+   * be exactly what `toNormalizedRead` produces from the price file against the
+   * render span, and must convert back to the prices the price file states.
+   * This is the check that `scripts/few-shot-normalize.ts` was actually run and
+   * that nobody hand-edited a fraction afterwards.
+   */
+  it('the normalized expectations are the mechanical conversion of the price ones', () => {
+    for (const ex of loadFewShot()) {
+      const { meta } = renderProfile(ex.profile, { instrument: ex.instrument, tiles: 1 })
+      expect(ex.expectedNormalized).toEqual(toNormalizedRead(ex.expected, meta))
+
+      // and they convert back to the same prices, within the fraction's rounding
+      const eps = (meta.priceHigh - meta.priceLow) * 1e-6
+      const back = toPriceRead(ex.expectedNormalized, meta)
+      expect(back.nodes).toHaveLength(ex.expected.nodes.length)
+      back.nodes.forEach((n, i) => {
+        const want = ex.expected.nodes[i]
+        expect(Math.abs(n.priceLow - want.priceLow)).toBeLessThanOrEqual(eps)
+        expect(Math.abs(n.priceHigh - want.priceHigh)).toBeLessThanOrEqual(eps)
+        expect(n.kind).toBe(want.kind)
+        expect(n.primary).toBe(want.primary)
+        expect(n.prominence).toBe(want.prominence)
+        expect(n.position).toBe(want.position)
+        expect(n.shape).toBe(want.shape)
+        expect(n.rationale).toBe(want.rationale)
+      })
+      back.thinZones.forEach((z, i) => {
+        expect(Math.abs(z.low - ex.expected.thinZones[i].low)).toBeLessThanOrEqual(eps)
+        expect(Math.abs(z.high - ex.expected.thinZones[i].high)).toBeLessThanOrEqual(eps)
+      })
+      expect(back.profileShape).toBe(ex.expected.profileShape)
+      expect(back.unfinished).toBe(ex.expected.unfinished)
+    }
   })
 })
 
@@ -183,6 +220,11 @@ describe('vision prompt', () => {
     expect(prompt).toContain('"priceLow":7568')
   })
 
+  it('says nothing about fractions in the axis mode', () => {
+    expect(prompt).not.toContain('yLow')
+    expect(prompt).not.toContain('NO PRICE AXIS')
+  })
+
   it('describes a tile by its index and the full span', () => {
     const profile = parseVbpProfile(readFileSync(FIXTURE, 'utf8'))
     const { meta: m2, tiles } = renderProfile(profile, { instrument: 'NQ', tiles: 2 })
@@ -194,5 +236,98 @@ describe('vision prompt', () => {
     expect(p).toContain('the full profile spans 28910.00–30073.00')
     expect(p).toContain('Profile to read (image 1)')
     expect(p).not.toContain('WORKED EXAMPLES')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// feat-135: axis-free mode. Same builder, same criteria, different way of
+// saying WHERE — because the image the model is shown has no axis to read.
+// ---------------------------------------------------------------------------
+function axisFreeTarget() {
+  const profile = parseVbpProfile(readFileSync(FIXTURE, 'utf8'))
+  const { meta, tiles } = renderProfile(profile, {
+    instrument: 'NQ',
+    currentPrice: 29945.75,
+    axis: false,
+  })
+  return { meta, tile: tiles[0].tile }
+}
+
+function fewShotRenderedAxisFree() {
+  return loadFewShot().map((example) => {
+    const { meta, tiles } = renderProfile(example.profile, {
+      instrument: example.instrument,
+      axis: false,
+    })
+    return { example, meta, tile: tiles[0].tile }
+  })
+}
+
+describe('vision prompt — axis-free mode (feat-135)', () => {
+  const { meta, tile } = axisFreeTarget()
+  const prompt = buildVisionPrompt(
+    {
+      instrument: 'NQ',
+      profileName: '5-day rolling volume profile',
+      lookback: 'the last five trading sessions',
+      meta,
+      tile,
+    },
+    fewShotRenderedAxisFree()
+  )
+
+  it('matches the snapshot (bump VISION_PROMPT_REVISION when this changes)', () => {
+    expect(prompt).toMatchSnapshot()
+  })
+
+  it('asks for yLow / yHigh and forbids prices in the output', () => {
+    expect(prompt).toContain('yLow / yHigh')
+    expect(prompt).toContain('0.000 is the BOTTOM edge')
+    expect(prompt).toContain('NEVER output a price')
+    expect(prompt).toContain('thinZones: at most 3 { yLow, yHigh } spans')
+    // the price-mode instructions must be gone, or the model gets both
+    expect(prompt).not.toContain('priceLow / priceHigh')
+    expect(prompt).not.toContain('Read prices from the axis labels')
+  })
+
+  it('overrides the two criteria that speak of the axis', () => {
+    expect(prompt).toContain('THIS IMAGE HAS NO PRICE AXIS')
+    expect(prompt).toContain('nearest the RIGHT EDGE of the image')
+    // the criteria themselves are untouched — the same canaries, in the same order
+    for (const canary of CRITERIA_CANARIES) expect(prompt).toContain(canary)
+  })
+
+  it('states the image edges and every marker as a FRACTION alongside its price', () => {
+    expect(prompt).toContain('its BOTTOM edge (y=0.000) is 28910.00')
+    expect(prompt).toContain('and its TOP edge (y=1.000) is 30073.00')
+    // POC 29900 sits (29900 - 28910) / 1163 = 0.851 up the image
+    expect(prompt).toContain('POC 29900.00 at y=0.851 (solid line)')
+    expect(prompt).toContain('VAH 29995.00 at y=0.933')
+    expect(prompt).toContain('VAL 29361.00 at y=0.388')
+    expect(prompt).toContain('current price 29945.75 at y=0.891 (orange line)')
+  })
+
+  it('quotes the few-shot answers in the normalized form, never as price bands', () => {
+    expect(prompt).toContain('"yLow":0.386982') // the NQ primary, as a fraction
+    expect(prompt).toContain('"profileShape":"double"')
+    expect(prompt).not.toContain('"priceLow"')
+    expect(prompt).not.toContain('"priceHigh"')
+  })
+
+  it('says a marker outside a tile is not on the image instead of clamping its fraction', () => {
+    const profile = parseVbpProfile(readFileSync(FIXTURE, 'utf8'))
+    const { meta: m2, tiles } = renderProfile(profile, {
+      instrument: 'NQ',
+      tiles: 2,
+      axis: false,
+      currentPrice: 29945.75,
+    })
+    const lower = buildVisionPrompt(
+      { instrument: 'NQ', profileName: 'x', lookback: 'y', meta: m2, tile: tiles[1].tile },
+      []
+    )
+    expect(lower).toContain('POC 29900.00 (not in this image)')
+    expect(lower).toContain('current price 29945.75 (not in this image)')
+    expect(lower).toContain('tile 2 of 2')
   })
 })
