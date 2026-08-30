@@ -4506,3 +4506,57 @@ Also fixed: `docs/job-planning-task-plan.md` "The perception contract" was stale
 Note: the 2026-08-30 validation numbers were measured on `vision-2026-08-30.1`. These are
 correctness fixes to the contract, not threshold tuning, but the live config now points at a
 prompt revision one patch newer than the one benched.
+
+### 2026-08-30 — adversarial review of the vision prompt (operator-requested)
+
+Codex reviewed the fully rendered prompt for cohesion, self-contradiction and sourcing.
+42 findings; the accepted ones are below. `VISION_PROMPT_REVISION` → `vision-2026-08-30.3`.
+
+**Sourcing — the operator's main concern.** `lvn-corpus.md` section A is a table of verbatim
+trader quotes with transcript citations; sections B/C/D are **synthesis prose written by an
+earlier AI session**. The prompt test only checked a quote against the *whole file*, so criteria
+could quote the editor while the prompt billed them "the trader's own words". **Three did:**
+D10's heading, a sentence of B8 prose, and — found independently here, missed by Codex, which
+traced the concept to a real replay but not the literal string — an **ellipsis-compressed
+rendering of row #87** (`"high volume edge, 34s… LVN… at 34 to 32"`) that the trader never
+uttered. All three now quote section A. **`tests/…/prompt.test.ts` gains a guard**: every
+criterion quote must be a substring of section A, so this cannot recur.
+
+Also reframed the criteria header. It now says the quote is the trader's while the thresholds,
+category names and output limits are the system's reading of him — the old wording laundered
+editor-authored policy (node caps, prominence 1–5, the 20-word rationale limit, ES/NQ band
+widths) as trader doctrine.
+
+**Contradictions fixed:**
+- **Criterion 11 mandated two hvn-edges for every fat node.** With the 8-node cap a
+  two-distribution profile needs 9+ observations, so the model had to violate one rule or the
+  other — and both few-shot examples already disobeyed the criterion. Now: report the edges that
+  are clearly visible, not two per node, since a tapering extreme already carries its boundary.
+  OUTPUT_RULES gains an explicit priority order for what to keep under the cap.
+- **Prominence was incoherent.** "1 = most prominent in THIS image" while both examples give 1 to
+  the primary LVN *and* an hvn-core. Now stated as ordinal **within kind**, which is what the
+  examples always did.
+- **Prompt and schema disagreed on `primary`.** Prompt said "exactly one lvn"; the schema allows
+  zero when no LVN is present. The prompt now says what the schema enforces.
+- **`shape: notch` was "for hvn kinds"** but both examples use it for an `exhaustive-node`.
+  Definition widened to cover the exhaustive node's build.
+- **Criterion 2 said compare "every trough in the image"** — but a profile thins to nothing at
+  both extremes by construction, so the literal reading makes a tail the primary, contradicting
+  example 1's "thinnest bars in the image". Now restricted to INTERNAL troughs.
+- **`profileShape`** had no assignment rule for `trend-up` / `trend-down` / `thin`. Added.
+- Few-shot rationales corrected: one cited "the departure scar of the leg up" — temporal
+  evidence a static histogram cannot show — and the ES secondary was described as the "deeper
+  trough", teaching the opposite of the primary rule it is meant to illustrate.
+
+**Rejected, with reasons.** Codex's top recommendation was to delete criterion 2's wide-span
+adjudication and make primary selection purely absolute. **Declined:** that overrules the
+trader's own labeled example. On 06-02 he names "68 72 LVN right down here" — the shelf against
+the fat node — while a measurably deeper trough sits at 7548 (0.05 of peak vs 0.09). Codex would
+have the procedural reading of one 101 quote beat his actual call; for a prompt whose purpose is
+to encode his method, the labeled example wins. Also declined its suggestion to drop the
+value-area negative (D3 / corpus #98) as "execution policy" — it is a ranking rule about which
+LVN is primary, and it is corpus-sourced.
+
+**Not fixed, recorded:** no few-shot example carries a ledge (both are `unfinished: false`), so
+B16 still ships without a worked picture; `reference/volume_profile_101.txt` has no video URL, so
+B13–B16 cannot be clicked and watched.

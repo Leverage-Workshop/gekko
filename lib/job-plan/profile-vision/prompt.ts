@@ -27,7 +27,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-30.2'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-30.3'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -62,7 +62,7 @@ export const CRITERIA: readonly Criterion[] = [
   {
     rule:
       'FIND IT BY BAR TIP, ACROSS THE WHOLE IMAGE. Bars grow left from the price axis, so the primary is the lvn whose bars stay NEAREST the axis — compare tip lengths against every trough in the image, not just its two neighbours. ' +
-      'When the thin region is a WIDE SPAN rather than a narrow notch, the primary anchors at the span EDGE against the fat node and the deepest point inside the span is the secondary.',
+      'When the thin region is a WIDE SPAN rather than a narrow notch, the primary anchors at the span EDGE against the fat node and the deepest point inside the span is the secondary. Compare INTERNAL troughs only — the profile thins to nothing at both extremes by construction, and a completed taper or exhaustive tail never competes for primary.',
     corpus: 'B13',
     example:
       "the easiest way to spot a primary LVN is just look all the way to the right and see which ones are closest",
@@ -74,7 +74,7 @@ export const CRITERIA: readonly Criterion[] = [
       "that's a secondary LVN and although it can offer an initial uh response that it's more likely to be filled",
   },
   {
-    rule: 'DISTRIBUTIONS ARE THE ZONES BETWEEN PRIMARY LVNs. Count the humps first: one = bell, two = double, three or more = multi (trend-up / trend-down when the mass climbs or falls across the image, thin when there is no real hump). Set profileShape from that count, and put the primary lvn on a wall BETWEEN humps, never inside one.',
+    rule: 'DISTRIBUTIONS ARE THE ZONES BETWEEN PRIMARY LVNs. Count the humps first: one = bell, two = double, three or more = multi (trend-up / trend-down when the mass climbs or falls across the image, thin when there is no real hump). Set profileShape from that count: one = bell, two = double, three or more = multi; trend-up / trend-down when the mass sits at one end and thins steadily toward the other; thin when no hump dominates at all. Put the primary lvn on a wall BETWEEN humps, never inside one.',
     corpus: 'B14, B15',
     example:
       "here's a primary obn right there and one right here so between the two we have a distribution of volume",
@@ -113,9 +113,9 @@ export const CRITERIA: readonly Criterion[] = [
     example: 'you get a spike up, and you get a volume build from that, traverse back across',
   },
   {
-    rule: 'HIGH-VOLUME EDGES ON BOTH SIDES. Every fat node has a boundary above and below where volume drops off a cliff; report both as hvn-edge. They are distribution boundaries, the edges to lean on.',
+    rule: 'HIGH-VOLUME EDGES. A fat node has a boundary where volume drops off a cliff — report that as hvn-edge; it is the distribution boundary, the edge to lean on. Report the edges that are clearly visible, NOT two for every node: an extreme that tapers or exhausts already carries its outer boundary.',
     corpus: 'B4, B12',
-    example: 'high volume edge, 34s… LVN… at 34 to 32',
+    example: 'there are two locations here that are pretty clean. One is high volume edge, 34s',
   },
   {
     rule: 'HVN-CORE ONLY FOR THE PEAK. Use hvn-core only for the POC-class peak of each distribution (usually one per hump), never for every fat bar.',
@@ -165,11 +165,12 @@ function criteriaText(): string {
 }
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
-- nodes: at most 8. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
+- nodes: at most 8 — a ceiling, not a quota, and fewer is better. When more than 8 are visible keep them in this order: the primary lvn, clear extreme anatomy, secondary lvns, the dominant hvn-core of each distribution, then the most significant hvn-edges. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
 - priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step.
-- prominence: 1 (most prominent in THIS image) to 5; a secondary lvn inside a distribution gets 3-5. primary: true on exactly one lvn.
+- prominence: ordinal WITHIN each kind — 1 = the clearest example of that kind in this image, 5 = the weakest one worth keeping; a secondary lvn gets 3-5. Two nodes of different kinds may both be 1.
+- primary: when you report any lvn, exactly one carries true; when the image shows no lvn at all, every node is false.
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
-- shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | ledge (a stack of near-equal bars where the build stops) | notch (a fat peak, for hvn kinds).
+- shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | ledge (a stack of near-equal bars where the build stops) | ledge (a stack of near-equal bars where the build stops) | notch (a fat peak — hvn-core, and the build of an exhaustive-node).
 - rationale: at most 20 words.
 - thinZones: at most 3 { low, high } spans. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: boolean.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
@@ -278,7 +279,7 @@ export function buildVisionPrompt(
   )
   return [
     ROLE,
-    "CRITERIA (each with the trader's own words from the corpus):",
+    "CRITERIA. Each carries a VERBATIM quote from the trader followed by the working rule distilled from it. The quote is his; the thresholds, category names and output limits are the system's reading of him — follow the rule, and use the quote to judge what he actually meant:",
     criteriaText(),
     OUTPUT_RULES,
     fewShot.length > 0 ? `WORKED EXAMPLES:\n${examples}` : '',

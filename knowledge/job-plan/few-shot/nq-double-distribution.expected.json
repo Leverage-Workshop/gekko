@@ -8,7 +8,7 @@
       "primary": true,
       "position": "lower",
       "shape": "valley",
-      "rationale": "Thinnest bars in the image; the wall separating the lower node from the upper distribution"
+      "rationale": "Thinnest internal bars; the wall separating the lower node from the upper distribution"
     },
     {
       "kind": "hvn-edge",
@@ -82,9 +82,18 @@
     }
   ],
   "thinZones": [
-    { "low": 24928, "high": 25040 },
-    { "low": 24621, "high": 24665 },
-    { "low": 25440, "high": 25465 }
+    {
+      "low": 24928,
+      "high": 25040
+    },
+    {
+      "low": 24621,
+      "high": 24665
+    },
+    {
+      "low": 25440,
+      "high": 25465
+    }
   ],
   "profileShape": "double",
   "unfinished": false
