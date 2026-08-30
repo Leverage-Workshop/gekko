@@ -27,7 +27,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-30.6'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-30.7'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -55,7 +55,7 @@ type Criterion = { readonly rule: string; readonly corpus: string; readonly exam
 
 export const CRITERIA: readonly Criterion[] = [
   {
-    rule: 'DEPTH RANKS. The primary LVN is the deepest trough — the least volume relative to the nodes on either side — ranked WITHIN this profile only. Mark exactly one lvn primary (prominence 1).',
+    rule: 'DEPTH RANKS. Rank LVN candidates by depth — the least volume relative to the nodes on either side — WITHIN this profile only, and mark one lvn primary (prominence 1). Depth decides the ranking, with ONE exception, stated in full in the next two criteria: where the thin region is a wide span rather than a narrow notch, the primary is the span edge against the fat node and the deepest point inside the span is the secondary. Apply that exception when it fits; otherwise the deepest candidate is primary.',
     corpus: 'B1, B2',
     example: 'this is the deepest LVN. So deepest meaning primary',
   },
