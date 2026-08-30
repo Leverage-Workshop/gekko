@@ -4443,3 +4443,20 @@ figures in the two worked examples are read out of the actual `.vbp.md` exports.
 Also noted, not fixed: `docs/job-planning-task-plan.md` "The perception contract" is stale — it
 still says the criteria come from "B1–B12" and lists `shape` without `'ledge'`. `schema.ts` does
 carry `'ledge'`, so this is doc drift only.
+
+**Codex gate: PASS** on `7d26591` (no P0/P1). Two P2s, triaged:
+
+- **P2 "Recompute the worked-example bar lengths" — VALID, fixed.** Codex compared single raw bins
+  (0.25-pt on the ES export) against the table and got different ratios. The table aggregates raw
+  bins into readable rows — 2 pts on ES, 10 pts on NQ — and normalises against the tallest
+  aggregated row; the document never said so. Section 4 now opens with a "How to read the numbers"
+  paragraph stating the bin sizes, the aggregation, and the normalisation, and the tables' first
+  column is labelled `Row (2 pts)` / `Row (10 pts)`. Every cited figure was then re-derived
+  independently and matches (ES tallest 2-pt row is 7594 at 273,014; 7570 = 0.087, 7550 = 0.051 —
+  the pair the B13-vs-B4 argument rests on).
+- **P2 "Add timestamps to the prep-video citations" — DISMISSED.** The 25 prep transcripts are
+  stored as single-line files with no timing data of any kind, so there is nothing in the
+  repository to derive a `?t=` offset from; producing one would mean inventing it. The document
+  already declares this in its "About the links" preamble, and the three prep citations it uses are
+  each verified verbatim against the transcript text. Every replay and deep-dive citation — 66 of
+  them — is timestamped and machine-checked.

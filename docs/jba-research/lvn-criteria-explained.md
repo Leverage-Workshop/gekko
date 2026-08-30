@@ -480,14 +480,21 @@ The four in bold are the ones added on 2026-08-30 from Volume Profile 101.
 
 Both are in the few-shot set the model sees on every call
 ([`knowledge/job-plan/few-shot/`](../../knowledge/job-plan/few-shot/)), so they are not just
-illustrations — they are the calibration. The bar lengths below are read straight out of the
-replayed profile exports, normalised so the longest bar in the image is 1.00.
+illustrations — they are the calibration.
+
+**How to read the numbers.** The bar lengths below come out of the replayed `.vbp.md` exports. Those
+exports are far finer than the rows anyone actually looks at — 0.25-point bins on the ES file, 1-point
+bins on the NQ one — so a single raw bin is not a bar. Each table therefore **aggregates** the raw
+bins into readable rows (**2 points on ES, 10 points on NQ**) and normalises so the tallest
+aggregated row in that image is 1.00. The price in the first column is the bottom of its row. Add up
+the raw bins yourself and you will get these figures; compare a single raw bin against them and you
+will not.
 
 ### 4.1 The clean one — 2026-02-13 NQ, 5-day rolling
 
-Span 24621–25465, POC 25370. Two obvious humps:
+Span 24621–25465, POC 25370, rows aggregated to 10 points. Two obvious humps:
 
-| Price row | Bar length | |
+| Row (10 pts) | Bar length | |
 | --- | --- | --- |
 | 25350 | **1.00** | peak of the upper distribution |
 | 25080 | 0.22 | value area low |
@@ -514,11 +521,12 @@ unambiguous instance to anchor on.
 
 ### 4.2 The awkward one — 2026-06-02 ES, 5-day rolling, and where two rules collide
 
-Span 7505.75–7632.25, POC 7595, VAL 7551. The relevant stretch, top to bottom:
+Span 7505.75–7632.25, POC 7595, VAL 7551, rows aggregated to 2 points. The relevant stretch, top to
+bottom:
 
-| Price row | Bar length | Labeled as |
+| Row (2 pts) | Bar length | Labeled as |
 | --- | --- | --- |
-| 7594 | **1.00** | `hvn-core` — POC-class peak (band 7592–99) |
+| 7594 | **1.00** | `hvn-core` — the tallest 2-pt row; POC-class peak (band 7592–99) |
 | 7580 | 0.53 | |
 | 7578 | 0.44 | volume starting to fall off |
 | 7576 | 0.35 | |
