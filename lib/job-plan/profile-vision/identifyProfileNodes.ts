@@ -42,7 +42,16 @@ import {
  */
 
 export const DEFAULT_CONCURRENCY = 6
-export const DEFAULT_TIMEOUT_MS = 60_000
+/**
+ * Per-sample budget for one vision call.
+ *
+ * Raised from 60s (feat-131): the first live runs showed reasoning models take
+ * 30-60s on a single 900x1400 profile at their default effort — `gpt-5.6-sol`
+ * averaged ~41s and `claude-sonnet-5` blew the 60s budget outright, which the
+ * bench then reported as a failed read when the model was merely slow. Samples
+ * run concurrently, so this is wall-clock per call, not per profile.
+ */
+export const DEFAULT_TIMEOUT_MS = 180_000
 
 /** The slice of `generateStructured` this module needs — injectable so tests never call a model. */
 export type VisionGenerate = (params: {

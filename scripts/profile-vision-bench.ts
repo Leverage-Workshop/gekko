@@ -4,6 +4,7 @@
  *   RUN_LLM_INTEGRATION=1 npx tsx scripts/profile-vision-bench.ts \
  *     [--model <id>] [--effort <level>] [--variant <preset>] [--samples N] \
  *     [--source golden|fixtures|both] [--dates 2026-02-13,2026-08-07] [--report]
+ *     [--timeout <seconds>]
  *
  * Renders each profile (feat-122), reads it S times with the vision model
  * (feat-123), reaches consensus, and scores the consensus nodes against the
@@ -96,6 +97,8 @@ type Args = {
   source: 'golden' | 'fixtures' | 'both'
   dates: string[] | null
   report: boolean
+  /** Per-call timeout override in ms; null = identifyProfileNodes' default. */
+  timeoutMs: number | null
 }
 
 function parseArgs(argv: string[]): Args {
@@ -107,6 +110,7 @@ function parseArgs(argv: string[]): Args {
     source: 'both',
     dates: null,
     report: false,
+    timeoutMs: null,
   }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
@@ -118,6 +122,7 @@ function parseArgs(argv: string[]): Args {
     else if (a === '--source') args.source = next() as Args['source']
     else if (a === '--dates') args.dates = next().split(',')
     else if (a === '--report') args.report = true
+    else if (a === '--timeout') args.timeoutMs = Number(argv[++i]) * 1000
   }
   if (!(args.variant in VARIANTS)) {
     throw new Error(`unknown --variant ${args.variant}; one of ${Object.keys(VARIANTS).join(', ')}`)
@@ -201,6 +206,8 @@ function makeGenerate(model: string, effort: ReasoningEffort | null): VisionGene
       prompt,
       images: [...images],
       abortSignal,
+      // Never let a candidate be routed to an endpoint that ignores the schema.
+      requireParameters: true,
     })
     list.push({ read: result.object, cost: result.cost, latencyMs: result.latencyMs })
     saveCacheFile(key, { reads: list })
@@ -311,6 +318,19 @@ type CaseResult = {
   readonly latencyMs: number
   /** True when EVERY readable profile's consensus was unavailable (R14). */
   readonly failed: boolean
+  /**
+   * Distinct error messages from individual vision calls (feat-131). A call can
+   * fail for two very different reasons — the model refused the JSON schema, or
+   * it produced a structurally valid but contradictory read that `superRefine`
+   * rejected — and NONE of the superRefine rules are expressible in JSON Schema,
+   * so no model is constrained by them. Without the reason surfaced, a
+   * schema-compliance failure is indistinguishable from bad chart reading.
+   */
+  readonly errors: readonly string[]
+  /** Individual vision calls made for this case (samples x tiles x profiles). */
+  readonly calls: number
+  /** Of those, how many came back ok. */
+  readonly okCalls: number
 }
 
 async function scoreCase(
@@ -350,6 +370,7 @@ async function scoreCase(
     modelId: args.model!,
     effort: args.effort,
     generate,
+    ...(args.timeoutMs === null ? {} : { timeoutMs: args.timeoutMs }),
   })
 
   const visionPreds: ProfilePredictions[] = []
@@ -358,12 +379,18 @@ async function scoreCase(
   let costUsd = 0
   let latencyMs = 0
   let anyConsensus = false
+  const errors = new Set<string>()
+  let calls = 0
+  let okCalls = 0
 
   for (const key of keys) {
     const entry = result.profiles[key]
     for (const r of entry?.raw ?? []) {
       costUsd += r.cost ?? 0
       latencyMs += r.latencyMs ?? 0
+      calls += 1
+      if (r.ok) okCalls += 1
+      if (r.error) errors.add(r.error)
     }
     const consensus = entry?.consensus
     // A failed consensus contributes an empty prediction set — its labels become
@@ -411,6 +438,9 @@ async function scoreCase(
     costUsd,
     latencyMs,
     failed: !anyConsensus,
+    errors: [...errors],
+    calls,
+    okCalls,
   }
 }
 
@@ -469,7 +499,19 @@ function summarize(cases: readonly CaseResult[]) {
     costUsd: cases.reduce((s, c) => s + c.costUsd, 0),
     latencyMs: cases.reduce((s, c) => s + c.latencyMs, 0),
     failedCases: cases.filter((c) => c.failed).length,
+    calls: cases.reduce((s, c) => s + c.calls, 0),
+    okCalls: cases.reduce((s, c) => s + c.okCalls, 0),
+    errors: tally(cases.flatMap((c) => c.errors)),
   }
+}
+
+/** Distinct error messages with a count each, most frequent first. */
+function tally(messages: readonly string[]): { message: string; count: number }[] {
+  const counts = new Map<string, number>()
+  for (const m of messages) counts.set(m, (counts.get(m) ?? 0) + 1)
+  return [...counts.entries()]
+    .map(([message, count]) => ({ message, count }))
+    .sort((a, b) => b.count - a.count)
 }
 
 function reportBody(
@@ -496,8 +538,22 @@ function reportBody(
     ``,
     `- primary agreement: ${s.primaryAgreement === null ? 'n/a' : pct(s.primaryAgreement)}`,
     `- self-agreement across samples: ${s.selfAgreement === null ? 'n/a' : pct(s.selfAgreement)}`,
+    `- calls: ${s.okCalls}/${s.calls} ok${s.calls > 0 ? ` (${pct(s.okCalls / s.calls)})` : ''}`,
     `- cost: $${s.costUsd.toFixed(4)}   latency: ${(s.latencyMs / 1000).toFixed(1)}s total`,
     ``,
+    ...(s.errors.length === 0
+      ? []
+      : [
+          `### Call failures`,
+          ``,
+          `A schema refusal and a \`superRefine\` rejection mean very different things —`,
+          `the first is the model refusing the contract, the second a contradictory read.`,
+          ``,
+          `| count | message |`,
+          `| --- | --- |`,
+          ...s.errors.map((e) => `| ${e.count} | ${e.message.replace(/\|/g, '\\|').slice(0, 300)} |`),
+          ``,
+        ]),
     `### R15 (proposed exit criterion)`,
     ``,
     `recall ≥ 0.8, primary agreement ≥ 0.7, self-agreement ≥ 0.8, and beats the detector`,
