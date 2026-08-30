@@ -4563,7 +4563,7 @@ B13–B16 cannot be clicked and watched.
 
 ## 2026-08-30 — feat-135 (axis-free profile rendering with normalized-position reads)
 
-**Branch `feat-135-axis-free-render`, off `main`. PR #PRNUM — NOT merged; the operator runs the A/B.**
+**Branch `feat-135-axis-free-render`, off `main`. PR #178 — NOT merged; the operator runs the A/B.**
 
 **The operator's idea.** The rendered price axis is the one thing on the profile image the vision
 model has to READ rather than SEE, and reading it is the error-prone step. Drop the axis; ask the
