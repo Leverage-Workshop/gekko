@@ -445,7 +445,7 @@ criteria) as the backup regression floor.
   `thinZones[]` ≤ 3 `{ low, high }` (the "wide LVN" / "kennel" spans, corpus B6);
   `profileShape: 'bell' | 'double' | 'multi' | 'trend-up' | 'trend-down' | 'thin'`;
   `unfinished: boolean` (no taper / exhaustive node at an extreme — corpus #69).
-- **Criteria in the prompt** — distilled from `lvn-corpus.md` B1–B12 and D, each with one
+- **Criteria in the prompt** — distilled from `lvn-corpus.md` B1–B16 and D, each with one
   quoted example: deepest = primary, ranked **within this profile**; a notable LVN is a
   departure scar (thin shelf immediately outside a fat node's edge — the `hvn-edge` and the
   `lvn` are adjacent and both reported), not a dip inside a node; wide LVNs reported as a

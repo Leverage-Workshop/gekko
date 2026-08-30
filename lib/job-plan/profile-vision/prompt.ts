@@ -27,7 +27,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-30.1'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-30.2'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -60,7 +60,9 @@ export const CRITERIA: readonly Criterion[] = [
     example: 'this is the deepest LVN. So deepest meaning primary',
   },
   {
-    rule: 'FIND IT BY BAR TIP, ACROSS THE WHOLE IMAGE. Bars grow left from the price axis, so the primary is the lvn whose bars stay NEAREST the axis — compare tip lengths against every trough in the image, not just its two neighbours.',
+    rule:
+      'FIND IT BY BAR TIP, ACROSS THE WHOLE IMAGE. Bars grow left from the price axis, so the primary is the lvn whose bars stay NEAREST the axis — compare tip lengths against every trough in the image, not just its two neighbours. ' +
+      'When the thin region is a WIDE SPAN rather than a narrow notch, the primary anchors at the span EDGE against the fat node and the deepest point inside the span is the secondary.',
     corpus: 'B13',
     example:
       "the easiest way to spot a primary LVN is just look all the way to the right and see which ones are closest",
@@ -78,7 +80,7 @@ export const CRITERIA: readonly Criterion[] = [
       "here's a primary obn right there and one right here so between the two we have a distribution of volume",
   },
   {
-    rule: 'EXTREME ANATOMY: TAPER vs LEDGE vs EXHAUSTIVE. A taper falls off PROGRESSIVELY away from a fat node (parabolic or a straight 45-degree ramp) — that is taper-tail, and the extreme is finished. A LEDGE is a stack of near-EQUAL-length bars where the build just stops — shape ledge, unfinished = true, and never a taper-tail. An exhaustive node is a spike, a small build, then an immediate step off.',
+    rule: 'EXTREME ANATOMY: TAPER vs LEDGE vs EXHAUSTIVE. A taper falls off PROGRESSIVELY away from a fat node (parabolic or a straight 45-degree ramp) — that is taper-tail, and the extreme is finished. A LEDGE is a stack of near-EQUAL-length bars where the build just stops — report it as kind hvn-edge with shape ledge and unfinished = true, never as a taper-tail: it is the boundary of a build that stopped, and the line in the sand once price traverses it. An exhaustive node is a spike, a small build, then an immediate step off.',
     corpus: 'B16, B7',
     example:
       'we have a volume build and then we basically have a flat line let it smack you in the face',
@@ -144,12 +146,14 @@ export const CRITERIA: readonly Criterion[] = [
   {
     rule: 'NEGATIVE — DO NOT PAD. Report only what is there; fewer nodes is better than invented ones. Do not mark every minor local minimum.',
     corpus: 'D10',
-    example: 'Which of several is most prominent cannot always be eyeballed',
+    example:
+      "if you want to tag that as saying which one is the most prominent, then you're gonna have to do some work on your back end",
   },
   {
     rule: 'NEGATIVE — NO PRIMARY INSIDE THE VALUE BULK. A trough inside the value-area bulk of a fat distribution is not the primary LVN; the primary sits at a distribution edge or between distributions.',
     corpus: 'B8, D3',
-    example: 'An LVN inside value is not an entry',
+    example:
+      "not looking to just dive in like a dragon with a hemorrhoid at that LVN because we're back inside of value.",
   },
 ] as const
 

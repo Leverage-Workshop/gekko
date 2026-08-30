@@ -119,14 +119,14 @@ describe('vision prompt', () => {
       'high volume edge',
       'wide LVN',
       'HPNs that are tiny',
-      'not an entry',
+      'back inside of value',
       // B13-B16, from reference/volume_profile_101.txt (corpus A4)
       'look all the way to the right',
       "that's a secondary LVN",
       'we have a distribution of volume',
       'flat line let it smack you in the face',
       '45-degree ramp',
-      'shape ledge',
+      'kind hvn-edge with shape ledge',
     ]) {
       expect(prompt).toContain(phrase)
     }

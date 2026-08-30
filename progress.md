@@ -4466,3 +4466,43 @@ back" paragraph said exactly one LVN is flagged primary, which is the *per-profi
 the per-image one. `profileNodesReadSchema` legitimately allows an LVN-free image — a tile that is
 nothing but one fat node — with no primary, and `consensus.ts` establishes the profile-level primary
 once tiles and samples are combined. The paragraph now says so.
+
+### 2026-08-30 (later still) — criteria defects found by the feat-134 explainer
+
+Writing the explainer surfaced six problems in the criteria. Three were fixed in the same PR
+(`VISION_PROMPT_REVISION` → `vision-2026-08-30.2`):
+
+1. **`shape: 'ledge'` had no legal `kind`** — a defect introduced by feat-132. Criterion 5 told
+   the model to report a ledge with `shape: ledge`, but a ledge is explicitly *not* an
+   exhaustive-node and is not thin, so none of `lvn | hvn-edge | hvn-core | exhaustive-node |
+   taper-tail` fit and the prompt was silent. A model spotting a textbook ledge had no
+   unambiguous way to report it. Now stated: **`kind: hvn-edge` with `shape: ledge`** — which is
+   what it is, the boundary of a build that stopped and "a line in sand" once traversed
+   (`volume_profile_101.txt:420-426`). No schema change needed.
+2. **Criteria 1 and 2 defined depth differently with nothing adjudicating.** [1] is local ("least
+   volume relative to the nodes on either side"), [2] absolute ("against every trough in the
+   image"). This is real, not pedantic: on the ES few-shot the secondary at 7550 is measurably
+   THINNER (0.05 of peak) than the labeled primary at 7570 (0.09). Only the few-shot resolved it.
+   The adjudicating sentence is now in criterion 2: **when the thin region is a wide span rather
+   than a narrow notch, the primary anchors at the span edge against the fat node and the
+   deepest point inside the span is the secondary.**
+3. **Criteria 17 and 18 quoted the corpus EDITOR, not Job**, while the prompt bills the list as
+   "the trader's own words from the corpus". #17 was D10's heading, #18 a sentence of B8 prose.
+   Both replaced with real Job quotes already in the corpus (#76 and #98).
+
+Also fixed: `docs/job-planning-task-plan.md` "The perception contract" was stale (B1–B12).
+
+**Open, not fixed** (recorded for the operator):
+- **No few-shot example carries a ledge**, and both are `unfinished: false`. B16 — the one shape
+  the source says should "smack you in the face" — ships as text with no worked picture. This is
+  the weakest-supported criterion in the set.
+- `trend-up` / `trend-down` / `thin` in `profileShape` have no corpus basis (bell/double/multi do);
+  the "8–16 points on NQ" band is the ES figure ×4 per the R1 ratio, never a spoken number;
+  "tiny" in the grouping criterion is undefined.
+- **`reference/volume_profile_101.txt` has no video URL or timestamps**, so B13–B16 are the only
+  rules in the explainer that cannot be clicked and watched. Only the operator knows the source
+  video; a `# Source: https://youtu.be/...` header would close it.
+
+Note: the 2026-08-30 validation numbers were measured on `vision-2026-08-30.1`. These are
+correctness fixes to the contract, not threshold tuning, but the live config now points at a
+prompt revision one patch newer than the one benched.
