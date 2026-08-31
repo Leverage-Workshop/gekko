@@ -463,16 +463,49 @@ describe('location dimensions', () => {
 })
 
 describe('data quality (R13) — a separate field, never a pseudo-state', () => {
-  it('fails closed on export skew strictly over 5 min between ANY two exports', () => {
-    const skewed = classify({ jobStudy: { ...studyAt('2026-08-24T09:30:00'), sources: { ...studyAt().sources, weekly: { ...studyAt().sources.weekly, exportedAt: { wall: '2026-08-24T09:34:01', epochMs: 0, iso: '' } } } } })
+  const weeklyLastBarAt = (wall: string) => {
+    const sources = studyAt().sources
+    return { sources: { ...sources, weekly: { ...sources.weekly, lastBarTime: { wall, epochMs: 0, iso: '' } } } }
+  }
+
+  it('fails closed on chart-clock skew strictly over 5 min between ANY two exports', () => {
+    const skewed = classify({ jobStudy: { ...studyAt('2026-08-24T09:30:00'), ...weeklyLastBarAt('2026-08-24T09:34:01') } })
     expect(skewed.dataQuality.maxSkewSeconds).toBe(301)
     expect(skewed.dataQuality.sufficient).toBe(false)
     expect(skewed.dataQuality.issues).toContainEqual(expect.objectContaining({ code: 'export_skew', severity: 'insufficient' }))
     expect(skewed.dataQuality.issues.find((i) => i.code === 'export_skew')?.message).toContain('request a fresh bundle')
 
-    const boundary = classify({ jobStudy: { ...studyAt(), sources: { ...studyAt().sources, weekly: { ...studyAt().sources.weekly, exportedAt: { wall: '2026-08-24T09:34:00', epochMs: 0, iso: '' } } } } })
+    const boundary = classify({ jobStudy: { ...studyAt(), ...weeklyLastBarAt('2026-08-24T09:34:00') } })
     expect(boundary.dataQuality.maxSkewSeconds).toBe(300)
     expect(boundary.dataQuality.sufficient).toBe(true)
+  })
+
+  it('reads the chart clock (lastBarTime), never exportedAt — a replayed bundle with a live wall clock is sufficient', () => {
+    const sources = studyAt().sources
+    const liveWallClock = { wall: '2026-08-31T17:08:16', epochMs: 0, iso: '' }
+    const replayed = classify({
+      jobStudy: {
+        ...studyAt(),
+        sources: {
+          daily: { ...sources.daily, exportedAt: liveWallClock },
+          weekly: { ...sources.weekly, exportedAt: liveWallClock },
+        },
+      },
+    })
+    expect(replayed.dataQuality.issues.map((i) => i.code)).not.toContain('export_skew')
+    expect(replayed.dataQuality.sufficient).toBe(true)
+  })
+
+  it('allows daily/weekly lastBarTime one HTF bar behind the freshest export, but no more', () => {
+    // The happy-path 60 is the mgi/bars proxies (09:29 vs the 09:30 study) — the weekly's 30-min lag is absorbed.
+    const withinBar = classify({ jobStudy: { ...studyAt(), ...weeklyLastBarAt('2026-08-24T09:00:00') } })
+    expect(withinBar.dataQuality.maxSkewSeconds).toBe(60)
+    expect(withinBar.dataQuality.sufficient).toBe(true)
+
+    const stale = classify({ jobStudy: { ...studyAt(), ...weeklyLastBarAt('2026-08-24T08:54:59') } })
+    expect(stale.dataQuality.maxSkewSeconds).toBe(301)
+    expect(stale.dataQuality.sufficient).toBe(false)
+    expect(stale.dataQuality.issues).toContainEqual(expect.objectContaining({ code: 'export_skew', severity: 'insufficient' }))
   })
 
   it('reports the export-time proxies for the MGI (current.time) and the bars (last row)', () => {

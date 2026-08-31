@@ -4,7 +4,32 @@
 
 **Last Updated:** 2026-08-31
 
-**Latest change (branch `feat-142-job-plan-rotation-balance-profiles`): feat-142 — the job planner now
+**Latest change (branch `fix-r13-replay-skew`): R13 compares chart clocks, not the machine wall
+clock — job plans now run on chart replays.** Operator report 2026-08-31: every job-plan run on a
+chart replay failed `export_skew` ("exports are 545814s apart") because the job-study `exportedAt`
+is `sc.CurrentSystemDateTime` (verified in `JobStudyExporter.cpp`), which a replay does NOT follow —
+the daily/weekly files stamped the live wall clock while the MGI/bars proxies carried the replay clock.
+
+- `dataQuality.ts` now takes the daily/weekly proxies from `lastBarTime` (the chart clock; already
+  parsed into `JobStudySource`), never `exportedAt`. Since `lastBarTime` is the in-progress bar's
+  OPEN, the daily/weekly proxies get a one-HTF-bar allowance (`HTF_BAR_ALLOWANCE_SECONDS` = 30 min,
+  the coarsest bar on those charts — the real weekly export honestly trails by ~10 min) subtracted
+  from their lag before R13 counts skew; the MGI/bars proxies keep a zero allowance and the 5-min
+  threshold is unchanged. `maxSkewSeconds` is now the worst allowance-adjusted lag behind the
+  freshest export (0 when all agree), not raw max−min.
+- `boxesProvisional` switched to the daily `lastBarTime` for the same reason — a replayed premarket
+  bundle must still flag provisional JBA boxes. Live edge: the warning can linger up to one daily-chart
+  bar past the RTH open; harmless and fail-safe.
+- `classifyContext`'s input schema validates `sources.*.lastBarTime` (what it now reads); the
+  jobStudyMeta daily-vs-weekly `exportedAt` warning is untouched (both stamps come from the same
+  machine clock, replay or not). PLANNER_REVISION → `job-planner/2026-08-31.2`.
+- Tests: `studyAt` stamps `lastBarTime`; the two `skewedDaily` fixtures moved to 08:20 (past the
+  allowance); new cases pin the replay scenario (live `exportedAt` + in-session `lastBarTime` is
+  sufficient) and the allowance boundary (30-min lag absorbed, 35:01 fails closed).
+
+`./init.sh` green — typecheck, lint, 2199/2200 tests (1 skipped), build.
+
+**Previous change (branch `feat-142-job-plan-rotation-balance-profiles`): feat-142 — the job planner now
 reads the 400-pt rotation and balance-area profiles.** Operator direction 2026-08-31: the job-planning
 task's profile inputs switch from the feat-119 5-day / 4-hour rolling exports to the two HTF structural
 profiles every briefing bundle already carries — `balance_area_vbp_ref` (balance-area VbP, long-term) and
