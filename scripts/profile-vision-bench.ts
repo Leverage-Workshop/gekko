@@ -145,9 +145,25 @@ const CACHE_DIR = join(tmpdir(), 'gekko-profile-vision-bench-cache')
 type CachedRead = { read: ProfileNodesRead; cost: number | null; latencyMs: number | null }
 type CacheFile = { reads: CachedRead[] }
 
-function cacheKey(imageSha: string, model: string, effort: ReasoningEffort | null): string {
+/**
+ * Key a cached read on the ACTUAL PROMPT TEXT, not on VISION_PROMPT_REVISION.
+ *
+ * The revision is a hand-maintained label, and two branches independently
+ * choosing the same one is not hypothetical: feat-135 and feat-136 both shipped
+ * `vision-2026-08-30.8` with different criteria, and an A/B silently replayed
+ * the other branch's answers as its own — caught only because the OpenRouter
+ * balance moved $0.07 instead of $0.80. A content hash cannot collide that way.
+ * The revision stays in the key so a deliberate bump still cold-starts.
+ */
+function cacheKey(
+  imageSha: string,
+  model: string,
+  effort: ReasoningEffort | null,
+  promptText: string
+): string {
+  const promptSha = createHash('sha256').update(promptText).digest('hex')
   return createHash('sha256')
-    .update([imageSha, VISION_PROMPT_REVISION, model, effort ?? 'default'].join('|'))
+    .update([imageSha, VISION_PROMPT_REVISION, promptSha, model, effort ?? 'default'].join('|'))
     .digest('hex')
 }
 
@@ -192,21 +208,30 @@ function makeGenerate(model: string, effort: ReasoningEffort | null): VisionGene
     }
     return list
   }
-  return async ({ prompt, images, abortSignal }) => {
+  return async ({ schema, prompt, images, abortSignal }) => {
     const targetImage = images[images.length - 1]
     const imageSha = createHash('sha256').update(targetImage.base64).digest('hex')
-    const key = cacheKey(imageSha, model, effort)
+    const key = cacheKey(imageSha, model, effort, prompt)
     const list = reads(key)
     const i = cursor.get(key) ?? 0
     cursor.set(key, i + 1)
     if (i < list.length) {
       const hit = list[i]
-      return { object: hit.read, cost: hit.cost, latencyMs: hit.latencyMs ?? 0 }
+      // Replay only if the entry satisfies the schema THIS call wants; a cached
+      // read of a different shape must fall through to a real call rather than
+      // be handed back as if it fit (found while building feat-135).
+      if (schema.safeParse(hit.read).success) {
+        return { object: hit.read, cost: hit.cost, latencyMs: hit.latencyMs ?? 0 }
+      }
     }
     const result = await generateStructured({
       model,
       effort,
-      schema: profileNodesReadSchema,
+      // The schema comes from identifyProfileNodes, never from this module:
+      // hardcoding one here silently ignored what the caller asked for, so a
+      // caller using a different read shape would have been sent the wrong
+      // contract entirely (found while building feat-135).
+      schema,
       prompt,
       images: [...images],
       abortSignal,

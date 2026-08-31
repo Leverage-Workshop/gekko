@@ -8,6 +8,7 @@ import {
   CRITERIA_CANARIES,
   FEW_SHOT_SOURCE,
   loadFewShot,
+  MECHANISM,
   VISION_PROMPT_REVISION,
 } from './prompt'
 import { renderProfile } from './renderProfile'
@@ -78,82 +79,47 @@ describe('vision prompt', () => {
   })
 
   /**
-   * feat-131 adversarial review. `lvn-corpus.md` has section A — a table of
-   * VERBATIM trader quotes, each with a transcript citation — and sections
-   * B/C/D, which are SYNTHESIS PROSE written by an earlier session. Checking a
-   * quote against the whole file cannot tell the two apart, so criteria drifted
-   * into quoting the corpus EDITOR while the prompt billed them as the trader's
-   * own words. Three had (D10's heading, a sentence of B8 prose, and an
-   * ellipsis-compressed rendering of row #87 that the trader never uttered).
-   *
-   * Every criterion quote must come from section A. If a rule needs support
-   * that only exists in the synthesis, the fix is to cite the section-A row the
-   * synthesis was built from — not to quote the synthesis.
+   * feat-137: the corpus-sourcing tests are retired. The rules are now the
+   * OPERATOR's own statement of what he wants identified, not quotes mined from
+   * docs/jba-research/lvn-corpus.md, so "every criterion quotes corpus section
+   * A" no longer describes the contract. The corpus is still the evidence base
+   * for the golden labels and the explainer — it is just not the prompt's
+   * source any more. What IS worth pinning is that the set stays small: the
+   * whole point of the rewrite was that 18 criteria buried the five that
+   * mattered.
    */
-  it('every criterion quotes the TRADER (corpus section A), never the editor', () => {
-    const corpus = readFileSync(join(process.cwd(), 'docs/jba-research/lvn-corpus.md'), 'utf8')
-    const start = corpus.indexOf('## A. The corpus')
-    const end = corpus.indexOf('## B. Synthesis')
-    expect(start, 'corpus section A missing').toBeGreaterThanOrEqual(0)
-    expect(end, 'corpus section B missing').toBeGreaterThan(start)
-    const sectionA = corpus.slice(start, end)
+  it('keeps the rule set small and every rule substantive', () => {
+    expect(CRITERIA.length).toBeGreaterThanOrEqual(3)
+    expect(CRITERIA.length).toBeLessThanOrEqual(6)
     for (const c of CRITERIA) {
-      expect(sectionA, `criterion quotes editor prose, not the trader: ${c.example}`).toContain(
-        c.example
-      )
+      expect(c.title).toMatch(/^[A-Z][A-Z ,-]+$/)
+      // rule 4 is deliberately terse — the operator's point was that HVNs are
+      // self-explanatory and do not need re-teaching
+      expect(c.text.split(/\s+/).length).toBeGreaterThan(10)
     }
   })
 
-  it('every criterion quotes the corpus VERBATIM and names the sections it distils', () => {
-    const corpus = readFileSync(join(process.cwd(), 'docs/jba-research/lvn-corpus.md'), 'utf8')
-    expect(CRITERIA).toHaveLength(18)
-    for (const c of CRITERIA) {
-      expect(corpus, `not a corpus quote: ${c.example}`).toContain(c.example)
-      expect(c.corpus).toMatch(/^[BD]\d+(, [BD]\d+)*$/)
-    }
-    // perception-side coverage: B1-4, B6-8, B11-16, D3, D7, D10, D11
-    const covered = new Set(CRITERIA.flatMap((c) => c.corpus.split(', ')))
-    for (const id of [
-      'B1',
-      'B2',
-      'B3',
-      'B4',
-      'B6',
-      'B7',
-      'B8',
-      'B11',
-      'B12',
-      'B13',
-      'B14',
-      'B15',
-      'B16',
-      'D3',
-      'D7',
-      'D10',
-      'D11',
-    ]) {
-      expect(covered.has(id), `criterion for ${id} missing`).toBe(true)
-    }
+  it('leads with the mechanism, not a checklist', () => {
+    expect(prompt).toContain(MECHANISM)
+    expect(prompt.indexOf(MECHANISM)).toBeLessThan(prompt.indexOf(CRITERIA[0].title))
+    expect(MECHANISM).toMatch(/participation dried up/)
+    expect(MECHANISM).toMatch(/travel a long way/)
   })
 
-  it('carries every criterion canary phrase, one per criterion', () => {
+  it('carries every rule title, one per rule', () => {
     expect(CRITERIA_CANARIES).toHaveLength(CRITERIA.length)
     for (const canary of CRITERIA_CANARIES) expect(prompt).toContain(canary)
     // the corpus rules the criteria distil (B1, B3, B4, B6, B11, B7, B13-16, D)
+    // the substance of each rule, not corpus quotes (feat-137)
     for (const phrase of [
-      'deepest meaning primary',
-      'We left an LVN',
-      'high volume edge',
-      'wide LVN',
-      'HPNs that are tiny',
-      'back inside of value',
-      // B13-B16, from reference/volume_profile_101.txt (corpus A4)
-      'look all the way to the right',
-      "that's a secondary LVN",
-      'we have a distribution of volume',
-      'flat line let it smack you in the face',
-      '45-degree ramp',
-      'kind hvn-edge with shape ledge',
+      'how large a change in volume it represents',
+      'most prominent distributions',
+      'drops off very quickly',
+      'thinning gradually',
+      'DOES NOT RANK IT',
+      'peak of each significant distribution',
+      'Three to five nodes is normal',
+      'never a target',
     ]) {
       expect(prompt).toContain(phrase)
     }
