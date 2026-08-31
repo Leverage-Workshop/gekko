@@ -72,13 +72,6 @@ export function playHeadline(play: Play): string {
   }
 }
 
-const EXPECT_SHORT: Record<Play['destinations'][number]['expect'], string> = {
-  'gate-continuation': 'gate',
-  reoffer: 'reoffer',
-  rebid: 'rebid',
-  hold: 'rung',
-}
-
 type ActionRow = {
   point: string
   price: string
@@ -86,24 +79,31 @@ type ActionRow = {
   counter: boolean
 }
 
+const capitalize = (word: string): string => word.charAt(0).toUpperCase() + word.slice(1)
+
+/** Rows labeled the way the objective card labels its action points. */
 function actionRows(play: Play): ActionRow[] {
   const inv = play.invalidation
   const flip = inv.thenSeek ? `; ${inv.thenSeek.text}` : ''
+  const stop =
+    inv.side === 'either'
+      ? 'Structural stop — either side'
+      : `Structural stop ${inv.side} ${play.band.label}`
   return [
     {
-      point: `Trigger · ${play.stance}`,
+      point: `Entry (${capitalize(play.stance)}) — ${play.band.label}`,
       price: formatBand(play.band.low, play.band.high),
       description: play.trigger,
       counter: false,
     },
     {
-      point: `Invalidation · ${inv.side}`,
+      point: stop,
       price: formatBand(inv.low, inv.high),
       description: `${inv.condition}${flip}`,
       counter: true,
     },
     ...play.destinations.map((stage) => ({
-      point: `Destination ${stage.order} · ${EXPECT_SHORT[stage.expect]}`,
+      point: `Target ${stage.order} (T${stage.order})`,
       price: formatBand(stage.low, stage.high),
       description: stage.text,
       counter: false,
@@ -171,7 +171,7 @@ export function JobPlayCard({ play }: { play: Play }) {
       </p>
       {sequence && (
         <p className="mt-3 text-xs font-light uppercase tracking-wide text-muted">
-          Destination sequence: <span className="text-body-strong">{sequence}</span>
+          Target sequence: <span className="text-body-strong">{sequence}</span>
         </p>
       )}
 
