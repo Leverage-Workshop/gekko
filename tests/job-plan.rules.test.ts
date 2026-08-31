@@ -128,12 +128,12 @@ describe('R2 — source significance', () => {
   it('ranks the G line first and the daily rung last, in the ratified order', () => {
     expect(SOURCE_SIGNIFICANCE).toEqual([
       'g-line', 'weekly-job-pivot', 'daily-job-pivot', 'jba-edge', 'rip', 'overnight-extreme',
-      'previous-day-extreme', 'profile-5d', 'profile-4h', 'autoplot', 'mgi-other', 'weekly-rung', 'daily-rung',
+      'previous-day-extreme', 'profile-balance', 'profile-rotation', 'autoplot', 'mgi-other', 'weekly-rung', 'daily-rung',
     ])
     expect(r2Significance('g-line')).toBe(0)
     expect(r2Significance('daily-rung')).toBe(12)
     expect(r2Significance('weekly-job-pivot')).toBeLessThan(r2Significance('daily-job-pivot'))
-    expect(r2Significance('profile-5d')).toBeLessThan(r2Significance('profile-4h'))
+    expect(r2Significance('profile-balance')).toBeLessThan(r2Significance('profile-rotation'))
     expect(r2Significance('weekly-rung')).toBeLessThan(r2Significance('daily-rung'))
   })
 

@@ -113,7 +113,7 @@ type Preflight = {
 
 function parseProfile(text: string, what: string): VbpProfile {
   try {
-    // The Sierra job-plan exporter omits zero-volume rows (feat-131).
+    // Zero-fill any rows the exporter omitted (harmless on hole-free exports).
     return parseVbpProfile(text, { fillMissingRows: true })
   } catch (error) {
     throw new JobPlanAbortError(
@@ -138,8 +138,8 @@ export function preflightParse(texts: LoadedJobBundle['texts']): Preflight {
     instrument: fromMgi ?? study.instrument,
     currentPrice: mgi.current?.price ?? null,
     profiles: {
-      '5d': parseProfile(texts.fiveDayProfile, '5-day rolling volume profile'),
-      '4h': parseProfile(texts.fourHourProfile, '4-hour rolling volume profile'),
+      balance: parseProfile(texts.balanceAreaProfile, 'balance-area volume profile'),
+      rotation: parseProfile(texts.rotationProfile, '400-pt rotation volume profile'),
     },
   }
 }

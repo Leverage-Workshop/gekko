@@ -90,7 +90,7 @@ describe('JobPlanCard: ready with the vision read ON', () => {
     const data = await cardData('ready-vision-on')
     const html = render(data)
     expect(html).toContain('data-section="profiles"')
-    for (const key of ['5d', '4h'] as const) {
+    for (const key of ['balance', 'rotation'] as const) {
       const entry = data.profileNodes!.profiles[key]!
       expect(html).toContain(`data-profile="${key}"`)
       for (const hash of entry.imageHashes) {
@@ -105,8 +105,8 @@ describe('JobPlanCard: ready with the vision read ON', () => {
       expect(html).toContain('data-node-primary="true"')
     }
     // One overlay rect per node (both profiles, single tile each in this fixture).
-    const nodeCount = ['5d', '4h'].reduce(
-      (n, key) => n + data.profileNodes!.profiles[key as '5d' | '4h']!.consensus!.nodes.length,
+    const nodeCount = ['balance', 'rotation'].reduce(
+      (n, key) => n + data.profileNodes!.profiles[key as 'balance' | 'rotation']!.consensus!.nodes.length,
       0
     )
     expect(count(html, '<rect ')).toBe(nodeCount)
@@ -133,10 +133,10 @@ describe('JobPlanCard: the vision read OFF (R14) is LOUD', () => {
     expect(html).toContain('data-vision-warning="partial"')
     expect(html).toContain('Profile nodes partial')
     expect(html).not.toContain('built without the vision read')
-    expect(html).toContain('profile_nodes_unavailable:4h')
+    expect(html).toContain('profile_nodes_unavailable:rotation')
     expect(html).toContain('data-section="profiles"')
-    expect(html).toContain('No consensus · profile_nodes_unavailable:4h')
-    expect(html).toContain('data-profile="5d"')
+    expect(html).toContain('No consensus · profile_nodes_unavailable:rotation')
+    expect(html).toContain('data-profile="balance"')
   })
 
   it('malformed profile_nodes: the banner carries the parse error line', async () => {

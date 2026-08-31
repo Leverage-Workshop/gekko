@@ -19,9 +19,9 @@ import {
 } from './renderProfile'
 import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
 import {
-  PROFILE_KEYS,
   PROFILE_NAMES,
-  type ProfileKey,
+  READABLE_PROFILE_KEYS,
+  type ReadableProfileKey,
   type ProfileNodes,
   type ProfileNodesEntry,
   type RawSample,
@@ -87,7 +87,7 @@ export type IdentifyProfileNodesInput = {
   readonly instrument: Instrument
   readonly currentPrice: number | null
   /** The profiles to read; a key absent here is simply not read. */
-  readonly profiles: Readonly<Partial<Record<ProfileKey, VbpProfile>>>
+  readonly profiles: Readonly<Partial<Record<ReadableProfileKey, VbpProfile>>>
   /** The render variant (bake-off preset) — applied to the few-shot examples too. */
   readonly render?: Omit<RenderOptions, 'instrument' | 'currentPrice'>
   /** Samples per image (config.profile_vision_samples). */
@@ -119,7 +119,7 @@ export type IdentifyProfileNodesInput = {
 }
 
 type Call = {
-  readonly key: ProfileKey
+  readonly key: ReadableProfileKey
   readonly sample: number
   readonly tile: TileSpan
   readonly imageSha256: string
@@ -182,7 +182,7 @@ export function withTimeout<T>(
 /** Few-shot images are rendered with the same variant as the target, always as one tile. */
 
 function buildCalls(
-  key: ProfileKey,
+  key: ReadableProfileKey,
   instrument: Instrument,
   tiles: readonly RenderedTile[],
   meta: RenderMeta,
@@ -272,7 +272,7 @@ export function effectiveTimeoutMs(input: {
 }
 
 function entryFor(
-  key: ProfileKey,
+  key: ReadableProfileKey,
   input: IdentifyProfileNodesInput,
   rendered: { tiles: readonly RenderedTile[]; meta: RenderMeta },
   raw: readonly RawSample[]
@@ -320,7 +320,7 @@ export async function identifyProfileNodes(
   validateInput(input)
   const rasterize = input.rasterize ?? rasterizePng
 
-  const rendered = PROFILE_KEYS.flatMap((key) => {
+  const rendered = READABLE_PROFILE_KEYS.flatMap((key) => {
     const profile = input.profiles[key]
     if (!profile) return []
     const result = renderProfile(profile, {
@@ -339,7 +339,7 @@ export async function identifyProfileNodes(
     input.concurrency ?? DEFAULT_CONCURRENCY
   )
 
-  const profiles: Partial<Record<ProfileKey, ProfileNodesEntry>> = {}
+  const profiles: Partial<Record<ReadableProfileKey, ProfileNodesEntry>> = {}
   const warnings: string[] = []
   rendered.forEach((r) => {
     const raw = outcomes.filter((_, i) => calls[i].key === r.key)

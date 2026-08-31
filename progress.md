@@ -2,9 +2,31 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-29
+**Last Updated:** 2026-08-31
 
-**Latest change (branch `feat-119-golden-replay-exports`): feat-119 — the operator's replayed profiles
+**Latest change (branch `feat-142-job-plan-rotation-balance-profiles`): feat-142 — the job planner now
+reads the 400-pt rotation and balance-area profiles.** Operator direction 2026-08-31: the job-planning
+task's profile inputs switch from the feat-119 5-day / 4-hour rolling exports to the two HTF structural
+profiles every briefing bundle already carries — `balance_area_vbp_ref` (balance-area VbP, long-term) and
+`rotation_vbp_ref` (400-pt rotation VbP, medium-term).
+
+- **ProfileKey is now `'balance' | 'rotation'`** (long-term first, mirroring the old 5d-before-4h order);
+  the vision prompt's per-call name/lookback text, the R2 sources (`profile-balance` / `profile-rotation`,
+  same tiers 8/9), the fingerprint source keys (`balanceAreaProfile` / `rotationProfile`), the required
+  bundle refs, the dashboard card, and the /settings copy all follow. PLANNER_REVISION →
+  `job-planner/2026-08-31.1`. VISION_PROMPT_REVISION unchanged — the criteria did not change, only the
+  per-call profile naming.
+- **Legacy `'5d'/'4h'` keys survive as `LEGACY_PROFILE_KEYS`**: `identifyProfileNodes` reads any
+  `READABLE_PROFILE_KEYS` member, so the golden-set bench still reads the feat-119 export files (the
+  corpus labels are pinned to those files — the bench measures the READ, not the planner's input choice),
+  and pre-feat-142 persisted `job_plans` rows keep parsing (dashboard schema + card render the legacy keys;
+  `PlanMeta.sourceHashes`' new keys are optional so old plans still validate).
+- The 5-day / 4-hour exports keep being ingested (uploader/manifest untouched); they are simply no longer
+  planner inputs.
+
+`./init.sh` green — typecheck, lint, 2197/2198 tests (1 skipped), build.
+
+**Previous change (branch `feat-119-golden-replay-exports`): feat-119 — the operator's replayed profiles
 land, and the replay corrects the labels.** The operator replayed all 20 feat-120 dates in the Gekko
 chartbook, exported `five-day-rolling.vbp.md` + `four-hour-rolling.vbp.md` per date, and recorded in each
 `replay.json` what the profile actually shows (`note.expects` pre-filled from the corpus, `note.observed`

@@ -9,7 +9,7 @@ import type {
   PersistedProfileNodes,
   PersistedProfileNodesEntry,
 } from '@/lib/job-plan/dashboard/schema'
-import { PROFILE_KEYS, PROFILE_NAMES, type ProfileKey } from '@/lib/job-plan/profile-vision/types'
+import { PROFILE_NAMES, READABLE_PROFILE_KEYS, type ReadableProfileKey } from '@/lib/job-plan/profile-vision/types'
 
 /**
  * Rendered profiles with the consensus nodes overlaid (feat-129 step 7): the
@@ -162,7 +162,7 @@ function ProfilePanel({
   profileKey,
   entry,
 }: {
-  profileKey: ProfileKey
+  profileKey: ReadableProfileKey
   entry: PersistedProfileNodesEntry
 }) {
   const name = PROFILE_NAMES[profileKey].name
@@ -200,7 +200,7 @@ function ProfilePanel({
 }
 
 export function JobProfilePanels({ nodes }: { nodes: PersistedProfileNodes }) {
-  const present = PROFILE_KEYS.flatMap((key) => {
+  const present = READABLE_PROFILE_KEYS.flatMap((key) => {
     const entry = nodes.profiles[key]
     return entry ? [{ key, entry }] : []
   })

@@ -388,7 +388,7 @@ describe('sufficiency and the UI-only uncertainty band', () => {
   it('stamps the revision, asOf, instrument and the meta placeholders', () => {
     const p = buildPlan({ context: synthContext(BASE), meta: { bundleId: 'b-1', sourceHashes: { mgi: 'abc' }, visionModelId: 'm' } })
     expect(p.meta).toMatchObject({ plannerRevision: PLANNER_REVISION, asOf: '2026-08-24T09:30:00', instrument: 'NQ', symbol: 'NQU26', tradingDay: '2026-08-24', bundleId: 'b-1', inputFingerprint: null, visionModelId: 'm', visionPromptRevision: null })
-    expect(p.meta.sourceHashes).toEqual({ jobStudyDaily: null, jobStudyWeekly: null, mgi: 'abc', execBars: null, htfBars: null, fiveDayProfile: null, fourHourProfile: null })
+    expect(p.meta.sourceHashes).toEqual({ jobStudyDaily: null, jobStudyWeekly: null, mgi: 'abc', execBars: null, htfBars: null, balanceAreaProfile: null, rotationProfile: null })
     expect(p.geometryRefs.references.map((r) => r.id)).toEqual(BASE_REFS.map((r) => r.id))
     expect(p.geometryRefs.bands.length).toBe(p.context.bands.length)
   })
@@ -405,9 +405,9 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
       { id: 'pdl', source: 'previous-day-extreme', price: 7955, label: 'PDL' },
       { id: 'weekly-pivot', source: 'weekly-job-pivot', price: 7970, label: 'Weekly Job Pivot' },
       { id: 'daily-pivot', source: 'daily-job-pivot', price: 7970, label: 'Daily Job Pivot' },
-      { id: 'node:5d:0', source: 'profile-5d', price: 7980, label: '5-day lvn (primary) #1', node: { primary: true, prominence: 1 } },
+      { id: 'node:balance:0', source: 'profile-balance', price: 7980, label: 'balance-area lvn (primary) #1', node: { primary: true, prominence: 1 } },
       { id: 'rip', source: 'rip', price: 7982, label: 'Rip' },
-      { id: 'node:5d:1', source: 'profile-5d', price: 8004, label: '5-day hvn-edge #2', node: { kind: 'hvn', prominence: 2, edgeBelow: 'ledge', edgeAbove: 'flat' } },
+      { id: 'node:balance:1', source: 'profile-balance', price: 8004, label: 'balance-area hvn-edge #2', node: { kind: 'hvn', prominence: 2, edgeBelow: 'ledge', edgeAbove: 'flat' } },
       { id: 'jba:0:high', source: 'jba-edge', price: 8005, label: 'JBA 1 high', boxIndex: 0 },
       { id: 'pdh', source: 'previous-day-extreme', price: 8005, label: 'PDH' },
       { id: 'mgi:weekly.pwHigh', source: 'mgi-other', price: 8040, label: 'PW High' },
@@ -431,7 +431,7 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
   it('"rebid 7980–82 into the LVN → press the 8004s; build above → attack prior week high"', () => {
     const rebid = p.plays[1]
     expect(rebid).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse', activation: { state: 'armed', grounding: 'holding-side' } })
-    expect(rebid.band).toMatchObject({ low: 7980, high: 7982, memberLabels: ['Rip', '5-day lvn (primary) #1'] })
+    expect(rebid.band).toMatchObject({ low: 7980, high: 7982, memberLabels: ['Rip', 'balance-area lvn (primary) #1'] })
     expect(rebid.destinations.map((s) => [s.label, s.low, s.high, s.expect])).toEqual([
       ['JBA 1 high (+2)', 8004, 8005, 'gate-continuation'],
       ['PW High', 8040, 8040, 'reoffer'],

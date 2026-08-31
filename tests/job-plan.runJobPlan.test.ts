@@ -169,8 +169,8 @@ describe('runJobPlan: the error taxonomy', () => {
   it.each([
     ['job_study_daily_ref', 'Job daily study'],
     ['job_study_weekly_ref', 'Job weekly study'],
-    ['five_day_vbp_ref', '5-day rolling'],
-    ['four_hour_vbp_ref', '4-hour rolling'],
+    ['balance_area_vbp_ref', 'balance-area'],
+    ['rotation_vbp_ref', '400-pt rotation'],
     ['exec_csv_ref', 'execution-bar'],
     ['htf_csv_ref', 'HTF'],
   ] as const)('a NULL %s aborts naming the export, the two usual causes and the remedy', async (column, what) => {
@@ -209,8 +209,8 @@ describe('runJobPlan: the error taxonomy', () => {
   })
 
   it('a profile export that does not parse aborts as profile_unsupported', async () => {
-    const error = await abortsWith({ texts: { fourHourProfile: '# not a profile\n' } }, 'profile_unsupported')
-    expect(error.message).toContain('4-hour rolling')
+    const error = await abortsWith({ texts: { rotationProfile: '# not a profile\n' } }, 'profile_unsupported')
+    expect(error.message).toContain('400-pt rotation')
   })
 
   it('geometry that parses but is insufficient (R13 skew) is PERSISTED as insufficient with reasons, not thrown', async () => {
@@ -291,9 +291,9 @@ describe('runJobPlan: the vision read (R14)', () => {
     const nodes = state.inserted[0].profile_nodes
     expect(nodes).not.toBeNull()
     expect(nodes).toMatchObject({ modelId: VISION_ON.profile_vision_model_id, effort: 'low', samples: 3, promptRevision: VISION_PROMPT_REVISION })
-    expect(nodes!.profiles['5d']!.consensus).not.toBeNull()
-    expect(nodes!.profiles['4h']!.consensus).not.toBeNull()
-    expect(nodes!.profiles['5d']!.raw).toHaveLength(3)
+    expect(nodes!.profiles['balance']!.consensus).not.toBeNull()
+    expect(nodes!.profiles['rotation']!.consensus).not.toBeNull()
+    expect(nodes!.profiles['balance']!.raw).toHaveLength(3)
 
     const hashes = Object.values(nodes!.profiles).flatMap((p) => p.imageHashes)
     expect(hashes.length).toBeGreaterThanOrEqual(2)
@@ -302,10 +302,10 @@ describe('runJobPlan: the vision read (R14)', () => {
     expect(out.plan.meta).toMatchObject({ visionModelId: VISION_ON.profile_vision_model_id, visionPromptRevision: VISION_PROMPT_REVISION })
     expect(out.vision).toMatchObject({ modelId: VISION_ON.profile_vision_model_id, effort: 'low', samples: 3, calls: 6, successfulCalls: 6, usage: { inputTokens: 600, outputTokens: 120, totalTokens: 720 } })
     expect(out.vision!.costUsd).toBeCloseTo(0.06, 10)
-    expect(out.vision!.agreement['5d']).toMatchObject({ successfulSamples: 3, samples: 3, meanAgreement: 1 })
+    expect(out.vision!.agreement['balance']).toMatchObject({ successfulSamples: 3, samples: 3, meanAgreement: 1 })
     expect(out.warnings.some((w) => w.startsWith('profile_nodes_unavailable'))).toBe(false)
     // The profile nodes reached the planner as references.
-    expect(out.plan.geometryRefs.references.some((r) => /5-day|profile/i.test(r.source))).toBe(true)
+    expect(out.plan.geometryRefs.references.some((r) => /balance|profile/i.test(r.source))).toBe(true)
   })
 
   it('the fingerprint covers the vision read: OFF and ON differ on identical files', async () => {
@@ -320,10 +320,10 @@ describe('runJobPlan: the vision read (R14)', () => {
     const out = await result
     expect(out.status).toBe('ready')
     const nodes = state.inserted[0].profile_nodes!
-    expect(nodes.profiles['5d']!.consensus).not.toBeNull()
-    expect(nodes.profiles['4h']!.consensus).toBeNull()
-    expect(nodes.profiles['4h']!.raw.every((r) => !r.ok && r.error?.includes('503'))).toBe(true)
-    expect(out.warnings).toContain('profile_nodes_unavailable:4h')
+    expect(nodes.profiles['balance']!.consensus).not.toBeNull()
+    expect(nodes.profiles['rotation']!.consensus).toBeNull()
+    expect(nodes.profiles['rotation']!.raw.every((r) => !r.ok && r.error?.includes('503'))).toBe(true)
+    expect(out.warnings).toContain('profile_nodes_unavailable:rotation')
     expect(out.vision).toMatchObject({ calls: 6, successfulCalls: 3 })
   })
 

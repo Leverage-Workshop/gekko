@@ -71,7 +71,7 @@ import {
   type ProfileNodesRead,
 } from '../lib/job-plan/profile-vision/schema'
 import { VISION_PROMPT_REVISION } from '../lib/job-plan/profile-vision/prompt'
-import { PROFILE_KEYS, type ProfileKey } from '../lib/job-plan/profile-vision/types'
+import { LEGACY_PROFILE_KEYS, type LegacyProfileKey } from '../lib/job-plan/profile-vision/types'
 import type { RenderOptions } from '../lib/job-plan/profile-vision/renderProfile'
 
 // ---------------------------------------------------------------------------
@@ -86,8 +86,14 @@ const VARIANTS: Readonly<Record<string, Omit<RenderOptions, 'instrument' | 'curr
   'dark-envelope': { theme: 'dark', envelope: true },
 }
 
-/** Vision-readable profile keys (feat-123). Golden `overnight` profiles have no vision key. */
-const READABLE_KEYS: readonly ProfileKey[] = PROFILE_KEYS
+/**
+ * The golden set's readable profile files stay the feat-119 5-day / 4-hour
+ * exports ('5d' / '4h') even though the planner now runs on the balance-area /
+ * 400-pt rotation profiles (feat-142) — the bench measures the READ, and the
+ * corpus labels are pinned to those files. Golden `overnight` profiles have no
+ * vision key.
+ */
+const READABLE_KEYS: readonly LegacyProfileKey[] = LEGACY_PROFILE_KEYS
 
 type Args = {
   model: string | null
@@ -253,9 +259,9 @@ type ProfileCase = {
   readonly id: string
   readonly instrument: Instrument
   /** Vision-readable profiles for this case, keyed by profile. */
-  readonly profiles: Partial<Record<ProfileKey, VbpProfile>>
+  readonly profiles: Partial<Record<LegacyProfileKey, VbpProfile>>
   /** Labels naming a specific readable profile, keyed by that profile. */
-  readonly named: Partial<Record<ProfileKey, GoldenLabel[]>>
+  readonly named: Partial<Record<LegacyProfileKey, GoldenLabel[]>>
   /** `any` labels — scored ONCE against the union of the case's profiles. */
   readonly any: GoldenLabel[]
 }
@@ -272,8 +278,8 @@ function goldenCases(dates: string[] | null): { cases: ProfileCase[]; skipped: s
       skipped.push(d.date)
       continue
     }
-    const named: Partial<Record<ProfileKey, GoldenLabel[]>> = {}
-    for (const key of Object.keys(profiles) as ProfileKey[]) {
+    const named: Partial<Record<LegacyProfileKey, GoldenLabel[]>> = {}
+    for (const key of Object.keys(profiles) as LegacyProfileKey[]) {
       const labels = d.labels.filter((l) => l.profile === key)
       if (labels.length > 0) named[key] = labels
     }
@@ -288,8 +294,8 @@ function goldenCases(dates: string[] | null): { cases: ProfileCase[]; skipped: s
   return { cases, skipped }
 }
 
-function readableProfiles(d: GoldenDate): Partial<Record<ProfileKey, VbpProfile>> {
-  const out: Partial<Record<ProfileKey, VbpProfile>> = {}
+function readableProfiles(d: GoldenDate): Partial<Record<LegacyProfileKey, VbpProfile>> {
+  const out: Partial<Record<LegacyProfileKey, VbpProfile>> = {}
   for (const key of READABLE_KEYS) {
     if (!d.profilesPresent.includes(key)) continue
     const path = join('chart-data/job-lvn-golden', d.date, PROFILE_FILES[key])
@@ -368,7 +374,7 @@ async function scoreCase(
   generate: VisionGenerate
 ): Promise<CaseResult> {
   const tolerance = toleranceFor(pc.instrument)
-  const keys = Object.keys(pc.profiles) as ProfileKey[]
+  const keys = Object.keys(pc.profiles) as LegacyProfileKey[]
   const named: NamedLabels[] = keys.map((key) => ({
     key,
     labels: (pc.named[key] ?? []).map(labelToScored),
@@ -403,7 +409,7 @@ async function scoreCase(
   })
 
   const visionPreds: ProfilePredictions[] = []
-  const primaryByKey = new Map<ProfileKey, ScoredNode>()
+  const primaryByKey = new Map<LegacyProfileKey, ScoredNode>()
   const selfs: number[] = []
   let costUsd = 0
   let latencyMs = 0

@@ -50,8 +50,8 @@ export const VISION_ON: JobPlanConfig = {
 /** A cheap stand-in rasterizer: the PNG bytes are irrelevant to the orchestration under test. */
 export const fakeRasterize = (svg: string) => new Uint8Array(Buffer.from(svg.slice(0, 32)))
 
-/** Reads inside each real profile's span (5d 29203–29927, 4h 29290–29480). */
-export function fiveDayRead(): ProfileNodesRead {
+/** Reads inside each real profile's span (balance 28910–30554, rotation 28910–30072). */
+export function balanceAreaRead(): ProfileNodesRead {
   return {
     nodes: [
       { kind: 'lvn', priceLow: 29400, priceHigh: 29404, prominence: 1, primary: true, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', rationale: 'deepest' },
@@ -61,7 +61,7 @@ export function fiveDayRead(): ProfileNodesRead {
   }
 }
 
-export function fourHourRead(): ProfileNodesRead {
+export function rotationRead(): ProfileNodesRead {
   return {
     nodes: [
       { kind: 'lvn', priceLow: 29330, priceHigh: 29334, prominence: 1, primary: true, position: 'lower', edgeBelow: 'taper', edgeAbove: 'flat', rationale: 'thin' },
@@ -71,19 +71,19 @@ export function fourHourRead(): ProfileNodesRead {
   }
 }
 
-const isFourHour = (prompt: string) => prompt.includes('4-hour rolling')
+const isRotation = (prompt: string) => prompt.includes('400-point rotation')
 
 /** Answers every call with the matching canned read (plus a token count for the usage roll-up). */
 export const cannedGenerate: JobPlanVisionGenerate = async (params) => ({
-  object: isFourHour(params.prompt) ? fourHourRead() : fiveDayRead(),
+  object: isRotation(params.prompt) ? rotationRead() : balanceAreaRead(),
   cost: 0.01,
   latencyMs: 5,
   usage: { inputTokens: 100, outputTokens: 20, totalTokens: 120 },
 })
 
-/** The 4-hour profile's calls all fail; the 5-day read succeeds (R14 partial path). */
+/** The rotation profile's calls all fail; the balance-area read succeeds (R14 partial path). */
 export const partialGenerate: JobPlanVisionGenerate = async (params) => {
-  if (isFourHour(params.prompt)) throw new Error('provider 503')
+  if (isRotation(params.prompt)) throw new Error('provider 503')
   return cannedGenerate(params)
 }
 

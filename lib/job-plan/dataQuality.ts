@@ -100,7 +100,7 @@ function profileIssues(profileNodes: ProfileNodes | null): { status: DataQuality
   if (profileNodes === null) {
     return {
       status: 'null',
-      issues: [{ code: 'profile_nodes_unavailable', severity: 'warning', message: 'no profile node read — R2 tiers 8/9 (5-day / 4-hour profile nodes) are empty (R14)' }],
+      issues: [{ code: 'profile_nodes_unavailable', severity: 'warning', message: 'no profile node read — R2 tiers 8/9 (balance-area / 400-pt rotation profile nodes) are empty (R14)' }],
     }
   }
   const missing = PROFILE_KEYS.filter((key) => (profileNodes.profiles[key]?.consensus ?? null) === null)

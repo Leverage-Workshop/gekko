@@ -91,13 +91,13 @@ describe('runPlanner: parse → classify → build as one pure entry point', () 
     const { plan } = runPlanner(input({ profileNodes: nodes, meta: { bundleId: 'bundle-1', inputFingerprint: 'sha', sourceHashes: { mgi: 'h1' } } }))
     expect(plan.meta).toMatchObject({ bundleId: 'bundle-1', inputFingerprint: 'sha', visionPromptRevision: 'test', visionModelId: 'test/vision' })
     expect(plan.meta.sourceHashes.mgi).toBe('h1')
-    expect(plan.context.references.some((r) => r.source === 'profile-5d')).toBe(true)
+    expect(plan.context.references.some((r) => r.source === 'profile-balance')).toBe(true)
     const explicit = runPlanner(input({ profileNodes: nodes, meta: { visionModelId: 'override' } }))
     expect(explicit.plan.meta.visionModelId).toBe('override')
     // An unknown meta / hash key never reaches the plan: the validated copy is what the planner consumes.
     const loose = { bundleId: 'b', sourceHashes: { mgi: 'h', rogue: 'x' }, rogue: true } as unknown as RunPlannerInput['meta']
     const stripped = runPlanner(input({ meta: loose })).plan.meta
-    expect(Object.keys(stripped.sourceHashes).sort()).toEqual(['execBars', 'fiveDayProfile', 'fourHourProfile', 'htfBars', 'jobStudyDaily', 'jobStudyWeekly', 'mgi'])
+    expect(Object.keys(stripped.sourceHashes).sort()).toEqual(['balanceAreaProfile', 'execBars', 'htfBars', 'jobStudyDaily', 'jobStudyWeekly', 'mgi', 'rotationProfile'])
     expect(stripped).not.toHaveProperty('rogue')
   })
 

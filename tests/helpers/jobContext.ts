@@ -164,7 +164,7 @@ export function node(spec: NodeSpec): ConsensusNode {
   }
 }
 
-export function profileNodes(fiveDay: readonly ConsensusNode[] | null, fourHour: readonly ConsensusNode[] | null): ProfileNodes {
+export function profileNodes(balance: readonly ConsensusNode[] | null, rotation: readonly ConsensusNode[] | null): ProfileNodes {
   const entry = (nodes: readonly ConsensusNode[] | null) => ({
     consensus:
       nodes === null
@@ -180,7 +180,7 @@ export function profileNodes(fiveDay: readonly ConsensusNode[] | null, fourHour:
     effort: null,
     promptRevision: 'test',
     samples: 3,
-    profiles: { '5d': entry(fiveDay), '4h': entry(fourHour) },
+    profiles: { balance: entry(balance), rotation: entry(rotation) },
     warnings: [],
   }
 }

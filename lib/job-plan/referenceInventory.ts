@@ -178,8 +178,8 @@ function overnightRefs(
 
 function profileRefs(profileNodes: ProfileNodes | null): Reference[] {
   if (profileNodes === null) return []
-  const sourceOf: Record<ProfileKey, ReferenceSource> = { '5d': 'profile-5d', '4h': 'profile-4h' }
-  const nameOf: Record<ProfileKey, string> = { '5d': '5-day', '4h': '4-hour' }
+  const sourceOf: Record<ProfileKey, ReferenceSource> = { balance: 'profile-balance', rotation: 'profile-rotation' }
+  const nameOf: Record<ProfileKey, string> = { balance: 'balance-area', rotation: '400-pt rotation' }
   return PROFILE_KEYS.flatMap((key) => {
     const consensus = profileNodes.profiles[key]?.consensus ?? null
     if (consensus === null) return []
