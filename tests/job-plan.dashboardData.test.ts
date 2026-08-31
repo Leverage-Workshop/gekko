@@ -290,6 +290,15 @@ describe('profile nodes persisted before the two-sided edge model', () => {
     expect(r.data.edgeAbove).toBe('none')
   })
 
+  it('maps the retired HVN kinds onto the single hvn', async () => {
+    const { ConsensusNodeSchema } = await import('@/lib/job-plan/dashboard/schema')
+    for (const legacyKind of ['hvn-core', 'hvn-edge']) {
+      const r = ConsensusNodeSchema.safeParse({ ...legacy, kind: legacyKind, shape: 'notch' })
+      expect(r.success, `${legacyKind} must still parse`).toBe(true)
+      if (r.success) expect(r.data.kind).toBe('hvn')
+    }
+  })
+
   it('a node already in the new form is untouched', async () => {
     const { ConsensusNodeSchema } = await import('@/lib/job-plan/dashboard/schema')
     const modern = { ...legacy, kind: 'lvn', edgeBelow: 'ledge', edgeAbove: 'taper' }
