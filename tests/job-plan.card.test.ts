@@ -11,6 +11,7 @@ vi.mock('@trigger.dev/react-hooks', () => ({
 }))
 
 import { JobPlanCard } from '@/app/components/job-plan-card'
+import { playHeadline } from '@/app/components/job-plan-play'
 import { JobPlanView } from '@/app/components/job-plan-view'
 import { JobRunFailureCallout } from '@/app/components/job-run-failure'
 import { loadJobPlanDashboard, type JobPlanCardData } from '@/lib/job-plan/dashboard/dashboardData'
@@ -44,6 +45,9 @@ async function cardData(
 
 const render = (data: JobPlanCardData) => renderToStaticMarkup(h(JobPlanCard, { data }))
 const count = (html: string, needle: string) => html.split(needle).length - 1
+/** Play prose renders through HighlightedText (feat-143), which splits it across
+ * term/price spans — compare it against the markup with tags stripped. */
+const stripTags = (html: string) => html.replace(/<[^>]*>/g, '')
 
 /** `<` `>` `&` `"` `'` are escaped by React; compare plan text the same way. */
 const escaped = (s: string) =>
@@ -63,16 +67,20 @@ describe('JobPlanCard: ready with the vision read ON', () => {
     expect(html).toContain('data-section="lean"')
     expect(html).toContain(escaped(data.plan.lean.text))
     expect(count(html, 'data-play="')).toBe(data.plan.plays.length)
+    // feat-143: the objective-card format — composed compact headline and the
+    // Action Point table replace the wordy planner summary on the card.
+    expect(html).toContain('Action Point')
+    const text = stripTags(html)
     for (const play of data.plan.plays) {
-      expect(html).toContain(escaped(play.summary))
-      expect(html).toContain(escaped(play.trigger))
-      expect(html).toContain(escaped(play.dont))
-      expect(html).toContain(escaped(play.activation.evidence))
-      expect(html).toContain(escaped(play.invalidation.condition))
-      for (const member of play.band.memberLabels) expect(html).toContain(escaped(member))
+      expect(text).toContain(escaped(playHeadline(play)))
+      expect(text).toContain(escaped(play.trigger))
+      expect(text).toContain(escaped(play.dont))
+      expect(text).toContain(escaped(play.activation.evidence))
+      expect(text).toContain(escaped(play.invalidation.condition))
+      for (const member of play.band.memberLabels) expect(text).toContain(escaped(member))
       for (const rule of play.activation.rulesFired) expect(html).toContain(`>${rule}<`)
-      for (const stage of play.destinations) expect(html).toContain(escaped(stage.text))
-      if (play.responseDeadline) expect(html).toContain(escaped(play.responseDeadline.text))
+      for (const stage of play.destinations) expect(text).toContain(escaped(stage.text))
+      if (play.responseDeadline) expect(text).toContain(escaped(play.responseDeadline.text))
     }
     // The context header: both value reads, the cross-read, coverage as-of, data quality.
     expect(html).toContain('vs weekly value')
@@ -106,7 +114,8 @@ describe('JobPlanCard: ready with the vision read ON', () => {
     }
     // One overlay rect per node (both profiles, single tile each in this fixture).
     const nodeCount = ['balance', 'rotation'].reduce(
-      (n, key) => n + data.profileNodes!.profiles[key as 'balance' | 'rotation']!.consensus!.nodes.length,
+      (n, key) =>
+        n + data.profileNodes!.profiles[key as 'balance' | 'rotation']!.consensus!.nodes.length,
       0
     )
     expect(count(html, '<rect ')).toBe(nodeCount)

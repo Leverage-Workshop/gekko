@@ -1417,6 +1417,16 @@
       ],
       "status": "done",
       "evidence": "PLANNER_REVISION job-planner/2026-08-31.1; ProfileKey 'balance'|'rotation' + LEGACY_PROFILE_KEYS '5d'|'4h' (bench + persisted-row compat); loadJobBundle requires balance_area_vbp_ref/rotation_vbp_ref; ./init.sh green, 2197 tests passing."
+    },
+    {
+      "id": "feat-143",
+      "name": "Job play card in the objective-card format",
+      "description": "Operator direction 2026-08-31: the job play card renders too much prose \u2014 reformat it like the analyze-task objective card. Same card chrome (rank/stance header, accent-colored headline, short description, then an Action Point / Price / Level table): the headline becomes a SHORT composed line (condition at trigger band \u2192 final destination, level names only, no price ranges); the description is the activation evidence with level names bolded via HighlightedText (names carry emphasis, prices ride unemphasized \u2014 briefing doctrine); the trigger band, invalidation (counter-accent price, with the flip clause), and destination stages become table rows in objective-card order. The duplicate BEELINE callout line is dropped (stage text already carries don't-counter + beeline). Band meta (role \u00b7 side/distance \u00b7 trigger status \u00b7 members), rule chips, fact/as-of stamps, R11 deadline, DON'T and the box-expansion uncertainty band survive as compact footer rows. UI-only \u2014 planner text and persisted schema untouched.",
+      "dependencies": [
+        "feat-129"
+      ],
+      "status": "done",
+      "evidence": "JobPlayCard rewritten to the objective-card shape (app/components/job-plan-play.tsx): playHeadline() compact accent headline (names only), activation evidence as the description via HighlightedText, Action Point / Price / Level table (trigger, invalidation w/ counter-accent + flip clause, destination stages), band meta + rule chips + R11 + DON'T + uncertainty as compact footers; duplicate BEELINE callout dropped (stage text carries it). tests/job-plan.card.test.ts asserts the headline + table and compares prose against tag-stripped markup. ./init.sh green (typecheck, lint, 2199+ tests, build)."
     }
   ]
 }

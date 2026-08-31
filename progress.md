@@ -4691,3 +4691,26 @@ agreement at all; more labels would buy more than more prompt tuning.
 
 **Housekeeping:** stale worktrees under `.claude/worktrees/` broke `./init.sh` — lint scanned a
 subagent worktree's `.next` build output. Pruned.
+
+## 2026-08-31 — feat-143: Job play card in the objective-card format
+
+Operator direction (after reviewing a rendered plan): the play cards carry too much
+prose — reformat them like the analyze-task objective card. UI-only change:
+
+- `app/components/job-plan-play.tsx` rewritten to the objective-card shape: rank/stance
+  header (unchanged), a SHORT composed headline (`playHeadline()`: condition at the
+  trigger band → the chain's final destination, level names only, no price ranges),
+  the activation evidence as the description with level names bolded via
+  `HighlightedText` (names carry emphasis, prices ride unemphasized — briefing
+  doctrine), then an Action Point / Price / Level table: trigger row, invalidation row
+  (counter-accent price, flip clause appended), one row per destination stage.
+- Dropped the duplicate yellow BEELINE callout — the gate stage's text already carries
+  "don't counter, beeline to X". Band meta (role · side/distance · trigger status ·
+  members), rule chips, fact/as-of stamps, R11 deadline, DON'T and the box-expansion
+  uncertainty band survive as compact footer rows. Planner text and persisted schema
+  untouched; the lean banner still shows the planner's full summary sentence.
+- `tests/job-plan.card.test.ts`: asserts `playHeadline(play)` + 'Action Point' instead
+  of the verbatim wordy `play.summary`; prose assertions compare against tag-stripped
+  markup since HighlightedText splits text across term/price spans.
+
+Verification: ./init.sh green (typecheck, lint, full suite, build).
