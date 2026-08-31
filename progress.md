@@ -4736,3 +4736,10 @@ failed-look branch.
 
 Verification: ./init.sh green (typecheck, lint, 2202 tests, build); codex gate PASS,
 no findings.
+
+## 2026-08-31 — fix: play card action-point labels match the objective card
+
+Operator follow-up on feat-143: the table's row labels now use the objective card's
+vocabulary — `Entry (Rebid) — <band label>`, `Structural stop below/above <band label>`
+(`— either side` for two-way), `Target n (Tn)` per destination stage; the sequence line
+reads "Target sequence:". The gate/reoffer expectation stays in each row's description.
