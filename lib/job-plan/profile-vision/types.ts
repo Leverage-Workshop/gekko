@@ -11,12 +11,33 @@ import type { NodeKind, NodePosition, NodeEdge, ProfileNodesRead, } from './sche
  * deterministically even though the read itself cannot be.
  */
 
-/** The profiles the planner reads (docs/job-planning-task-plan.md, "Calls, parallelism, consensus"). */
-export const PROFILE_KEYS = ['5d', '4h'] as const
+/**
+ * The profiles the planner reads (feat-142): the two HTF structural exports the
+ * briefing bundle always carries — the balance-area profile (anchored to the
+ * current multi-day balance, long-term) and the 400-pt rotation profile
+ * (anchored to the current 400-pt rotation, medium-term). Long-term first,
+ * mirroring the old 5-day-before-4-hour ordering.
+ */
+export const PROFILE_KEYS = ['balance', 'rotation'] as const
 export type ProfileKey = (typeof PROFILE_KEYS)[number]
 
+/**
+ * Keys the vision read still understands but the planner no longer runs on:
+ * the feat-119 golden-set export files the bench reads ('5d' / '4h'), which are
+ * also the keys pre-feat-142 `job_plans.profile_nodes` rows were persisted
+ * under — the dashboard keeps rendering those.
+ */
+export const LEGACY_PROFILE_KEYS = ['5d', '4h'] as const
+export type LegacyProfileKey = (typeof LEGACY_PROFILE_KEYS)[number]
+
+/** Every key `identifyProfileNodes` can read: the planner's plus the bench/legacy ones. */
+export const READABLE_PROFILE_KEYS = [...PROFILE_KEYS, ...LEGACY_PROFILE_KEYS] as const
+export type ReadableProfileKey = (typeof READABLE_PROFILE_KEYS)[number]
+
 /** Human names the prompt uses for each profile key. */
-export const PROFILE_NAMES: Readonly<Record<ProfileKey, { name: string; lookback: string }>> = {
+export const PROFILE_NAMES: Readonly<Record<ReadableProfileKey, { name: string; lookback: string }>> = {
+  balance: { name: 'balance-area volume profile', lookback: 'the current multi-day balance area' },
+  rotation: { name: '400-point rotation volume profile', lookback: 'the current 400-point rotation' },
   '5d': { name: '5-day rolling volume profile', lookback: 'the last five trading sessions' },
   '4h': { name: '4-hour rolling volume profile', lookback: 'the last four hours' },
 }
@@ -77,7 +98,7 @@ export type ProfileNodes = {
   readonly effort: ReasoningEffort | null
   readonly promptRevision: string
   readonly samples: number
-  readonly profiles: Readonly<Partial<Record<ProfileKey, ProfileNodesEntry>>>
+  readonly profiles: Readonly<Partial<Record<ReadableProfileKey, ProfileNodesEntry>>>
   /** `profile_nodes_unavailable:<key>` per profile that produced no consensus (R14). */
   readonly warnings: readonly string[]
 }

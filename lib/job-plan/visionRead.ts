@@ -8,7 +8,8 @@ import type { ProfileKey, ProfileNodes } from './profile-vision/types'
 
 /**
  * The vision read inside the job-plan run (feat-128 step 3): render both
- * rolling profiles, run feat-123's `identifyProfileNodes` with the model /
+ * bundle profiles (balance-area + 400-pt rotation, feat-142), run feat-123's
+ * `identifyProfileNodes` with the model /
  * effort / samples from feat-124's config, upload the PNGs it looked at to
  * `job-plan-images` keyed by hash, and summarize cost / usage / agreement for
  * run metadata.
@@ -24,7 +25,7 @@ import type { ProfileKey, ProfileNodes } from './profile-vision/types'
 export { JOB_PLAN_IMAGES_BUCKET } from './jobPlanImages'
 
 export const VISION_OFF_WARNING =
-  'profile_nodes_unavailable: the profile vision read is OFF (config.profile_vision_model_id is NULL) — plan produced without 5-day / 4-hour profile nodes (R14)'
+  'profile_nodes_unavailable: the profile vision read is OFF (config.profile_vision_model_id is NULL) — plan produced without balance-area / 400-pt rotation profile nodes (R14)'
 
 /** The `config` columns the vision read consumes (feat-124). */
 export type JobPlanConfig = {

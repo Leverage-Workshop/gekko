@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { PlanStatus } from '@/knowledge/schema/job-plan.schema'
 import { NODE_KINDS, NODE_POSITIONS, NODE_EDGES } from '../profile-vision/schema'
-import { PROFILE_KEYS } from '../profile-vision/types'
+import { READABLE_PROFILE_KEYS } from '../profile-vision/types'
 
 /**
  * Boundary schemas for the Job plan surface (feat-129): the `job_plans` row
@@ -142,10 +142,12 @@ export const PersistedProfileNodesSchema = z.object({
   effort: z.string().nullable(),
   promptRevision: z.string(),
   samples: z.number().int().min(1),
+  // Keyed over every readable profile: current planner keys AND the legacy
+  // '5d'/'4h' keys pre-feat-142 rows were persisted under.
   profiles: z.object(
     Object.fromEntries(
-      PROFILE_KEYS.map((key) => [key, ProfileNodesEntrySchema.optional()])
-    ) as Record<(typeof PROFILE_KEYS)[number], z.ZodOptional<typeof ProfileNodesEntrySchema>>
+      READABLE_PROFILE_KEYS.map((key) => [key, ProfileNodesEntrySchema.optional()])
+    ) as Record<(typeof READABLE_PROFILE_KEYS)[number], z.ZodOptional<typeof ProfileNodesEntrySchema>>
   ),
   warnings: z.array(z.string()),
 })

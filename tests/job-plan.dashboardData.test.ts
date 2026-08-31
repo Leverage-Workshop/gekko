@@ -51,8 +51,8 @@ describe('loadJobPlanDashboard', () => {
     expect(jobPlan!.plan.context.location.crossRead.weekly).toMatch(/above|inside|below/)
     expect(jobPlan!.plan.context.dataQuality.sufficient).toBe(true)
     expect(jobPlan!.profileNodes).not.toBeNull()
-    expect(jobPlan!.profileNodes!.profiles['5d']!.consensus!.nodes.length).toBeGreaterThan(0)
-    expect(jobPlan!.profileNodes!.profiles['5d']!.imageHashes[0]).toMatch(/^[0-9a-f]{64}$/)
+    expect(jobPlan!.profileNodes!.profiles['balance']!.consensus!.nodes.length).toBeGreaterThan(0)
+    expect(jobPlan!.profileNodes!.profiles['balance']!.imageHashes[0]).toMatch(/^[0-9a-f]{64}$/)
     expect(jobPlan!.visionWarnings).toEqual([])
   })
 
@@ -70,9 +70,9 @@ describe('loadJobPlanDashboard', () => {
     const row = await persistedJobPlanRow('ready-vision-partial')
     const { jobPlan } = await loadJobPlanDashboard(depsFor(row))
     expect(jobPlan!.visionOff).toBe(false)
-    expect(jobPlan!.visionWarnings).toContain('profile_nodes_unavailable:4h')
-    expect(jobPlan!.profileNodes!.profiles['4h']!.consensus).toBeNull()
-    expect(jobPlan!.profileNodes!.profiles['5d']!.consensus).not.toBeNull()
+    expect(jobPlan!.visionWarnings).toContain('profile_nodes_unavailable:rotation')
+    expect(jobPlan!.profileNodes!.profiles['rotation']!.consensus).toBeNull()
+    expect(jobPlan!.profileNodes!.profiles['balance']!.consensus).not.toBeNull()
   })
 
   it('an insufficient row renders with its reasons and no plays', async () => {
@@ -203,7 +203,7 @@ describe('profileOverlays — consensus nodes mapped onto the stored tiles', () 
   it("one overlay per persisted tile, boxes placed with the renderer's own geometry", async () => {
     const row = await persistedJobPlanRow('ready-vision-on')
     const nodes = parsePersistedProfileNodes(row.profile_nodes)!
-    const entry = nodes.profiles['5d']!
+    const entry = nodes.profiles['balance']!
     const overlays = profileOverlays(entry)
     expect(overlays).toHaveLength(entry.imageHashes.length)
     expect(overlays.map((o) => o.hash)).toEqual([...entry.imageHashes])
@@ -227,7 +227,7 @@ describe('profileOverlays — consensus nodes mapped onto the stored tiles', () 
   it('a profile without consensus has tiles but no boxes', async () => {
     const row = await persistedJobPlanRow('ready-vision-partial')
     const nodes = parsePersistedProfileNodes(row.profile_nodes)!
-    const overlays = profileOverlays(nodes.profiles['4h']!)
+    const overlays = profileOverlays(nodes.profiles['rotation']!)
     expect(overlays.length).toBeGreaterThan(0)
     expect(overlays.every((o) => o.boxes.length === 0)).toBe(true)
   })
@@ -235,7 +235,7 @@ describe('profileOverlays — consensus nodes mapped onto the stored tiles', () 
   it("a node outside a tile's span is not drawn on that tile", async () => {
     const row = await persistedJobPlanRow('ready-vision-on')
     const nodes = parsePersistedProfileNodes(row.profile_nodes)!
-    const entry = nodes.profiles['5d']!
+    const entry = nodes.profiles['balance']!
     const far = {
       ...entry.consensus!.nodes[0],
       priceLow: entry.render.priceHigh + 500,

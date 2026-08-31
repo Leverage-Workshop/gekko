@@ -200,8 +200,10 @@ export const PlanMeta = z.object({
     mgi: z.string().nullable(),
     execBars: z.string().nullable(),
     htfBars: z.string().nullable(),
-    fiveDayProfile: z.string().nullable(),
-    fourHourProfile: z.string().nullable(),
+    // Optional: pre-feat-142 plans carry fiveDayProfile/fourHourProfile
+    // instead (unknown keys are stripped) — those rows must keep parsing.
+    balanceAreaProfile: z.string().nullable().optional(),
+    rotationProfile: z.string().nullable().optional(),
   }),
   visionPromptRevision: z.string().nullable(),
   visionModelId: z.string().nullable(),

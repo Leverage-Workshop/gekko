@@ -46,8 +46,8 @@ const EMPTY_HASHES: PlanMeta['sourceHashes'] = {
   mgi: null,
   execBars: null,
   htfBars: null,
-  fiveDayProfile: null,
-  fourHourProfile: null,
+  balanceAreaProfile: null,
+  rotationProfile: null,
 }
 
 /** Only the seven known per-source hashes are carried — an unknown key never reaches the plan. */

@@ -17,8 +17,9 @@ import { JobPlanAbortError, bundleWaitError, missingRefError } from './jobPlanEr
  * fulfilled-without-id abort non-retryably. A run WITHOUT a request id (a
  * trigger.dev test run) may use the latest row, and says so loudly.
  *
- * REFS: every job-planning export is REQUIRED (the two job-study files, the
- * two rolling profiles, the exec + HTF bar CSVs); a NULL ref aborts with the
+ * REFS: every job-planning input is REQUIRED (the two job-study files, the
+ * two HTF structural profiles — 400-pt rotation + balance-area (feat-142) —
+ * and the exec + HTF bar CSVs); a NULL ref aborts with the
  * two usual causes named. The MGI JSON is stored inline (`mgi_json`), so its
  * "bytes" are its canonical serialization — jsonb key order is deterministic,
  * so the hash is stable for the same stored value.
@@ -68,8 +69,8 @@ const REQUIRED_REFS: readonly RequiredRef[] = [
   { column: 'job_study_weekly_ref', key: 'jobStudyWeekly', what: 'Job weekly study (job-study-weekly.json)' },
   { column: 'exec_csv_ref', key: 'execBars', what: 'execution-bar CSV' },
   { column: 'htf_csv_ref', key: 'htfBars', what: 'HTF 30-min bar CSV' },
-  { column: 'five_day_vbp_ref', key: 'fiveDayProfile', what: '5-day rolling volume profile' },
-  { column: 'four_hour_vbp_ref', key: 'fourHourProfile', what: '4-hour rolling volume profile' },
+  { column: 'balance_area_vbp_ref', key: 'balanceAreaProfile', what: 'balance-area volume profile' },
+  { column: 'rotation_vbp_ref', key: 'rotationProfile', what: '400-pt rotation volume profile' },
 ]
 
 const TEXT_BUCKET: IngestBucket = 'bundle-csvs'

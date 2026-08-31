@@ -352,7 +352,7 @@ export function SettingsForm({
           Job Planner — Profile Vision
         </span>
         <p className="mt-2 text-xs font-light text-muted">
-          LLM read of the rendered 5-day / 4-hour volume profiles for the Job
+          LLM read of the rendered balance-area / 400-pt rotation volume profiles for the Job
           plan (feat-123). Leave the model blank to keep the read OFF — the
           planner degrades with a warning (R14). Only enable after ratifying the
           bench numbers (R15).

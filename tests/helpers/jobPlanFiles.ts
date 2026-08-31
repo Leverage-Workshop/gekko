@@ -71,8 +71,8 @@ export type BundleTexts = {
   readonly jobStudyWeekly: string
   readonly execBars: string
   readonly htfBars: string
-  readonly fiveDayProfile: string
-  readonly fourHourProfile: string
+  readonly balanceAreaProfile: string
+  readonly rotationProfile: string
 }
 
 export function bundleTexts(overrides: Partial<BundleTexts> = {}): BundleTexts {
@@ -81,8 +81,8 @@ export function bundleTexts(overrides: Partial<BundleTexts> = {}): BundleTexts {
     jobStudyWeekly: inSession(WEEKLY),
     execBars: execCsv(sessionBars()),
     htfBars: htfCsv(),
-    fiveDayProfile: chartData('five-day-rolling.vbp.md'),
-    fourHourProfile: chartData('four-hour-rolling.vbp.md'),
+    balanceAreaProfile: chartData('balance-area.vbp.md'),
+    rotationProfile: chartData('four-hundred-rotation.vbp.md'),
     ...overrides,
   }
 }
@@ -93,8 +93,8 @@ export const REF_PATHS = {
   job_study_weekly_ref: `${BUNDLE_ID}/job-study-weekly.json`,
   exec_csv_ref: `${BUNDLE_ID}/execution_bars.csv`,
   htf_csv_ref: `${BUNDLE_ID}/htf_bars.csv`,
-  five_day_vbp_ref: `${BUNDLE_ID}/five-day-rolling.vbp.md`,
-  four_hour_vbp_ref: `${BUNDLE_ID}/four-hour-rolling.vbp.md`,
+  balance_area_vbp_ref: `${BUNDLE_ID}/balance-area.vbp.md`,
+  rotation_vbp_ref: `${BUNDLE_ID}/four-hundred-rotation.vbp.md`,
 } as const
 
 export function bundleRow(overrides: Partial<BundleRow> = {}): BundleRow {
@@ -104,8 +104,8 @@ export function bundleRow(overrides: Partial<BundleRow> = {}): BundleRow {
     mgi_json: mgiAt('09:29:00', 29350),
     current_price: 29350,
     is_stale: false,
-    rotation_vbp_ref: null,
-    balance_area_vbp_ref: null,
+    five_day_vbp_ref: null,
+    four_hour_vbp_ref: null,
     half_rotation_delta_ref: null,
     full_rotation_delta_ref: null,
     tpo_data_ref: null,
@@ -125,7 +125,7 @@ export function storageOf(texts: BundleTexts): Map<string, string> {
     [REF_PATHS.job_study_weekly_ref, texts.jobStudyWeekly],
     [REF_PATHS.exec_csv_ref, texts.execBars],
     [REF_PATHS.htf_csv_ref, texts.htfBars],
-    [REF_PATHS.five_day_vbp_ref, texts.fiveDayProfile],
-    [REF_PATHS.four_hour_vbp_ref, texts.fourHourProfile],
+    [REF_PATHS.balance_area_vbp_ref, texts.balanceAreaProfile],
+    [REF_PATHS.rotation_vbp_ref, texts.rotationProfile],
   ])
 }

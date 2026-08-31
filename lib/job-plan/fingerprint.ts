@@ -19,8 +19,8 @@ export const JOB_PLAN_SOURCE_KEYS = [
   'mgi',
   'execBars',
   'htfBars',
-  'fiveDayProfile',
-  'fourHourProfile',
+  'balanceAreaProfile',
+  'rotationProfile',
 ] as const
 
 export type JobPlanSourceKey = (typeof JOB_PLAN_SOURCE_KEYS)[number]

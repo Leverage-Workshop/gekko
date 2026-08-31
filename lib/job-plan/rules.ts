@@ -20,7 +20,7 @@ import { R1_MERGE_TOLERANCE, type Instrument } from './profile-vision/instrument
  * it is part of every persisted plan's reproducibility fingerprint.
  */
 
-export const PLANNER_REVISION = 'job-planner/2026-08-26.2'
+export const PLANNER_REVISION = 'job-planner/2026-08-31.1'
 
 export type RuleId =
   | 'R1'
@@ -111,8 +111,8 @@ export type ReferenceSource =
   | 'rip'
   | 'overnight-extreme'
   | 'previous-day-extreme'
-  | 'profile-5d'
-  | 'profile-4h'
+  | 'profile-balance'
+  | 'profile-rotation'
   | 'autoplot'
   | 'mgi-other'
   | 'weekly-rung'
@@ -127,8 +127,8 @@ export const SOURCE_SIGNIFICANCE: readonly ReferenceSource[] = [
   'rip',
   'overnight-extreme',
   'previous-day-extreme',
-  'profile-5d',
-  'profile-4h',
+  'profile-balance',
+  'profile-rotation',
   'autoplot',
   'mgi-other',
   'weekly-rung',

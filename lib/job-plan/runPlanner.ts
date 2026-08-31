@@ -106,8 +106,8 @@ const runPlannerInputSchema = z.object({
           mgi: z.string().nullable().optional(),
           execBars: z.string().nullable().optional(),
           htfBars: z.string().nullable().optional(),
-          fiveDayProfile: z.string().nullable().optional(),
-          fourHourProfile: z.string().nullable().optional(),
+          balanceAreaProfile: z.string().nullable().optional(),
+          rotationProfile: z.string().nullable().optional(),
         })
         .optional(),
       visionPromptRevision: z.string().nullable().optional(),

@@ -1407,6 +1407,16 @@
       ],
       "status": "done",
       "evidence": "VISION_PROMPT_REVISION vision-2026-08-31.1; 18 criteria -> 4 rules + mechanism; prompt 11,349 -> 7,751 chars; NODE_SHAPES += 'taper'; ./init.sh green, 2198 tests passing. Bench cache collision that motivated the key fix: feat-135 and feat-136 both shipped vision-2026-08-30.8 with different criteria and an A/B replayed the wrong branch's answers, caught only because the OpenRouter balance moved $0.07 instead of $0.80."
+    },
+    {
+      "id": "feat-142",
+      "name": "Job planner reads the 400-pt rotation and balance-area profiles",
+      "description": "Operator direction 2026-08-31: switch the job-planning task's profile inputs from the feat-119 5-day / 4-hour rolling exports to the two HTF structural profiles every briefing bundle already carries \u2014 the balance-area VbP (balance_area_vbp_ref, long-term) and the 400-pt rotation VbP (rotation_vbp_ref, medium-term). ProfileKey becomes 'balance' | 'rotation' (long-term first, mirroring the old 5d-before-4h order); R2 sources become profile-balance / profile-rotation at the same tiers 8/9. The vision read, prompt name/lookback text, fingerprint source keys (balanceAreaProfile / rotationProfile), required bundle refs, dashboard card and settings copy all follow. Legacy '5d'/'4h' keys survive as LEGACY_PROFILE_KEYS: the golden-set bench still reads the feat-119 export files (the corpus labels are pinned to them), and pre-feat-142 persisted job_plans rows keep parsing and rendering. PLANNER_REVISION bumped to job-planner/2026-08-31.1.",
+      "dependencies": [
+        "feat-128"
+      ],
+      "status": "done",
+      "evidence": "PLANNER_REVISION job-planner/2026-08-31.1; ProfileKey 'balance'|'rotation' + LEGACY_PROFILE_KEYS '5d'|'4h' (bench + persisted-row compat); loadJobBundle requires balance_area_vbp_ref/rotation_vbp_ref; ./init.sh green, 2197 tests passing."
     }
   ]
 }
