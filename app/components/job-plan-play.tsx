@@ -1,16 +1,19 @@
-import type { DestinationStage, Play } from '@/knowledge/schema/job-plan.schema'
+import type { Play } from '@/knowledge/schema/job-plan.schema'
 import { formatBand, formatPts, formatWallClock } from '@/lib/job-plan/dashboard/format'
+import { HighlightedText } from './highlighted-text'
 
 /**
- * One play card (feat-129): stance / direction, the trigger band with its
- * members named by MGI / study label, activation evidence + the rule IDs
- * that fired, the staged destination chain IN ORDER, the R11 response
- * deadline as text, invalidation (+ the flip clause), the explicit `dont`,
- * and the box-expansion band rendered as UNCERTAINTY only. Direction color
- * follows the objective cards: long bmw-blue, short m-red, two-way hairline.
+ * One play card (feat-129, reformatted feat-143 to the objective-card shape):
+ * rank/stance header, a SHORT accent headline (condition at the trigger band →
+ * the chain's conclusion, level names only — no price ranges), the activation
+ * evidence as the description with level names bolded (names carry emphasis,
+ * prices ride unemphasized — briefing doctrine), then the trigger band,
+ * invalidation and destination stages as Action Point / Price / Description
+ * table rows. Band meta, rule chips, the R11 deadline, the DON'T and the
+ * box-expansion uncertainty band survive as compact footer rows. Direction
+ * color follows the objective cards: long bmw-blue, short m-red; the
+ * invalidation price flips to the counter accent.
  */
-
-const LABEL = 'text-xs font-bold uppercase tracking-[1.5px] text-muted'
 
 function directionAccent(direction: Play['direction']) {
   switch (direction) {
@@ -18,88 +21,101 @@ function directionAccent(direction: Play['direction']) {
       return {
         top: 'border-t-bmw-blue',
         text: 'text-bmw-blue',
+        counterText: 'text-m-red',
         badge: 'border-bmw-blue text-bmw-blue',
       }
     case 'short':
-      return { top: 'border-t-m-red', text: 'text-m-red', badge: 'border-m-red text-m-red' }
+      return {
+        top: 'border-t-m-red',
+        text: 'text-m-red',
+        counterText: 'text-bmw-blue',
+        badge: 'border-m-red text-m-red',
+      }
     case 'two-way':
       return {
         top: 'border-t-hairline',
         text: 'text-ink',
+        counterText: 'text-body-strong',
         badge: 'border-hairline text-body-strong',
       }
   }
 }
 
-function StageRow({ stage }: { stage: DestinationStage }) {
-  return (
-    <li className="flex gap-3 text-sm leading-relaxed">
-      <span className="w-6 shrink-0 font-bold text-ink">{stage.order}</span>
-      <span className="font-light text-body">
-        <span className="font-bold text-ink">{stage.label}</span>{' '}
-        {formatBand(stage.low, stage.high)} ·{' '}
-        <span className="uppercase tracking-wide">{stage.expect}</span> — {stage.text}
-        {stage.beeline && (
-          <span className="mt-1 block text-xs font-bold uppercase tracking-wide text-warning">
-            Beeline · don&apos;t counter → {stage.beeline.destinationLabel}{' '}
-            {formatBand(stage.beeline.destinationLow, stage.beeline.destinationHigh)}
-          </span>
-        )}
-      </span>
-    </li>
-  )
+/** The level names this play quotes — what the description and table bold. */
+function playTerms(play: Play): string[] {
+  const labels = [
+    play.band.label,
+    ...play.band.memberLabels,
+    ...play.destinations.map((stage) => stage.label),
+    ...(play.invalidation.thenSeek ? [play.invalidation.thenSeek.label] : []),
+  ]
+  return [...new Set(labels.filter((label) => label.trim().length > 0))]
 }
 
-function Activation({ play }: { play: Play }) {
-  const a = play.activation
-  return (
-    <div>
-      <p className={LABEL}>
-        Activation · {a.state} · {a.grounding}
-        {a.demoted ? ' · demoted (R9)' : ''}
-      </p>
-      <p className="mt-1 text-sm font-light leading-relaxed text-body">{a.evidence}</p>
-      <p className="mt-1 text-xs font-light tracking-wide text-muted">
-        {a.factAt ? `fact at ${formatWallClock(a.factAt)} · ` : ''}as of {formatWallClock(a.asOf)}
-        {a.rulesFired.length > 0 && (
-          <span className="ml-3 inline-flex flex-wrap gap-1 align-middle">
-            {a.rulesFired.map((rule) => (
-              <span
-                key={rule}
-                className="border border-hairline px-1.5 py-0.5 text-[10px] font-bold tracking-[1px] text-body-strong"
-              >
-                {rule}
-              </span>
-            ))}
-          </span>
-        )}
-      </p>
-    </div>
-  )
+/** The compact headline: condition at the trigger band → the chain's conclusion. Names only. */
+export function playHeadline(play: Play): string {
+  const isLong = play.direction === 'long'
+  const name = play.band.label
+  const last = play.destinations[play.destinations.length - 1]
+  const final = last?.label ?? null
+  switch (play.condition) {
+    case 'look-and-fail':
+      return `Look-${isLong ? 'below' : 'above'}-and-fail at ${name} → rotate back across to ${final ?? 'the far edge'}`
+    case 'hold-traverse':
+      return `${isLong ? 'Rebid' : 'Reoffer'} ${name} on the arrival → traverse to ${final ?? 'the far edge'}`
+    case 'build-beyond-continuation':
+      return `Build ${isLong ? 'above' : 'below'} ${name} → attack ${final ?? 'the next structure'}`
+    case 'approach-failure':
+      return `Stall short of ${name} → ${isLong ? 'long' : 'short'} the stall, target ${final ?? 'back across'}`
+    case 'mid-zone-two-way':
+      return `${name} — two-way, wait for the edges`
+  }
 }
 
-function Invalidation({ play }: { play: Play }) {
+const EXPECT_SHORT: Record<Play['destinations'][number]['expect'], string> = {
+  'gate-continuation': 'gate',
+  reoffer: 'reoffer',
+  rebid: 'rebid',
+  hold: 'rung',
+}
+
+type ActionRow = {
+  point: string
+  price: string
+  description: string
+  counter: boolean
+}
+
+function actionRows(play: Play): ActionRow[] {
   const inv = play.invalidation
-  return (
-    <div>
-      <p className={LABEL}>Invalidation · {inv.side}</p>
-      <p className="mt-1 text-sm font-light leading-relaxed text-body">
-        <span className="font-bold text-ink">{formatBand(inv.low, inv.high)}</span> —{' '}
-        {inv.condition}
-      </p>
-      {inv.thenSeek && (
-        <p className="mt-1 text-xs font-light leading-relaxed text-body">
-          then seek <span className="font-bold text-ink">{inv.thenSeek.label}</span>{' '}
-          {formatBand(inv.thenSeek.low, inv.thenSeek.high)} — {inv.thenSeek.text}
-        </p>
-      )}
-    </div>
-  )
+  const flip = inv.thenSeek ? `; ${inv.thenSeek.text}` : ''
+  return [
+    {
+      point: `Trigger · ${play.stance}`,
+      price: formatBand(play.band.low, play.band.high),
+      description: play.trigger,
+      counter: false,
+    },
+    {
+      point: `Invalidation · ${inv.side}`,
+      price: formatBand(inv.low, inv.high),
+      description: `${inv.condition}${flip}`,
+      counter: true,
+    },
+    ...play.destinations.map((stage) => ({
+      point: `Destination ${stage.order} · ${EXPECT_SHORT[stage.expect]}`,
+      price: formatBand(stage.low, stage.high),
+      description: stage.text,
+      counter: false,
+    })),
+  ]
 }
 
 export function JobPlayCard({ play }: { play: Play }) {
   const accent = directionAccent(play.direction)
   const band = play.band
+  const terms = playTerms(play)
+  const sequence = play.destinations.map((stage) => stage.label).join(' → ')
   return (
     <article
       data-play={play.id}
@@ -113,6 +129,7 @@ export function JobPlayCard({ play }: { play: Play }) {
           </span>
           <span className="text-xs font-light uppercase tracking-wide text-muted">
             {play.condition}
+            {play.activation.demoted ? ' · demoted (R9)' : ''}
           </span>
         </span>
         <span
@@ -122,51 +139,85 @@ export function JobPlayCard({ play }: { play: Play }) {
         </span>
       </div>
 
-      <h3 className={`mt-4 text-xl font-bold tracking-tight ${accent.text}`}>{play.summary}</h3>
+      <h3 className={`mt-4 text-xl font-bold tracking-tight ${accent.text}`}>
+        {playHeadline(play)}
+      </h3>
 
-      <div className="mt-4">
-        <p className={LABEL}>
-          Trigger band · {band.role} · {band.side} {formatPts(band.distancePts)} ·{' '}
-          {band.triggerStatus}
-        </p>
-        <p className="mt-1 text-sm font-light leading-relaxed text-body">
-          <span className="font-bold text-ink">{band.label}</span> {formatBand(band.low, band.high)}
-          {band.anchorSource ? ` · anchor ${band.anchorSource}` : ''}
-        </p>
-        <p className="mt-1 text-xs font-light leading-relaxed text-body">
-          members: {band.memberLabels.join(' · ')}
-        </p>
-        <p className="mt-2 text-sm font-light leading-relaxed text-body-strong">{play.trigger}</p>
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <Activation play={play} />
-        <Invalidation play={play} />
-      </div>
-
-      <div className="mt-4">
-        <p className={LABEL}>Destinations · in order</p>
-        {play.destinations.length === 0 ? (
-          <p className="mt-1 text-sm font-light text-muted">—</p>
-        ) : (
-          <ol className="mt-2 space-y-2">
-            {play.destinations.map((stage) => (
-              <StageRow key={stage.order} stage={stage} />
+      <p className="mt-2 text-sm font-light leading-relaxed text-body">
+        <HighlightedText text={play.activation.evidence} terms={terms} />
+      </p>
+      <p className="mt-1 text-xs font-light tracking-wide text-muted">
+        {play.activation.state} · {play.activation.grounding} ·{' '}
+        {play.activation.factAt ? `fact at ${formatWallClock(play.activation.factAt)} · ` : ''}as of{' '}
+        {formatWallClock(play.activation.asOf)}
+        {play.activation.rulesFired.length > 0 && (
+          <span className="ml-3 inline-flex flex-wrap gap-1 align-middle">
+            {play.activation.rulesFired.map((rule) => (
+              <span
+                key={rule}
+                className="border border-hairline px-1.5 py-0.5 text-[10px] font-bold tracking-[1px] text-body-strong"
+              >
+                {rule}
+              </span>
             ))}
-          </ol>
+          </span>
         )}
-      </div>
-
-      {play.responseDeadline && (
-        <p className="mt-4 text-xs font-light leading-relaxed text-body">
-          <span className={LABEL}>Response deadline (R11, text only)</span>
-          <span className="mt-1 block">{play.responseDeadline.text}</span>
+      </p>
+      <p className="mt-2 text-xs font-light tracking-wide text-muted">
+        <span className="font-bold text-body-strong">{band.label}</span> · {band.role} · {band.side}{' '}
+        {formatPts(band.distancePts)} · {band.triggerStatus}
+        {band.anchorSource ? ` · anchor ${band.anchorSource}` : ''} · members:{' '}
+        {band.memberLabels.join(' · ')}
+      </p>
+      {sequence && (
+        <p className="mt-3 text-xs font-light uppercase tracking-wide text-muted">
+          Destination sequence: <span className="text-body-strong">{sequence}</span>
         </p>
       )}
 
-      <p className="mt-4 text-sm font-light leading-relaxed text-body">
+      <table className="mt-5 w-full border-collapse text-left">
+        <thead>
+          <tr className="border-b border-hairline">
+            <th className="py-2 pr-3 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+              Action Point
+            </th>
+            <th className="py-2 pr-3 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+              Price
+            </th>
+            <th className="py-2 text-xs font-bold uppercase tracking-[1.5px] text-muted">
+              Level / Description
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {actionRows(play).map((row) => (
+            <tr key={row.point} className="border-b border-hairline-strong">
+              <td className="py-2 pr-3 align-top text-sm font-bold text-ink">{row.point}</td>
+              <td
+                className={`py-2 pr-3 align-top text-sm font-bold tracking-tight ${
+                  row.counter ? accent.counterText : accent.text
+                }`}
+              >
+                {row.price}
+              </td>
+              <td className="py-2 text-sm font-light leading-relaxed text-body">
+                <HighlightedText text={row.description} terms={terms} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {play.responseDeadline && (
+        <p className="mt-3 text-xs font-light leading-relaxed text-muted">
+          <span className="font-bold uppercase tracking-[1.5px]">Response deadline (R11)</span> —{' '}
+          {play.responseDeadline.text}
+        </p>
+      )}
+
+      <p className="mt-3 text-sm font-light leading-relaxed text-body">
         <span className="font-bold uppercase tracking-wide text-m-red">Don&apos;t</span> —{' '}
-        {play.dont}
+        <HighlightedText text={play.dont} terms={terms} />
       </p>
 
       {play.uncertaintyBand && (
