@@ -15,7 +15,7 @@ import {
   partialGenerate,
   type FakeOptions,
 } from './helpers/jobPlanDeps'
-import { AS_OF_WALL, BUNDLE_ID, REQUEST_ID, RUN_ID, bundleRow, inSession } from './helpers/jobPlanFiles'
+import { BUNDLE_ID, CHART_AS_OF, REQUEST_ID, RUN_ID, bundleRow, inSession } from './helpers/jobPlanFiles'
 import { fixture, mutate } from './helpers/jobStudy'
 
 /**
@@ -80,19 +80,22 @@ describe('runJobPlan: the ready path', () => {
     expect(row.input_fingerprint).toMatch(/^[0-9a-f]{64}$/)
     expect(row.input_fingerprint).toBe(out.inputFingerprint)
     expect(JobPlanSchema.safeParse(row.plan).success).toBe(true)
-    expect(row.plan.meta).toMatchObject({ bundleId: BUNDLE_ID, inputFingerprint: out.inputFingerprint, asOf: AS_OF_WALL, visionModelId: null, visionPromptRevision: null })
+    expect(row.plan.meta).toMatchObject({ bundleId: BUNDLE_ID, inputFingerprint: out.inputFingerprint, asOf: CHART_AS_OF, visionModelId: null, visionPromptRevision: null })
     for (const hash of Object.values(row.plan.meta.sourceHashes)) expect(hash).toMatch(/^[0-9a-f]{64}$/)
     expect(row.warnings).toEqual(out.warnings)
     expect(row.warnings).not.toContain(LATEST_BUNDLE_WARNING)
   })
 
-  it('derives asOf from received_at on the exchange wall clock (CDT in August, CST in January)', async () => {
+  it('derives asOf from the chart clock (bars/MGI), never received_at — a replayed bundle plans on the replay day', async () => {
     const { result } = run()
-    expect((await result).plan.meta.asOf).toBe(AS_OF_WALL)
-    // 15:30Z in January is 09:30 CST — the study fixture is dated 2026-08-24, so the
-    // planner flags the day mismatch, but the clock conversion itself is what is under test.
-    const winter = run({ row: bundleRow({ received_at: '2026-01-15T15:30:00Z' }) })
-    expect((await winter.result).plan.meta.asOf).toBe('2026-01-15T09:30:00')
+    expect((await result).plan.meta.asOf).toBe(CHART_AS_OF)
+    // A chart replay: received_at is the LIVE machine clock, days past the
+    // replayed session — the plan must still key off the chart's 2026-08-24.
+    const replayed = run({ row: bundleRow({ received_at: '2026-09-01T00:15:00Z' }) })
+    const plan = (await replayed.result).plan
+    expect(plan.meta.asOf).toBe(CHART_AS_OF)
+    expect(plan.meta.tradingDay).toBe('2026-08-24')
+    expect(plan.status).toBe('ready')
   })
 
   it('writes the row only after computation completes and never reaches for anything else', async () => {

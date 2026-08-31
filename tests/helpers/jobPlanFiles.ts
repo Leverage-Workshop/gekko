@@ -11,9 +11,11 @@ import { DAILY, WEEKLY, mutate } from './jobStudy'
  * same inputs tests/job-plan.runPlanner.test.ts feeds the planner directly.
  */
 
-/** 2026-08-24 09:30:00 America/Chicago (CDT) — the run's asOf. */
+/** 2026-08-24 09:30:00 America/Chicago (CDT) — the bundle's received_at (the asOf FALLBACK). */
 export const RECEIVED_AT = '2026-08-24T14:30:00.000Z'
 export const AS_OF_WALL = '2026-08-24T09:30:00'
+/** The bundle's chart clock — the freshest of the last exec bar and MGI current.time — and so the run's actual asOf. */
+export const CHART_AS_OF = '2026-08-24T09:29:00'
 export const BUNDLE_ID = '11111111-1111-4111-8111-111111111111'
 export const REQUEST_ID = '22222222-2222-4222-8222-222222222222'
 export const RUN_ID = 'run_jobplan_test_0001'

@@ -15,7 +15,9 @@ import type { ProfileNodes } from './profile-vision/types'
  * INPUT CONTRACT: the raw bundle file TEXT as downloaded (the task does no
  * parsing itself), the vision read (or null, R14), the run's `asOf` on the
  * exchange wall clock (`YYYY-MM-DDTHH:MM:SS`, America/Chicago — every origin
- * fact keys off it), and the meta placeholders the task already knows
+ * fact keys off it; the task derives it from the bundle's CHART clock via
+ * `chartAsOf`, never the machine clock, so replayed bundles plan on the
+ * replay day), and the meta placeholders the task already knows
  * (bundle id, fingerprint, per-source hashes, vision revision / model).
  *
  * FAILURE CONTRACT (the task's error taxonomy, plan "Key decisions" 3):
@@ -137,7 +139,7 @@ export function parseMgiJson(text: string): MgiStaticLevels {
   return parsed.data
 }
 
-function parseBars<T>(text: string, parse: (csv: string) => T, code: 'exec_bars_invalid' | 'htf_bars_invalid'): T {
+export function parseBars<T>(text: string, parse: (csv: string) => T, code: 'exec_bars_invalid' | 'htf_bars_invalid'): T {
   try {
     return parse(text)
   } catch (error) {
