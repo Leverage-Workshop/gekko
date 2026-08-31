@@ -4,7 +4,28 @@
 
 **Last Updated:** 2026-08-31
 
-**Latest change (branch `fix-r13-replay-skew`): R13 compares chart clocks, not the machine wall
+**Latest change (branch `fix-replay-asof-chart-clock`): the run's `asOf` comes from the bundle's
+chart clock, never `received_at` — the second half of the replay fix.** After PR #184 cleared R13,
+a replay run still failed: `asOf` was derived from the bundle's `received_at` (live machine clock →
+trading day 2026-09-01), so `trading_day_mismatch` fired against the replayed study (2026-08-25),
+every replayed bar fell outside asOf's trading day (`no_observed_bars`), and the session read as
+not-started.
+
+- `chartAsOf(mgi, execBars)` (exported from `dataQuality.ts`) = the freshest of the last
+  (in-progress) exec bar and the MGI `current.time` (day-anchored) — the same proxies R13 trusts.
+  `runJobPlan` now passes `chartAsOf(...) ?? bundle.asOf` to `runPlanner`; `received_at` is the
+  fallback only (effectively dead: an exec CSV with no rows fails the parse first) and a bundle
+  without `received_at` still aborts.
+- `preflightParse` now also parses the exec + HTF bar CSVs, closing its documented gap (a broken
+  bar CSV used to abort only AFTER the vision spend) and handing the parsed bars/MGI to `chartAsOf`.
+- Live effect: asOf moves from bundle arrival to the chart's own now (seconds earlier — upload
+  latency no longer shifts observation windows). PLANNER_REVISION → `job-planner/2026-08-31.3`.
+- Tests: `CHART_AS_OF` joins the bundle helpers; the received_at-DST test became the chart-clock
+  test (replayed bundle with a live `received_at` plans `ready` on the replay day 2026-08-24).
+
+`./init.sh` green — typecheck, lint, 2199/2200 tests (1 skipped), build.
+
+**Previous change (branch `fix-r13-replay-skew`): R13 compares chart clocks, not the machine wall
 clock — job plans now run on chart replays.** Operator report 2026-08-31: every job-plan run on a
 chart replay failed `export_skew` ("exports are 545814s apart") because the job-study `exportedAt`
 is `sc.CurrentSystemDateTime` (verified in `JobStudyExporter.cpp`), which a replay does NOT follow —

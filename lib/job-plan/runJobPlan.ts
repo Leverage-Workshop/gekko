@@ -1,5 +1,7 @@
 import type { JobPlan, PlanStatus } from '@/knowledge/schema/job-plan.schema'
 import { parseVbpProfile, type VbpProfile } from '@/lib/engine/parseProfile'
+import { parseExecBars, type ExecBar } from '@/lib/engine/parseExecBars'
+import { parseHtfBars } from '@/lib/engine/parseHtfBars'
 import { DEFAULT_PROFILE_VISION_SAMPLES } from '@/lib/config/fetchConfig'
 import { computeInputFingerprint, sourceHashesOf } from './fingerprint'
 import { JobPlanAbortError } from './jobPlanErrors'
@@ -8,7 +10,9 @@ import { parseJobStudy } from './parseJobStudy'
 import { instrumentFromSymbol, type Instrument } from './profile-vision/instrument'
 import type { ProfileKey, ProfileNodes } from './profile-vision/types'
 import { PLANNER_REVISION } from './rules'
-import { parseMgiJson, runPlanner } from './runPlanner'
+import type { MgiStaticLevels } from '@/lib/engine/mgiPriority'
+import { chartAsOf } from './dataQuality'
+import { parseBars, parseMgiJson, runPlanner } from './runPlanner'
 import {
   readProfileNodes,
   type JobPlanConfig,
@@ -109,6 +113,8 @@ type Preflight = {
   readonly instrument: Instrument
   readonly currentPrice: number | null
   readonly profiles: Readonly<Record<ProfileKey, VbpProfile>>
+  readonly mgi: MgiStaticLevels
+  readonly execBars: readonly ExecBar[]
 }
 
 function parseProfile(text: string, what: string): VbpProfile {
@@ -127,11 +133,14 @@ function parseProfile(text: string, what: string): VbpProfile {
  * Parse everything the planner will parse again, BEFORE the vision read: a
  * broken export aborts here without spending a model call. Throws the
  * planner's own errors (`JobStudyParseError` / `PlannerInputError`) or
- * `profile_unsupported` — all non-retryable.
+ * `profile_unsupported` — all non-retryable. The parsed MGI + exec bars ride
+ * along so the run's `asOf` can come from the chart clock ({@link chartAsOf}).
  */
 export function preflightParse(texts: LoadedJobBundle['texts']): Preflight {
   const study = parseJobStudy({ daily: texts.jobStudyDaily, weekly: texts.jobStudyWeekly })
   const mgi = parseMgiJson(texts.mgi)
+  const execBars = parseBars(texts.execBars, parseExecBars, 'exec_bars_invalid')
+  parseBars(texts.htfBars, parseHtfBars, 'htf_bars_invalid')
   const symbol = mgi.symbol?.trim() ?? ''
   const fromMgi = symbol.length > 0 ? instrumentFromSymbol(symbol) : null
   return {
@@ -141,6 +150,8 @@ export function preflightParse(texts: LoadedJobBundle['texts']): Preflight {
       balance: parseProfile(texts.balanceAreaProfile, 'balance-area volume profile'),
       rotation: parseProfile(texts.rotationProfile, '400-pt rotation volume profile'),
     },
+    mgi,
+    execBars,
   }
 }
 
@@ -224,10 +235,13 @@ export async function runJobPlan(deps: JobPlanDeps, options: RunJobPlanOptions):
     visionModelId,
   })
 
+  // The chart clock (last exec bar / MGI time), never received_at: a replayed
+  // bundle must plan on the replay day, not the machine's.
+  const asOf = chartAsOf(preflight.mgi, preflight.execBars) ?? bundle.asOf
   const { plan, warnings: planWarnings } = runPlanner({
     files: bundle.texts,
     profileNodes: vision.profileNodes,
-    asOf: bundle.asOf,
+    asOf,
     meta: {
       bundleId: bundle.row.id,
       inputFingerprint,

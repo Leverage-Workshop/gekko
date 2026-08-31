@@ -50,7 +50,7 @@ export type LoadedJobBundle = {
   /** The exact bytes downloaded, per source — the fingerprint's input. */
   readonly sources: SourceBytes
   readonly texts: JobBundleTexts
-  /** The run's `asOf`: the bundle's `received_at` on the exchange wall clock. */
+  /** The bundle's `received_at` on the exchange wall clock — the run's `asOf` FALLBACK only (the chart clock wins; a replay's machine clock runs days ahead). */
   readonly asOf: string
   readonly warnings: readonly string[]
 }
@@ -111,7 +111,7 @@ function requireRef(row: BundleRow, ref: RequiredRef): string {
   return value
 }
 
-/** The exchange wall clock of the bundle's arrival — every planner window keys off it. */
+/** The exchange wall clock of the bundle's arrival — the asOf fallback when the bundle content carries no chart clock. */
 export function asOfFromReceivedAt(receivedAt: string | null, bundleId: string): string {
   const epochMs = receivedAt === null ? Number.NaN : Date.parse(receivedAt)
   const asOf = wallClockAt(epochMs, JOB_STUDY_EXCHANGE_TZ)

@@ -70,6 +70,22 @@ function mgiExportMs(mgi: MgiStaticLevels, lastBarMs: number | null): number | n
   return sameDay
 }
 
+/**
+ * The bundle's chart-clock "now": the freshest of the exec export's last
+ * (in-progress) bar and the MGI `current.time` — the same proxies R13 trusts.
+ * This, never `received_at`, is what the run's `asOf` must come from: on a
+ * chart replay the machine clock runs days ahead of the chart, and every
+ * window keyed off a machine-clock asOf (trading day, observed bars, session
+ * scope) would disown the replayed data. Null when neither proxy resolves.
+ */
+export function chartAsOf(mgi: MgiStaticLevels, execBars: readonly ExecBar[]): string | null {
+  const last = execBars.at(-1)
+  const barsMs = last ? wallMsOfDate(last.dateTime) : null
+  const mgiMs = mgiExportMs(mgi, barsMs)
+  const freshest = [barsMs, mgiMs].filter((ms): ms is number => ms !== null)
+  return freshest.length === 0 ? null : wallStringOfMs(Math.max(...freshest))
+}
+
 type TimedExport = { readonly ms: number; readonly allowanceSeconds: number }
 
 function exportTimes(study: JobStudy, mgi: MgiStaticLevels, execBars: readonly ExecBar[]): ExportTimes & { readonly timed: readonly TimedExport[] } {
