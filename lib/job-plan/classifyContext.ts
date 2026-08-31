@@ -55,8 +55,8 @@ export const classifyContextInputSchema = z.object({
     weekly: z.looseObject({ current: valueZone }),
     balanceAreas: z.array(z.looseObject({ low: finite, high: finite })),
     sources: z.looseObject({
-      daily: z.looseObject({ exportedAt: instant }),
-      weekly: z.looseObject({ exportedAt: instant }),
+      daily: z.looseObject({ lastBarTime: instant }),
+      weekly: z.looseObject({ lastBarTime: instant }),
     }),
   }),
   mgi: z.looseObject({

@@ -24,11 +24,11 @@ import { fixture, mutate } from './helpers/jobStudy'
  */
 
 /** `bundleRequestId: null` = a test run without a request (a dashboard run always carries one). */
-/** The daily export 29 minutes before the weekly one: parses (bars precede the export) but trips R13's 5-minute skew. */
+/** The daily chart clock ~70 minutes behind the bundle: parses (bars precede the export) but trips R13's 5-minute skew even past the one-bar allowance. */
 function skewedDaily(): string {
   return mutate(inSession(fixture('daily.json')), (doc) => {
-    doc.meta.exportedAt = '2026-08-24T09:00:00'
-    doc.meta.lastBarTime = '2026-08-24T08:59:00'
+    doc.meta.exportedAt = '2026-08-24T08:21:00'
+    doc.meta.lastBarTime = '2026-08-24T08:20:00'
   })
 }
 

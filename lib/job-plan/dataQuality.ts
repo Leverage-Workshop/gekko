@@ -27,12 +27,21 @@ import type { JobStudy } from './types'
  * `tradingDay` ≠ the bundle's session, instrument mismatch) make the plan
  * not-`ready`; warnings (provisional boxes, stale bars, missing profile
  * nodes — R14, no volatility scale, MGI cross-check noise) ride along for the
- * card. The MGI and bar exports carry no `exportedAt`; their proxies are the
- * MGI `current.time` on the export's last bar date and the export's last
- * (in-progress) bar timestamp, both a lower bound of the write time.
+ * card. R13 compares CHART clocks, never the machine wall clock: the job-study
+ * `exportedAt` is `sc.CurrentSystemDateTime`, which a chart replay does not
+ * follow, so a replayed bundle would look days stale next to the replayed
+ * MGI/bars. The four proxies are the daily/weekly `lastBarTime`, the MGI
+ * `current.time` on the export's last bar date and the export's last
+ * (in-progress) bar timestamp — each a lower bound of the chart clock at write
+ * time. `lastBarTime` is the in-progress bar's OPEN, so the daily/weekly
+ * proxies honestly trail by up to one bar period; their lag gets a
+ * {@link HTF_BAR_ALLOWANCE_SECONDS} allowance before R13 counts it as skew.
  */
 
 const HALF_DAY_MS = 12 * 60 * MINUTE_MS
+
+/** The daily/weekly job-study charts build from intraday bars no coarser than 30 min. */
+export const HTF_BAR_ALLOWANCE_SECONDS = 30 * 60
 
 /** asOf this far past the last completed bar means the snapshot is not what the operator is looking at. */
 export const BARS_BEHIND_ASOF_MAX_SECONDS = EXPORT_SKEW_MAX_SECONDS
@@ -61,29 +70,42 @@ function mgiExportMs(mgi: MgiStaticLevels, lastBarMs: number | null): number | n
   return sameDay
 }
 
-function exportTimes(study: JobStudy, mgi: MgiStaticLevels, execBars: readonly ExecBar[]): ExportTimes & { readonly ms: readonly number[] } {
+type TimedExport = { readonly ms: number; readonly allowanceSeconds: number }
+
+function exportTimes(study: JobStudy, mgi: MgiStaticLevels, execBars: readonly ExecBar[]): ExportTimes & { readonly timed: readonly TimedExport[] } {
   const last = execBars.at(-1)
   const barsMs = last ? wallMsOfDate(last.dateTime) : null
   const mgiMs = mgiExportMs(mgi, barsMs)
-  const dailyMs = wallMsOfString(study.sources.daily.exportedAt.wall)
-  const weeklyMs = wallMsOfString(study.sources.weekly.exportedAt.wall)
+  const dailyMs = wallMsOfString(study.sources.daily.lastBarTime.wall)
+  const weeklyMs = wallMsOfString(study.sources.weekly.lastBarTime.wall)
+  const timed: readonly (TimedExport | null)[] = [
+    dailyMs === null ? null : { ms: dailyMs, allowanceSeconds: HTF_BAR_ALLOWANCE_SECONDS },
+    weeklyMs === null ? null : { ms: weeklyMs, allowanceSeconds: HTF_BAR_ALLOWANCE_SECONDS },
+    mgiMs === null ? null : { ms: mgiMs, allowanceSeconds: 0 },
+    barsMs === null ? null : { ms: barsMs, allowanceSeconds: 0 },
+  ]
   return {
-    daily: study.sources.daily.exportedAt.wall,
-    weekly: study.sources.weekly.exportedAt.wall,
+    daily: study.sources.daily.lastBarTime.wall,
+    weekly: study.sources.weekly.lastBarTime.wall,
     mgi: mgiMs === null ? null : wallStringOfMs(mgiMs),
     bars: barsMs === null ? null : wallStringOfMs(barsMs),
-    ms: [dailyMs, weeklyMs, mgiMs, barsMs].filter((ms): ms is number => ms !== null),
+    timed: timed.filter((t): t is TimedExport => t !== null),
   }
 }
 
 function skewIssues(times: ReturnType<typeof exportTimes>): { maxSkewSeconds: number | null; issues: DataQualityIssue[] } {
   const issues: DataQualityIssue[] = []
-  const maxSkewSeconds = Math.round((Math.max(...times.ms) - Math.min(...times.ms)) / SECOND_MS)
+  if (times.timed.length === 0) return { maxSkewSeconds: null, issues }
+  const freshestMs = Math.max(...times.timed.map((t) => t.ms))
+  const maxSkewSeconds = Math.max(
+    0,
+    ...times.timed.map((t) => Math.round((freshestMs - t.ms) / SECOND_MS) - t.allowanceSeconds)
+  )
   if (r13ExportSkewExceeded(maxSkewSeconds)) {
     issues.push({
       code: 'export_skew',
       severity: 'insufficient',
-      message: `exports are ${maxSkewSeconds}s apart (> ${EXPORT_SKEW_MAX_SECONDS}s, R13): daily ${times.daily}, weekly ${times.weekly}, mgi ${times.mgi ?? 'unknown'}, bars ${times.bars ?? 'unknown'} — request a fresh bundle`,
+      message: `chart clocks are ${maxSkewSeconds}s apart beyond the one-bar allowance (> ${EXPORT_SKEW_MAX_SECONDS}s, R13): daily ${times.daily}, weekly ${times.weekly}, mgi ${times.mgi ?? 'unknown'}, bars ${times.bars ?? 'unknown'} — request a fresh bundle`,
     })
   }
   if (times.mgi === null || times.bars === null) {
@@ -132,14 +154,15 @@ export function assessDataQuality(input: DataQualityInput): DataQuality {
   const skew = skewIssues(times)
   const profile = profileIssues(input.profileNodes)
   const tradingDayMatch = r13TradingDayMatches(jobStudy.tradingDay, coverage.tradingDay)
-  const boxesProvisional = (wallMsOfString(jobStudy.sources.daily.exportedAt.wall) ?? 0) < rthOpenMsOf(jobStudy.tradingDay)
+  // Chart clock, not `exportedAt` — a replayed premarket bundle must still flag.
+  const boxesProvisional = (wallMsOfString(jobStudy.sources.daily.lastBarTime.wall) ?? 0) < rthOpenMsOf(jobStudy.tradingDay)
   const lastBarMs = coverage.lastCompletedBarAt === null ? null : wallMsOfString(coverage.lastCompletedBarAt)
 
   const issues: DataQualityIssue[] = [
     ...skew.issues,
     ...(tradingDayMatch ? [] : [{ code: 'trading_day_mismatch' as const, severity: 'insufficient' as const, message: `job-study tradingDay ${jobStudy.tradingDay} is not the bundle's session ${coverage.tradingDay} (R13)` }]),
     ...(input.instrumentIssue ? [input.instrumentIssue] : []),
-    ...(boxesProvisional ? [{ code: 'boxes_provisional' as const, severity: 'warning' as const, message: `daily export ${jobStudy.sources.daily.exportedAt.wall} precedes the ${jobStudy.tradingDay} RTH open — JBA box edges are provisional until the boxes reform at the open` }] : []),
+    ...(boxesProvisional ? [{ code: 'boxes_provisional' as const, severity: 'warning' as const, message: `daily chart clock ${jobStudy.sources.daily.lastBarTime.wall} precedes the ${jobStudy.tradingDay} RTH open — JBA box edges are provisional until the boxes reform at the open` }] : []),
     ...(lastBarMs === null
       ? [{ code: 'no_observed_bars' as const, severity: 'warning' as const, message: 'no completed exec bar at/before asOf — origin facts are empty' }]
       : asOfMs - lastBarMs > BARS_BEHIND_ASOF_MAX_SECONDS * SECOND_MS

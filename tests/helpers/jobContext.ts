@@ -34,8 +34,8 @@ export function studyAt(exportedAt: string = AS_OF, overrides: Partial<JobStudy>
     exportedAt: instant,
     exportSkewSeconds: 0,
     sources: {
-      daily: { ...base.sources.daily, exportedAt: instant },
-      weekly: { ...base.sources.weekly, exportedAt: instant },
+      daily: { ...base.sources.daily, exportedAt: instant, lastBarTime: instant },
+      weekly: { ...base.sources.weekly, exportedAt: instant, lastBarTime: instant },
     },
     ...overrides,
   }

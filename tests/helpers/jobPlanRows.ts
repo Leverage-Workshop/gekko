@@ -21,11 +21,11 @@ export type RowVariant =
 export const ROW_ID = '33333333-3333-4333-8333-333333333333'
 export const CREATED_AT = '2026-08-24T14:31:00.000Z'
 
-/** The daily export 29 minutes before the weekly one: parses but trips R13's 5-minute skew. */
+/** The daily chart clock ~70 minutes behind the bundle: parses but trips R13's 5-minute skew even past the one-bar allowance. */
 function skewedDaily(): string {
   return mutate(inSession(fixture('daily.json')), (doc) => {
-    doc.meta.exportedAt = '2026-08-24T09:00:00'
-    doc.meta.lastBarTime = '2026-08-24T08:59:00'
+    doc.meta.exportedAt = '2026-08-24T08:21:00'
+    doc.meta.lastBarTime = '2026-08-24T08:20:00'
   })
 }
 

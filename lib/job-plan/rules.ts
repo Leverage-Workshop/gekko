@@ -20,7 +20,7 @@ import { R1_MERGE_TOLERANCE, type Instrument } from './profile-vision/instrument
  * it is part of every persisted plan's reproducibility fingerprint.
  */
 
-export const PLANNER_REVISION = 'job-planner/2026-08-31.1'
+export const PLANNER_REVISION = 'job-planner/2026-08-31.2'
 
 export type RuleId =
   | 'R1'
@@ -402,10 +402,10 @@ export function r12WithinPlayCap(count: number): boolean {
 // R13 — export skew
 // ---------------------------------------------------------------------------
 
-/** R13: any two exports' `exportedAt` more than this far apart → insufficient. */
+/** R13: any two exports' chart clocks more than this far apart → insufficient. */
 export const EXPORT_SKEW_MAX_SECONDS = 5 * 60
 
-/** R13: strictly more than 5 min between any two exports fails closed. */
+/** R13: strictly more than 5 min between any two chart clocks (after each proxy's allowance) fails closed. */
 export function r13ExportSkewExceeded(maxSkewSeconds: number): boolean {
   return maxSkewSeconds > EXPORT_SKEW_MAX_SECONDS
 }
