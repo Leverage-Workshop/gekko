@@ -310,7 +310,7 @@ function fixtureCases(): ProfileCase[] {
     named: {},
     any: [
       ...fx.labels.lvn.map((p, i) => label('NQ', 'lvn', p, i)),
-      ...fx.labels.hvn.map((p, i) => label('NQ', 'hvn-core', p, i + 1000)),
+      ...fx.labels.hvn.map((p, i) => label('NQ', 'hvn', p, i + 1000)),
     ],
   }))
 }

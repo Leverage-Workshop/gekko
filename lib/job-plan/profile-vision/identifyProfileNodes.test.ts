@@ -10,7 +10,7 @@ import {
   type IdentifyProfileNodesInput,
   type VisionGenerate,
 } from './identifyProfileNodes'
-import { loadFewShot, VISION_PROMPT_REVISION } from './prompt'
+import { VISION_PROMPT_REVISION } from './prompt'
 import type { ProfileNodesRead } from './schema'
 
 const FIXTURE = join(process.cwd(), 'chart-data/four-hundred-rotation.vbp.md')
@@ -35,7 +35,6 @@ function fourHour(): VbpProfile {
   }
 }
 
-const FEW_SHOT = loadFewShot()
 /** A cheap stand-in rasterizer: the PNG bytes are irrelevant to the orchestration under test. */
 const fakeRasterize = (svg: string) => new Uint8Array(Buffer.from(svg.slice(0, 16)))
 
@@ -53,7 +52,7 @@ function goodRead(): ProfileNodesRead {
         rationale: 'deepest',
       },
       {
-        kind: 'hvn-core',
+        kind: 'hvn',
         priceLow: 29880,
         priceHigh: 29920,
         prominence: 1,
@@ -79,7 +78,6 @@ function baseInput(
     modelId: 'test/model',
     effort: 'medium',
     generate,
-    fewShot: FEW_SHOT,
     rasterize: fakeRasterize,
     ...overrides,
   }
@@ -97,9 +95,10 @@ describe('identifyProfileNodes — calls', () => {
     for (const [params] of generate.mock.calls) {
       expect(params.model).toBe('test/model')
       expect(params.effort).toBe('medium')
-      expect(params.images).toHaveLength(FEW_SHOT.length + 1)
+      // feat-141: no worked examples — exactly one image, the profile to read
+      expect(params.images).toHaveLength(1)
       expect(params.schema.safeParse(goodRead()).success).toBe(true)
-      expect(params.prompt).toContain('Profile to read (image 3)')
+      expect(params.prompt).toContain('Profile to read')
     }
     const prompts = new Set(generate.mock.calls.map(([p]) => p.prompt))
     expect(prompts.size).toBe(2) // one prompt per profile, reused across samples
@@ -124,7 +123,6 @@ describe('identifyProfileNodes — calls', () => {
     expect(result.modelId).toBe('test/model')
     expect(result.effort).toBe('medium')
     expect(result.promptRevision).toBe(VISION_PROMPT_REVISION)
-    expect(result.fewShotSource).toMatch(/synthetic teaching profile/)
     expect(result.samples).toBe(3)
     const entry = result.profiles['5d']!
     expect(entry.imageHashes).toHaveLength(1)

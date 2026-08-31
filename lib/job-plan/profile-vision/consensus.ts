@@ -64,13 +64,12 @@ export type ConsensusInput = {
   readonly reads: readonly SuccessfulRead[]
 }
 
-type Family = 'lvn' | 'hvn' | 'exhaustive' | 'taper'
+type Family = 'lvn' | 'hvn' | 'exhaustive'
 
 /** Kind families that may merge into one cluster. */
 const FAMILY_OF: Readonly<Record<NodeKind, Family>> = {
   lvn: 'lvn',
-  'hvn-edge': 'hvn',
-  'hvn-core': 'hvn',
+  'hvn': 'hvn',
   'exhaustive-node': 'exhaustive',
 }
 

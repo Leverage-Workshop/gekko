@@ -10,15 +10,18 @@ import { z } from 'zod'
  */
 
 /**
- * feat-139: narrowed to what the four rules actually support.
+ * feat-141: `hvn-edge` is gone.
  *
- * `taper-tail` is gone — redundant now that `taper` is a SHAPE (a taper is one
- * of the two ways a distribution gives way, and it happens anywhere, not only
- * at a tail). `exhaustive-node` stays: it is anatomy Job names outright
- * ("exhaust of note on top of the volume profile") and the 2026-06-02 golden
- * label uses it, so removing it would mean relabelling operator-verified data.
+ * Once an LVN carries `edgeBelow` / `edgeAbove`, the boundary where a
+ * distribution gives way IS the LVN's edge — a separate node kind for the same
+ * price was double-counting it, and the operator called it confusing. The
+ * 2026-06-02 golden set proved the point: it labelled 7568-7572 as BOTH an lvn
+ * and an hvn-edge.
+ *
+ * `hvn` (was `hvn-core`) is the peak of a distribution. `exhaustive-node` stays:
+ * distinct anatomy Job names outright, with its own golden label.
  */
-export const NODE_KINDS = ['lvn', 'hvn-edge', 'hvn-core', 'exhaustive-node'] as const
+export const NODE_KINDS = ['lvn', 'hvn', 'exhaustive-node'] as const
 export type NodeKind = (typeof NODE_KINDS)[number]
 
 export const NODE_POSITIONS = ['top', 'upper', 'mid', 'lower', 'bottom'] as const

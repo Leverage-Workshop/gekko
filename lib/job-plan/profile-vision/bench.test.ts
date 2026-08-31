@@ -25,8 +25,8 @@ const nq = (price: number, family: ScoredNode['family']): ScoredNode => ({ price
 describe('bench — conversions', () => {
   it('maps kinds to coarse families (detector knows only lvn vs hvn)', () => {
     expect(FAMILY_OF_KIND.lvn).toBe('lvn')
-    expect(FAMILY_OF_KIND['hvn-edge']).toBe('hvn')
-    expect(FAMILY_OF_KIND['hvn-core']).toBe('hvn')
+    expect(FAMILY_OF_KIND['hvn']).toBe('hvn')
+    expect(FAMILY_OF_KIND['hvn']).toBe('hvn')
     expect(FAMILY_OF_KIND['exhaustive-node']).toBe('extreme')
     expect(FAMILY_OF_KIND['exhaustive-node']).toBe('extreme')
   })
@@ -45,7 +45,7 @@ describe('bench — conversions', () => {
     }
     expect(labelToScored(label)).toEqual({ price: 6805, family: 'lvn' })
     const node: ConsensusNode = {
-      kind: 'hvn-edge',
+      kind: 'hvn',
       priceLow: 29300,
       priceHigh: 29304,
       prominence: 2,

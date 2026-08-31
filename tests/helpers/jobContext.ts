@@ -179,7 +179,6 @@ export function profileNodes(fiveDay: readonly ConsensusNode[] | null, fourHour:
     modelId: 'test/vision',
     effort: null,
     promptRevision: 'test',
-    fewShotSource: 'test',
     samples: 3,
     profiles: { '5d': entry(fiveDay), '4h': entry(fourHour) },
     warnings: [],

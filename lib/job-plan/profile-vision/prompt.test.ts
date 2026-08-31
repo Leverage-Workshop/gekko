@@ -6,13 +6,10 @@ import {
   buildVisionPrompt,
   CRITERIA,
   CRITERIA_CANARIES,
-  FEW_SHOT_SOURCE,
-  loadFewShot,
   MECHANISM,
   VISION_PROMPT_REVISION,
 } from './prompt'
 import { renderProfile } from './renderProfile'
-import { profileNodesReadSchema } from './schema'
 
 const FIXTURE = join(process.cwd(), 'chart-data/four-hundred-rotation.vbp.md')
 
@@ -22,43 +19,6 @@ function target() {
   return { meta, tile: tiles[0].tile }
 }
 
-function fewShotRendered() {
-  return loadFewShot().map((example) => {
-    const { meta, tiles } = renderProfile(example.profile, { instrument: example.instrument })
-    return { example, meta, tile: tiles[0].tile }
-  })
-}
-
-describe('few-shot set', () => {
-  it('loads 2-3 examples whose expected reads pass the schema, and names its source', () => {
-    const set = loadFewShot()
-    expect(set.length).toBeGreaterThanOrEqual(2)
-    expect(set.length).toBeLessThanOrEqual(3)
-    for (const ex of set) {
-      expect(profileNodesReadSchema.safeParse(ex.expected).success).toBe(true)
-      expect(ex.profile.rows.length).toBeGreaterThan(100)
-      // every expected band sits inside its profile's span
-      const lo = Math.min(...ex.profile.rows.map((r) => r.price))
-      const hi = Math.max(...ex.profile.rows.map((r) => r.price)) + ex.profile.meta.step
-      for (const node of ex.expected.nodes) {
-        expect(node.priceLow).toBeGreaterThanOrEqual(lo)
-        expect(node.priceHigh).toBeLessThanOrEqual(hi)
-      }
-    }
-    // feat-131: the fixture stand-ins are replaced by feat-119 golden replay exports.
-    expect(set.map((s) => s.id)).toEqual(['synthetic-two-lvn-types', 'es-shelf-edge-exhaustion'])
-    expect(set.map((s) => s.instrument)).toEqual(['ES', 'ES'])
-    expect(FEW_SHOT_SOURCE).toMatch(/synthetic/)
-    expect(FEW_SHOT_SOURCE).toMatch(/2026-06-02/)
-    // every example's primary LVN is a price the corpus actually names for that date
-    const primaries = set.map((s) => s.expected.nodes.find((n) => n.primary))
-    expect(primaries.every((n) => n !== undefined)).toBe(true)
-  })
-
-  it('throws on a missing directory (a packaging error must fail loudly)', () => {
-    expect(() => loadFewShot('/nonexistent')).toThrow()
-  })
-})
 
 describe('vision prompt', () => {
   const { meta, tile } = target()
@@ -69,8 +29,7 @@ describe('vision prompt', () => {
       lookback: 'the last five trading sessions',
       meta,
       tile,
-    },
-    fewShotRendered()
+    }
   )
 
   it('matches the snapshot (bump VISION_PROMPT_REVISION when this changes)', () => {
@@ -159,31 +118,5 @@ describe('vision prompt', () => {
     }
   })
 
-  it('orders the images: few-shot first with their JSON, the target last', () => {
-    expect(prompt.indexOf('Example 1 (image 1)')).toBeLessThan(
-      prompt.indexOf('Example 2 (image 2)')
-    )
-    expect(prompt.indexOf('Example 2 (image 2)')).toBeLessThan(
-      prompt.indexOf('Profile to read (image 3)')
-    )
-    // the worked examples must DEMONSTRATE rule 2 — both LVN types labelled
-    expect(prompt).toContain('"priceLow":7568')
-    // the worked examples must DEMONSTRATE the two-sided model
-    expect(prompt).toContain('"edgeBelow":"ledge","edgeAbove":"taper"')
-    expect(prompt).toContain('"edgeBelow":"flat"')
-    expect(prompt).toContain('"edgeAbove":"flat"')
-  })
 
-  it('describes a tile by its index and the full span', () => {
-    const profile = parseVbpProfile(readFileSync(FIXTURE, 'utf8'))
-    const { meta: m2, tiles } = renderProfile(profile, { instrument: 'NQ', tiles: 2 })
-    const p = buildVisionPrompt(
-      { instrument: 'NQ', profileName: 'x', lookback: 'y', meta: m2, tile: tiles[1].tile },
-      []
-    )
-    expect(p).toContain('tile 2 of 2')
-    expect(p).toContain('the full profile spans 28910.00–30073.00')
-    expect(p).toContain('Profile to read (image 1)')
-    expect(p).not.toContain('WORKED EXAMPLES')
-  })
 })

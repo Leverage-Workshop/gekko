@@ -76,7 +76,6 @@ export type ProfileNodes = {
   readonly modelId: string
   readonly effort: ReasoningEffort | null
   readonly promptRevision: string
-  readonly fewShotSource: string
   readonly samples: number
   readonly profiles: Readonly<Partial<Record<ProfileKey, ProfileNodesEntry>>>
   /** `profile_nodes_unavailable:<key>` per profile that produced no consensus (R14). */

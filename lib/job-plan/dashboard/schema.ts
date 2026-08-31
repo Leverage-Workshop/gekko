@@ -49,7 +49,12 @@ export type JobPlanRow = z.infer<typeof JobPlanRowSchema>
 function normalizeLegacyNode(value: unknown): unknown {
   if (typeof value !== 'object' || value === null) return value
   const n = { ...(value as Record<string, unknown>) }
+  // Kind renames (feat-139/141). `hvn-edge` maps to `hvn` rather than being
+  // dropped: it was a high-volume reference at that price, and a preprocess of a
+  // single node cannot remove it from the list anyway. The same mapping was
+  // applied to the 2026-03-17 golden labels.
   if (n.kind === 'taper-tail') n.kind = 'exhaustive-node'
+  if (n.kind === 'hvn-core' || n.kind === 'hvn-edge') n.kind = 'hvn'
   if (n.edgeBelow === undefined && n.edgeAbove === undefined) {
     const legacy = n.shape
     const carried = legacy === 'ledge' || legacy === 'taper' ? legacy : 'none'
@@ -136,7 +141,6 @@ export const PersistedProfileNodesSchema = z.object({
   modelId: z.string().min(1),
   effort: z.string().nullable(),
   promptRevision: z.string(),
-  fewShotSource: z.string(),
   samples: z.number().int().min(1),
   profiles: z.object(
     Object.fromEntries(

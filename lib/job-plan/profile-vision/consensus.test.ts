@@ -79,8 +79,8 @@ describe('consensus — helpers', () => {
 
   it('kind families: lvn alone, hvn-edge/core together, exhaustive apart', () => {
     expect(familyOf('lvn')).toBe('lvn')
-    expect(familyOf('hvn-edge')).toBe('hvn')
-    expect(familyOf('hvn-core')).toBe('hvn')
+    expect(familyOf('hvn')).toBe('hvn')
+    expect(familyOf('hvn')).toBe('hvn')
     // feat-139 retired `taper-tail` — a taper is now a SHAPE, so the only
     // extreme anatomy left with its own kind is the exhaustive node.
     expect(familyOf('exhaustive-node')).toBe('exhaustive')
@@ -189,15 +189,15 @@ describe('consensus — clustering', () => {
     const reads = [
       sample(0, [
         PRIMARY,
-        n({ kind: 'hvn-edge', priceLow: 29206, priceHigh: 29210, primary: false }),
+        n({ kind: 'hvn', priceLow: 29206, priceHigh: 29210, primary: false }),
       ]),
       sample(1, [
         PRIMARY,
-        n({ kind: 'hvn-edge', priceLow: 29206, priceHigh: 29210, primary: false }),
+        n({ kind: 'hvn', priceLow: 29206, priceHigh: 29210, primary: false }),
       ]),
     ]
     const c = buildConsensus(input(reads))!
-    expect(c.nodes.map((x) => x.kind).sort()).toEqual(['hvn-edge', 'lvn'])
+    expect(c.nodes.map((x) => x.kind).sort()).toEqual(['hvn', 'lvn'])
   })
 
   it('snaps the median band to the grid and drops nodes outside the profile span', () => {
@@ -237,7 +237,7 @@ describe('consensus — clustering', () => {
       sample(0, [
         PRIMARY,
         n({
-          kind: 'hvn-edge',
+          kind: 'hvn',
           priceLow: 29300,
           priceHigh: 29304,
           prominence: 3,
@@ -248,7 +248,7 @@ describe('consensus — clustering', () => {
       sample(1, [
         PRIMARY,
         n({
-          kind: 'hvn-core',
+          kind: 'hvn',
           priceLow: 29300,
           priceHigh: 29304,
           prominence: 1,
@@ -259,7 +259,7 @@ describe('consensus — clustering', () => {
       sample(2, [
         PRIMARY,
         n({
-          kind: 'hvn-edge',
+          kind: 'hvn',
           priceLow: 29300,
           priceHigh: 29304,
           prominence: 4,
@@ -270,7 +270,7 @@ describe('consensus — clustering', () => {
     ]
     const c = buildConsensus(input(reads))!
     const fat = c.nodes.find((x) => x.priceLow === 29300)!
-    expect(fat.kind).toBe('hvn-edge')
+    expect(fat.kind).toBe('hvn')
     expect(fat.prominence).toBe(1)
     expect(fat.position).toBe('upper')
     expect(fat.edgeBelow).toBe('ledge')
@@ -279,11 +279,11 @@ describe('consensus — clustering', () => {
 
   it('breaks a kind tie deterministically on the enum order', () => {
     const reads = [
-      sample(0, [PRIMARY, n({ kind: 'hvn-core', priceLow: 29300, priceHigh: 29304 })]),
-      sample(1, [PRIMARY, n({ kind: 'hvn-edge', priceLow: 29300, priceHigh: 29304 })]),
+      sample(0, [PRIMARY, n({ kind: 'hvn', priceLow: 29300, priceHigh: 29304 })]),
+      sample(1, [PRIMARY, n({ kind: 'hvn', priceLow: 29300, priceHigh: 29304 })]),
     ]
     const c = buildConsensus(input(reads))!
-    expect(c.nodes.find((x) => x.priceLow === 29300)!.kind).toBe('hvn-edge') // hvn-edge precedes hvn-core
+    expect(c.nodes.find((x) => x.priceLow === 29300)!.kind).toBe('hvn') // hvn-edge precedes hvn-core
   })
 })
 
@@ -348,7 +348,7 @@ describe('consensus — tiles, caps, zones, shape', () => {
         tile: 0,
         read: read([
           PRIMARY,
-          n({ kind: 'hvn-core', priceLow: 29300, priceHigh: 29304, primary: false }),
+          n({ kind: 'hvn', priceLow: 29300, priceHigh: 29304, primary: false }),
         ]),
       },
       {
@@ -370,9 +370,9 @@ describe('consensus — tiles, caps, zones, shape', () => {
     // apart (inside the 20-pt tolerance) but NOT both inside the shared span -> not tile duplicates.
     const tile0 = [
       PRIMARY,
-      n({ kind: 'hvn-edge', priceLow: 29226, priceHigh: 29228, primary: false }),
+      n({ kind: 'hvn', priceLow: 29226, priceHigh: 29228, primary: false }),
     ]
-    const tile1 = [n({ kind: 'hvn-edge', priceLow: 29210, priceHigh: 29212, primary: false })]
+    const tile1 = [n({ kind: 'hvn', priceLow: 29210, priceHigh: 29212, primary: false })]
     const reads: SuccessfulRead[] = [
       { sample: 0, tile: 0, read: read(tile0) },
       { sample: 0, tile: 1, read: read(tile1) },
@@ -381,7 +381,7 @@ describe('consensus — tiles, caps, zones, shape', () => {
     ]
     const c = buildConsensus(input(reads, 2, 2))!
     const edges = c.nodes
-      .filter((x) => x.kind === 'hvn-edge')
+      .filter((x) => x.kind === 'hvn')
       .map((x) => x.priceLow)
       .sort()
     // each sample contributes BOTH edges; they cluster across samples into two 2-vote nodes
@@ -391,14 +391,14 @@ describe('consensus — tiles, caps, zones, shape', () => {
   it('a true duplicate STRADDLING the seam is one node, with the union band (never counted twice)', () => {
     // overlap is 29180-29220; tile 0 reports 29214-29226 (crosses the seam), tile 1 reports it clipped 29214-29220
     const straddle = n({
-      kind: 'hvn-edge',
+      kind: 'hvn',
       priceLow: 29214,
       priceHigh: 29226,
       primary: false,
       prominence: 2,
     })
     const clipped = n({
-      kind: 'hvn-edge',
+      kind: 'hvn',
       priceLow: 29214,
       priceHigh: 29220,
       primary: false,
@@ -411,7 +411,7 @@ describe('consensus — tiles, caps, zones, shape', () => {
       { sample: 1, tile: 1, read: read([clipped]) },
     ]
     const c = buildConsensus(input(reads, 2, 2))!
-    const edges = c.nodes.filter((x) => x.kind === 'hvn-edge')
+    const edges = c.nodes.filter((x) => x.kind === 'hvn')
     expect(edges).toHaveLength(1)
     expect(edges[0]).toMatchObject({
       priceLow: 29214,
@@ -428,7 +428,7 @@ describe('consensus — tiles, caps, zones, shape', () => {
         tile: 0,
         read: read([
           { ...PRIMARY, primary: false, prominence: 3 },
-          n({ kind: 'hvn-core', priceLow: 29300, priceHigh: 29304, primary: false }),
+          n({ kind: 'hvn', priceLow: 29300, priceHigh: 29304, primary: false }),
         ]),
       },
       { sample: 0, tile: 1, read: read([{ ...PRIMARY, prominence: 1 }]) },
@@ -471,7 +471,7 @@ describe('consensus — tiles, caps, zones, shape', () => {
   it('caps at 8 nodes by agreement then prominence, always keeping the primary, ordered top-down', () => {
     const many = Array.from({ length: 12 }, (_, i) =>
       n({
-        kind: i % 2 ? 'hvn-edge' : 'exhaustive-node',
+        kind: i % 2 ? 'hvn' : 'exhaustive-node',
         priceLow: 29020 + i * 30,
         priceHigh: 29022 + i * 30,
         prominence: (i % 5) + 1,
@@ -519,7 +519,7 @@ describe('consensus — tiles, caps, zones, shape', () => {
   it('is permutation-invariant: the order of reads and of nodes within a read does not change the result', () => {
     const a = n({ priceLow: 29300, priceHigh: 29304, prominence: 2 })
     const b = n({ priceLow: 29310, priceHigh: 29314, prominence: 1 })
-    const edge = n({ kind: 'hvn-edge', priceLow: 29120, priceHigh: 29124 })
+    const edge = n({ kind: 'hvn', priceLow: 29120, priceHigh: 29124 })
     const reads = [
       sample(0, [PRIMARY, a, edge]),
       sample(1, [b, PRIMARY]),

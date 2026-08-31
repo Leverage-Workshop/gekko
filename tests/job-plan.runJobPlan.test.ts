@@ -103,7 +103,7 @@ describe('runJobPlan: the ready path', () => {
     expect(state.calls.indexOf('generate')).toBeLessThan(insertAt)
     expect(state.calls.indexOf('uploadImage')).toBeLessThan(insertAt)
     expect(state.calls.indexOf('fetchJobPlanByRunId')).toBeLessThan(insertAt)
-    const known: (keyof JobPlanDeps)[] = ['waitForBundle', 'fetchBundleById', 'fetchLatestBundle', 'downloadObject', 'uploadImage', 'fetchConfig', 'fetchJobPlanByRunId', 'insertJobPlan', 'generate', 'rasterize', 'fewShot']
+    const known: (keyof JobPlanDeps)[] = ['waitForBundle', 'fetchBundleById', 'fetchLatestBundle', 'downloadObject', 'uploadImage', 'fetchConfig', 'fetchJobPlanByRunId', 'insertJobPlan', 'generate', 'rasterize']
     for (const call of state.calls) expect(known).toContain(call)
     // No dep, row column or call names briefings / entry_levels / push.
     const surface = [...state.calls, ...Object.keys(state.inserted[0])].join(' ')
