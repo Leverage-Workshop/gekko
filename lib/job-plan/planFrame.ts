@@ -38,8 +38,9 @@ export function planFrame(context: JobContext): PlanFrame | null {
   if (candidates.length === 0) return null
   const price = context.price.value
   const ref = candidates.reduce((best, r) => (Math.abs(r.price - price) < Math.abs(best.price - price) ? r : best))
-  const distancePts = Math.round(Math.abs(price - ref.price) * 100) / 100
-  const side: PlanFrame['side'] = distancePts <= context.tolerance.merge ? 'at' : price > ref.price ? 'above' : 'below'
+  const distance = Math.abs(price - ref.price)
+  const distancePts = Math.round(distance * 100) / 100
+  const side: PlanFrame['side'] = distance <= context.tolerance.merge ? 'at' : price > ref.price ? 'above' : 'below'
   return {
     referenceId: ref.id,
     label: ref.label,
