@@ -64,6 +64,9 @@ describe('JobPlanCard: ready with the vision read ON', () => {
     const html = render(data)
 
     expect(html).toContain('data-plan-status="ready"')
+    expect(html).toContain('data-section="frame"')
+    expect(data.plan.frame).not.toBeNull()
+    expect(html).toContain(escaped(data.plan.frame!.text))
     expect(html).toContain('data-section="lean"')
     expect(html).toContain(escaped(data.plan.lean.text))
     expect(count(html, 'data-play="')).toBe(data.plan.plays.length)

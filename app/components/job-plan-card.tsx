@@ -178,6 +178,17 @@ function PrunedList({ pruned }: { pruned: JobPlanCardData['plan']['pruned'] }) {
   )
 }
 
+function FrameBlock({ frame }: { frame: NonNullable<JobPlanCardData['plan']['frame']> }) {
+  return (
+    <div className="border border-hairline bg-surface-card p-6" data-section="frame">
+      <span className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
+        Frame · {frame.side} the {frame.label}
+      </span>
+      <p className="mt-3 text-base font-light leading-relaxed text-body">{frame.text}</p>
+    </div>
+  )
+}
+
 function LeanBlock({ lean }: { lean: JobPlanCardData['plan']['lean'] }) {
   return (
     <div
@@ -201,6 +212,7 @@ export function JobPlanCard({ data }: { data: JobPlanCardData }) {
       <VisionWarningBanner data={data} />
       {plan.status === 'insufficient' && <InsufficientBlock reasons={plan.standDownReasons} />}
       <JobContextHeader context={plan.context} />
+      {plan.status === 'ready' && plan.frame != null && <FrameBlock frame={plan.frame} />}
       {plan.status === 'ready' && <LeanBlock lean={plan.lean} />}
       {plan.plays.length > 0 && (
         <div className="grid items-start gap-6 xl:grid-cols-2" data-section="plays">

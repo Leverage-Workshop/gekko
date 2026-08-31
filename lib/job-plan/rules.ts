@@ -20,7 +20,7 @@ import { R1_MERGE_TOLERANCE, type Instrument } from './profile-vision/instrument
  * it is part of every persisted plan's reproducibility fingerprint.
  */
 
-export const PLANNER_REVISION = 'job-planner/2026-08-31.4'
+export const PLANNER_REVISION = 'job-planner/2026-08-31.5'
 
 export type RuleId =
   | 'R1'
@@ -66,7 +66,7 @@ export const RULE_TABLE: readonly RuleEntry[] = [
   { id: 'R9', title: 'Already-interacted', owner: 'feat-126', ratified: true, predicate: 'r9TriggerStatus' },
   { id: 'R10', title: 'Mid-zone ("purgatory")', owner: 'feat-126', ratified: true, predicate: 'r10MidZone' },
   { id: 'R11', title: 'Response deadline (emitted, never evaluated)', owner: 'feat-127', ratified: true, predicate: 'r11ResponseDeadline' },
-  { id: 'R12', title: 'Actionable set + origin precedence', owner: 'feat-127', ratified: true, predicate: 'r12SkipBand / r12OriginRank / r12WithinPlayCap' },
+  { id: 'R12', title: 'Actionable set + frame precedence (origin-precedence half retired 2026-08-31)', owner: 'feat-127', ratified: true, predicate: 'r12SkipBand / r12WithinPlayCap' },
   { id: 'R13', title: 'Export skew', owner: 'feat-126', ratified: true, predicate: 'r13ExportSkewExceeded / r13TradingDayMatches' },
   { id: 'R14', title: 'Vision read failure → proceed with warning', owner: 'feat-128', ratified: true, predicate: null },
   { id: 'R15', title: 'Vision exit criterion (bench)', owner: 'feat-124', ratified: false, predicate: null },
@@ -350,31 +350,23 @@ export function r11ResponseDeadline(condition: PlayCondition, bandLabel: string)
 }
 
 // ---------------------------------------------------------------------------
-// R12 — actionable set + origin precedence
+// R12 — actionable set + frame precedence
 // ---------------------------------------------------------------------------
+//
+// 2026-08-31 operator correction: the origin-precedence half of R12 as
+// ratified 2026-08-22 (failed look > approach failure > accepted > holding
+// side > defense, freshest first) is RETIRED. The preps never arm a play off
+// a completed fact — "a look above and fail is what he's looking to HAVE
+// HAPPEN at the levels he's identifying if price reaches there". Every
+// directional play is a forward conditional; the primary look is the
+// frame-aligned play at the nearest key area (planFrame.ts + planPrecedence).
+// The actionable-set half (caps, skip rule) stands as ratified.
 
 /** R12: arm at most this many bands per side, nearest-first. */
 export const MAX_ARMED_BANDS_PER_SIDE = 2
 
 /** R12: the emitted plan never carries more branches than this. */
 export const MAX_PLAYS = 4
-
-/** The origin facts that can back a primary lean, freshest-first order ratified in R12. */
-export type OriginFactKind = 'failed-look' | 'approach-failure' | 'accepted' | 'holding-side' | 'defense'
-
-/** R12: failed look > approach failure > building/accepted > holding side > repeated defense. */
-export const ORIGIN_PRECEDENCE: readonly OriginFactKind[] = [
-  'failed-look',
-  'approach-failure',
-  'accepted',
-  'holding-side',
-  'defense',
-]
-
-/** R12: precedence rank of an origin fact (0 = failed look, the strongest). */
-export function r12OriginRank(kind: OriginFactKind): number {
-  return ORIGIN_PRECEDENCE.indexOf(kind)
-}
 
 export type BandArmability = {
   readonly confluence: boolean
@@ -429,6 +421,6 @@ export const IMPLEMENTED_RULES = {
   R9: [r9TriggerStatus],
   R10: [r10MidZone],
   R11: [r11ResponseDeadline],
-  R12: [r12SkipBand, r12OriginRank, r12WithinPlayCap],
+  R12: [r12SkipBand, r12WithinPlayCap],
   R13: [r13ExportSkewExceeded, r13TradingDayMatches],
 } as const

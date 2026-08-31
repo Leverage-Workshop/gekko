@@ -817,10 +817,46 @@ timestamps and the in-progress bar never counts.
 | R9 | Already-interacted | Any print inside the band during **this RTH session only** (overnight touches don't count). Touched bands stay destinations, demoted as fresh trigger anchors; a touched band that produced a failed look or a defense keeps full trigger status |
 | R10 | Mid-zone ("purgatory") | More than **2× merge tolerance** (ES 10 / NQ 40) from every edge of the enclosing zone → two-way trade declared between the named edges, stand down in the middle; within that distance = edge play |
 | R11 | Response deadline | Every hold/traverse branch carries a **30-min** deadline from arrival at the trigger band, **emitted in the plan text, never evaluated** by the planner |
-| R12 | Actionable set + origin precedence | Arm ≤ **2 bands per side** (nearest-first; skip a band with no confluence AND lowest-tier source) plus the enclosing zone's edges; **max 4 branches**. Primary lean = branch backed by the freshest origin fact in order: failed look > approach failure > building/accepted > holding side > repeated defense |
+| R12 | Actionable set + frame precedence | Arm ≤ **2 bands per side** (nearest-first; skip a band with no confluence AND lowest-tier source) plus the enclosing zone's edges; **max 4 branches**. ~~Primary lean = branch backed by the freshest origin fact in order: failed look > approach failure > building/accepted > holding side > repeated defense~~ **Origin-precedence half RETIRED 2026-08-31** (see the correction section below): plays are forward conditionals; sides alternate frame-side-first, zone edges > nearest > R2 significance within a side; the lean is the rank-1 play |
 | R13 | Export skew | Fail closed (`insufficient`, operator message) if any two of the job-study JSONs / MGI / bar exports' `exportedAt` differ by **> 5 min**, or `tradingDay` ≠ the bundle's session |
 | R14 *(ratified 2026-08-22)* | What the planner does when the vision read fails for a profile | **Still produce the plan**, minus that profile's LVN/HVN levels, with a loud `profile_nodes_unavailable` warning on the card (the G line / pivots / box edges / overnight extremes still plan). Never `insufficient` for this cause alone |
 | R15 *(proposed — operator confirms or raises after seeing bench results)* | The bar the vision read must clear before it feeds the planner | On prep dates it has not seen: finds ≥ **80 %** of the LVNs Job named (within R1 tolerance), picks the same "primary" LVN ≥ **70 %** of the time, agrees with itself across repeated calls ≥ **80 %**, and beats `lvnDetection` on both the golden set and the fixtures |
+
+## 2026-08-31 correction — forward conditionals (operator directive)
+
+After reviewing rendered plans against the prep transcripts, the operator retired the
+origin-facts arming model this plan's steps 3–5 had built (the 2026-08-25 replay plan
+armed all four plays off 0–6.8-minute session wicks): **"A look above and fail is what
+he's looking to HAVE HAPPEN at the levels he's identifying if price reaches there. He's
+not looking for examples where it already happened and then using those as levels."**
+Confirmed against all 25 transcripts — every prep is forward conditionals with both
+outcomes stated per level; the only backward references are overnight/prior-day-scale
+expectation-setters, never triggers.
+
+What changed in the planner (PLANNER_REVISION `job-planner/2026-08-31.5`):
+
+- **Frame** (`planFrame.ts`, new): every ready plan opens the way every prep opens —
+  price vs the nearer of the G line and the weekly Job Pivot; the side names the
+  productive direction ('at' within one merge tolerance = balance, no side).
+- **Grammar** (`playGrammar.ts`): every directional play is a forward conditional —
+  expected response on arrival (`hold-traverse`; the R11 deadline stays), with the
+  look-and-fail fork preferred at structure edges (overnight / prior-day extremes,
+  JBA edges) and the breach fork on every play (invalidation = R6 acceptance beyond →
+  don't counter, `thenSeek`; acceleration language past G line / pivots / box edges).
+  A band price sits inside leans with the frame. R5–R8 facts still compute into the
+  context (observability) but never ground a play; R9 already-interacted survives as
+  the freshness demotion.
+- **Precedence** (`planPrecedence.ts`): stand-down (R10) leads when mid-zone, then
+  fresh conditionals with SIDES ALTERNATING frame-side-first (every prep outlines both
+  directions), zone edges > nearest > R2 significance within a side; demoted (R9)
+  last. The lean is the rank-1 play (`basis: 'frame'` / `'mid-zone'`).
+- **Schema**: `frame` added (optional — old rows parse), `LeanBasis` extended with
+  `'frame'`; `armed` is now emitted only by the mid-zone stand-down.
+
+The five-condition grammar table in step 4 remains the corpus-true vocabulary; the
+`build-beyond-continuation` and `approach-failure` conditions are no longer emitted as
+standalone plays (the breach fork carries continuation; approach failure is a stated
+qualifier in the preps, not a play class).
 
 ## Claude / Codex review notes
 
