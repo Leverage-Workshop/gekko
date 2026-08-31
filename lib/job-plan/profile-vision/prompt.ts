@@ -27,7 +27,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-31.1'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-31.2'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -60,24 +60,24 @@ type Rule = { readonly title: string; readonly text: string }
  * enumerated, which a list of shapes cannot.
  */
 export const MECHANISM =
-  'A volume profile shows where participants traded. What you are looking for is the price at which that participation dried up. Those levels matter because the participants who traded the volume beside them have to defend them: if price leaves, there is little volume to slow it down, so it can travel a long way before finding any, and they take a loss. Every rule below follows from that.'
+  'A volume profile shows where participants traded. What you are looking for is the price at which that participation dried up — a LOW-VOLUME NODE, an LVN. Those levels matter because the participants who traded the volume beside them have to defend them: if price leaves, there is little volume to slow it down, so it can travel a long way before finding any, and they take a loss. Every rule below follows from that.'
 
 export const CRITERIA: readonly Rule[] = [
   {
     title: 'PROMINENCE IS THE SIZE OF THE DROP',
-    text: 'Rank a low-volume node by how large a change in volume it represents, not by how thin it looks on its own. The most prominent ones sit against the most prominent distributions: a trough beside a very large build outranks a thinner trough beside a small one, because far more participation ended there.',
+    text: 'Rank an LVN by how large a change in volume it represents, not by how thin it looks on its own. The most prominent LVNs sit against the most prominent distributions: a trough beside a very large build outranks a thinner trough beside a small one, because far more participation ended there.',
   },
   {
-    title: 'A DISTRIBUTION GIVES WAY IN ONE OF TWO WAYS',
-    text: 'A LEDGE is significant volume that drops off very quickly — a cliff. A TAPER is a distribution thinning gradually into the low-volume area. Both are edges of a low-volume node, and both occur anywhere in the profile, not only at the top and bottom.',
+    title: 'THERE ARE TWO TYPES OF LVN',
+    text: 'They are told apart by how the volume on the distribution side gives way. A LEDGE LVN: significant volume that stops abruptly and drops off a cliff into the low-volume area. A TAPER LVN: a distribution that thins out gradually into the low-volume area. Both types occur anywhere in the profile, not only at the top and bottom, and neither type is inherently more prominent than the other — rule 1 decides that.',
   },
   {
-    title: 'WHAT LIES BEYOND THE NODE LOCATES IT, IT DOES NOT RANK IT',
-    text: 'Past a low-volume node you will find either a flat, low-volume stretch or the start of a new distribution. Use that to find the node and to set its far bound. Neither changes how prominent the node is.',
+    title: 'TWO THINGS CAN LIE BEYOND AN LVN, AND BOTH ONLY HELP YOU LOCATE IT',
+    text: 'On the far side of an LVN you will find one of exactly two things. A FLAT, LOW-VOLUME STRETCH that simply continues. Or THE START OF A NEW DISTRIBUTION, where volume builds again. Use whichever one it is to find the LVN and to set its far bound. Neither of them changes how prominent the LVN is — that is rule 1 and rule 1 only.',
   },
   {
-    title: 'HIGH-VOLUME NODES ARE THE PEAKS OF LARGE DISTRIBUTIONS',
-    text: 'Report the peak of each significant distribution — not every fat bar.',
+    title: 'HIGH-VOLUME NODES (HVNs) ARE THE PEAKS OF LARGE DISTRIBUTIONS',
+    text: 'Report the peak of each significant distribution as an HVN — not every fat bar.',
   },
 ] as const
 
@@ -89,18 +89,18 @@ function criteriaText(): string {
 }
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
-- Report only the DECISIVE levels: the most prominent low-volume node, the next two or three, and the peak of each significant distribution. Three to five nodes is normal. The schema caps you at 8; that is a ceiling, never a target, and padding the list makes the read worse.
-- kind: lvn (a low-volume node) | hvn-core (the peak of a distribution) | hvn-edge (where a distribution gives way to a low-volume node) | exhaustive-node | taper-tail.
-- shape: ledge (volume drops off a cliff) | taper (a distribution thinning gradually) | valley (a trough between two nodes) | shelf-edge (a thin shelf just outside a node) | wide-gap (a long thin span) | notch (a fat peak).
+- Report only the DECISIVE levels: the most prominent LVN, the next two or three LVNs, and the peak of each significant distribution as an HVN. Three to five nodes is normal. The schema caps you at 8; that is a ceiling, never a target, and padding the list makes the read worse.
+- kind: lvn (an LVN) | hvn-core (the peak of a distribution) | hvn-edge (the edge where a distribution gives way into an LVN) | exhaustive-node | taper-tail.
+- shape: ledge (a ledge LVN — volume drops off a cliff) | taper (a taper LVN — a distribution thinning gradually) | valley (a trough between two nodes) | shelf-edge (a thin shelf just outside a node) | wide-gap (a long thin span) | notch (a fat peak).
 - priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step, and report the span you can actually see — never pad a narrow node or collapse a wide one to a single price.
 - prominence: 1 (largest drop in volume in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. Ties are allowed.
-- primary: when you report any lvn, exactly one carries true — the one with the largest drop. When the image shows no lvn at all, every node is false.
+- primary: when you report any LVN, exactly one carries true — the one with the largest drop in volume. When the image shows no LVN at all, every node is false.
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
 - rationale: at most 20 words, describing only what is visible.
 - thinZones: at most 3 { low, high } spans that are thin across many rows. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: true when a distribution simply stops at an extreme instead of tapering out.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
 
-const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is — the job here is to pick out the few levels that are decisive, and the rules below say which ones those are.`
+const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is, and what a low-volume node (LVN) and a high-volume node (HVN) are — the job here is to pick out the few LVNs and HVNs that are decisive, and the rules below say which ones those are.`
 
 /** A loaded few-shot example: the parsed profile plus its expected read. */
 export type FewShotExample = {
