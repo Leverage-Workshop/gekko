@@ -189,7 +189,7 @@ describe('reference inventory (R2)', () => {
   describe('profile nodes (taken AS-IS from the vision read)', () => {
     it('lists 5-day nodes at tier 8 and 4-hour nodes at tier 9 with prominence/primary untouched', () => {
       const nodes = profileNodes(
-        [node({ priceLow: 29280, priceHigh: 29284, prominence: 1, primary: true }), node({ kind: 'hvn-edge', priceLow: 29600, priceHigh: 29604, prominence: 2, edgeBelow: 'ledge', edgeAbove: 'flat' })],
+        [node({ priceLow: 29280, priceHigh: 29284, prominence: 1, primary: true }), node({ kind: 'hvn', priceLow: 29600, priceHigh: 29604, prominence: 2, edgeBelow: 'ledge', edgeAbove: 'flat' })],
         [node({ priceLow: 29520, priceHigh: 29530, prominence: 4, agreement: 2 })],
       )
       const withNodes = classify({ profileNodes: nodes })
@@ -202,7 +202,7 @@ describe('reference inventory (R2)', () => {
         node: { profile: '5d', kind: 'lvn', prominence: 1, primary: true, agreement: 3, samples: 3 },
       })
       expect(byId(withNodes, 'node:5d:0')?.label).toBe('5-day lvn (primary) #1')
-      expect(byId(withNodes, 'node:5d:1')).toMatchObject({ source: 'profile-5d', node: { kind: 'hvn-edge', edgeBelow: 'ledge', edgeAbove: 'flat' } })
+      expect(byId(withNodes, 'node:5d:1')).toMatchObject({ source: 'profile-5d', node: { kind: 'hvn', edgeBelow: 'ledge', edgeAbove: 'flat' } })
       expect(byId(withNodes, 'node:4h:0')).toMatchObject({ source: 'profile-4h', price: 29525, node: { prominence: 4, agreement: 2 } })
       expect(r2Significance('profile-5d')).toBe(7)
       expect(r2Significance('profile-4h')).toBe(8)

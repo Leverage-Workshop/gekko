@@ -29,7 +29,7 @@ describe('profileNodesReadSchema', () => {
   it('accepts an lvn-free image (a tile that is one fat node) without a primary', () => {
     const r = profileNodesReadSchema.safeParse({
       ...base,
-      nodes: [node({ kind: 'hvn-core', primary: false, edgeBelow: 'none', edgeAbove: 'none' })],
+      nodes: [node({ kind: 'hvn', primary: false, edgeBelow: 'none', edgeAbove: 'none' })],
     })
     expect(r.success).toBe(true)
   })
@@ -61,7 +61,7 @@ describe('profileNodesReadSchema', () => {
   it('rejects a primary that is not an lvn', () => {
     const r = profileNodesReadSchema.safeParse({
       ...base,
-      nodes: [node({ kind: 'hvn-edge', primary: true })],
+      nodes: [node({ kind: 'hvn', primary: true })],
     })
     expect(r.success).toBe(false)
     expect(JSON.stringify(r.error?.issues)).toMatch(/only an lvn can be primary/)

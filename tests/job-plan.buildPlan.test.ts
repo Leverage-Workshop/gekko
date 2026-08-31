@@ -407,7 +407,7 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
       { id: 'daily-pivot', source: 'daily-job-pivot', price: 7970, label: 'Daily Job Pivot' },
       { id: 'node:5d:0', source: 'profile-5d', price: 7980, label: '5-day lvn (primary) #1', node: { primary: true, prominence: 1 } },
       { id: 'rip', source: 'rip', price: 7982, label: 'Rip' },
-      { id: 'node:5d:1', source: 'profile-5d', price: 8004, label: '5-day hvn-edge #2', node: { kind: 'hvn-edge', prominence: 2, edgeBelow: 'ledge', edgeAbove: 'flat' } },
+      { id: 'node:5d:1', source: 'profile-5d', price: 8004, label: '5-day hvn-edge #2', node: { kind: 'hvn', prominence: 2, edgeBelow: 'ledge', edgeAbove: 'flat' } },
       { id: 'jba:0:high', source: 'jba-edge', price: 8005, label: 'JBA 1 high', boxIndex: 0 },
       { id: 'pdh', source: 'previous-day-extreme', price: 8005, label: 'PDH' },
       { id: 'mgi:weekly.pwHigh', source: 'mgi-other', price: 8040, label: 'PW High' },

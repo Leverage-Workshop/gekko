@@ -46,8 +46,7 @@ export const MIN_BOX_HEIGHT_PX = 2
 
 export const KIND_LABELS: Readonly<Record<OverlayKind, string>> = {
   lvn: 'LVN',
-  'hvn-edge': 'HVN edge',
-  'hvn-core': 'HVN core',
+  'hvn': 'HVN',
   'exhaustive-node': 'Exhaustive',
   'thin-zone': 'Thin zone',
 }

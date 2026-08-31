@@ -283,7 +283,7 @@ describe('profile nodes persisted before the two-sided edge model', () => {
 
   it('a legacy shape with no modern equivalent becomes none rather than a guess', async () => {
     const { ConsensusNodeSchema } = await import('@/lib/job-plan/dashboard/schema')
-    const r = ConsensusNodeSchema.safeParse({ ...legacy, kind: 'hvn-core', shape: 'notch' })
+    const r = ConsensusNodeSchema.safeParse({ ...legacy, kind: 'hvn', shape: 'notch' })
     expect(r.success).toBe(true)
     if (!r.success) return
     expect(r.data.edgeBelow).toBe('none')

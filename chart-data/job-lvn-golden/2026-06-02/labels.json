@@ -2,16 +2,6 @@
   {
     "instrument": "ES",
     "profile": "5d",
-    "kind": "hvn-edge",
-    "priceLow": 7568,
-    "priceHigh": 7572,
-    "primary": false,
-    "corpusRef": 22,
-    "verbatim": "This down here 68 to 72, want to see it defend"
-  },
-  {
-    "instrument": "ES",
-    "profile": "5d",
     "kind": "exhaustive-node",
     "priceLow": 7620,
     "priceHigh": 7624,

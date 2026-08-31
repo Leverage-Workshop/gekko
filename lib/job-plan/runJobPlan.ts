@@ -6,7 +6,6 @@ import { JobPlanAbortError } from './jobPlanErrors'
 import { loadJobBundle, type LoadJobBundleDeps, type LoadedJobBundle, type BundleWaitOutcome } from './loadJobBundle'
 import { parseJobStudy } from './parseJobStudy'
 import { instrumentFromSymbol, type Instrument } from './profile-vision/instrument'
-import type { FewShotExample } from './profile-vision/prompt'
 import type { ProfileKey, ProfileNodes } from './profile-vision/types'
 import { PLANNER_REVISION } from './rules'
 import { parseMgiJson, runPlanner } from './runPlanner'
@@ -68,7 +67,6 @@ export interface JobPlanDeps extends LoadJobBundleDeps {
   generate: JobPlanVisionGenerate
   /** Test overrides for the render → PNG step and the few-shot set. */
   rasterize?: (svg: string) => Uint8Array
-  fewShot?: readonly FewShotExample[]
 }
 
 export type RunJobPlanOptions = {
@@ -204,7 +202,6 @@ async function visionRead(
     generate: deps.generate,
     uploadImage: deps.uploadImage,
     ...(deps.rasterize ? { rasterize: deps.rasterize } : {}),
-    ...(deps.fewShot ? { fewShot: deps.fewShot } : {}),
   })
 }
 

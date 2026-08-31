@@ -1,24 +1,14 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { z } from 'zod'
-import { parseVbpProfile, type VbpProfile } from '@/lib/engine/parseProfile'
 import type { Instrument } from './instrument'
 import type { RenderMeta, TileSpan } from './renderProfile'
-import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
 
 /**
  * The vision prompt for the profile read (feat-123, docs/job-planning-task-plan.md
  * "The perception contract"). Three parts:
  *
- *   1. CRITERIA — distilled from docs/jba-research/lvn-corpus.md sections B1–B16
+ *   1. RULES — distilled from docs/jba-research/lvn-corpus.md sections B1–B16
  *      (what makes an LVN notable / primary) and D (the negative set), each with
  *      one quoted example from the corpus. Static across calls.
- *   2. FEW-SHOT — a fixed set of example profiles with their expected JSON,
- *      loaded from knowledge/job-plan/few-shot/ (see FEW_SHOT_SOURCE). The
- *      example images are rendered at call time with the SAME RenderOptions as
- *      the profile being read, so the bake-off variants never mismatch their
- *      examples.
- *   3. PER-CALL TEXT — instrument, profile name / lookback, price span, row step,
+ *   2. PER-CALL TEXT — instrument, profile name / lookback, price span, row step,
  *      POC / VAH / VAL, current price. NO structure (no boxes, MGI, pivots):
  *      relating nodes to structure is planner math, and showing the boxes would
  *      invite the model to find LVNs where the boxes suggest.
@@ -27,13 +17,8 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-31.4'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-31.5'
 
-/** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
-export const FEW_SHOT_SOURCE =
-  'a synthetic teaching profile (two LVNs, each a ledge from below and a taper from above) plus 2026-06-02 ES 5-day rolling from the feat-119 golden replay exports'
-
-export const FEW_SHOT_DIR = 'knowledge/job-plan/few-shot'
 
 /**
  * One rule the model applies when reading the profile.
@@ -77,7 +62,7 @@ export const CRITERIA: readonly Rule[] = [
   },
   {
     title: 'HIGH-VOLUME NODES (HVNs) ARE THE PEAKS OF LARGE DISTRIBUTIONS',
-    text: 'Report the peak of each significant distribution as an HVN — not every fat bar.',
+    text: 'Report the peak of each significant distribution as an HVN — not every fat bar, and not its boundary. The boundary is already carried as the neighbouring LVN edge.',
   },
 ] as const
 
@@ -90,8 +75,8 @@ function criteriaText(): string {
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - Report only the DECISIVE levels: the most prominent LVN, the next two or three LVNs, and the peak of each significant distribution as an HVN. Three to five nodes is normal. The schema caps you at 8; that is a ceiling, never a target, and padding the list makes the read worse.
-- kind: lvn (an LVN) | hvn-core (the peak of a distribution) | hvn-edge (the edge where a distribution gives way into an LVN) | exhaustive-node (uncommon: a spike at a profile extreme with a small build behind it that then steps off hard — only when you can actually see that anatomy).
-- edgeBelow / edgeAbove: how volume gives way on each side of the node — ledge (drops off a cliff) | taper (thins gradually) | flat (no distribution that side, a low-volume stretch continues) | none (the side does not apply). Every lvn carries a real form on both sides; an hvn-core is a peak, so both sides are none.
+- kind: lvn (an LVN) | hvn (the peak of a distribution) | exhaustive-node (uncommon: a spike at a profile extreme with a small build behind it that then steps off hard — only when you can actually see that anatomy).
+- edgeBelow / edgeAbove: how volume gives way on each side of the node — ledge (drops off a cliff) | taper (thins gradually) | flat (no distribution that side, a low-volume stretch continues) | none (the side does not apply). Every lvn carries a real form on both sides; an hvn is a peak, so both sides are none.
 - priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step, and report the span you can actually see — never pad a narrow node or collapse a wide one to a single price.
 - prominence: 1 (largest drop in volume in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. Ties are allowed.
 - primary: when you report any LVN, exactly one carries true — the one with the largest drop in volume. When the image shows no LVN at all, every node is false.
@@ -101,50 +86,6 @@ const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
 
 const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is, and what a low-volume node (LVN) and a high-volume node (HVN) are — the job here is to pick out the few LVNs and HVNs that are decisive, and the rules below say which ones those are.`
-
-/** A loaded few-shot example: the parsed profile plus its expected read. */
-export type FewShotExample = {
-  readonly id: string
-  readonly instrument: Instrument
-  readonly profile: VbpProfile
-  readonly expected: ProfileNodesRead
-}
-
-const manifestSchema = z.object({
-  source: z.string().min(1),
-  examples: z
-    .array(
-      z.object({
-        id: z.string().min(1),
-        instrument: z.enum(['NQ', 'ES']),
-        profile: z.string().min(1),
-        expected: z.string().min(1),
-      })
-    )
-    .min(1)
-    .max(3),
-})
-
-/**
- * Load the few-shot set from disk. Throws on a malformed manifest or an
- * expected read that fails the schema — a packaging error, not a runtime one.
- */
-export function loadFewShot(baseDir: string = process.cwd()): FewShotExample[] {
-  const dir = join(baseDir, FEW_SHOT_DIR)
-  const manifest = manifestSchema.parse(
-    JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'))
-  )
-  return manifest.examples.map((ex) => ({
-    id: ex.id,
-    instrument: ex.instrument,
-    profile: parseVbpProfile(readFileSync(join(dir, ex.profile), 'utf8'), {
-      fillMissingRows: true,
-    }),
-    expected: profileNodesReadSchema.parse(
-      JSON.parse(readFileSync(join(dir, ex.expected), 'utf8'))
-    ),
-  }))
-}
 
 /** Per-call facts for the profile being read. Deliberately carries NO structure. */
 export type ProfileCallContext = {
@@ -185,30 +126,14 @@ function describeImage(
  * few-shot examples first (one each, rendered with the same options), then the
  * profile to read — the text refers to them by that order.
  */
-export function buildVisionPrompt(
-  ctx: ProfileCallContext,
-  fewShot: readonly { example: FewShotExample; meta: RenderMeta; tile: TileSpan }[]
-): string {
-  const examples = fewShot
-    .map(
-      (f, i) =>
-        `${describeImage(`Example ${i + 1} (image ${i + 1})`, f.example.instrument, f.meta, f.tile)}\n` +
-        `Expected JSON for example ${i + 1}:\n${JSON.stringify(f.example.expected)}`
-    )
-    .join('\n\n')
-  const target = describeImage(
-    `Profile to read (image ${fewShot.length + 1})`,
-    ctx.instrument,
-    ctx.meta,
-    ctx.tile
-  )
+export function buildVisionPrompt(ctx: ProfileCallContext): string {
+  const target = describeImage('Profile to read', ctx.instrument, ctx.meta, ctx.tile)
   return [
     ROLE,
     MECHANISM,
     'RULES:',
     criteriaText(),
     OUTPUT_RULES,
-    fewShot.length > 0 ? `WORKED EXAMPLES:\n${examples}` : '',
     `${target}\nThis is the ${ctx.profileName} over ${ctx.lookback}. Read it now and return the JSON.`,
   ]
     .filter((s) => s.length > 0)

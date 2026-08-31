@@ -7,10 +7,7 @@ import { buildConsensus, type SuccessfulRead } from './consensus'
 import type { Instrument } from './instrument'
 import {
   buildVisionPrompt,
-  FEW_SHOT_SOURCE,
-  loadFewShot,
   VISION_PROMPT_REVISION,
-  type FewShotExample,
 } from './prompt'
 import { rasterizePng } from './rasterize'
 import {
@@ -98,8 +95,6 @@ export type IdentifyProfileNodesInput = {
   readonly modelId: string
   readonly effort: ReasoningEffort | null
   readonly generate: VisionGenerate
-  /** Defaults to loadFewShot() from knowledge/job-plan/few-shot. */
-  readonly fewShot?: readonly FewShotExample[]
   /** Defaults to rasterizePng. */
   readonly rasterize?: (svg: string) => Uint8Array
   readonly concurrency?: number
@@ -183,30 +178,8 @@ export function withTimeout<T>(
   })
 }
 
-type RenderedFewShot = {
-  readonly example: FewShotExample
-  readonly meta: RenderMeta
-  readonly tile: TileSpan
-  readonly image: ChartImage
-}
 
 /** Few-shot images are rendered with the same variant as the target, always as one tile. */
-function renderFewShot(
-  fewShot: readonly FewShotExample[],
-  render: IdentifyProfileNodesInput['render'],
-  rasterize: (svg: string) => Uint8Array
-): RenderedFewShot[] {
-  return fewShot.map((example) => {
-    const { tiles, meta } = renderProfile(example.profile, {
-      ...render,
-      instrument: example.instrument,
-      currentPrice: null,
-      tiles: 1,
-    })
-    const [tile] = tiles
-    return { example, meta, tile: tile.tile, image: { base64: toBase64(rasterize(tile.svg)) } }
-  })
-}
 
 function buildCalls(
   key: ProfileKey,
@@ -214,7 +187,6 @@ function buildCalls(
   tiles: readonly RenderedTile[],
   meta: RenderMeta,
   samples: number,
-  fewShot: readonly RenderedFewShot[],
   rasterize: (svg: string) => Uint8Array
 ): Call[] {
   const names = PROFILE_NAMES[key]
@@ -222,9 +194,8 @@ function buildCalls(
     const image: ChartImage = { base64: toBase64(rasterize(rendered.svg)) }
     const prompt = buildVisionPrompt(
       { instrument, profileName: names.name, lookback: names.lookback, meta, tile: rendered.tile },
-      fewShot.map((f) => ({ example: f.example, meta: f.meta, tile: f.tile }))
     )
-    const images = [...fewShot.map((f) => f.image), image]
+    const images = [image]
     return Array.from({ length: samples }, (_, sample) => ({
       key,
       sample,
@@ -348,7 +319,6 @@ export async function identifyProfileNodes(
 ): Promise<ProfileNodes> {
   validateInput(input)
   const rasterize = input.rasterize ?? rasterizePng
-  const fewShot = renderFewShot(input.fewShot ?? loadFewShot(), input.render, rasterize)
 
   const rendered = PROFILE_KEYS.flatMap((key) => {
     const profile = input.profiles[key]
@@ -362,7 +332,7 @@ export async function identifyProfileNodes(
   })
 
   const calls = rendered.flatMap((r) =>
-    buildCalls(r.key, input.instrument, r.tiles, r.meta, input.samples, fewShot, rasterize)
+    buildCalls(r.key, input.instrument, r.tiles, r.meta, input.samples, rasterize)
   )
   const outcomes = await runWithConcurrency(
     calls.map((call) => () => runCall(call, input)),
@@ -383,7 +353,6 @@ export async function identifyProfileNodes(
     modelId: input.modelId,
     effort: input.effort,
     promptRevision: VISION_PROMPT_REVISION,
-    fewShotSource: FEW_SHOT_SOURCE,
     samples: input.samples,
     profiles,
     warnings,

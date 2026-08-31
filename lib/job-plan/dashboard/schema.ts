@@ -136,7 +136,6 @@ export const PersistedProfileNodesSchema = z.object({
   modelId: z.string().min(1),
   effort: z.string().nullable(),
   promptRevision: z.string(),
-  fewShotSource: z.string(),
   samples: z.number().int().min(1),
   profiles: z.object(
     Object.fromEntries(

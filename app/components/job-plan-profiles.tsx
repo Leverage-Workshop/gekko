@@ -26,8 +26,7 @@ export const PROFILE_IMAGE_ROUTE = '/api/job-plans/images'
 /** DESIGN.md tokens only: LVNs carry the significant accent, HVNs the brand blue, tails / thin zones the warning tone. */
 const KIND_COLOR: Readonly<Record<OverlayKind, string>> = {
   lvn: 'var(--color-m-red)',
-  'hvn-edge': 'var(--color-bmw-blue)',
-  'hvn-core': 'var(--color-electric-blue)',
+  'hvn': 'var(--color-bmw-blue)',
   'exhaustive-node': 'var(--color-warning)',
   'thin-zone': 'var(--color-muted)',
 }

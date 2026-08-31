@@ -30,8 +30,7 @@ export type NodeFamily = 'lvn' | 'hvn' | 'extreme'
 
 export const FAMILY_OF_KIND: Readonly<Record<NodeKind, NodeFamily>> = {
   lvn: 'lvn',
-  'hvn-edge': 'hvn',
-  'hvn-core': 'hvn',
+  'hvn': 'hvn',
   'exhaustive-node': 'extreme',
 }
 

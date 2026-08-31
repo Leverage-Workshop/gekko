@@ -3,7 +3,6 @@ import type { ReasoningEffort } from '@/lib/llm/reasoning'
 import { sha256Hex } from './fingerprint'
 import { identifyProfileNodes, type VisionGenerate } from './profile-vision/identifyProfileNodes'
 import type { Instrument } from './profile-vision/instrument'
-import type { FewShotExample } from './profile-vision/prompt'
 import { rasterizePng } from './profile-vision/rasterize'
 import type { ProfileKey, ProfileNodes } from './profile-vision/types'
 
@@ -83,7 +82,6 @@ export type VisionReadInput = {
   readonly uploadImage: (path: string, png: Uint8Array) => Promise<void>
   /** Test overrides. */
   readonly rasterize?: (svg: string) => Uint8Array
-  readonly fewShot?: readonly FewShotExample[]
   /**
    * Absolute wall-clock deadline (epoch ms) for the vision read. Forwarded to
    * `identifyProfileNodes` so a slow provider cannot eat the whole
@@ -196,7 +194,6 @@ export async function readProfileNodes(input: VisionReadInput): Promise<VisionRe
     effort: input.config.profile_vision_model_effort,
     generate,
     rasterize,
-    ...(input.fewShot ? { fewShot: input.fewShot } : {}),
     ...(input.deadlineAt === undefined ? {} : { deadlineAt: input.deadlineAt }),
     telemetry: { functionId: 'job-plan-task' },
   })

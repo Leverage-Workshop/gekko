@@ -2,7 +2,7 @@
   {
     "instrument": "ES",
     "profile": "5d",
-    "kind": "hvn-edge",
+    "kind": "hvn",
     "priceLow": 6745,
     "priceHigh": 6745,
     "primary": false,
@@ -12,7 +12,7 @@
   {
     "instrument": "ES",
     "profile": "5d",
-    "kind": "hvn-edge",
+    "kind": "hvn",
     "priceLow": 6781,
     "priceHigh": 6785,
     "primary": false,

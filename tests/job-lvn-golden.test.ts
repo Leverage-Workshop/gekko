@@ -186,8 +186,11 @@ describe('golden labels', () => {
     expect(byDate('2026-08-07').some((l) => l.primary && l.kind === 'lvn')).toBe(true)
     const june = byDate('2026-06-02')
     expect(june.some((l) => l.kind === 'exhaustive-node')).toBe(true)
-    expect(june.some((l) => l.kind === 'hvn-edge')).toBe(true)
     expect(june.some((l) => l.kind === 'lvn')).toBe(true)
+    // feat-141: the hvn-edge that duplicated the lvn at 7568-7572 was dropped.
+    // Under the two-sided model that boundary IS the lvn's edge, so labelling
+    // one band as two nodes would penalise the correct single-node answer.
+    expect(june.some((l) => l.kind === 'hvn' && l.priceLow === 7568)).toBe(false)
   })
 })
 
@@ -207,7 +210,7 @@ describe('schemas reject malformed input', () => {
   it('goldenLabelSchema is strict and enforces band + primary-is-lvn', () => {
     expect(goldenLabelSchema.safeParse({ ...good, extra: 1 }).success).toBe(false)
     expect(goldenLabelSchema.safeParse({ ...good, priceLow: 10, priceHigh: 5 }).success).toBe(false)
-    expect(goldenLabelSchema.safeParse({ ...good, kind: 'hvn-core', primary: true }).success).toBe(
+    expect(goldenLabelSchema.safeParse({ ...good, kind: 'hvn', primary: true }).success).toBe(
       false
     )
     expect(goldenLabelSchema.safeParse({ ...good, kind: 'lvn', primary: true }).success).toBe(true)
