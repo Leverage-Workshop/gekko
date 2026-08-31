@@ -27,7 +27,7 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-30.7'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-31.1'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
@@ -36,146 +36,71 @@ export const FEW_SHOT_SOURCE =
 export const FEW_SHOT_DIR = 'knowledge/job-plan/few-shot'
 
 /**
- * One criterion: the rule, the corpus section(s) it distils, and a VERBATIM
- * line from docs/jba-research/lvn-corpus.md (the prompt test checks every
- * `example` is a substring of that file, so a quote can never drift from the
- * source).
+ * One rule the model applies when reading the profile.
  *
- * Coverage of the corpus: B1, B2, B3, B4, B6, B7, B8, B11, B12, B13, B14, B15,
- * B16 and D3, D7, D10, D11 are perception criteria and live here. B13-B16 come
- * from reference/volume_profile_101.txt (corpus section A4, added 2026-08-30):
- * how to SPOT the primary, the secondary class, distributions-between-primaries,
- * and the taper / ledge / exhaustive discrimination at an extreme. B5 (position vs the JBA
- * boxes), B9 (lookback by purpose), B10 (tolerance scales with lookback) and
- * D1, D2, D4, D5, D6, D8, D9, D12 concern trade selection against structure
- * and are planner / consensus rules by the perception contract — the image
- * carries no structure, so the model cannot and must not apply them.
+ * OPERATOR-AUTHORED (feat-137). These replace the 18 criteria mined from
+ * docs/jba-research/lvn-corpus.md. Two problems the operator named directly:
+ * the set was too long, and an audit of all 18 found only FIVE were the trader
+ * speaking about which low-volume node to pick — the rest described
+ * high-volume structure, extreme anatomy, or output bookkeeping, and pulled the
+ * model's attention away from the question that matters.
+ *
+ * These are deliberately NOT corpus quotes. A vision model already knows what a
+ * volume profile and a low-volume node are, so re-teaching the vocabulary spends
+ * attention that should go on WHICH levels are decisive. The corpus remains the
+ * evidence base for the golden labels and for the explainer
+ * (docs/jba-research/lvn-criteria-explained.md); it is no longer the source of
+ * the prompt, and the section-A sourcing test is retired with it.
  */
-type Criterion = { readonly rule: string; readonly corpus: string; readonly example: string }
+type Rule = { readonly title: string; readonly text: string }
 
-export const CRITERIA: readonly Criterion[] = [
+/**
+ * Why any of these levels matter, stated FIRST and as a mechanism rather than a
+ * checklist — a mechanism lets the model reason about profiles nobody
+ * enumerated, which a list of shapes cannot.
+ */
+export const MECHANISM =
+  'A volume profile shows where participants traded. What you are looking for is the price at which that participation dried up. Those levels matter because the participants who traded the volume beside them have to defend them: if price leaves, there is little volume to slow it down, so it can travel a long way before finding any, and they take a loss. Every rule below follows from that.'
+
+export const CRITERIA: readonly Rule[] = [
   {
-    rule: 'DEPTH RANKS. Rank LVN candidates by depth — the least volume relative to the nodes on either side — WITHIN this profile only, and mark one lvn primary (prominence 1). Depth decides the ranking, with ONE exception, stated in full in the next two criteria: where the thin region is a wide span rather than a narrow notch, the primary is the span edge against the fat node and the deepest point inside the span is the secondary. Apply that exception when it fits; otherwise the deepest candidate is primary.',
-    corpus: 'B1, B2',
-    example: 'this is the deepest LVN. So deepest meaning primary',
+    title: 'PROMINENCE IS THE SIZE OF THE DROP',
+    text: 'Rank a low-volume node by how large a change in volume it represents, not by how thin it looks on its own. The most prominent ones sit against the most prominent distributions: a trough beside a very large build outranks a thinner trough beside a small one, because far more participation ended there.',
   },
   {
-    rule:
-      'FIND IT BY BAR TIP, ACROSS THE WHOLE IMAGE. Bars grow left from the price axis, so the primary is the lvn whose bars stay NEAREST the axis — compare tip lengths against every trough in the image, not just its two neighbours. ' +
-      'When the thin region is a WIDE SPAN rather than a narrow notch, the primary anchors at the span EDGE against the fat node and the deepest point inside the span is the secondary. Compare INTERNAL troughs only — the profile thins to nothing at both extremes by construction, and a completed taper or exhaustive tail never competes for primary.',
-    corpus: 'B13',
-    example:
-      "the easiest way to spot a primary LVN is just look all the way to the right and see which ones are closest",
+    title: 'A DISTRIBUTION GIVES WAY IN ONE OF TWO WAYS',
+    text: 'A LEDGE is significant volume that drops off very quickly — a cliff. A TAPER is a distribution thinning gradually into the low-volume area. Both are edges of a low-volume node, and both occur anywhere in the profile, not only at the top and bottom.',
   },
   {
-    rule: 'SECONDARY LVNs ARE DEMOTED, NOT DROPPED. A shallower trough sitting INSIDE a distribution is a secondary lvn: still report it, with prominence 3-5 and primary false. It gives a first response but gets filled; it never competes for primary.',
-    corpus: 'B13, B14',
-    example:
-      "that's a secondary LVN and although it can offer an initial uh response that it's more likely to be filled",
+    title: 'WHAT LIES BEYOND THE NODE LOCATES IT, IT DOES NOT RANK IT',
+    text: 'Past a low-volume node you will find either a flat, low-volume stretch or the start of a new distribution. Use that to find the node and to set its far bound. Neither changes how prominent the node is.',
   },
   {
-    rule: 'DISTRIBUTIONS ARE THE ZONES BETWEEN PRIMARY LVNs. Count the humps first: one = bell, two = double, three or more = multi (trend-up / trend-down when the mass climbs or falls across the image, thin when there is no real hump). Set profileShape by this ladder, first match wins: no hump dominates at all = thin; two humps = double; three or more = multi; ONE hump that sits at an end and thins steadily toward the other = trend-up (mass high) or trend-down (mass low); one hump otherwise = bell. Put the primary lvn on a wall BETWEEN humps, never inside one.',
-    corpus: 'B14, B15',
-    example:
-      "here's a primary obn right there and one right here so between the two we have a distribution of volume",
-  },
-  {
-    rule: 'EXTREME ANATOMY: TAPER vs LEDGE vs EXHAUSTIVE. A taper falls off PROGRESSIVELY away from a fat node (parabolic or a straight 45-degree ramp) — that is taper-tail, and the extreme is finished. A LEDGE is a stack of near-EQUAL-length bars where the build just stops — report it as kind hvn-edge with shape ledge and unfinished = true, never as a taper-tail: it is the boundary of a build that stopped, and the line in the sand once price traverses it. An exhaustive node is a spike, a small build, then an immediate step off.',
-    corpus: 'B16, B7',
-    example:
-      'we have a volume build and then we basically have a flat line let it smack you in the face',
-  },
-  {
-    rule: 'DEPARTURE SCAR, NOT RANDOM DIP. A notable LVN is where price drove through quickly and left a thin zone behind — the initiation of a leg — not any dip inside a fat node.',
-    corpus: 'B3',
-    example: 'We drove up and out of that area. We left an LVN in this area',
-  },
-  {
-    rule: "ADJACENT TO A HIGH-VOLUME EDGE. The notable LVN is the thin shelf immediately outside a fat node's boundary. Report the hvn-edge and the lvn next to it as two separate nodes.",
-    corpus: 'B4',
-    example:
-      'primary LVN between the uh well right around high volume edge is 7412 to like 14 5 area through here',
-  },
-  {
-    rule: 'WIDTH IS A QUALIFIER, NOT A DISQUALIFIER. Report the band you can actually see: a wide LVN spans the whole thin zone (and goes in thinZones), a narrow one is however few points it is. Read the bounds off the axis at the stated row step and impose no fixed width — the corpus runs from 4-point calls to 186-point kennels. Never collapse a wide zone to a single price, and never pad a narrow one.',
-    corpus: 'B6, D7',
-    example: 'wide LVN 682 to 6806',
-  },
-  {
-    rule: 'GROUP TINY STICKS. A run of tiny adjacent nodes is one mass; read the LVNs at the boundaries of the grouped mass, not between every stick.',
-    corpus: 'B11',
-    example:
-      "these HPNs that are tiny. And then up here, we have a defined node. Therefore, I'm going to group this like this. Use this an LVN, and this is an LVN",
-  },
-  {
-    rule: 'EXTREMES ARE EXHAUSTIVE-NODE TERRITORY. At the top or bottom of the profile look for the anatomy: a spike, a small volume build just inside it, then an aggressive departure. Mark it exhaustive-node; a thin parabolic run into an extreme with no build is a taper-tail.',
-    corpus: 'B7',
-    example: 'you get a spike up, and you get a volume build from that, traverse back across',
-  },
-  {
-    rule: 'HIGH-VOLUME EDGES. A fat node has a boundary where volume drops off a cliff — report that as hvn-edge; it is the distribution boundary, the edge to lean on. Report the edges that are clearly visible, NOT two for every node: an extreme that tapers or exhausts already carries its outer boundary.',
-    corpus: 'B4, B12',
-    example: 'there are two locations here that are pretty clean. One is high volume edge, 34s',
-  },
-  {
-    rule: 'HVN-CORE ONLY FOR THE PEAK. Use hvn-core only for the POC-class peak of each distribution (usually one per hump), never for every fat bar.',
-    corpus: 'B8, B12',
-    example: 'the high volume uh node of that distribution is right here in the low 80s',
-  },
-  {
-    rule: 'SEMANTICS. An LVN is where a move initiates and accelerates; a high-volume node is where it is destined to stop. Read the profile as a map of initiation and destination, not as a list of bumps.',
-    corpus: 'B12',
-    example: 'Areas of initiation on the volume profile are low volume nodes',
-  },
-  {
-    rule: 'THIN ZONES. List up to three spans where the profile is thin across many rows (the "kennel" / wide LVN spans); these are traversed fast.',
-    corpus: 'B3, B6',
-    example:
-      'where we just absolutely slammed through, where we expanded very quickly and left a wide kennel',
-  },
-  {
-    rule: 'UNFINISHED. Set unfinished = true when an extreme shows neither a taper nor an exhaustive node — the build just stops on a flat ledge. It should be obvious at a glance, not something you squint for.',
-    corpus: 'B7, B8, B16',
-    example: "it's not finished it's not finished",
-  },
-  {
-    rule: 'SMALL HVN UNDER AN LVN. A little high-volume node sitting just under a notable LVN is reported as a low-prominence hvn-edge, never as a core — it is a warning the trader watches, not a base.',
-    corpus: 'D11',
-    example: 'we have a little high volume node. If we spend too much time there',
-  },
-  {
-    rule: 'NEGATIVE — DO NOT PAD. Report only what is there; fewer nodes is better than invented ones. Do not mark every minor local minimum.',
-    corpus: 'D10',
-    example:
-      "if you want to tag that as saying which one is the most prominent, then you're gonna have to do some work on your back end",
-  },
-  {
-    rule: 'NEGATIVE — NO PRIMARY INSIDE THE VALUE BULK. A trough inside the value-area bulk of a fat distribution is not the primary LVN; the primary sits at a distribution edge or between distributions.',
-    corpus: 'B8, D3',
-    example:
-      "not looking to just dive in like a dragon with a hemorrhoid at that LVN because we're back inside of value.",
+    title: 'HIGH-VOLUME NODES ARE THE PEAKS OF LARGE DISTRIBUTIONS',
+    text: 'Report the peak of each significant distribution — not every fat bar.',
   },
 ] as const
 
-/** Canary phrases pinned by the prompt snapshot test — one per criterion. */
-export const CRITERIA_CANARIES = CRITERIA.map((c) => c.example)
+/** Canary phrases pinned by the prompt snapshot test — one per rule. */
+export const CRITERIA_CANARIES = CRITERIA.map((c) => c.title)
 
 function criteriaText(): string {
-  return CRITERIA.map((c, i) => `${i + 1}. ${c.rule}\n   Corpus: "${c.example}"`).join('\n')
+  return CRITERIA.map((c, i) => `${i + 1}. ${c.title}. ${c.text}`).join('\n')
 }
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
-- nodes: at most 8 — a ceiling, not a quota, and fewer is better. When more than 8 are visible keep them in this order: the primary lvn, clear extreme anatomy, secondary lvns, the dominant hvn-core of each distribution, then the most significant hvn-edges. kind is one of lvn | hvn-edge | hvn-core | exhaustive-node | taper-tail.
-- priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step.
-- prominence: 1 (most structurally important in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. TIES ARE ALLOWED: a dominant peak and the primary lvn may both be 1. A secondary lvn gets 3-5.
-- primary: when you report any lvn, exactly one carries true; when the image shows no lvn at all, every node is false.
+- Report only the DECISIVE levels: the most prominent low-volume node, the next two or three, and the peak of each significant distribution. Three to five nodes is normal. The schema caps you at 8; that is a ceiling, never a target, and padding the list makes the read worse.
+- kind: lvn (a low-volume node) | hvn-core (the peak of a distribution) | hvn-edge (where a distribution gives way to a low-volume node) | exhaustive-node | taper-tail.
+- shape: ledge (volume drops off a cliff) | taper (a distribution thinning gradually) | valley (a trough between two nodes) | shelf-edge (a thin shelf just outside a node) | wide-gap (a long thin span) | notch (a fat peak).
+- priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step, and report the span you can actually see — never pad a narrow node or collapse a wide one to a single price.
+- prominence: 1 (largest drop in volume in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. Ties are allowed.
+- primary: when you report any lvn, exactly one carries true — the one with the largest drop. When the image shows no lvn at all, every node is false.
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
-- shape: valley (trough between two nodes) | shelf-edge (thin shelf just outside a node) | wide-gap (a long thin span) | ledge (a stack of near-equal bars where the build stops) | ledge (a stack of near-equal bars where the build stops) | notch (a fat peak — hvn-core, and the build of an exhaustive-node).
-- rationale: at most 20 words.
-- thinZones: at most 3 { low, high } spans. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: boolean.
+- rationale: at most 20 words, describing only what is visible.
+- thinZones: at most 3 { low, high } spans that are thin across many rows. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: true when a distribution simply stops at an extreme instead of tapering out.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
 
-const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. Identify the low-volume nodes (LVNs), high-volume edges, peaks, and extreme anatomy the trader would mark, using the criteria below.`
+const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is — the job here is to pick out the few levels that are decisive, and the rules below say which ones those are.`
 
 /** A loaded few-shot example: the parsed profile plus its expected read. */
 export type FewShotExample = {
@@ -279,7 +204,8 @@ export function buildVisionPrompt(
   )
   return [
     ROLE,
-    "CRITERIA. Each carries a VERBATIM quote from the trader followed by the working rule distilled from it. The quote is his; the thresholds, category names and output limits are the system's reading of him — follow the rule, and use the quote to judge what he actually meant:",
+    MECHANISM,
+    'RULES:',
     criteriaText(),
     OUTPUT_RULES,
     fewShot.length > 0 ? `WORKED EXAMPLES:\n${examples}` : '',

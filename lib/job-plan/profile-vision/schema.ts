@@ -16,12 +16,13 @@ export const NODE_POSITIONS = ['top', 'upper', 'mid', 'lower', 'bottom'] as cons
 export type NodePosition = (typeof NODE_POSITIONS)[number]
 
 /**
- * `ledge` (corpus B16, added 2026-08-30): a stack of near-equal-length bars at an
- * extreme where the build simply stops — the unfinished-auction tell, distinct from
- * a taper's progressive fall-off. Widening this enum is backward compatible: every
- * previously persisted shape is still legal.
+ * `ledge` and `taper` are the two ways a distribution gives way to a low-volume
+ * node (feat-137): a ledge is volume dropping off a cliff, a taper is a gradual
+ * thinning. They are edge FORMS and occur anywhere in the profile, not only at
+ * the extremes. Widening this enum is backward compatible: every previously
+ * persisted shape is still legal.
  */
-export const NODE_SHAPES = ['valley', 'shelf-edge', 'wide-gap', 'ledge', 'notch'] as const
+export const NODE_SHAPES = ['valley', 'shelf-edge', 'wide-gap', 'ledge', 'taper', 'notch'] as const
 export type NodeShape = (typeof NODE_SHAPES)[number]
 
 export const PROFILE_SHAPES = ['bell', 'double', 'multi', 'trend-up', 'trend-down', 'thin'] as const
