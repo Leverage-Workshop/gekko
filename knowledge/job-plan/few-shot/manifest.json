@@ -1,11 +1,11 @@
 {
-  "source": "golden-set replay exports (feat-119) for the two FIXED few-shot dates whose replayed profile shows the anatomy the corpus cites: 2026-02-13 NQ 5-day rolling and 2026-06-02 ES 5-day rolling",
+  "source": "a synthetic teaching profile built for feat-140 (two LVNs, each a ledge from below and a taper from above) plus 2026-06-02 ES 5-day rolling from the feat-119 golden replay exports",
   "examples": [
     {
-      "id": "nq-double-distribution",
-      "instrument": "NQ",
-      "profile": "nq-double-distribution.vbp.md",
-      "expected": "nq-double-distribution.expected.json"
+      "id": "synthetic-two-lvn-types",
+      "instrument": "ES",
+      "profile": "synthetic-two-lvn-types.vbp.md",
+      "expected": "synthetic-two-lvn-types.expected.json"
     },
     {
       "id": "es-shelf-edge-exhaustion",

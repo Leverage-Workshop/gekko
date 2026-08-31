@@ -21,7 +21,7 @@ function n(overrides: Partial<ProfileNode>): ProfileNode {
     prominence: 2,
     primary: false,
     position: 'mid',
-    shape: 'valley',
+    edgeBelow: 'taper', edgeAbove: 'flat',
     rationale: 'x',
     ...overrides,
   }
@@ -31,7 +31,7 @@ function read(
   nodes: ProfileNode[],
   extra: Partial<Omit<ProfileNodesRead, 'nodes'>> = {}
 ): ProfileNodesRead {
-  return { nodes, thinZones: [], profileShape: 'bell', unfinished: false, ...extra }
+  return { nodes, thinZones: [], ...extra }
 }
 
 function sample(
@@ -77,11 +77,12 @@ describe('consensus — helpers', () => {
     expect(snapToGrid(6812.13, { step: 0.25, priceLow: 6800, priceHigh: 6820 })).toBe(6812.25)
   })
 
-  it('kind families: lvn alone, hvn-edge/core together, the two extreme anatomies APART', () => {
+  it('kind families: lvn alone, hvn-edge/core together, exhaustive apart', () => {
     expect(familyOf('lvn')).toBe('lvn')
     expect(familyOf('hvn-edge')).toBe('hvn')
     expect(familyOf('hvn-core')).toBe('hvn')
-    expect(familyOf('taper-tail')).toBe('taper')
+    // feat-139 retired `taper-tail` — a taper is now a SHAPE, so the only
+    // extreme anatomy left with its own kind is the exhaustive node.
     expect(familyOf('exhaustive-node')).toBe('exhaustive')
   })
 
@@ -224,10 +225,10 @@ describe('consensus — clustering', () => {
 
   it('clips a band that straddles the span edge instead of dropping it', () => {
     const reads = [
-      sample(0, [PRIMARY, n({ kind: 'taper-tail', priceLow: 29390, priceHigh: 29420 })]),
+      sample(0, [PRIMARY, n({ kind: 'exhaustive-node', priceLow: 29390, priceHigh: 29420 })]),
     ]
     const c = buildConsensus(input(reads))!
-    const tail = c.nodes.find((x) => x.kind === 'taper-tail')!
+    const tail = c.nodes.find((x) => x.kind === 'exhaustive-node')!
     expect(tail.priceHigh).toBe(29400)
   })
 
@@ -241,7 +242,7 @@ describe('consensus — clustering', () => {
           priceHigh: 29304,
           prominence: 3,
           position: 'upper',
-          shape: 'shelf-edge',
+          edgeBelow: 'ledge', edgeAbove: 'flat',
         }),
       ]),
       sample(1, [
@@ -252,7 +253,7 @@ describe('consensus — clustering', () => {
           priceHigh: 29304,
           prominence: 1,
           position: 'upper',
-          shape: 'notch',
+          edgeBelow: 'none', edgeAbove: 'none',
         }),
       ]),
       sample(2, [
@@ -263,7 +264,7 @@ describe('consensus — clustering', () => {
           priceHigh: 29304,
           prominence: 4,
           position: 'top',
-          shape: 'shelf-edge',
+          edgeBelow: 'ledge', edgeAbove: 'flat',
         }),
       ]),
     ]
@@ -272,7 +273,7 @@ describe('consensus — clustering', () => {
     expect(fat.kind).toBe('hvn-edge')
     expect(fat.prominence).toBe(1)
     expect(fat.position).toBe('upper')
-    expect(fat.shape).toBe('shelf-edge')
+    expect(fat.edgeBelow).toBe('ledge')
     expect(fat.agreement).toBe(3)
   })
 
@@ -336,26 +337,6 @@ describe('consensus — primary', () => {
     expect(buildConsensus(input(reads))!.nodes).toHaveLength(0)
   })
 
-  it('an exhaustive-node and a taper-tail at the same extreme never blend into a majority vote', () => {
-    const reads = [
-      sample(0, [
-        PRIMARY,
-        n({ kind: 'exhaustive-node', priceLow: 29390, priceHigh: 29400, primary: false }),
-      ]),
-      sample(1, [
-        PRIMARY,
-        n({ kind: 'taper-tail', priceLow: 29390, priceHigh: 29400, primary: false }),
-      ]),
-      sample(2, [
-        PRIMARY,
-        n({ kind: 'exhaustive-node', priceLow: 29392, priceHigh: 29400, primary: false }),
-      ]),
-    ]
-    const c = buildConsensus(input(reads))!
-    const top = c.nodes.filter((x) => x.priceHigh === 29400)
-    // the 1-of-3 taper-tail misses the ceil(3/2)=2 threshold; the 2-of-3 exhaustive-node survives
-    expect(top.map((x) => [x.kind, x.agreement])).toEqual([['exhaustive-node', 2]])
-  })
 })
 
 describe('consensus — tiles, caps, zones, shape', () => {
@@ -490,7 +471,7 @@ describe('consensus — tiles, caps, zones, shape', () => {
   it('caps at 8 nodes by agreement then prominence, always keeping the primary, ordered top-down', () => {
     const many = Array.from({ length: 12 }, (_, i) =>
       n({
-        kind: i % 2 ? 'hvn-edge' : 'taper-tail',
+        kind: i % 2 ? 'hvn-edge' : 'exhaustive-node',
         priceLow: 29020 + i * 30,
         priceHigh: 29022 + i * 30,
         prominence: (i % 5) + 1,
@@ -534,24 +515,6 @@ describe('consensus — tiles, caps, zones, shape', () => {
     expect(c.thinZones[0]).toEqual({ low: 29102, high: 29142, agreement: 3, samples: 3 })
   })
 
-  it('profileShape by majority (enum order on ties); unfinished needs a strict majority', () => {
-    const reads = [
-      sample(0, [PRIMARY], { profileShape: 'double', unfinished: true }),
-      sample(1, [PRIMARY], { profileShape: 'double', unfinished: false }),
-      sample(2, [PRIMARY], { profileShape: 'bell', unfinished: true }),
-    ]
-    const c = buildConsensus(input(reads))!
-    expect(c.profileShape).toBe('double')
-    expect(c.unfinished).toBe(true)
-    const tie = buildConsensus(
-      input([
-        sample(0, [PRIMARY], { profileShape: 'multi', unfinished: true }),
-        sample(1, [PRIMARY], { profileShape: 'bell' }),
-      ])
-    )!
-    expect(tie.profileShape).toBe('bell')
-    expect(tie.unfinished).toBe(false)
-  })
 
   it('is permutation-invariant: the order of reads and of nodes within a read does not change the result', () => {
     const a = n({ priceLow: 29300, priceHigh: 29304, prominence: 2 })

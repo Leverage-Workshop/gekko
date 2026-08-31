@@ -9,7 +9,7 @@ function node(overrides: Partial<ProfileNode> = {}): ProfileNode {
     prominence: 1,
     primary: true,
     position: 'mid',
-    shape: 'valley',
+    edgeBelow: 'taper', edgeAbove: 'flat',
     rationale: 'deepest trough',
     ...overrides,
   }
@@ -29,7 +29,7 @@ describe('profileNodesReadSchema', () => {
   it('accepts an lvn-free image (a tile that is one fat node) without a primary', () => {
     const r = profileNodesReadSchema.safeParse({
       ...base,
-      nodes: [node({ kind: 'hvn-core', primary: false, shape: 'notch' })],
+      nodes: [node({ kind: 'hvn-core', primary: false, edgeBelow: 'none', edgeAbove: 'none' })],
     })
     expect(r.success).toBe(true)
   })
@@ -107,10 +107,33 @@ describe('profileNodesReadSchema', () => {
     expect(
       profileNodesReadSchema.safeParse({ ...base, nodes: [node({ priceLow: NaN })] }).success
     ).toBe(false)
-    expect(
-      profileNodesReadSchema.safeParse({ ...base, profileShape: 'p-shape', nodes: [node()] })
-        .success
-    ).toBe(false)
+    // feat-139 retired these; they must now be rejected, not silently accepted
+    for (const retired of ['taper-tail']) {
+      expect(
+        profileNodesReadSchema.safeParse({ ...base, nodes: [node({ kind: retired as never })] })
+          .success,
+        `retired kind still accepted: ${retired}`
+      ).toBe(false)
+    }
+    // feat-140: an LVN has two sides, so a single `shape` is gone entirely and
+    // each side carries its own edge form.
+    for (const retired of ['valley', 'shelf-edge', 'wide-gap', 'notch', 'peak']) {
+      expect(
+        profileNodesReadSchema.safeParse({ ...base, nodes: [node({ edgeBelow: retired as never })] })
+          .success,
+        `retired edge still accepted: ${retired}`
+      ).toBe(false)
+    }
+    // The retired single `shape` cannot stand in for the two sides: zod strips
+    // unknown keys, so what matters is that BOTH edges are required.
+    for (const missing of ['edgeBelow', 'edgeAbove']) {
+      const n = node()
+      delete (n as Record<string, unknown>)[missing]
+      expect(
+        profileNodesReadSchema.safeParse({ ...base, nodes: [n] }).success,
+        `${missing} must be required — an LVN has two sides`
+      ).toBe(false)
+    }
   })
 
   it('is a flat object at the root (no unions — OpenAI rejects them)', () => {
@@ -119,9 +142,7 @@ describe('profileNodesReadSchema', () => {
     expect(r.success).toBe(true)
     expect(Object.keys(r.data!).sort()).toEqual([
       'nodes',
-      'profileShape',
       'thinZones',
-      'unfinished',
     ])
   })
 })

@@ -157,7 +157,7 @@ export function node(spec: NodeSpec): ConsensusNode {
     prominence: 1,
     primary: false,
     position: 'mid',
-    shape: 'valley',
+    edgeBelow: 'taper', edgeAbove: 'flat',
     agreement: 3,
     samples: 3,
     ...spec,
@@ -169,7 +169,7 @@ export function profileNodes(fiveDay: readonly ConsensusNode[] | null, fourHour:
     consensus:
       nodes === null
         ? null
-        : { nodes, thinZones: [], profileShape: 'bell' as const, unfinished: false, successfulSamples: 3, samples: 3 },
+        : { nodes, thinZones: [], profileShape: 'bell' as const, successfulSamples: 3, samples: 3 },
     raw: [],
     imageHashes: [],
     render: {} as RenderMeta,

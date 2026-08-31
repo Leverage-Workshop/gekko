@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { PlanStatus } from '@/knowledge/schema/job-plan.schema'
-import { NODE_KINDS, NODE_POSITIONS, NODE_SHAPES, PROFILE_SHAPES } from '../profile-vision/schema'
+import { NODE_KINDS, NODE_POSITIONS, NODE_EDGES } from '../profile-vision/schema'
 import { PROFILE_KEYS } from '../profile-vision/types'
 
 /**
@@ -40,7 +40,8 @@ const ConsensusNodeSchema = z.object({
   prominence: z.number().int(),
   primary: z.boolean(),
   position: z.enum(NODE_POSITIONS),
-  shape: z.enum(NODE_SHAPES),
+  edgeBelow: z.enum(NODE_EDGES),
+  edgeAbove: z.enum(NODE_EDGES),
   agreement: z.number().int().min(0),
   samples: z.number().int().min(1),
 })
@@ -56,8 +57,6 @@ const ConsensusThinZoneSchema = z.object({
 const ProfileConsensusSchema = z.object({
   nodes: z.array(ConsensusNodeSchema),
   thinZones: z.array(ConsensusThinZoneSchema),
-  profileShape: z.enum(PROFILE_SHAPES),
-  unfinished: z.boolean(),
   successfulSamples: z.number().int().min(0),
   samples: z.number().int().min(1),
 })

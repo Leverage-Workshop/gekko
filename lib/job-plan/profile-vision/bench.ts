@@ -33,7 +33,6 @@ export const FAMILY_OF_KIND: Readonly<Record<NodeKind, NodeFamily>> = {
   'hvn-edge': 'hvn',
   'hvn-core': 'hvn',
   'exhaustive-node': 'extreme',
-  'taper-tail': 'extreme',
 }
 
 export const FAMILIES: readonly NodeFamily[] = ['lvn', 'hvn', 'extreme']

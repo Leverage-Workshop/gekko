@@ -189,7 +189,7 @@ describe('reference inventory (R2)', () => {
   describe('profile nodes (taken AS-IS from the vision read)', () => {
     it('lists 5-day nodes at tier 8 and 4-hour nodes at tier 9 with prominence/primary untouched', () => {
       const nodes = profileNodes(
-        [node({ priceLow: 29280, priceHigh: 29284, prominence: 1, primary: true }), node({ kind: 'hvn-edge', priceLow: 29600, priceHigh: 29604, prominence: 2, shape: 'shelf-edge' })],
+        [node({ priceLow: 29280, priceHigh: 29284, prominence: 1, primary: true }), node({ kind: 'hvn-edge', priceLow: 29600, priceHigh: 29604, prominence: 2, edgeBelow: 'ledge', edgeAbove: 'flat' })],
         [node({ priceLow: 29520, priceHigh: 29530, prominence: 4, agreement: 2 })],
       )
       const withNodes = classify({ profileNodes: nodes })
@@ -202,7 +202,7 @@ describe('reference inventory (R2)', () => {
         node: { profile: '5d', kind: 'lvn', prominence: 1, primary: true, agreement: 3, samples: 3 },
       })
       expect(byId(withNodes, 'node:5d:0')?.label).toBe('5-day lvn (primary) #1')
-      expect(byId(withNodes, 'node:5d:1')).toMatchObject({ source: 'profile-5d', node: { kind: 'hvn-edge', shape: 'shelf-edge' } })
+      expect(byId(withNodes, 'node:5d:1')).toMatchObject({ source: 'profile-5d', node: { kind: 'hvn-edge', edgeBelow: 'ledge', edgeAbove: 'flat' } })
       expect(byId(withNodes, 'node:4h:0')).toMatchObject({ source: 'profile-4h', price: 29525, node: { prominence: 4, agreement: 2 } })
       expect(r2Significance('profile-5d')).toBe(7)
       expect(r2Significance('profile-4h')).toBe(8)
@@ -258,7 +258,7 @@ describe('confluence bands (R1 / R1b)', () => {
 
   it('breaks same-tier ties by within-tier order, then profile prominence, then closeness to the midpoint, then id', () => {
     const n = (id: string, price: number, prominence: number) =>
-      ref(id, 'profile-5d', price, { node: { profile: '5d', kind: 'lvn', prominence, primary: false, position: 'mid', shape: 'valley', agreement: 3, samples: 3 } })
+      ref(id, 'profile-5d', price, { node: { profile: '5d', kind: 'lvn', prominence, primary: false, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', agreement: 3, samples: 3 } })
     expect(buildConfluenceBands([n('x', 100, 3), n('y', 110, 1)], NQ)[0]).toMatchObject({ anchorId: 'y', prominence: 1 })
     const hist = ref('h', 'daily-job-pivot', 100, { subRank: 1 })
     const cur = ref('c', 'daily-job-pivot', 110, { subRank: 0 })
@@ -333,7 +333,7 @@ describe('band roles (R3 / R4, nearest-first gated by structural quality)', () =
     const weakNode = band('weak', 29380, 29385, {
       anchorSource: 'profile-4h',
       significance: r2Significance('profile-4h'),
-      members: [ref('weak:a', 'profile-4h', 29382, { node: { profile: '4h', kind: 'lvn', prominence: 4, primary: false, position: 'mid', shape: 'valley', agreement: 2, samples: 3 } })],
+      members: [ref('weak:a', 'profile-4h', 29382, { node: { profile: '4h', kind: 'lvn', prominence: 4, primary: false, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', agreement: 2, samples: 3 } })],
       prominence: 4,
     })
     const weakMgi = band('other', 29390, 29390, { anchorSource: 'mgi-other', significance: r2Significance('mgi-other'), members: [ref('other:a', 'mgi-other', 29390)] })

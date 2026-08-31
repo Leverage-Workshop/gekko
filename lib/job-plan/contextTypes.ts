@@ -1,5 +1,5 @@
 import type { Instrument } from './profile-vision/instrument'
-import type { NodeKind, NodePosition, NodeShape } from './profile-vision/schema'
+import type { NodeKind, NodePosition, NodeEdge } from './profile-vision/schema'
 import type { ProfileKey } from './profile-vision/types'
 import type {
   FailedLookGrade,
@@ -27,7 +27,8 @@ export type ReferenceNode = {
   readonly prominence: number
   readonly primary: boolean
   readonly position: NodePosition
-  readonly shape: NodeShape
+  readonly edgeBelow: NodeEdge
+  readonly edgeAbove: NodeEdge
   readonly agreement: number
   readonly samples: number
 }

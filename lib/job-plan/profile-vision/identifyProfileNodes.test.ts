@@ -49,7 +49,7 @@ function goodRead(): ProfileNodesRead {
         prominence: 1,
         primary: true,
         position: 'mid',
-        shape: 'valley',
+        edgeBelow: 'taper', edgeAbove: 'flat',
         rationale: 'deepest',
       },
       {
@@ -59,13 +59,11 @@ function goodRead(): ProfileNodesRead {
         prominence: 1,
         primary: false,
         position: 'upper',
-        shape: 'notch',
+        edgeBelow: 'none', edgeAbove: 'none',
         rationale: 'poc',
       },
     ],
     thinZones: [{ low: 29380, high: 29420 }],
-    profileShape: 'double',
-    unfinished: false,
   }
 }
 
@@ -126,7 +124,7 @@ describe('identifyProfileNodes — calls', () => {
     expect(result.modelId).toBe('test/model')
     expect(result.effort).toBe('medium')
     expect(result.promptRevision).toBe(VISION_PROMPT_REVISION)
-    expect(result.fewShotSource).toMatch(/golden-set replay exports/)
+    expect(result.fewShotSource).toMatch(/synthetic teaching profile/)
     expect(result.samples).toBe(3)
     const entry = result.profiles['5d']!
     expect(entry.imageHashes).toHaveLength(1)

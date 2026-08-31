@@ -49,7 +49,6 @@ export const KIND_LABELS: Readonly<Record<OverlayKind, string>> = {
   'hvn-edge': 'HVN edge',
   'hvn-core': 'HVN core',
   'exhaustive-node': 'Exhaustive',
-  'taper-tail': 'Taper tail',
   'thin-zone': 'Thin zone',
 }
 
