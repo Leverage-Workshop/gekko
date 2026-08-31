@@ -135,6 +135,43 @@ describe('the five-condition grammar, one play per grounded band', () => {
     expect(p.lean.basis).toBe('accepted')
   })
 
+  it('R6 supersedes R5: a failed look re-broken and accepted beyond grounds the continuation, never a stale rebid (the 2026-08-25 OR Low incident)', () => {
+    const p = withFacts(
+      {
+        'g-line': {
+          latestFailedLook: failedLook('below'),
+          acceptance: { state: 'accepted', direction: 'below', sinceAt: '2026-08-24T09:06:00', minutes: 21, scope: 'session' },
+        },
+      },
+      { price: 29285 },
+    )
+    const g = playAt(p, 'G line (week open)')!
+    expect(g).toMatchObject({ stance: 'continuation', direction: 'short', condition: 'build-beyond-continuation' })
+    expect(g.activation).toMatchObject({ state: 'armed', grounding: 'accepted' })
+    expect(g.activation.rulesFired).toContain('R6')
+    expect(g.activation.rulesFired).not.toContain('R5')
+  })
+
+  it('only CONFIRMED acceptance voids the failed look: testing below (< 20 min of closes) leaves the rebid armed', () => {
+    const p = withFacts({
+      'g-line': {
+        latestFailedLook: failedLook('below'),
+        acceptance: { state: 'testing', direction: 'below', sinceAt: '2026-08-24T09:20:00', minutes: 8, scope: 'session' },
+      },
+    })
+    expect(playAt(p, 'G line (week open)')).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'look-and-fail' })
+  })
+
+  it('acceptance on the OTHER side of the band does not void the failed look — only adverse acceptance is the fade\'s invalidation', () => {
+    const p = withFacts({
+      'g-line': {
+        latestFailedLook: failedLook('below'),
+        acceptance: { state: 'accepted', direction: 'above', sinceAt: '2026-08-24T09:06:00', minutes: 21, scope: 'session' },
+      },
+    })
+    expect(playAt(p, 'G line (week open)')?.activation.grounding).toBe('failed-look')
+  })
+
   it('acceptance that merely spans the whole observation window is not a fresh initiative — the band was never crossed', () => {
     const p = withFacts(
       { 'g-line': { acceptance: { state: 'accepted', direction: 'below', sinceAt: '2026-08-23T17:00:00', minutes: 900, scope: 'overnight' } } },

@@ -20,7 +20,7 @@ import { R1_MERGE_TOLERANCE, type Instrument } from './profile-vision/instrument
  * it is part of every persisted plan's reproducibility fingerprint.
  */
 
-export const PLANNER_REVISION = 'job-planner/2026-08-31.3'
+export const PLANNER_REVISION = 'job-planner/2026-08-31.4'
 
 export type RuleId =
   | 'R1'
