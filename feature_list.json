@@ -1397,6 +1397,16 @@
       ],
       "status": "done",
       "evidence": "docs/jba-research/lvn-criteria-explained.md (836 lines) + 4 Excalidraw diagrams in docs/jba-research/diagrams/ (lvn-01-primary-by-bar-tip, lvn-02-distributions-and-walls, lvn-03-shelf-edge-vs-valley, lvn-04-taper-ledge-exhaustive; .png + .excalidraw each). All 18 CRITERIA covered, organised into six passes with a cross-reference table back to prompt.ts numbering; section 5 documents the perception contract's exclusions (B5, B9, B10, D1, D2, D4, D5, D6, D8, D9, D12). Citations verified mechanically: 107/107 quotes are substrings of the file they are attributed to, 66/66 timestamped links have correct arithmetic and land on a real caption line. Worked examples use bar lengths read from the few-shot .vbp.md exports. Six findings recorded in progress.md (criteria 17/18 quote the corpus editor not Job; criteria 1 vs 2 depth definitions conflict unadjudicated; shape 'ledge' has no legal kind; no few-shot ledge example; unsourced profileShape values and NQ band widths; volume_profile_101.txt has no video URL)."
+    },
+    {
+      "id": "feat-137",
+      "name": "Replace the mined criteria with the operator's rule set",
+      "description": "The 18 criteria mined from lvn-corpus.md were too many, and an audit of all 18 (docs/jba-research/lvn-criteria-explained.md + the session artifact) found only FIVE were the trader speaking about which low-volume node to pick; the rest described high-volume structure, extreme anatomy or output bookkeeping. Replaced with four OPERATOR-AUTHORED rules led by the mechanism: (1) prominence is the SIZE OF THE DROP measured against the distribution it came off, which also settles the local-vs-absolute depth contradiction that blocked the Codex gate twice; (2) a distribution gives way as a LEDGE (cliff) or a TAPER (gradual), edge forms occurring anywhere in the profile rather than extreme-only anatomy; (3) what lies beyond a node LOCATES it and does not RANK it; (4) high-volume nodes are the peaks of large distributions. Serialization (node budget, prominence scale, band width, rationale cap) moves out of the rules into OUTPUT_RULES. NODE_SHAPES gains 'taper'. Corpus-sourcing tests retired - the rules are the operator's own, not quotes; the corpus stays the evidence base for golden labels and the explainer. Prompt 11,349 -> 7,751 chars. Also salvages three bug fixes from the abandoned feat-135: makeGenerate forwarding the caller's schema, cache replay gated on that schema, and the response cache keying on prompt TEXT rather than the hand-maintained revision string.",
+      "dependencies": [
+        "feat-134"
+      ],
+      "status": "done",
+      "evidence": "VISION_PROMPT_REVISION vision-2026-08-31.1; 18 criteria -> 4 rules + mechanism; prompt 11,349 -> 7,751 chars; NODE_SHAPES += 'taper'; ./init.sh green, 2198 tests passing. Bench cache collision that motivated the key fix: feat-135 and feat-136 both shipped vision-2026-08-30.8 with different criteria and an A/B replayed the wrong branch's answers, caught only because the OpenRouter balance moved $0.07 instead of $0.80."
     }
   ]
 }

@@ -4560,3 +4560,66 @@ LVN is primary, and it is corpus-sourced.
 **Not fixed, recorded:** no few-shot example carries a ledge (both are `unfinished: false`), so
 B16 still ships without a worked picture; `reference/volume_profile_101.txt` has no video URL, so
 B13–B16 cannot be clicked and watched.
+
+### 2026-08-30 — feat-137: 18 mined criteria replaced with the operator's four rules
+
+**Why.** The audit of all 18 criteria (published as a session artifact, and the basis of
+feat-134's explainer) found only **five** were the trader speaking about which low-volume node
+to pick. Ten were about something else entirely — high-volume structure, extreme anatomy, output
+bookkeeping — and three were adjacent but repurposed (notably the value-area negative, which is
+Job refusing a *trade*, converted into a perception rule the prompt's own contract assigns to the
+planner). Operator's call: *"there are way too many rules here. LLMs already know what volume
+profiles and LVNs are. Let the model use its reasoning abilities."*
+
+**The rule set is now the operator's own, not corpus quotes.** This is a deliberate change of
+source, and the section-A sourcing test retires with it. It does not contradict the earlier
+instruction that criteria come from Job rather than from the operator: that objection was to an
+**AI editor's synthesis prose** being passed off as Job's words. Authoring the doctrine
+knowingly, in his own voice, is a different act.
+
+**The four rules**, led by the mechanism rather than a checklist — a mechanism lets the model
+reason about profiles nobody enumerated:
+
+1. **Prominence is the size of the drop**, measured against the distribution it came off; the
+   most prominent nodes sit against the most prominent distributions. This **settles the
+   local-vs-absolute depth contradiction** that blocked the Codex gate twice and sent a primary
+   202 points astray: it is neither reading — it is *contrast*.
+2. **A distribution gives way as a LEDGE (cliff) or a TAPER (gradual).** These are edge FORMS
+   occurring anywhere in the profile. The old set treated them as extreme-only anatomy wired to
+   `unfinished`, which is why criteria 5 / 10 / 15 kept overlapping and needing separate triggers.
+   `NODE_SHAPES` gains `taper` (backward-compatible widening).
+3. **What lies beyond a node locates it; it does not rank it.** The old criterion used one
+   observation for both jobs, letting "there is a distribution over there" act as evidence about
+   which node wins.
+4. **High-volume nodes are the peaks of large distributions** — deliberately terse; the operator's
+   point was that HVNs need no re-teaching.
+
+Serialization (node budget — 3–5 normal, 8 a ceiling **never a target** — prominence scale, band
+width, rationale cap) moves out of the rules into `OUTPUT_RULES`, which is where the adversarial
+review said it belonged. Prompt **11,349 → 7,751 chars**. Revision `vision-2026-08-31.1`.
+
+**feat-135 abandoned** (axis-free rendering). It worked mechanically — 24/24 valid calls, exact
+round-tripping — and a genuine downward bias was found and fixed: mean signed residual
+**−1.13 → −0.27 tolerances**, traced to the 40px plot inset and removed by making the plot fill
+the image vertically. But recall did not move (47% vs the axis arm's 67%), so there was no
+accuracy gain to justify carrying a second coordinate system. PR #178 closed unmerged.
+
+**Three bug fixes salvaged from it**, all independent of the axis:
+- `makeGenerate` hardcoded the schema and discarded the caller's.
+- A cached read was replayed without checking it satisfied the schema the call wanted.
+- **The response cache keyed on `VISION_PROMPT_REVISION`, a hand-maintained label.** feat-135 and
+  feat-136 independently shipped `vision-2026-08-30.8` with different criteria, and an A/B
+  silently replayed the other branch's answers as its own — caught only because the OpenRouter
+  balance moved **$0.07 instead of $0.80**. Now keyed on a SHA of the actual prompt text.
+
+**feat-136 superseded** — its scoped wide-span rule fixed a real 202-point misplacement, but
+feat-137 removes the wide-span exception altogether.
+
+**Measurement caveat that governs all of the above.** Two runs of byte-identical prompt text
+scored **53% and 67%** recall. At `samples: 1` over 15 labels this bench cannot resolve
+differences below roughly 20 points, and several comparisons narrated earlier in the session sat
+inside that band. The golden set's 3 primary labels are the binding limit on judging primary
+agreement at all; more labels would buy more than more prompt tuning.
+
+**Housekeeping:** stale worktrees under `.claude/worktrees/` broke `./init.sh` — lint scanned a
+subagent worktree's `.next` build output. Pruned.
