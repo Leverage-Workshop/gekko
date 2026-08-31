@@ -4714,3 +4714,25 @@ prose — reformat them like the analyze-task objective card. UI-only change:
   markup since HighlightedText splits text across term/price spans.
 
 Verification: ./init.sh green (typecheck, lint, full suite, build).
+
+## 2026-08-31 (later): stale failed-look grounding voided by confirmed acceptance (R6 > R5 supersession)
+
+Investigated the 2026-08-25 replay plan 77c636c0 (operator report: play-4 was a rebid
+long keyed off OR Low 29274.95–29292.25 sitting 65 pts ABOVE price). Root cause in
+`ground()` (lib/job-plan/playGrammar.ts): the R12 chain is fixed kind-order, so a
+failed look (09:03:40→09:10:28) grounded an armed rebid even though the very next bar
+(09:10:48) re-broke the band and closed below for 20.6 continuous minutes into asOf —
+confirmed R6 acceptance below, verbatim the play's own invalidation clause. The
+docstring's "confirmed initiative suppresses any fade" guard was unreachable from the
+failed-look branch.
+
+- `failedLook()` now returns null when `facts.acceptance` is confirmed (`accepted`) in
+  the look's direction → chain falls to `accepted()` → continuation play instead.
+  Testing-state or opposite-side acceptance leaves the failed look armed (boundary
+  pinned in tests). `approachFailure()` audited: needs no guard — its episode resets
+  on any touch/cross of the band, so it cannot coexist with adverse acceptance.
+- 3 new tests in tests/job-plan.buildPlan.test.ts (incident case + two boundaries).
+- PLANNER_REVISION → job-planner/2026-08-31.4.
+
+Verification: ./init.sh green (typecheck, lint, 2202 tests, build); codex gate PASS,
+no findings.

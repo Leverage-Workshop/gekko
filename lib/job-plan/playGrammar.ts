@@ -29,7 +29,11 @@ import { ACCEPTANCE_MINUTES, MID_ZONE_MULTIPLE, r11ResponseDeadline, type PlayCo
  * the band and only when it agrees with which side of price the band sits;
  * acceptance counts only when the band was CROSSED inside the observation
  * window (the run did not start at its first bar). Confirmed initiative
- * (accepted) at a band suppresses any fade at it — one play per band.
+ * (accepted) at a band suppresses any fade at it — one play per band —
+ * INCLUDING a fade grounded on an earlier failed look in the acceptance's
+ * direction: the look's fail has since been re-broken and accepted beyond
+ * (R6), which is that fade's own invalidation clause, so the failed-look
+ * fact is void and the band grounds the continuation instead.
  */
 
 /** R9 "repeated defense": at least this many session defenses. */
@@ -48,6 +52,11 @@ function isEnclosingEdge(context: JobContext, band: ConfluenceBand): boolean {
 function failedLook(facts: BandOriginFacts, band: ConfluenceBand): Grounding | null {
   const fl = facts.latestFailedLook
   if (fl === null) return null
+  // R6 supersedes R5: confirmed acceptance beyond the edge the look failed at
+  // means the fail was re-broken and built on — the fade this fact would arm is
+  // already dead by its own invalidation clause, so ground the continuation.
+  const acc = facts.acceptance
+  if (acc.state === 'accepted' && acc.direction === fl.direction) return null
   return {
     kind: 'failed-look',
     direction: fl.direction === 'below' ? 'long' : 'short',
