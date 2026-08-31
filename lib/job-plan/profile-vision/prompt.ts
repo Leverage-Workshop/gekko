@@ -27,11 +27,11 @@ import { profileNodesReadSchema, type ProfileNodesRead } from './schema'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-31.2'
+export const VISION_PROMPT_REVISION = 'vision-2026-08-31.4'
 
 /** Which few-shot set is in knowledge/job-plan/few-shot/ — mirrors manifest.json `source`. */
 export const FEW_SHOT_SOURCE =
-  'golden-set replay exports (feat-119): 2026-02-13 NQ 5-day rolling (double distribution, primary LVN on the wall) and 2026-06-02 ES 5-day rolling (shelf-edge primary + exhaustive node on top)'
+  'a synthetic teaching profile (two LVNs, each a ledge from below and a taper from above) plus 2026-06-02 ES 5-day rolling from the feat-119 golden replay exports'
 
 export const FEW_SHOT_DIR = 'knowledge/job-plan/few-shot'
 
@@ -68,12 +68,12 @@ export const CRITERIA: readonly Rule[] = [
     text: 'Rank an LVN by how large a change in volume it represents, not by how thin it looks on its own. The most prominent LVNs sit against the most prominent distributions: a trough beside a very large build outranks a thinner trough beside a small one, because far more participation ended there.',
   },
   {
-    title: 'THERE ARE TWO TYPES OF LVN',
-    text: 'They are told apart by how the volume on the distribution side gives way. A LEDGE LVN: significant volume that stops abruptly and drops off a cliff into the low-volume area. A TAPER LVN: a distribution that thins out gradually into the low-volume area. Both types occur anywhere in the profile, not only at the top and bottom, and neither type is inherently more prominent than the other — rule 1 decides that.',
+    title: 'AN LVN HAS TWO SIDES AND EACH GIVES WAY IN ONE OF TWO WAYS',
+    text: 'A LEDGE: significant volume that stops abruptly and drops off a cliff into the low-volume area. A TAPER: a distribution that thins out gradually into it. Report BOTH sides separately, because they are frequently different — the same LVN is commonly a ledge from below and a taper from above. Neither form is inherently more prominent than the other; rule 1 decides that.',
   },
   {
-    title: 'TWO THINGS CAN LIE BEYOND AN LVN, AND BOTH ONLY HELP YOU LOCATE IT',
-    text: 'On the far side of an LVN you will find one of exactly two things. A FLAT, LOW-VOLUME STRETCH that simply continues. Or THE START OF A NEW DISTRIBUTION, where volume builds again. Use whichever one it is to find the LVN and to set its far bound. Neither of them changes how prominent the LVN is — that is rule 1 and rule 1 only.',
+    title: 'A SIDE WITH NO DISTRIBUTION IS FLAT, AND THAT ONLY HELPS YOU LOCATE THE LVN',
+    text: 'A side does not always have a distribution on it. Sometimes a FLAT, LOW-VOLUME STRETCH simply continues — call that side flat. Sometimes THE START OF A NEW DISTRIBUTION builds again — that side is a ledge or a taper. Use whichever it is to find the LVN and set its bounds. Neither changes how prominent the LVN is; that is rule 1 and rule 1 only.',
   },
   {
     title: 'HIGH-VOLUME NODES (HVNs) ARE THE PEAKS OF LARGE DISTRIBUTIONS',
@@ -90,14 +90,14 @@ function criteriaText(): string {
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - Report only the DECISIVE levels: the most prominent LVN, the next two or three LVNs, and the peak of each significant distribution as an HVN. Three to five nodes is normal. The schema caps you at 8; that is a ceiling, never a target, and padding the list makes the read worse.
-- kind: lvn (an LVN) | hvn-core (the peak of a distribution) | hvn-edge (the edge where a distribution gives way into an LVN) | exhaustive-node | taper-tail.
-- shape: ledge (a ledge LVN — volume drops off a cliff) | taper (a taper LVN — a distribution thinning gradually) | valley (a trough between two nodes) | shelf-edge (a thin shelf just outside a node) | wide-gap (a long thin span) | notch (a fat peak).
+- kind: lvn (an LVN) | hvn-core (the peak of a distribution) | hvn-edge (the edge where a distribution gives way into an LVN) | exhaustive-node (uncommon: a spike at a profile extreme with a small build behind it that then steps off hard — only when you can actually see that anatomy).
+- edgeBelow / edgeAbove: how volume gives way on each side of the node — ledge (drops off a cliff) | taper (thins gradually) | flat (no distribution that side, a low-volume stretch continues) | none (the side does not apply). Every lvn carries a real form on both sides; an hvn-core is a peak, so both sides are none.
 - priceLow / priceHigh: a band in price read off the axis; equal for a point. Snap to the row step, and report the span you can actually see — never pad a narrow node or collapse a wide one to a single price.
 - prominence: 1 (largest drop in volume in THIS image) to 5 (weakest worth keeping), on ONE scale across all kinds — the planner ranks nodes against each other regardless of kind. Ties are allowed.
 - primary: when you report any LVN, exactly one carries true — the one with the largest drop in volume. When the image shows no LVN at all, every node is false.
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
 - rationale: at most 20 words, describing only what is visible.
-- thinZones: at most 3 { low, high } spans that are thin across many rows. profileShape: bell | double | multi | trend-up | trend-down | thin. unfinished: true when a distribution simply stops at an extreme instead of tapering out.
+- thinZones: at most 3 { low, high } spans that are thin across many rows.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
 
 const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is, and what a low-volume node (LVN) and a high-volume node (HVN) are — the job here is to pick out the few LVNs and HVNs that are decisive, and the rules below say which ones those are.`

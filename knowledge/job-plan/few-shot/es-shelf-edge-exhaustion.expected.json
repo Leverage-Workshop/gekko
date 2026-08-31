@@ -7,18 +7,9 @@
       "prominence": 1,
       "primary": true,
       "position": "lower",
-      "shape": "shelf-edge",
-      "rationale": "Thin shelf immediately below the main distribution, sharp transition into the build"
-    },
-    {
-      "kind": "hvn-edge",
-      "priceLow": 7574,
-      "priceHigh": 7577,
-      "prominence": 2,
-      "primary": false,
-      "position": "lower",
-      "shape": "shelf-edge",
-      "rationale": "Lower boundary of the main distribution where volume drops off a cliff"
+      "edgeBelow": "flat",
+      "edgeAbove": "taper",
+      "rationale": "Main distribution thins into it from above; low-volume stretch continues below"
     },
     {
       "kind": "lvn",
@@ -27,8 +18,9 @@
       "prominence": 3,
       "primary": false,
       "position": "lower",
-      "shape": "valley",
-      "rationale": "Distinct internal trough, but it sits in the void rather than against the node edge"
+      "edgeBelow": "ledge",
+      "edgeAbove": "flat",
+      "rationale": "Deeper, but the builds either side are far smaller, so a smaller drop"
     },
     {
       "kind": "hvn-core",
@@ -37,18 +29,9 @@
       "prominence": 1,
       "primary": false,
       "position": "upper",
-      "shape": "notch",
-      "rationale": "POC-class peak of the main distribution"
-    },
-    {
-      "kind": "hvn-edge",
-      "priceLow": 7541,
-      "priceHigh": 7545,
-      "prominence": 3,
-      "primary": false,
-      "position": "lower",
-      "shape": "shelf-edge",
-      "rationale": "Upper boundary of the lower distribution below the void"
+      "edgeBelow": "none",
+      "edgeAbove": "none",
+      "rationale": "Peak of the main distribution"
     },
     {
       "kind": "hvn-core",
@@ -57,7 +40,8 @@
       "prominence": 2,
       "primary": false,
       "position": "bottom",
-      "shape": "notch",
+      "edgeBelow": "none",
+      "edgeAbove": "none",
       "rationale": "Peak of the lower distribution"
     },
     {
@@ -67,18 +51,9 @@
       "prominence": 2,
       "primary": false,
       "position": "top",
-      "shape": "notch",
-      "rationale": "Spike with a small build above the thin patch, then an immediate step off to nothing"
-    },
-    {
-      "kind": "taper-tail",
-      "priceLow": 7506,
-      "priceHigh": 7516,
-      "prominence": 4,
-      "primary": false,
-      "position": "bottom",
-      "shape": "wide-gap",
-      "rationale": "Progressive fall-off into the profile low"
+      "edgeBelow": "none",
+      "edgeAbove": "none",
+      "rationale": "Spike at the profile high with a small build behind it, then it steps off"
     }
   ],
   "thinZones": [
@@ -89,12 +64,6 @@
     {
       "low": 7616,
       "high": 7622
-    },
-    {
-      "low": 7506,
-      "high": 7518
     }
-  ],
-  "profileShape": "double",
-  "unfinished": false
+  ]
 }

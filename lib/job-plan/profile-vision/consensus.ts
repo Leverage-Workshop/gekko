@@ -4,12 +4,10 @@ import {
   MAX_THIN_ZONES,
   NODE_KINDS,
   NODE_POSITIONS,
-  NODE_SHAPES,
-  PROFILE_SHAPES,
+  NODE_EDGES,
   type NodeKind,
   type ProfileNode,
   type ProfileNodesRead,
-  type ProfileShape,
 } from './schema'
 import type { ConsensusNode, ConsensusThinZone, ProfileConsensus } from './types'
 
@@ -74,7 +72,6 @@ const FAMILY_OF: Readonly<Record<NodeKind, Family>> = {
   'hvn-edge': 'hvn',
   'hvn-core': 'hvn',
   'exhaustive-node': 'exhaustive',
-  'taper-tail': 'taper',
 }
 
 type Candidate = {
@@ -259,9 +256,13 @@ function summarize(cl: Cluster, grid: Grid, samples: number): Scored {
       m.map((x) => x.node.position),
       NODE_POSITIONS
     ),
-    shape: majority(
-      m.map((x) => x.node.shape),
-      NODE_SHAPES
+    edgeBelow: majority(
+      m.map((x) => x.node.edgeBelow),
+      NODE_EDGES
+    ),
+    edgeAbove: majority(
+      m.map((x) => x.node.edgeAbove),
+      NODE_EDGES
     ),
     agreement: m.length,
     samples,
@@ -444,14 +445,10 @@ export function buildConsensus(input: ConsensusInput): ProfileConsensus | null {
     .filter((n) => n.agreement >= threshold)
   const nodes = capNodes(resolvePrimary(scored)).map(stripScore)
 
-  const shapes = reads.map((r) => r.read.profileShape)
-  const unfinishedVotes = reads.filter((r) => r.read.unfinished).length
 
   return {
     nodes,
     thinZones: consensusThinZones(reads, input.grid, tolerance, threshold, input.samples),
-    profileShape: majority<ProfileShape>(shapes, PROFILE_SHAPES),
-    unfinished: unfinishedVotes * 2 > reads.length,
     successfulSamples: complete.size,
     samples: input.samples,
   }

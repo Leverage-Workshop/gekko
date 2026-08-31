@@ -54,24 +54,20 @@ export const fakeRasterize = (svg: string) => new Uint8Array(Buffer.from(svg.sli
 export function fiveDayRead(): ProfileNodesRead {
   return {
     nodes: [
-      { kind: 'lvn', priceLow: 29400, priceHigh: 29404, prominence: 1, primary: true, position: 'mid', shape: 'valley', rationale: 'deepest' },
-      { kind: 'hvn-core', priceLow: 29590, priceHigh: 29606, prominence: 1, primary: false, position: 'upper', shape: 'notch', rationale: 'poc' },
+      { kind: 'lvn', priceLow: 29400, priceHigh: 29404, prominence: 1, primary: true, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', rationale: 'deepest' },
+      { kind: 'hvn-core', priceLow: 29590, priceHigh: 29606, prominence: 1, primary: false, position: 'upper', edgeBelow: 'none', edgeAbove: 'none', rationale: 'poc' },
     ],
     thinZones: [],
-    profileShape: 'double',
-    unfinished: false,
   }
 }
 
 export function fourHourRead(): ProfileNodesRead {
   return {
     nodes: [
-      { kind: 'lvn', priceLow: 29330, priceHigh: 29334, prominence: 1, primary: true, position: 'lower', shape: 'valley', rationale: 'thin' },
-      { kind: 'hvn-core', priceLow: 29360, priceHigh: 29370, prominence: 1, primary: false, position: 'mid', shape: 'notch', rationale: 'poc' },
+      { kind: 'lvn', priceLow: 29330, priceHigh: 29334, prominence: 1, primary: true, position: 'lower', edgeBelow: 'taper', edgeAbove: 'flat', rationale: 'thin' },
+      { kind: 'hvn-core', priceLow: 29360, priceHigh: 29370, prominence: 1, primary: false, position: 'mid', edgeBelow: 'none', edgeAbove: 'none', rationale: 'poc' },
     ],
     thinZones: [],
-    profileShape: 'bell',
-    unfinished: false,
   }
 }
 

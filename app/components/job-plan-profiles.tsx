@@ -29,7 +29,6 @@ const KIND_COLOR: Readonly<Record<OverlayKind, string>> = {
   'hvn-edge': 'var(--color-bmw-blue)',
   'hvn-core': 'var(--color-electric-blue)',
   'exhaustive-node': 'var(--color-warning)',
-  'taper-tail': 'var(--color-warning)',
   'thin-zone': 'var(--color-muted)',
 }
 
@@ -135,7 +134,7 @@ function NodeTable({ entry }: { entry: PersistedProfileNodesEntry }) {
             </td>
             <td className={td}>{node.prominence}</td>
             <td className={td}>
-              {node.position} · {node.shape}
+              {node.position} · {node.edgeBelow}/{node.edgeAbove}
             </td>
             <td className={`${td} font-bold text-ink`}>
               {node.agreement}/{node.samples}
@@ -179,9 +178,8 @@ function ProfilePanel({
         <span className="text-xs font-bold uppercase tracking-[1.5px] text-ink">{name}</span>
         {consensus ? (
           <span className="text-xs font-light uppercase tracking-wide text-muted">
-            {consensus.profileShape}
-            {consensus.unfinished ? ' · unfinished' : ''} · {consensus.successfulSamples}/
-            {consensus.samples} samples · {consensus.nodes.length} nodes
+            {consensus.successfulSamples}/{consensus.samples} samples ·{' '}
+            {consensus.nodes.length} nodes
           </span>
         ) : (
           <span className="border border-m-red px-2 py-0.5 text-xs font-bold uppercase tracking-[1.5px] text-m-red">

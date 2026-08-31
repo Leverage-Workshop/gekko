@@ -46,9 +46,9 @@ describe('few-shot set', () => {
       }
     }
     // feat-131: the fixture stand-ins are replaced by feat-119 golden replay exports.
-    expect(set.map((s) => s.id)).toEqual(['nq-double-distribution', 'es-shelf-edge-exhaustion'])
-    expect(set.map((s) => s.instrument)).toEqual(['NQ', 'ES'])
-    expect(FEW_SHOT_SOURCE).toMatch(/2026-02-13/)
+    expect(set.map((s) => s.id)).toEqual(['synthetic-two-lvn-types', 'es-shelf-edge-exhaustion'])
+    expect(set.map((s) => s.instrument)).toEqual(['ES', 'ES'])
+    expect(FEW_SHOT_SOURCE).toMatch(/synthetic/)
     expect(FEW_SHOT_SOURCE).toMatch(/2026-06-02/)
     // every example's primary LVN is a price the corpus actually names for that date
     const primaries = set.map((s) => s.expected.nodes.find((n) => n.primary))
@@ -131,12 +131,13 @@ describe('vision prompt', () => {
       'how large a change in volume it represents',
       'most prominent LVNs sit against the most prominent distributions',
       // rule 2 names both LVN types explicitly
-      'A LEDGE LVN',
-      'A TAPER LVN',
+      'A LEDGE:',
+      'A TAPER:',
       'stops abruptly and drops off a cliff',
       'thins out gradually',
-      // rule 3 names both far-side cases explicitly
-      'one of exactly two things',
+      // the two-sided model — the operator's correction
+      'Report BOTH sides separately',
+      'a ledge from below and a taper from above',
       'FLAT, LOW-VOLUME STRETCH',
       'THE START OF A NEW DISTRIBUTION',
       'that is rule 1 and rule 1 only',
@@ -165,10 +166,12 @@ describe('vision prompt', () => {
     expect(prompt.indexOf('Example 2 (image 2)')).toBeLessThan(
       prompt.indexOf('Profile to read (image 3)')
     )
-    expect(prompt).toContain('"profileShape":"double"')
-    // both golden examples are double distributions; the primaries are Job's own prices
-    expect(prompt).toContain('"priceLow":24948')
+    // the worked examples must DEMONSTRATE rule 2 — both LVN types labelled
     expect(prompt).toContain('"priceLow":7568')
+    // the worked examples must DEMONSTRATE the two-sided model
+    expect(prompt).toContain('"edgeBelow":"ledge","edgeAbove":"taper"')
+    expect(prompt).toContain('"edgeBelow":"flat"')
+    expect(prompt).toContain('"edgeAbove":"flat"')
   })
 
   it('describes a tile by its index and the full span', () => {

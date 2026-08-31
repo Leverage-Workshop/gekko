@@ -28,7 +28,7 @@ describe('bench — conversions', () => {
     expect(FAMILY_OF_KIND['hvn-edge']).toBe('hvn')
     expect(FAMILY_OF_KIND['hvn-core']).toBe('hvn')
     expect(FAMILY_OF_KIND['exhaustive-node']).toBe('extreme')
-    expect(FAMILY_OF_KIND['taper-tail']).toBe('extreme')
+    expect(FAMILY_OF_KIND['exhaustive-node']).toBe('extreme')
   })
 
   it('a band becomes its midpoint', () => {
@@ -51,7 +51,7 @@ describe('bench — conversions', () => {
       prominence: 2,
       primary: false,
       position: 'upper',
-      shape: 'shelf-edge',
+      edgeBelow: 'ledge', edgeAbove: 'flat',
       agreement: 3,
       samples: 3,
     }

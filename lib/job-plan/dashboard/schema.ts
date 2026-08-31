@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { PlanStatus } from '@/knowledge/schema/job-plan.schema'
-import { NODE_KINDS, NODE_POSITIONS, NODE_SHAPES, PROFILE_SHAPES } from '../profile-vision/schema'
+import { NODE_KINDS, NODE_POSITIONS, NODE_EDGES } from '../profile-vision/schema'
 import { PROFILE_KEYS } from '../profile-vision/types'
 
 /**
@@ -33,17 +33,48 @@ export type JobPlanRow = z.infer<typeof JobPlanRowSchema>
 
 // --- profile_nodes ------------------------------------------------------------
 
-const ConsensusNodeSchema = z.object({
+/**
+ * Normalize a node persisted BEFORE feat-140 (Codex P1).
+ *
+ * The pre-feat-140 shape carried a single `shape` (valley | shelf-edge |
+ * wide-gap | ledge | taper | notch) and could carry the retired `taper-tail`
+ * kind. `job_plans` was empty when this landed, but the vision read was already
+ * live, so a plan persisted in the window between then and the deploy would
+ * otherwise make the whole `profile_nodes` value unparseable and silently drop
+ * the profile panels from the dashboard.
+ *
+ * One legacy `shape` cannot say what both sides did, so it is placed on the side
+ * it can honestly describe and the other is left `none` rather than invented.
+ */
+function normalizeLegacyNode(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) return value
+  const n = { ...(value as Record<string, unknown>) }
+  if (n.kind === 'taper-tail') n.kind = 'exhaustive-node'
+  if (n.edgeBelow === undefined && n.edgeAbove === undefined) {
+    const legacy = n.shape
+    const carried = legacy === 'ledge' || legacy === 'taper' ? legacy : 'none'
+    n.edgeBelow = carried
+    n.edgeAbove = 'none'
+  }
+  delete n.shape
+  return n
+}
+
+export const ConsensusNodeSchema = z.preprocess(
+  normalizeLegacyNode,
+  z.object({
   kind: z.enum(NODE_KINDS),
   priceLow: finite,
   priceHigh: finite,
   prominence: z.number().int(),
   primary: z.boolean(),
   position: z.enum(NODE_POSITIONS),
-  shape: z.enum(NODE_SHAPES),
+  edgeBelow: z.enum(NODE_EDGES),
+  edgeAbove: z.enum(NODE_EDGES),
   agreement: z.number().int().min(0),
   samples: z.number().int().min(1),
-})
+  })
+)
 export type PersistedConsensusNode = z.infer<typeof ConsensusNodeSchema>
 
 const ConsensusThinZoneSchema = z.object({
@@ -56,8 +87,6 @@ const ConsensusThinZoneSchema = z.object({
 const ProfileConsensusSchema = z.object({
   nodes: z.array(ConsensusNodeSchema),
   thinZones: z.array(ConsensusThinZoneSchema),
-  profileShape: z.enum(PROFILE_SHAPES),
-  unfinished: z.boolean(),
   successfulSamples: z.number().int().min(0),
   samples: z.number().int().min(1),
 })

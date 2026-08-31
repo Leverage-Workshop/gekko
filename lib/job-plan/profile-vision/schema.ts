@@ -9,24 +9,39 @@ import { z } from 'zod'
  * boundary and retried by the caller, never persisted.
  */
 
-export const NODE_KINDS = ['lvn', 'hvn-edge', 'hvn-core', 'exhaustive-node', 'taper-tail'] as const
+/**
+ * feat-139: narrowed to what the four rules actually support.
+ *
+ * `taper-tail` is gone — redundant now that `taper` is a SHAPE (a taper is one
+ * of the two ways a distribution gives way, and it happens anywhere, not only
+ * at a tail). `exhaustive-node` stays: it is anatomy Job names outright
+ * ("exhaust of note on top of the volume profile") and the 2026-06-02 golden
+ * label uses it, so removing it would mean relabelling operator-verified data.
+ */
+export const NODE_KINDS = ['lvn', 'hvn-edge', 'hvn-core', 'exhaustive-node'] as const
 export type NodeKind = (typeof NODE_KINDS)[number]
 
 export const NODE_POSITIONS = ['top', 'upper', 'mid', 'lower', 'bottom'] as const
 export type NodePosition = (typeof NODE_POSITIONS)[number]
 
 /**
- * `ledge` and `taper` are the two ways a distribution gives way to a low-volume
- * node (feat-137): a ledge is volume dropping off a cliff, a taper is a gradual
- * thinning. They are edge FORMS and occur anywhere in the profile, not only at
- * the extremes. Widening this enum is backward compatible: every previously
- * persisted shape is still legal.
+ * How a node's volume gives way on ONE side (feat-140).
+ *
+ * An LVN has TWO sides and they are frequently different — the operator's own
+ * correction: "it's a ledge from below and a taper from above. depends where
+ * price currently is." A single `shape` per node could not say that, so a node
+ * carries an edge form for each side.
+ *
+ *   ledge — significant volume that stops abruptly and drops off a cliff
+ *   taper — a distribution thinning gradually into the low-volume area
+ *   flat  — no distribution on that side; a low-volume stretch simply continues
+ *   none  — the side does not apply (an hvn-core is a peak, not an edge)
+ *
+ * `ledge` and `taper` are rule 2; `flat` is the first half of rule 3, so the two
+ * fields together carry both rules without a separate shape vocabulary.
  */
-export const NODE_SHAPES = ['valley', 'shelf-edge', 'wide-gap', 'ledge', 'taper', 'notch'] as const
-export type NodeShape = (typeof NODE_SHAPES)[number]
-
-export const PROFILE_SHAPES = ['bell', 'double', 'multi', 'trend-up', 'trend-down', 'thin'] as const
-export type ProfileShape = (typeof PROFILE_SHAPES)[number]
+export const NODE_EDGES = ['ledge', 'taper', 'flat', 'none'] as const
+export type NodeEdge = (typeof NODE_EDGES)[number]
 
 export const MAX_NODES = 8
 export const MAX_THIN_ZONES = 3
@@ -44,7 +59,10 @@ export const profileNodeSchema = z.object({
   /** Exactly one `lvn` per profile carries true. */
   primary: z.boolean(),
   position: z.enum(NODE_POSITIONS),
-  shape: z.enum(NODE_SHAPES),
+  /** How volume gives way on the side BELOW the node (lower prices). */
+  edgeBelow: z.enum(NODE_EDGES),
+  /** How volume gives way on the side ABOVE the node (higher prices). */
+  edgeAbove: z.enum(NODE_EDGES),
   rationale: z.string().min(1).max(200),
 })
 export type ProfileNode = z.infer<typeof profileNodeSchema>
@@ -65,9 +83,6 @@ export type ThinZone = z.infer<typeof thinZoneSchema>
 const profileNodesReadBase = z.object({
   nodes: z.array(profileNodeSchema).min(1),
   thinZones: z.array(thinZoneSchema),
-  profileShape: z.enum(PROFILE_SHAPES),
-  /** No taper / exhaustive node at an extreme (corpus #69). */
-  unfinished: z.boolean(),
 })
 
 function wordCount(s: string): number {

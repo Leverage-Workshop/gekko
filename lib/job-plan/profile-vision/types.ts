@@ -1,7 +1,7 @@
 import type { ReasoningEffort } from '@/lib/llm/reasoning'
 import type { Instrument } from './instrument'
 import type { RenderMeta } from './renderProfile'
-import type { NodeKind, NodePosition, NodeShape, ProfileNodesRead, ProfileShape } from './schema'
+import type { NodeKind, NodePosition, NodeEdge, ProfileNodesRead, } from './schema'
 
 /**
  * Shapes the vision read produces and the job-plan task (feat-128) persists
@@ -41,7 +41,8 @@ export type ConsensusNode = {
   readonly prominence: number
   readonly primary: boolean
   readonly position: NodePosition
-  readonly shape: NodeShape
+  readonly edgeBelow: NodeEdge
+  readonly edgeAbove: NodeEdge
   /** Samples (out of `samples`) that reported this node. */
   readonly agreement: number
   readonly samples: number
@@ -57,8 +58,6 @@ export type ConsensusThinZone = {
 export type ProfileConsensus = {
   readonly nodes: readonly ConsensusNode[]
   readonly thinZones: readonly ConsensusThinZone[]
-  readonly profileShape: ProfileShape
-  readonly unfinished: boolean
   /** Successful samples the consensus was built from. */
   readonly successfulSamples: number
   readonly samples: number

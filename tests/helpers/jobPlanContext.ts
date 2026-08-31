@@ -52,7 +52,7 @@ export type SynthSpec = {
 
 export function synthRef(spec: SynthRef): Reference {
   const node: ReferenceNode | null = spec.node
-    ? { profile: '5d', kind: 'lvn', prominence: 1, primary: false, position: 'mid', shape: 'valley', agreement: 3, samples: 3, ...spec.node }
+    ? { profile: '5d', kind: 'lvn', prominence: 1, primary: false, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', agreement: 3, samples: 3, ...spec.node }
     : null
   return {
     id: spec.id,

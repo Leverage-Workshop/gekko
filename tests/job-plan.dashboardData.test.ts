@@ -248,3 +248,56 @@ describe('profileOverlays — consensus nodes mapped onto the stored tiles', () 
     expect(overlays[0].boxes).toEqual([])
   })
 })
+
+/**
+ * feat-140 / Codex P1. `job_plans` was empty when the two-sided edge model
+ * landed, but the vision read was already live in production — a plan persisted
+ * in the window between then and the deploy carries the old single `shape` (and
+ * possibly the retired `taper-tail` kind). Without tolerance the whole
+ * `profile_nodes` value fails to parse and the dashboard silently loses its
+ * profile panels.
+ */
+describe('profile nodes persisted before the two-sided edge model', () => {
+  const legacy = {
+    kind: 'taper-tail',
+    priceLow: 7530,
+    priceHigh: 7534,
+    prominence: 2,
+    primary: false,
+    position: 'lower',
+    shape: 'ledge',
+    agreement: 3,
+    samples: 3,
+  }
+
+  it('normalizes the retired kind and carries the legacy shape onto one side', async () => {
+    const { ConsensusNodeSchema } = await import('@/lib/job-plan/dashboard/schema')
+    const r = ConsensusNodeSchema.safeParse(legacy)
+    expect(r.success, 'a legacy node must still parse').toBe(true)
+    if (!r.success) return
+    expect(r.data.kind).toBe('exhaustive-node')
+    expect(r.data.edgeBelow).toBe('ledge')
+    // one legacy value cannot describe both sides, so the other stays honest
+    expect(r.data.edgeAbove).toBe('none')
+  })
+
+  it('a legacy shape with no modern equivalent becomes none rather than a guess', async () => {
+    const { ConsensusNodeSchema } = await import('@/lib/job-plan/dashboard/schema')
+    const r = ConsensusNodeSchema.safeParse({ ...legacy, kind: 'hvn-core', shape: 'notch' })
+    expect(r.success).toBe(true)
+    if (!r.success) return
+    expect(r.data.edgeBelow).toBe('none')
+    expect(r.data.edgeAbove).toBe('none')
+  })
+
+  it('a node already in the new form is untouched', async () => {
+    const { ConsensusNodeSchema } = await import('@/lib/job-plan/dashboard/schema')
+    const modern = { ...legacy, kind: 'lvn', edgeBelow: 'ledge', edgeAbove: 'taper' }
+    delete (modern as Record<string, unknown>).shape
+    const r = ConsensusNodeSchema.safeParse(modern)
+    expect(r.success).toBe(true)
+    if (!r.success) return
+    expect(r.data.edgeBelow).toBe('ledge')
+    expect(r.data.edgeAbove).toBe('taper')
+  })
+})
