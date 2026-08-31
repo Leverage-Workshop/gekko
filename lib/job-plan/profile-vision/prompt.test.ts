@@ -92,11 +92,27 @@ describe('vision prompt', () => {
     expect(CRITERIA.length).toBeGreaterThanOrEqual(3)
     expect(CRITERIA.length).toBeLessThanOrEqual(6)
     for (const c of CRITERIA) {
-      expect(c.title).toMatch(/^[A-Z][A-Z ,-]+$/)
+      expect(c.title).toMatch(/^[A-Z][A-Z ,()s-]+$/)
       // rule 4 is deliberately terse — the operator's point was that HVNs are
       // self-explanatory and do not need re-teaching
       expect(c.text.split(/\s+/).length).toBeGreaterThan(10)
     }
+  })
+
+  /**
+   * feat-138. The rewrite dropped the abbreviation LVN entirely — the prompt
+   * said "low-volume node" but never "LVN", and the ROLE line lost its
+   * "Identify the low-volume nodes (LVNs)" phrasing. LVN is the term of art a
+   * vision model most strongly associates with this domain; losing it threw
+   * away the prompt's best anchor for free.
+   */
+  it('uses the domain terms LVN and HVN, not just the spelled-out forms', () => {
+    expect(prompt).toContain('LVN')
+    expect(prompt).toContain('HVN')
+    expect(prompt).toMatch(/low-volume node \(LVN\)/)
+    expect(prompt).toMatch(/high-volume node \(HVN\)/)
+    // and the mechanism ties the term to the thing it names
+    expect(MECHANISM).toContain('LOW-VOLUME NODE, an LVN')
   })
 
   it('leads with the mechanism, not a checklist', () => {
@@ -113,11 +129,17 @@ describe('vision prompt', () => {
     // the substance of each rule, not corpus quotes (feat-137)
     for (const phrase of [
       'how large a change in volume it represents',
-      'most prominent distributions',
-      'drops off very quickly',
-      'thinning gradually',
-      'DOES NOT RANK IT',
-      'peak of each significant distribution',
+      'most prominent LVNs sit against the most prominent distributions',
+      // rule 2 names both LVN types explicitly
+      'A LEDGE LVN',
+      'A TAPER LVN',
+      'stops abruptly and drops off a cliff',
+      'thins out gradually',
+      // rule 3 names both far-side cases explicitly
+      'one of exactly two things',
+      'FLAT, LOW-VOLUME STRETCH',
+      'THE START OF A NEW DISTRIBUTION',
+      'that is rule 1 and rule 1 only',
       'Three to five nodes is normal',
       'never a target',
     ]) {
