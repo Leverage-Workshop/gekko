@@ -4,7 +4,17 @@
 
 **Last Updated:** 2026-08-31
 
-**Latest change (branch `fix-replay-asof-chart-clock`): the run's `asOf` comes from the bundle's
+**Latest change (branch `feat-sierra-job-plan-bands`, PR #192): Job plan bands on the Sierra
+charts.** New `job_plan_bands` view (migration `20260831210000_job_plan_bands_view.sql`, applied
+live the same day + gekko-db skill updated) flattens the latest ready `job_plans` row into flat
+rows granted to anon — `kind` frame/long/short/both (both = one band carrying a short AND a long
+play, grouped by `band.bandId`), stand-down plays excluded — mirroring the `entry_levels` →
+Entry A Bands pattern. Consumed by a new study OUTSIDE the repo:
+`D:\SierraChart\ACS_Source\GekkoJobPlan.cpp` ("Gekko Job Plan Bands", modeled on GekkoEntryA.cpp;
+yellow frame / red short / blue long / purple both; builds as its own DLL). Codex gate PASS
+(no findings); anon-key read verified (frame + 3 play bands from the 2026-08-25 plan).
+
+**Previous change (branch `fix-replay-asof-chart-clock`): the run's `asOf` comes from the bundle's
 chart clock, never `received_at` — the second half of the replay fix.** After PR #184 cleared R13,
 a replay run still failed: `asOf` was derived from the bundle's `received_at` (live machine clock →
 trading day 2026-09-01), so `trading_day_mismatch` fired against the replayed study (2026-08-25),
