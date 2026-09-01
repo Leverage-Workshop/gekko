@@ -1,5 +1,5 @@
 import { JobPlanSchema, type JobPlan, type Play, type PrunedBranch } from '@/knowledge/schema/job-plan.schema'
-import { geometryRefs, planMeta, zoneDraft, type PlanMetaInput } from '../buildPlan'
+import { geometryRefs, planMeta, type PlanMetaInput } from '../buildPlan'
 import type { JobContext } from '../contextTypes'
 import { frameFor } from '../planFrame'
 import { buildBandPlay } from '../playGrammar'
@@ -18,6 +18,11 @@ import type { LlmPlanJudgment } from './schema'
  * are composed by the SAME code grammar as the deterministic planner, so
  * every schema refinement — provenance tracing, destination ordering, R11 —
  * holds by construction.
+ *
+ * No stand-down play (feat-146, operator 2026-09-01): an LLM plan is a
+ * catalog of forward scenarios at the areas that matter, never a
+ * trade-this-instant decision — the deterministic planner's R10 two-way
+ * declaration has no counterpart here.
  *
  * PRECONDITION: `validateJudgment` returned no violations (the runner throws
  * before assembly otherwise). Anything here that still fails is a broken
@@ -72,7 +77,7 @@ export function assembleLlmPlan(input: AssembleLlmPlanInput): JobPlan {
   }
   const frame = { ...frameFor(context, frameRef), llmRationale: judgment.frame.rationale }
 
-  const llmDrafts = judgment.plays.map((play): PlayDraft => {
+  const ordered = judgment.plays.map((play): PlayDraft => {
     const result = buildBandPlay(candidateFor(context, play.bandId), context, frame)
     if (!('draft' in result)) {
       throw new LlmPlanAssemblyError(`band ${play.bandId} has no directional read: ${result.pruned}`)
@@ -86,39 +91,15 @@ export function assembleLlmPlan(input: AssembleLlmPlanInput): JobPlan {
     // grammar keeps owning trigger, invalidation, destinations, provenance.
     return { ...result.draft, summary: play.text, llmRationale: play.rationale }
   })
+  const plays = ordered.slice(0, MAX_PLAYS).map(toPlay)
 
-  const zone = context.location.enclosingZone
-  if (judgment.standDown && !(zone !== null && zone.midZone)) {
-    // validateJudgment rejects this (stand_down_without_mid_zone); reaching it
-    // here would silently drop the two-way play from a plan claiming one.
-    throw new LlmPlanAssemblyError('standDown passed validation but the context has no mid-zone enclosing zone')
-  }
-  const standDownDraft = judgment.standDown && zone !== null && zone.midZone ? [zoneDraft(zone, context)] : []
-  const ordered = [...standDownDraft, ...llmDrafts]
-  const kept = ordered.slice(0, MAX_PLAYS)
-  const plays = kept.map(toPlay)
+  const pruned: PrunedBranch[] = judgment.sidesWithoutPlay.map((s) => ({
+    bandId: null,
+    label: `${s.side} side`,
+    reason: `LLM plan: no play on this side — ${s.reason}`,
+  }))
 
-  const pruned: PrunedBranch[] = [
-    ...ordered.slice(MAX_PLAYS).map((draft) => ({
-      bandId: draft.band.bandId,
-      label: draft.band.label,
-      reason: `LLM plan: over the ${MAX_PLAYS}-play cap once the stand-down declaration is included`,
-    })),
-    ...judgment.sidesWithoutPlay.map((s) => ({
-      bandId: null,
-      label: `${s.side} side`,
-      reason: `LLM plan: no play on this side — ${s.reason}`,
-    })),
-  ]
-
-  const standDownText = judgment.standDownText?.trim() ?? ''
-  const standDownReasons = [
-    ...new Set([
-      ...plays.filter((p) => p.stance === 'stand-down').map((p) => p.activation.evidence),
-      ...(judgment.standDown && standDownText !== '' ? [standDownText] : []),
-      ...(plays.length === 0 ? judgment.sidesWithoutPlay.map((s) => s.reason) : []),
-    ]),
-  ]
+  const standDownReasons = plays.length === 0 ? judgment.sidesWithoutPlay.map((s) => s.reason) : []
 
   const first = plays[0]
   const plan: JobPlan = {
@@ -134,7 +115,7 @@ export function assembleLlmPlan(input: AssembleLlmPlanInput): JobPlan {
     frame,
     lean: {
       playId: first?.id ?? null,
-      basis: first === undefined ? 'none' : first.stance === 'stand-down' ? 'mid-zone' : 'frame',
+      basis: first === undefined ? 'none' : 'frame',
       text: judgment.lean,
     },
     plays,

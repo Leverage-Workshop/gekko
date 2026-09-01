@@ -158,7 +158,7 @@ function zoneBand(zone: EnclosingZone, context: JobContext): PlayBand {
 }
 
 /** The mid-zone (R10) two-way declaration: stand down in the middle, play the named edges. */
-export function zoneDraft(zone: EnclosingZone, context: JobContext): PlayDraft {
+function zoneDraft(zone: EnclosingZone, context: JobContext): PlayDraft {
   const band = zoneBand(zone, context)
   return {
     stance: 'stand-down',

@@ -4,6 +4,33 @@
 
 **Last Updated:** 2026-09-01
 
+**Latest change (branch `feat-146-llm-planner-scenario-plans`): feat-146 — LLM planner writes
+scenario catalogs; stand-down removed; edges-only collapse fixed.** Operator corrections after
+the FIRST production LLM plan (both plays on the JBA borders — "that definitely won't cut it";
+"I don't understand the point of the Stand Down play. We're planning out possible scenarios
+that could occur, not trying to identify a trade to take this instant"). Root cause of the
+edges-only collapse was the PROMPT, not the payload: rule 3's "play the edges" clause + rule 4
+telling the model to demote any session-touched area TO A DESTINATION (stronger than the
+deterministic R9, which lowers rank but keeps the play) + rule 6's mid-zone stand-down left the
+zone borders as the only legal-feeling answer on a mid-zone morning.
+`LLM_PLANNER_REVISION → llm-planner/2026-09-01.1`: rule 3 rewritten (zone edges compete on the
+same breach/significance test as internal structure and never exhaust the plan; cover the areas
+that matter on each side — one play per side is rarely a full read), rule 4 freshness lowers
+rank but KEEPS the play, rule 6 deleted. `standDown`/`standDownText` dropped from the judgment
+schema; both-sides-answered is now UNCONDITIONAL in the validator (the stand-down exemption —
+the hole behind feat-145's gate P1 — is gone with the concept, and the two `stand_down_*`
+violation codes with it); the assembler never prepends the two-way zone play. Shadow diff/report
+drop the stand-down agreement row (a det-only fact line remains). Deterministic planner
+untouched (fallback only). Negative prompt canaries pin "stand down" / "play the edges" /
+"mid-zone" out of the prompt. Operator's chart-image idea (give the judgment call a rendered
+chart) is NOT in this change — recommended sequence is to evaluate the retuned prompt first;
+note the doctrine tension: an image reintroduces session history wholesale, which the ratified
+rules exclude except for freshness.
+
+---
+
+**Previous (2026-09-01, feat-145):**
+
 **Latest change (branch `feat-145-llm-planner-cutover`): feat-145 — LLM Job planner production
 cutover.** Operator decision 2026-09-01 after the first live shadow run
 (`docs/shadow-runs/job-plan-llm-2026-09-01.md`, 3 bundles: frame 3/3, stand-down 3/3, zero

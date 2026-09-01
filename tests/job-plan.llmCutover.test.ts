@@ -68,8 +68,6 @@ function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
       { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'If price reaches the Daily Pivot, expect the bid and a turn back toward the Weekly Pivot.', rationale: 'Nearest significant level below.' },
     ],
     sidesWithoutPlay: [],
-    standDown: false,
-    standDownText: null,
     lean: 'Short into the Weekly Pivot — below the frame line, downside is productive.',
   }
 }
@@ -115,7 +113,7 @@ describe('assembleLlmPlan', () => {
     expect(plan.pruned.some((p) => p.label === 'below side' && p.reason.includes('nothing significant'))).toBe(true)
   })
 
-  it('stand-down: the two-way zone play leads (rank 1, primary), the lean is mid-zone, the text is kept', () => {
+  it('a mid-zone context gets scenario plays only — no stand-down play exists (feat-146)', () => {
     const ctx = midZoneContext()
     expect(ctx.location.enclosingZone?.midZone).toBe(true)
     const judgment: LlmPlanJudgment = {
@@ -125,16 +123,14 @@ describe('assembleLlmPlan', () => {
         { bandId: bandOf(ctx, 'jba:0:low'), direction: 'long', text: 'If price reaches JBA 1 low, the lower edge will hold and rotate back up.', rationale: 'Enclosing zone edge below.' },
       ],
       sidesWithoutPlay: [],
-      standDown: true,
-      standDownText: 'Mid-zone inside JBA 1 — stand down in the middle, work two-way at the edges.',
-      lean: 'Two-way at the JBA edges; lean short below the Weekly Pivot.',
+      lean: 'Lean short below the Weekly Pivot.',
     }
     const plan = assembleLlmPlan({ judgment, context: ctx, modelId: 'm' })
     expect(JobPlanSchema.safeParse(plan).success).toBe(true)
-    expect(plan.plays[0]).toMatchObject({ rank: 1, primary: true, stance: 'stand-down', direction: 'two-way' })
-    expect(plan.plays).toHaveLength(3)
-    expect(plan.lean).toMatchObject({ playId: 'play-1', basis: 'mid-zone', text: judgment.lean })
-    expect(plan.standDownReasons).toContain(judgment.standDownText)
+    expect(plan.plays).toHaveLength(2)
+    expect(plan.plays.every((p) => p.stance !== 'stand-down')).toBe(true)
+    expect(plan.plays[0]).toMatchObject({ rank: 1, primary: true, direction: 'short' })
+    expect(plan.lean).toMatchObject({ playId: 'play-1', basis: 'frame', text: judgment.lean })
   })
 
   it('a judged direction the geometry contradicts is an assembly error (broken invariant, never persisted)', () => {
@@ -144,27 +140,15 @@ describe('assembleLlmPlan', () => {
     expect(() => assembleLlmPlan({ judgment: flipped, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
   })
 
-  it('stand-down outside a measured mid-zone is a contract violation and an assembly error, never a zero-play ready plan', () => {
-    const ctx = context()
-    const judgment: LlmPlanJudgment = {
-      ...cleanJudgment(ctx),
-      plays: [],
-      standDown: true,
-      standDownText: 'Two-way between the edges.',
-    }
-    expect(validateJudgment(judgment, ctx).map((v) => v.code)).toContain('stand_down_without_mid_zone')
-    expect(() => assembleLlmPlan({ judgment, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
-    // And the mid-zone declaration IS legal where R10 measures one.
+  it('a mid-zone judgment with no plays still needs both sides answered — no stand-down escape hatch', () => {
     const mid = midZoneContext()
-    const midJudgment: LlmPlanJudgment = {
+    const empty: LlmPlanJudgment = {
       frame: { referenceId: 'wp', rationale: 'Weekly pivot frames from above.' },
       plays: [],
       sidesWithoutPlay: [],
-      standDown: true,
-      standDownText: 'Mid-zone inside JBA 1 — two-way at the edges.',
-      lean: 'Two-way at the JBA edges.',
+      lean: 'Nothing to do yet.',
     }
-    expect(validateJudgment(midJudgment, mid).map((v) => v.code)).not.toContain('stand_down_without_mid_zone')
+    expect(validateJudgment(empty, mid).map((v) => v.code)).toEqual(['side_unaddressed', 'side_unaddressed'])
   })
 })
 
@@ -198,8 +182,6 @@ function judgmentFor(payload: LlmContextPayload): LlmPlanJudgment {
       ...(above ? [] : [{ side: 'above' as const, reason: 'nothing playable above within reach' }]),
       ...(below ? [] : [{ side: 'below' as const, reason: 'nothing playable below within reach' }]),
     ],
-    standDown: false,
-    standDownText: null,
     lean: 'Primary look at the nearest key area.',
   }
 }
@@ -248,7 +230,7 @@ describe("runJobPlan planner: 'llm'", () => {
     expect(JobPlanSchema.safeParse(row.plan).success).toBe(true)
     expect(row.plan.meta).toMatchObject({ jobPlanner: 'llm', llmModelId: 'served/planner-model', llmPromptRevision: LLM_PLANNER_REVISION, plannerRevision: llmPlannerRevision() })
     expect(row.plan.plays.length).toBeGreaterThan(0)
-    expect(row.plan.plays.every((p) => p.stance === 'stand-down' || p.llmRationale != null)).toBe(true)
+    expect(row.plan.plays.every((p) => p.stance !== 'stand-down' && p.llmRationale != null)).toBe(true)
   })
 
   it('the default stays deterministic: no judgment call, no llm meta', async () => {

@@ -46,13 +46,12 @@ export const LlmPlanJudgmentSchema = z.object({
   frame: LlmFrameChoice,
   /**
    * Ordered by precedence: the first play is the primary look, sides
-   * alternating from the frame side.
+   * alternating from the frame side. No stand-down concept (feat-146,
+   * operator 2026-09-01): a plan is a catalog of scenarios at the areas
+   * that matter, never a trade-this-instant decision.
    */
   plays: z.array(LlmPlayJudgment).max(MAX_PLAYS),
   sidesWithoutPlay: z.array(LlmSideNote).max(2),
-  /** Mid-zone declaration (rule 6): two-way at the named edges. */
-  standDown: z.boolean(),
-  standDownText: z.string().nullable(),
   /** One line naming the primary look and the side to lean with. */
   lean: z.string().min(1),
 })

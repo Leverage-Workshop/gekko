@@ -144,7 +144,6 @@ function playLines(entry: Entry): string[] {
     ...(first.sidesWithoutPlay.length > 0
       ? ['', '**LLM sides without a play:**', ...first.sidesWithoutPlay.map((s) => `  - ${s.side}: ${s.reason}`)]
       : []),
-    ...(first.standDown ? ['', `**LLM stand-down:** ${first.standDownText}`] : []),
     '',
     `**LLM lean:** ${first.lean}`,
   ]
@@ -158,7 +157,7 @@ function diffLines(entry: Entry): string[] {
     `- Frame: ${d.frame.agree ? 'AGREE' : 'DISAGREE'} — det ${d.frame.deterministic?.label ?? '(none)'} vs llm ${d.frame.llm.label}`,
   )
   lines.push(`- Primary: ${d.primary.agree ? 'AGREE' : 'DISAGREE'} — det ${d.primary.deterministic ?? '(none)'} vs llm ${d.primary.llm ?? '(none)'}`)
-  lines.push(`- Stand-down: ${d.standDown.agree ? 'AGREE' : 'DISAGREE'} (det ${d.standDown.deterministic}, llm ${d.standDown.llm})`)
+  lines.push(`- Deterministic stand-down: ${d.deterministicStandDown} (the LLM has no stand-down concept since feat-146)`)
   lines.push(`- Shared bands: ${d.plays.sharedBandIds.length}`)
   for (const p of d.plays.onlyDeterministic) lines.push(`- Only deterministic: [${p.direction}] ${p.label}`)
   for (const p of d.plays.onlyLlm) lines.push(`- Only LLM: [${p.direction}] ${p.label}`)
@@ -198,7 +197,7 @@ function report(entries: Entry[], args: Args, model: string, effort: ReasoningEf
     `- model: \`${model}\`  effort: \`${effort ?? 'provider default'}\`  runs per bundle: ${args.runs}`,
     `- bundles: ${entries.length} (${ok.length} compared)  total LLM cost: $${cost.toFixed(4)}`,
     '',
-    `**Agreement:** frame ${agree((e) => e.diff.frame.agree)} · primary ${agree((e) => e.diff.primary.agree)} · stand-down ${agree((e) => e.diff.standDown.agree)} · ${stabilityLine(ok)}`,
+    `**Agreement:** frame ${agree((e) => e.diff.frame.agree)} · primary ${agree((e) => e.diff.primary.agree)} · ${stabilityLine(ok)}`,
     '',
     'Agreements are sanity; **the disagreements are the experiment** — adjudicate each one below.',
   ]
