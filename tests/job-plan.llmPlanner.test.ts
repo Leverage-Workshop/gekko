@@ -136,12 +136,17 @@ describe('llm-planner hard gates', () => {
     expect(codes.map((v) => v.code)).toContain('invented_price')
     expect(codes.find((v) => v.code === 'invented_price')?.message).toContain('20050')
 
-    // Above the inventory span is still a price claim ("toward 21000").
-    const beyond = {
+    // Either side of the inventory span is still a price claim.
+    const above = {
       ...base,
       plays: [{ ...base.plays[0], text: 'Through the Weekly Pivot the traverse runs toward 21000.' }, base.plays[1]],
     }
-    expect(validateJudgment(beyond, ctx).map((v) => v.code)).toContain('invented_price')
+    expect(validateJudgment(above, ctx).map((v) => v.code)).toContain('invented_price')
+    const below = {
+      ...base,
+      plays: [base.plays[0], { ...base.plays[1], text: 'Losing the Daily Pivot opens the traverse toward 19200.' }],
+    }
+    expect(validateJudgment(below, ctx).map((v) => v.code)).toContain('invented_price')
 
     const legitimate = {
       ...base,

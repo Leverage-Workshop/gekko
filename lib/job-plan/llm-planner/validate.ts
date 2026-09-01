@@ -59,14 +59,16 @@ function knownPrices(context: JobContext): number[] {
 
 /**
  * Numbers in model-authored prose at price magnitude that match no supplied
- * price. Anything at or above the inventory's floor is a price claim — inside
- * the span OR beyond it ("toward 21000" above a 20500 top is still invented).
- * Legitimate non-price numerics (point distances, minutes, sigma multiples)
- * live orders of magnitude below an NQ/ES price, under the floor.
+ * price. Price magnitude = at least half the current price, which catches
+ * inventions on either side of the inventory span ("toward 21000" above a
+ * 20500 top, "toward 4800" under a 5000 ES floor) while leaving legitimate
+ * non-price numerics (point distances, minutes, sigma multiples) — which live
+ * orders of magnitude below an NQ/ES price — out of scope.
  */
 export function inventedPrices(judgment: LlmPlanJudgment, context: JobContext): number[] {
   const known = knownPrices(context)
-  const lo = Math.min(...known) - context.tolerance.cap
+  const floor = context.price.value / 2
+  if (!Number.isFinite(floor) || floor <= 0) return []
   const prose = [
     judgment.frame.rationale,
     judgment.lean,
@@ -77,7 +79,7 @@ export function inventedPrices(judgment: LlmPlanJudgment, context: JobContext): 
   const invented = new Set<number>()
   for (const match of prose.matchAll(NUMBER_RE)) {
     const value = Number(match[0].replace(/,/g, ''))
-    if (!Number.isFinite(value) || value < lo) continue
+    if (!Number.isFinite(value) || value < floor) continue
     if (!known.some((k) => Math.abs(k - value) < PRICE_EPSILON)) invented.add(value)
   }
   return [...invented]
