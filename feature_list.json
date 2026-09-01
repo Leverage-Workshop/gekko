@@ -1427,6 +1427,15 @@
       ],
       "status": "done",
       "evidence": "JobPlayCard rewritten to the objective-card shape (app/components/job-plan-play.tsx): playHeadline() compact accent headline (names only), activation evidence as the description via HighlightedText, Action Point / Price / Level table (trigger, invalidation w/ counter-accent + flip clause, destination stages), band meta + rule chips + R11 + DON'T + uncertainty as compact footers; duplicate BEELINE callout dropped (stage text carries it). tests/job-plan.card.test.ts asserts the headline + table and compares prose against tag-stripped markup. ./init.sh green (typecheck, lint, 2199+ tests, build)."
+    },
+    {
+      "id": "feat-144",
+      "name": "LLM Job planner shadow experiment",
+      "description": "Operator direction 2026-08-31: test whether an LLM guided by a short operator-voice rule set formulates better Job plans than the deterministic assembly — judgment calls like preferring a more prominent MGI line over a slightly nearer minor one are hard to mimic in code (evidence: the tier-one ladder + historical-pivot patch chain). Code keeps computing EVERYTHING (JobContext: references, bands, roles, reach, location, origin facts, data quality — unchanged); the model takes only the judgment core: frame choice, which bands get plays, direction/ranking/lean, per docs/job-plan-llm-planner-proposal.md (proposal + draft prompt; operator must ratify the rules before implementation). Hard gates stay code-side with retry-on-violation like the eval contract: JobPlan Zod schema, every quoted price from the inventory, tier-one non-historical frame, MAX_PLAYS cap, rungs destination-only, R13 fails closed before the model is called. All rules FUTURE TENSE — peak-beyond-and-fail is the entry price action to wait for prospectively, never a historical arming fact (2026-08-31 tense-misreading correction). Deliverable is a SHADOW A/B only: extend the shadow-run script to run both planners on the same JobContext over recent bundles + replay dates, diff frame/play-set/ranking for operator adjudication, double-run stability check (vision self-agreement discipline), violation counts. Deterministic planner stays production; cutover is a separate later feature. Model from config.model_id via OpenRouter, never hardcoded; persisted shadow output marked plannerKind llm-shadow with prompt revision in the fingerprint.",
+      "dependencies": [
+        "feat-129"
+      ],
+      "status": "not-started"
     }
   ]
 }
