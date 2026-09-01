@@ -88,6 +88,11 @@ export function assembleLlmPlan(input: AssembleLlmPlanInput): JobPlan {
   })
 
   const zone = context.location.enclosingZone
+  if (judgment.standDown && !(zone !== null && zone.midZone)) {
+    // validateJudgment rejects this (stand_down_without_mid_zone); reaching it
+    // here would silently drop the two-way play from a plan claiming one.
+    throw new LlmPlanAssemblyError('standDown passed validation but the context has no mid-zone enclosing zone')
+  }
   const standDownDraft = judgment.standDown && zone !== null && zone.midZone ? [zoneDraft(zone, context)] : []
   const ordered = [...standDownDraft, ...llmDrafts]
   const kept = ordered.slice(0, MAX_PLAYS)

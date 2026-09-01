@@ -165,8 +165,14 @@ describe('llm-planner hard gates', () => {
     expect(validateJudgment(oneSided, ctx).map((v) => v.code)).toContain('side_unaddressed')
     const excused = { ...oneSided, sidesWithoutPlay: [{ side: 'below' as const, reason: 'nothing significant within realistic reach below' }] }
     expect(validateJudgment(excused, ctx)).toEqual([])
+    // Stand-down still waives the side check, but this context is NOT
+    // mid-zone (R10 is a measured fact) — declaring it is its own violation
+    // (feat-145 gate round 1: a false stand-down could persist a ready plan
+    // with zero plays claiming a two-way).
     const standing = { ...oneSided, standDown: true, standDownText: 'Two-way between the Daily Pivot and the Weekly Pivot.' }
-    expect(validateJudgment(standing, ctx)).toEqual([])
+    const codes = validateJudgment(standing, ctx).map((v) => v.code)
+    expect(codes).toContain('stand_down_without_mid_zone')
+    expect(codes).not.toContain('side_unaddressed')
     expect(validateJudgment({ ...standing, standDownText: null }, ctx).map((v) => v.code)).toContain('stand_down_without_text')
   })
 

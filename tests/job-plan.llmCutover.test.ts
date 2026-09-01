@@ -11,6 +11,7 @@ import type { LlmContextPayload } from '@/lib/job-plan/llm-planner/contextPayloa
 import { LLM_PLANNER_REVISION } from '@/lib/job-plan/llm-planner/prompt'
 import { LlmPlanContractError, type LlmPlannerGenerate } from '@/lib/job-plan/llm-planner/runLlmPlanner'
 import type { LlmPlanJudgment } from '@/lib/job-plan/llm-planner/schema'
+import { validateJudgment } from '@/lib/job-plan/llm-planner/validate'
 import { PLANNER_REVISION } from '@/lib/job-plan/rules'
 import { LLM_PLANNER_OFF_WARNING, runJobPlan } from '@/lib/job-plan/runJobPlan'
 import { fakeJobPlanDeps, type FakeOptions } from './helpers/jobPlanDeps'
@@ -141,6 +142,29 @@ describe('assembleLlmPlan', () => {
     const judgment = cleanJudgment(ctx)
     const flipped: LlmPlanJudgment = { ...judgment, plays: [{ ...judgment.plays[0], direction: 'long' }, judgment.plays[1]] }
     expect(() => assembleLlmPlan({ judgment: flipped, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
+  })
+
+  it('stand-down outside a measured mid-zone is a contract violation and an assembly error, never a zero-play ready plan', () => {
+    const ctx = context()
+    const judgment: LlmPlanJudgment = {
+      ...cleanJudgment(ctx),
+      plays: [],
+      standDown: true,
+      standDownText: 'Two-way between the edges.',
+    }
+    expect(validateJudgment(judgment, ctx).map((v) => v.code)).toContain('stand_down_without_mid_zone')
+    expect(() => assembleLlmPlan({ judgment, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
+    // And the mid-zone declaration IS legal where R10 measures one.
+    const mid = midZoneContext()
+    const midJudgment: LlmPlanJudgment = {
+      frame: { referenceId: 'wp', rationale: 'Weekly pivot frames from above.' },
+      plays: [],
+      sidesWithoutPlay: [],
+      standDown: true,
+      standDownText: 'Mid-zone inside JBA 1 — two-way at the edges.',
+      lean: 'Two-way at the JBA edges.',
+    }
+    expect(validateJudgment(midJudgment, mid).map((v) => v.code)).not.toContain('stand_down_without_mid_zone')
   })
 })
 
