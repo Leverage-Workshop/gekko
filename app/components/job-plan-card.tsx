@@ -179,9 +179,18 @@ function PrunedList({ pruned }: { pruned: JobPlanCardData['plan']['pruned'] }) {
 }
 
 function FrameBlock({ frame }: { frame: NonNullable<JobPlanCardData['plan']['frame']> }) {
+  const tone =
+    frame.side === 'above'
+      ? { border: 'border-t-2 border-t-bmw-blue', label: 'text-bmw-blue' }
+      : frame.side === 'below'
+        ? { border: 'border-t-2 border-t-m-red', label: 'text-m-red' }
+        : { border: '', label: 'text-muted' }
   return (
-    <div className="border border-hairline bg-surface-card p-6" data-section="frame">
-      <span className="text-xs font-bold uppercase tracking-[1.5px] text-muted">
+    <div
+      className={`border border-hairline ${tone.border} bg-surface-card p-6`}
+      data-section="frame"
+    >
+      <span className={`text-xs font-bold uppercase tracking-[1.5px] ${tone.label}`}>
         Frame · {frame.side} the {frame.label}
       </span>
       <p className="mt-3 text-base font-light leading-relaxed text-body">{frame.text}</p>
