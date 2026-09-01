@@ -174,11 +174,19 @@ function diffLines(entry: Entry): string[] {
   return lines
 }
 
+/** Only bundles where a repeat run actually happened count; a single run is unmeasured, never "stable". */
+function stabilityLine(ok: readonly Entry[]): string {
+  const measured = ok.filter((e) => e.stability !== null)
+  if (measured.length === 0) return 'stability not measured (single run)'
+  return `stable ${measured.filter((e) => e.stability?.stable).length}/${measured.length}`
+}
+
 function report(entries: Entry[], args: Args, model: string, effort: ReasoningEffort | null): string {
   const ok = entries.filter((e) => e.error === null && e.diff !== null)
   const agree = (pick: (e: Entry & { diff: ShadowDiff }) => boolean) =>
     `${ok.filter((e) => pick(e as Entry & { diff: ShadowDiff })).length}/${ok.length}`
-  const cost = ok.flatMap((e) => e.llm).reduce((sum, r) => sum + (r.costUsd ?? 0), 0)
+  // ALL entries — a failed bundle's completed calls still spent money.
+  const cost = entries.flatMap((e) => e.llm).reduce((sum, r) => sum + (r.costUsd ?? 0), 0)
   const lines: string[] = [
     `# LLM Job planner shadow A/B — ${new Date().toISOString().slice(0, 10)}`,
     '',
@@ -186,7 +194,7 @@ function report(entries: Entry[], args: Args, model: string, effort: ReasoningEf
     `- model: \`${model}\`  effort: \`${effort ?? 'provider default'}\`  runs per bundle: ${args.runs}`,
     `- bundles: ${entries.length} (${ok.length} compared)  total LLM cost: $${cost.toFixed(4)}`,
     '',
-    `**Agreement:** frame ${agree((e) => e.diff.frame.agree)} · primary ${agree((e) => e.diff.primary.agree)} · stand-down ${agree((e) => e.diff.standDown.agree)} · stable ${agree((e) => e.stability?.stable ?? true)}`,
+    `**Agreement:** frame ${agree((e) => e.diff.frame.agree)} · primary ${agree((e) => e.diff.primary.agree)} · stand-down ${agree((e) => e.diff.standDown.agree)} · ${stabilityLine(ok)}`,
     '',
     'Agreements are sanity; **the disagreements are the experiment** — adjudicate each one below.',
   ]
@@ -229,9 +237,11 @@ async function main(): Promise<void> {
   const entries: Entry[] = []
   for (const row of rows) {
     const context = row.plan.context
+    // Accumulated outside the try: a later run's failure must not discard the
+    // spend and evidence of the calls that already completed.
+    const llm: LlmPlannerResult[] = []
     try {
       const det = buildPlan({ context })
-      const llm: LlmPlannerResult[] = []
       for (let i = 0; i < args.runs; i++) {
         llm.push(await runLlmPlanner({ context, model, effort }))
       }
@@ -243,7 +253,7 @@ async function main(): Promise<void> {
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      entries.push({ row, context, det: null, llm: [], diff: null, stability: null, error: message })
+      entries.push({ row, context, det: null, llm, diff: null, stability: null, error: message })
       console.error(`  ${row.trading_day}: SKIPPED — ${message}`)
     }
   }
