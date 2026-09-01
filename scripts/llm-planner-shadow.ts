@@ -89,6 +89,10 @@ async function fetchRows(limit: number): Promise<JobPlanRow[]> {
       .from('job_plans')
       .select('id, trading_day, created_at, plan, status')
       .eq('status', 'ready')
+      // Newest trading DAYS first — a replayed old day regenerated recently
+      // must not consume a slot from a newer day; created_at only breaks ties
+      // within a day (latest revision of that day wins).
+      .order('trading_day', { ascending: false })
       .order('created_at', { ascending: false })
       .range(from, from + page - 1)
     if (error) throw error
