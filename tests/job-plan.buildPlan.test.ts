@@ -66,7 +66,7 @@ const failedLook = (direction: 'above' | 'below', grade: 'EARLY' | 'LATE' = 'EAR
   extremePrice: direction === 'below' ? 29285 : 29410,
 })
 
-describe('the frame: price vs the nearer of the G line and the weekly Job Pivot', () => {
+describe('the frame: the tier-one MGI ladder — G line > weekly pivot > weekly extensions > daily pivot, most important in reach wins', () => {
   it('names the operative line, the side and the productive direction', () => {
     const p = plan()
     expect(p.frame).toMatchObject({ referenceId: 'g-line', label: 'G line (week open)', price: 29300, side: 'above', distancePts: 60 })
@@ -75,8 +75,28 @@ describe('the frame: price vs the nearer of the G line and the weekly Job Pivot'
     expect(p.frame?.provenance).toEqual({ kind: 'reference', referenceIds: ['g-line'], derivation: null })
   })
 
-  it('picks the nearer of the two frame references', () => {
-    expect(plan({ price: 29450 }).frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'below', distancePts: 50 })
+  it('the G line in reach outranks a nearer weekly pivot — importance, never blind proximity', () => {
+    expect(plan({ price: 29450 }).frame).toMatchObject({ referenceId: 'g-line', side: 'above', distancePts: 150 })
+  })
+
+  it('with the G line out of reach the weekly pivot frames, even when the daily pivot is nearer', () => {
+    const p = plan({ refs: BASE_REFS.filter((r) => r.source !== 'g-line') })
+    expect(p.frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'below', distancePts: 140 })
+  })
+
+  it('a weekly pivot extension frames when the pivots are out of reach ("worked our way up to the 1A")', () => {
+    const p = plan({ price: 29660, reachPts: 100 })
+    expect(p.frame).toMatchObject({ referenceId: 'rung:weekly:1A', label: 'Weekly Job Pivot 1A', side: 'below', distancePts: 40 })
+  })
+
+  it('the fresh daily pivot frames when every weekly line is out of reach — ranked right below the weekly MGI', () => {
+    const p = plan({ price: 29370, reachPts: 30 })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below', distancePts: 23.5 })
+  })
+
+  it('nothing in reach → the nearest tier-one line still frames, stated at its distance', () => {
+    const p = plan({ reachPts: 10 })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below', distancePts: 33.5 })
   })
 
   it('within one merge tolerance of the line the frame is AT it — balance, no productive side', () => {
@@ -156,10 +176,13 @@ describe('the forward-conditional grammar: expected response on arrival, both ou
   it('a band price sits inside leans with the frame', () => {
     const p = plan({ price: 29420 })
     const rip = playAt(p, 'Rip')!
-    expect(p.frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'below' })
-    expect(rip).toMatchObject({ stance: 'reoffer', direction: 'short' })
+    expect(p.frame).toMatchObject({ referenceId: 'g-line', side: 'above' })
+    expect(rip).toMatchObject({ stance: 'rebid', direction: 'long' })
     expect(rip.band.side).toBe('inside')
-    expect(rip.trigger).toContain('Lean against Rip 29420 from here')
+    expect(rip.trigger).toContain('Lean on Rip 29420 from here')
+    const below = plan({ price: 29420, refs: BASE_REFS.map((r) => (r.source === 'g-line' ? { ...r, price: 29500 } : r.source === 'weekly-job-pivot' ? { ...r, price: 29800 } : r)) })
+    expect(below.frame).toMatchObject({ side: 'below' })
+    expect(playAt(below, 'Rip')).toMatchObject({ stance: 'reoffer', direction: 'short' })
   })
 
   it('a band price sits inside with no frame direction is pruned, not guessed', () => {

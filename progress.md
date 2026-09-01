@@ -4777,3 +4777,17 @@ the rotation HVN price sits on, look-below-and-fail at JBA 1 low, look-above-and
 at PDH. The OR Low rebid that triggered the investigation is pruned. Verification:
 ./init.sh green (2201 tests), buildPlan/invariants/card suites rewritten to the new
 contract.
+
+## 2026-08-31 (late): frame = tier-one MGI ladder (operator refinement)
+
+Operator: nearest-of-{G line, weekly pivot} can name a line hundreds of points away;
+the frame is tier-one MGI — G line and weekly pivot the prominent ones, weekly pivot
+extensions sometimes, and the daily Job Pivot (fresh, runs are post-RTH-open) ranked
+right below the weekly MGI. `planFrame.ts` now walks the importance ladder
+G line > weekly pivot > weekly rungs > daily pivot and takes the most important line
+WITHIN REACH (R4 sigma), nearest within a step; nothing in reach → nearest tier-one
+line overall, stated at its distance. Corpus fits: 03-16 "G line is way down here"
+drops out; 06-15/08-04 frame off the 1A/2A. Shadow on the 2026-08-25 bundle: sigma
+170.67 puts the G line (182.75) out of reach → frame = Daily Job Pivot 29349.25,
+side below — same downside-productive read, now on an operative line. PLANNER_REVISION
+→ job-planner/2026-08-31.6. ./init.sh green (2205 tests).
