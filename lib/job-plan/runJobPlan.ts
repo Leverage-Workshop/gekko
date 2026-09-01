@@ -6,7 +6,10 @@ import { DEFAULT_PROFILE_VISION_SAMPLES } from '@/lib/config/fetchConfig'
 import { computeInputFingerprint, sourceHashesOf } from './fingerprint'
 import { JobPlanAbortError } from './jobPlanErrors'
 import { loadJobBundle, type LoadJobBundleDeps, type LoadedJobBundle, type BundleWaitOutcome } from './loadJobBundle'
+import { assembleLlmPlan, llmPlannerRevision } from './llm-planner/assemblePlan'
+import { LlmPlanContractError, runLlmPlanner, type LlmPlannerGenerate } from './llm-planner/runLlmPlanner'
 import { parseJobStudy } from './parseJobStudy'
+import type { JobPlannerKind } from './plannerMode'
 import { instrumentFromSymbol, type Instrument } from './profile-vision/instrument'
 import type { ProfileKey, ProfileNodes } from './profile-vision/types'
 import { PLANNER_REVISION } from './rules'
@@ -29,8 +32,17 @@ import {
  *
  * Everything with a side effect is injected ({@link JobPlanDeps}) so the
  * shell is unit-testable with fakes; `trigger/jobPlanTask.ts` is a thin
- * wrapper. HARD LIMITS: the vision read is the only LLM use; nothing here
- * touches `briefings` / `entry_levels`; no push.
+ * wrapper. HARD LIMITS: the only LLM uses are the vision read and — when the
+ * task selects `planner: 'llm'` (feat-145, `plannerMode.ts`) — the ONE
+ * judgment call; nothing here touches `briefings` / `entry_levels`; no push.
+ *
+ * LLM planner path (feat-145): after the deterministic pipeline produces a
+ * `ready` plan, the judgment core is re-decided by the model over the SAME
+ * `JobContext` and assembled by `assembleLlmPlan`; the assembled plan is what
+ * gets persisted. `insufficient` fails closed BEFORE any judgment spend, a
+ * surviving contract violation throws {@link LlmPlanContractError}
+ * (retryable — a fresh attempt gets a fresh call), and an unseeded config
+ * (no model id) falls back to the deterministic plan with a warning.
  *
  * WRITE CONTRACT: the row is written only after computation completes; the
  * row's identity is the trigger.dev run id (retries upsert their own row); an
@@ -67,8 +79,10 @@ export interface JobPlanDeps extends LoadJobBundleDeps {
    * no-op, so the returned status may differ from the one written.
    */
   insertJobPlan: (row: JobPlanInsert) => Promise<{ id: string; status: PlanStatus }>
-  /** The vision model call — the ONLY LLM use in the run. */
+  /** The vision model call. */
   generate: JobPlanVisionGenerate
+  /** The LLM planner's judgment call (feat-145) — used only when the run selects `planner: 'llm'`. */
+  generateJudgment: LlmPlannerGenerate
   /** Test overrides for the render → PNG step and the few-shot set. */
   rasterize?: (svg: string) => Uint8Array
 }
@@ -84,6 +98,22 @@ export type RunJobPlanOptions = {
    * budget. This module is clock-free by contract, so the task computes it.
    */
   readonly visionDeadlineAt?: number
+  /**
+   * Which planner composes the persisted plan (feat-145). Defaults to
+   * 'deterministic'; the production task passes `JOB_PLANNER` from
+   * `plannerMode.ts`.
+   */
+  readonly planner?: JobPlannerKind
+}
+
+/** Judgment-call spend and provenance, for run metadata (like `vision`). */
+export type LlmPlannerSummary = {
+  readonly modelId: string
+  readonly promptRevision: string
+  /** 1 = clean first pass, 2 = the contract retry ran. */
+  readonly attempts: number
+  readonly costUsd: number | null
+  readonly latencyMs: number
 }
 
 export type JobPlanRunResult = {
@@ -97,16 +127,23 @@ export type JobPlanRunResult = {
   readonly inputFingerprint: string
   readonly warnings: readonly string[]
   readonly vision: VisionSummary | null
+  /** Set when the run selected `planner: 'llm'` and the judgment call ran. */
+  readonly llm: LlmPlannerSummary | null
   readonly plan: JobPlan
 }
 
 export const CONFIG_MISSING_WARNING =
   'config row missing — profile vision read OFF (no model id to read with)'
 
+export const LLM_PLANNER_OFF_WARNING =
+  'llm_planner_off: no config.model_id to judge with — the DETERMINISTIC plan was persisted instead (feat-145 fallback)'
+
 const VISION_OFF_CONFIG: JobPlanConfig = {
   profile_vision_model_id: null,
   profile_vision_model_effort: null,
   profile_vision_samples: DEFAULT_PROFILE_VISION_SAMPLES,
+  model_id: null,
+  model_effort: null,
 }
 
 type Preflight = {
@@ -168,7 +205,9 @@ function buildRow(
     trading_day: plan.meta.tradingDay,
     trigger_reason: options.triggerReason,
     status: plan.status,
-    planner_revision: PLANNER_REVISION,
+    // What actually produced the plan — in the llm-off fallback corner the
+    // persisted plan is deterministic and the row says so.
+    planner_revision: plan.meta.plannerRevision,
     input_fingerprint: inputFingerprint,
     run_id: options.runId,
     plan,
@@ -217,6 +256,7 @@ async function visionRead(
 }
 
 export async function runJobPlan(deps: JobPlanDeps, options: RunJobPlanOptions): Promise<JobPlanRunResult> {
+  const planner: JobPlannerKind = options.planner ?? 'deterministic'
   const configRow = await deps.fetchConfig()
   const config = configRow ?? VISION_OFF_CONFIG
   const configWarnings = configRow === null ? [CONFIG_MISSING_WARNING] : []
@@ -225,11 +265,12 @@ export async function runJobPlan(deps: JobPlanDeps, options: RunJobPlanOptions):
   const preflight = preflightParse(bundle.texts)
   const vision = await visionRead(deps, config, preflight, options.visionDeadlineAt)
 
+  const plannerRevision = planner === 'llm' ? llmPlannerRevision() : PLANNER_REVISION
   const visionModelId = vision.profileNodes?.modelId ?? null
   const visionPromptRevision = vision.profileNodes?.promptRevision ?? null
   const inputFingerprint = computeInputFingerprint({
     sources: bundle.sources,
-    plannerRevision: PLANNER_REVISION,
+    plannerRevision,
     imageHashes: vision.imageHashes,
     visionPromptRevision,
     visionModelId,
@@ -238,20 +279,54 @@ export async function runJobPlan(deps: JobPlanDeps, options: RunJobPlanOptions):
   // The chart clock (last exec bar / MGI time), never received_at: a replayed
   // bundle must plan on the replay day, not the machine's.
   const asOf = chartAsOf(preflight.mgi, preflight.execBars) ?? bundle.asOf
-  const { plan, warnings: planWarnings } = runPlanner({
+  const meta = {
+    bundleId: bundle.row.id,
+    inputFingerprint,
+    sourceHashes: sourceHashesOf(bundle.sources),
+    visionPromptRevision,
+    visionModelId,
+  }
+  const { plan: deterministicPlan, warnings: planWarnings } = runPlanner({
     files: bundle.texts,
     profileNodes: vision.profileNodes,
     asOf,
-    meta: {
-      bundleId: bundle.row.id,
-      inputFingerprint,
-      sourceHashes: sourceHashesOf(bundle.sources),
-      visionPromptRevision,
-      visionModelId,
-    },
+    meta,
   })
 
-  const warnings = dedupe([...configWarnings, ...bundle.warnings, ...vision.warnings, ...planWarnings])
+  // The LLM judgment core (feat-145): same context, model-chosen frame /
+  // plays / order / lean, code-assembled plays. `insufficient` never spends;
+  // surviving contract violations throw (retryable).
+  let plan = deterministicPlan
+  let llm: LlmPlannerSummary | null = null
+  const llmWarnings: string[] = []
+  if (planner === 'llm' && deterministicPlan.status === 'ready') {
+    if (config.model_id === null) {
+      llmWarnings.push(LLM_PLANNER_OFF_WARNING)
+    } else {
+      const judged = await runLlmPlanner({
+        context: deterministicPlan.context,
+        model: config.model_id,
+        effort: config.model_effort,
+        generate: deps.generateJudgment,
+      })
+      if (judged.violations.length > 0) throw new LlmPlanContractError(judged.violations)
+      plan = assembleLlmPlan({
+        judgment: judged.judgment,
+        context: deterministicPlan.context,
+        modelId: judged.model,
+        meta,
+      })
+      llm = {
+        modelId: judged.model,
+        promptRevision: judged.promptRevision,
+        attempts: judged.attempts,
+        costUsd: judged.costUsd,
+        latencyMs: judged.latencyMs,
+      }
+    }
+  }
+
+  const warnings = dedupe([...configWarnings, ...bundle.warnings, ...vision.warnings, ...planWarnings, ...llmWarnings])
   const row = buildRow(bundle, plan, options, warnings, vision.profileNodes, inputFingerprint)
   const persisted = await persistJobPlan(deps, row)
 
@@ -262,10 +337,11 @@ export async function runJobPlan(deps: JobPlanDeps, options: RunJobPlanOptions):
     bundleId: bundle.row.id,
     bundleWait: bundle.binding.bundleWait,
     tradingDay: plan.meta.tradingDay,
-    plannerRevision: PLANNER_REVISION,
+    plannerRevision: plan.meta.plannerRevision,
     inputFingerprint,
     warnings,
     vision: vision.summary,
+    llm,
     plan,
   }
 }

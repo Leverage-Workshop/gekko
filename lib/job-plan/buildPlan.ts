@@ -37,6 +37,11 @@ export type PlanMetaInput = {
   readonly sourceHashes?: Partial<PlanMeta['sourceHashes']>
   readonly visionPromptRevision?: string | null
   readonly visionModelId?: string | null
+  /** Overrides {@link PLANNER_REVISION} — the LLM assembler stamps its combined revision (feat-145). */
+  readonly plannerRevision?: string
+  readonly jobPlanner?: PlanMeta['jobPlanner']
+  readonly llmModelId?: string | null
+  readonly llmPromptRevision?: string | null
 }
 
 export type BuildPlanInput = {
@@ -62,9 +67,9 @@ function sourceHashes(meta: PlanMetaInput): PlanMeta['sourceHashes'] {
   ) as PlanMeta['sourceHashes']
 }
 
-function planMeta(context: JobContext, meta: PlanMetaInput): PlanMeta {
+export function planMeta(context: JobContext, meta: PlanMetaInput): PlanMeta {
   return {
-    plannerRevision: PLANNER_REVISION,
+    plannerRevision: meta.plannerRevision ?? PLANNER_REVISION,
     asOf: context.asOf,
     instrument: context.instrument,
     symbol: context.symbol,
@@ -74,10 +79,17 @@ function planMeta(context: JobContext, meta: PlanMetaInput): PlanMeta {
     sourceHashes: sourceHashes(meta),
     visionPromptRevision: meta.visionPromptRevision ?? null,
     visionModelId: meta.visionModelId ?? null,
+    ...(meta.jobPlanner === undefined
+      ? {}
+      : {
+          jobPlanner: meta.jobPlanner,
+          llmModelId: meta.llmModelId ?? null,
+          llmPromptRevision: meta.llmPromptRevision ?? null,
+        }),
   }
 }
 
-function geometryRefs(context: JobContext): GeometryRefs {
+export function geometryRefs(context: JobContext): GeometryRefs {
   return {
     price: context.price.value,
     references: context.references.map((r) => ({
@@ -146,7 +158,7 @@ function zoneBand(zone: EnclosingZone, context: JobContext): PlayBand {
 }
 
 /** The mid-zone (R10) two-way declaration: stand down in the middle, play the named edges. */
-function zoneDraft(zone: EnclosingZone, context: JobContext): PlayDraft {
+export function zoneDraft(zone: EnclosingZone, context: JobContext): PlayDraft {
   const band = zoneBand(zone, context)
   return {
     stance: 'stand-down',

@@ -2,6 +2,7 @@ import type { PlanStatus } from '@/knowledge/schema/job-plan.schema'
 import type { BundleRow } from '@/lib/analyze/loadBundle'
 import type { BundleWaitResult } from '@/lib/bundleRequests'
 import type { ProfileNodesRead } from '@/lib/job-plan/profile-vision/schema'
+import type { LlmPlannerGenerate } from '@/lib/job-plan/llm-planner/runLlmPlanner'
 import type { JobPlanConfig, JobPlanDeps, JobPlanInsert } from '@/lib/job-plan/runJobPlan'
 import type { JobPlanVisionGenerate } from '@/lib/job-plan/visionRead'
 import { BUNDLE_ID, bundleRow, bundleTexts, storageOf, type BundleTexts } from './jobPlanFiles'
@@ -18,6 +19,8 @@ export type FakeState = {
   readonly inserted: JobPlanInsert[]
   readonly uploads: Map<string, Uint8Array>
   readonly generateCalls: { prompt: string; model: string }[]
+  /** LLM planner judgment calls (feat-145). */
+  readonly judgmentCalls: { prompt: string; model: string }[]
   fetchedById: string[]
   latestFetches: number
   existing: { id: string; status: PlanStatus } | null
@@ -30,6 +33,7 @@ export type FakeOptions = {
   readonly wait?: BundleWaitResult
   readonly existing?: { id: string; status: PlanStatus } | null
   readonly generate?: JobPlanVisionGenerate
+  readonly generateJudgment?: LlmPlannerGenerate
   readonly uploadImage?: JobPlanDeps['uploadImage']
   /** Status the fake database reports AFTER the upsert (simulates the keep-ready trigger). */
   readonly persistedStatus?: PlanStatus
@@ -39,12 +43,16 @@ export const VISION_OFF: JobPlanConfig = {
   profile_vision_model_id: null,
   profile_vision_model_effort: null,
   profile_vision_samples: 3,
+  model_id: 'test/planner-model',
+  model_effort: null,
 }
 
 export const VISION_ON: JobPlanConfig = {
   profile_vision_model_id: 'test/vision-model',
   profile_vision_model_effort: 'low',
   profile_vision_samples: 3,
+  model_id: 'test/planner-model',
+  model_effort: null,
 }
 
 /** A cheap stand-in rasterizer: the PNG bytes are irrelevant to the orchestration under test. */
@@ -95,6 +103,7 @@ export function fakeJobPlanDeps(options: FakeOptions = {}): { deps: JobPlanDeps;
     inserted: [],
     uploads: new Map(),
     generateCalls: [],
+    judgmentCalls: [],
     fetchedById: [],
     latestFetches: 0,
     existing: options.existing ?? null,
@@ -132,6 +141,11 @@ export function fakeJobPlanDeps(options: FakeOptions = {}): { deps: JobPlanDeps;
       state.generateCalls.push({ prompt: params.prompt, model: params.model })
       return generate(params)
     },
+    generateJudgment: (async (params: { prompt: string; model: string }) => {
+      state.judgmentCalls.push({ prompt: params.prompt, model: params.model })
+      if (!options.generateJudgment) throw new Error('fake generateJudgment: no judgment stub provided')
+      return (options.generateJudgment as (p: unknown) => unknown)(params)
+    }) as LlmPlannerGenerate,
     rasterize: fakeRasterize,
   }
 
