@@ -58,8 +58,11 @@ export function rankDrafts(drafts: readonly PlayDraft[], frame: PlanFrame | null
   const tiers = [...new Set(keyed.map((d) => d.precedence.tier))].sort((a, b) => a - b)
   return tiers.flatMap((tier) => {
     const group = keyed.filter((d) => d.precedence.tier === tier).sort(withinSide)
-    if (dir === null) return group
-    const leads = group.filter((d) => d.direction === dir || d.direction === 'two-way')
+    // With no frame direction ('at' the line) the structurally-first play's side
+    // leads — both sides still alternate so the cap never one-sides the plan.
+    const lead = dir ?? group.find((d) => d.direction !== 'two-way')?.direction ?? null
+    if (lead === null) return group
+    const leads = group.filter((d) => d.direction === lead || d.direction === 'two-way')
     return interleave(leads, group.filter((d) => !leads.includes(d)))
   })
 }
