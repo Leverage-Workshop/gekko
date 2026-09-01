@@ -125,6 +125,27 @@ describe('llm-planner hard gates', () => {
     expect(validateJudgment(rung, ctx).map((v) => v.code)).toContain('play_destination_only')
   })
 
+  it('rejects invented prices in prose but ignores distances, minutes, and known prices', () => {
+    const ctx = context()
+    const base = cleanJudgment(ctx)
+    const invented = {
+      ...base,
+      plays: [{ ...base.plays[0], text: 'If price reaches 20050, expect the offer back down.' }, base.plays[1]],
+    }
+    const codes = validateJudgment(invented, ctx)
+    expect(codes.map((v) => v.code)).toContain('invented_price')
+    expect(codes.find((v) => v.code === 'invented_price')?.message).toContain('20050')
+
+    const legitimate = {
+      ...base,
+      plays: [
+        { ...base.plays[0], text: 'Reoffer 20150 on arrival, 220 pts above — the 1A stays a destination; expect the response within 30 min.' },
+        base.plays[1],
+      ],
+    }
+    expect(validateJudgment(legitimate, ctx)).toEqual([])
+  })
+
   it('requires every playable side to carry a play or a reason — unless standing down', () => {
     const ctx = context()
     const base = cleanJudgment(ctx)

@@ -25,10 +25,63 @@ export type JudgmentViolationCode =
   | 'play_inside_without_frame_direction'
   | 'side_unaddressed'
   | 'stand_down_without_text'
+  | 'invented_price'
 
 export type JudgmentViolation = {
   readonly code: JudgmentViolationCode
   readonly message: string
+}
+
+/** Matches standalone numbers (optionally comma-grouped) — not digits embedded in a word like "1A". */
+const NUMBER_RE = /(?<![\w.])\d[\d,]*(?:\.\d+)?(?!\w)/g
+
+/** Same epsilon the JobPlan schema uses for inventory-price membership. */
+const PRICE_EPSILON = 0.005
+
+function knownPrices(context: JobContext): number[] {
+  const prices = new Set<number>([context.price.value])
+  for (const r of context.references) {
+    prices.add(r.price)
+    prices.add(r.priceLow)
+    prices.add(r.priceHigh)
+  }
+  for (const b of context.bands) {
+    prices.add(b.low)
+    prices.add(b.high)
+  }
+  const zone = context.location.enclosingZone
+  if (zone !== null) {
+    prices.add(zone.lowerEdge.price)
+    prices.add(zone.upperEdge.price)
+  }
+  return [...prices]
+}
+
+/**
+ * Numbers in model-authored prose that sit inside the inventory's price span
+ * but match no supplied price. The span filter keeps legitimate non-price
+ * numerics (point distances, minutes, sigma multiples) out of scope — they
+ * live orders of magnitude below an NQ/ES price — so what remains inside the
+ * span either IS a carried price or was invented.
+ */
+export function inventedPrices(judgment: LlmPlanJudgment, context: JobContext): number[] {
+  const known = knownPrices(context)
+  const lo = Math.min(...known) - context.tolerance.cap
+  const hi = Math.max(...known) + context.tolerance.cap
+  const prose = [
+    judgment.frame.rationale,
+    judgment.lean,
+    judgment.standDownText ?? '',
+    ...judgment.plays.flatMap((p) => [p.text, p.rationale]),
+    ...judgment.sidesWithoutPlay.map((s) => s.reason),
+  ].join('\n')
+  const invented = new Set<number>()
+  for (const match of prose.matchAll(NUMBER_RE)) {
+    const value = Number(match[0].replace(/,/g, ''))
+    if (!Number.isFinite(value) || value < lo || value > hi) continue
+    if (!known.some((k) => Math.abs(k - value) < PRICE_EPSILON)) invented.add(value)
+  }
+  return [...invented]
 }
 
 /** Which side of the judged frame line price sits on ('at' within one merge tolerance). */
@@ -107,6 +160,11 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
 
   if (judgment.standDown && (judgment.standDownText === null || judgment.standDownText.trim() === '')) {
     add('stand_down_without_text', 'standDown is declared without the two-way text naming the edges')
+  }
+
+  const invented = inventedPrices(judgment, context)
+  if (invented.length > 0) {
+    add('invented_price', `prose quotes price(s) the payload does not carry: ${invented.join(', ')} — name levels by their labels or by a supplied price`)
   }
 
   return violations

@@ -34,12 +34,14 @@ model call — FIXED (`runLlmPlanner` throws on `insufficiencyReasons` before an
 (2) stability only compared runs 1–2 — FIXED (`stabilityAcross` ANDs every later run against the
 first); (3) `limit * 4` row fetch could under-fill unique days — FIXED (paged `range()` until
 enough distinct days or exhaustion); (4) invented numeric prices in model-authored prose —
-PARTIALLY ADDRESSED: OUTPUT rule now says a written price must be one the payload carries
-(revision → `llm-planner/2026-08-31.2`); hard prose-price linting DISMISSED — structural fields
-are id-constrained by the schema (invented prices have no field), prose legitimately carries
-non-price numerics (distances, minutes, sigma), and the shadow report hands the full text to the
-operator, whose adjudication is the whole point of the experiment. Revisit only if adjudication
-actually surfaces an invented price.
+initially dismissed as brittle, then ESCALATED to P1 in round 2 (the proposal names it a hard
+gate) and FIXED properly: `inventedPrices()` in validate.ts extracts standalone numbers from all
+prose fields, keeps only those inside the inventory's price span (± band cap — distances,
+minutes, and sigma multiples live orders of magnitude below an NQ/ES price so the span filter
+excludes them), and flags any that match no supplied price (schema epsilon 0.005) as an
+`invented_price` violation the retry corrects. OUTPUT rule also states it (revision →
+`llm-planner/2026-08-31.2`). Round-2 P2 (report showed `args.effort`, not the resolved
+config effort) FIXED — the report renders the effort actually passed to the model.
 
 **Previous change (branch `feat-sierra-job-plan-bands`, PR #192): Job plan bands on the Sierra
 charts.** New `job_plan_bands` view (migration `20260831210000_job_plan_bands_view.sql`, applied

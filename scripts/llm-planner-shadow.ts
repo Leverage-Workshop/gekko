@@ -174,7 +174,7 @@ function diffLines(entry: Entry): string[] {
   return lines
 }
 
-function report(entries: Entry[], args: Args, model: string): string {
+function report(entries: Entry[], args: Args, model: string, effort: ReasoningEffort | null): string {
   const ok = entries.filter((e) => e.error === null && e.diff !== null)
   const agree = (pick: (e: Entry & { diff: ShadowDiff }) => boolean) =>
     `${ok.filter((e) => pick(e as Entry & { diff: ShadowDiff })).length}/${ok.length}`
@@ -183,7 +183,7 @@ function report(entries: Entry[], args: Args, model: string): string {
     `# LLM Job planner shadow A/B — ${new Date().toISOString().slice(0, 10)}`,
     '',
     `- prompt revision: \`${LLM_PLANNER_REVISION}\`  deterministic: \`${PLANNER_REVISION}\``,
-    `- model: \`${model}\`  effort: \`${args.effort ?? 'provider default'}\`  runs per bundle: ${args.runs}`,
+    `- model: \`${model}\`  effort: \`${effort ?? 'provider default'}\`  runs per bundle: ${args.runs}`,
     `- bundles: ${entries.length} (${ok.length} compared)  total LLM cost: $${cost.toFixed(4)}`,
     '',
     `**Agreement:** frame ${agree((e) => e.diff.frame.agree)} · primary ${agree((e) => e.diff.primary.agree)} · stand-down ${agree((e) => e.diff.standDown.agree)} · stable ${agree((e) => e.stability?.stable ?? true)}`,
@@ -250,7 +250,7 @@ async function main(): Promise<void> {
 
   const out = args.out ?? join('docs', 'shadow-runs', `job-plan-llm-${new Date().toISOString().slice(0, 10)}.md`)
   mkdirSync(dirname(out), { recursive: true })
-  writeFileSync(out, report(entries, args, model))
+  writeFileSync(out, report(entries, args, model, effort))
   console.log(`\nReport: ${out}`)
 }
 
