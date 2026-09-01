@@ -136,6 +136,13 @@ describe('llm-planner hard gates', () => {
     expect(codes.map((v) => v.code)).toContain('invented_price')
     expect(codes.find((v) => v.code === 'invented_price')?.message).toContain('20050')
 
+    // Above the inventory span is still a price claim ("toward 21000").
+    const beyond = {
+      ...base,
+      plays: [{ ...base.plays[0], text: 'Through the Weekly Pivot the traverse runs toward 21000.' }, base.plays[1]],
+    }
+    expect(validateJudgment(beyond, ctx).map((v) => v.code)).toContain('invented_price')
+
     const legitimate = {
       ...base,
       plays: [
@@ -156,6 +163,28 @@ describe('llm-planner hard gates', () => {
     const standing = { ...oneSided, standDown: true, standDownText: 'Two-way between the Daily Pivot and the Weekly Pivot.' }
     expect(validateJudgment(standing, ctx)).toEqual([])
     expect(validateJudgment({ ...standing, standDownText: null }, ctx).map((v) => v.code)).toContain('stand_down_without_text')
+  })
+
+  it('a side with only destination-only structure still needs its one-line reason', () => {
+    const ctx = synthContext({
+      price: 19930,
+      refs: [
+        { id: 'wp', source: 'weekly-job-pivot', price: 20150, label: 'Weekly Pivot' },
+        { id: 'dp', source: 'daily-job-pivot', price: 20100, label: 'Daily Pivot' },
+        { id: 'rung', source: 'weekly-rung', price: 19700, label: '1B' },
+      ],
+    })
+    const judgment: LlmPlanJudgment = {
+      frame: { referenceId: 'wp', rationale: 'Most important line in reach.' },
+      plays: [{ bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer.', rationale: 'Frame side.' }],
+      sidesWithoutPlay: [],
+      standDown: false,
+      standDownText: null,
+      lean: 'Short into the Weekly Pivot.',
+    }
+    expect(validateJudgment(judgment, ctx).map((v) => v.code)).toContain('side_unaddressed')
+    const excused = { ...judgment, sidesWithoutPlay: [{ side: 'below' as const, reason: 'only the 1B rung below — destinations, nothing to play' }] }
+    expect(validateJudgment(excused, ctx)).toEqual([])
   })
 })
 

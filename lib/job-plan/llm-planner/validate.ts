@@ -58,16 +58,15 @@ function knownPrices(context: JobContext): number[] {
 }
 
 /**
- * Numbers in model-authored prose that sit inside the inventory's price span
- * but match no supplied price. The span filter keeps legitimate non-price
- * numerics (point distances, minutes, sigma multiples) out of scope — they
- * live orders of magnitude below an NQ/ES price — so what remains inside the
- * span either IS a carried price or was invented.
+ * Numbers in model-authored prose at price magnitude that match no supplied
+ * price. Anything at or above the inventory's floor is a price claim — inside
+ * the span OR beyond it ("toward 21000" above a 20500 top is still invented).
+ * Legitimate non-price numerics (point distances, minutes, sigma multiples)
+ * live orders of magnitude below an NQ/ES price, under the floor.
  */
 export function inventedPrices(judgment: LlmPlanJudgment, context: JobContext): number[] {
   const known = knownPrices(context)
   const lo = Math.min(...known) - context.tolerance.cap
-  const hi = Math.max(...known) + context.tolerance.cap
   const prose = [
     judgment.frame.rationale,
     judgment.lean,
@@ -78,7 +77,7 @@ export function inventedPrices(judgment: LlmPlanJudgment, context: JobContext): 
   const invented = new Set<number>()
   for (const match of prose.matchAll(NUMBER_RE)) {
     const value = Number(match[0].replace(/,/g, ''))
-    if (!Number.isFinite(value) || value < lo || value > hi) continue
+    if (!Number.isFinite(value) || value < lo) continue
     if (!known.some((k) => Math.abs(k - value) < PRICE_EPSILON)) invented.add(value)
   }
   return [...invented]
@@ -144,16 +143,16 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
     }
   }
 
-  // Both sides, always: a side holding at least one playable band needs a play
-  // or a stated reason. A stand-down declaration is a two-way answer for both.
+  // Both sides, always (rule 2): every side gets a play or a one-line reason —
+  // including a side holding only destination-only structure or nothing at all
+  // ("nothing significant within reach below" is a valid answer; silence is
+  // not). A stand-down declaration is a two-way answer for both.
   if (!judgment.standDown) {
     for (const side of ['above', 'below'] as const) {
-      const playable = context.roles.some((r) => r.side === side && !r.destinationOnly)
-      if (!playable) continue
       const hasPlay = judgment.plays.some((p) => roleByBand.get(p.bandId)?.side === side)
       const hasReason = judgment.sidesWithoutPlay.some((s) => s.side === side)
       if (!hasPlay && !hasReason) {
-        add('side_unaddressed', `the ${side} side has playable structure but no play and no stated reason`)
+        add('side_unaddressed', `the ${side} side carries no play and no stated reason`)
       }
     }
   }
