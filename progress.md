@@ -4791,3 +4791,11 @@ drops out; 06-15/08-04 frame off the 1A/2A. Shadow on the 2026-08-25 bundle: sig
 170.67 puts the G line (182.75) out of reach → frame = Daily Job Pivot 29349.25,
 side below — same downside-productive read, now on an operative line. PLANNER_REVISION
 → job-planner/2026-08-31.6. ./init.sh green (2205 tests).
+
+## 2026-08-31 (late): frame block color-coded by side (PR #191)
+
+Operator ask: color the frame section by price position vs the framed level. FrameBlock
+in `app/components/job-plan-card.tsx` now tones by `frame.side` — above = bmw-blue
+label + blue top-border accent, below = m-red equivalents, at = unchanged neutral —
+reusing the Primary Lean accent pattern. ./init.sh green, codex gate PASS (no
+findings), squash-merged to main.
