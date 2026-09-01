@@ -43,6 +43,21 @@ excludes them), and flags any that match no supplied price (schema epsilon 0.005
 `llm-planner/2026-08-31.2`). Round-2 P2 (report showed `args.effort`, not the resolved
 config effort) FIXED — the report renders the effort actually passed to the model.
 
+Gate rounds 3–7 (each PASS or fixed-next-round; the reviewer surfaced one new smaller finding
+per round): round 3 P2s FIXED (a failed later run keeps completed calls' cost/evidence; `--runs 1`
+reports "stability not measured", never stable N/N); round 4 P2 FIXED (sample newest TRADING
+days — a recently regenerated replay of an old day no longer displaces a newer day); round 5
+P1+P2 FIXED (invented-price check lost its upper bound — "toward 21000" above the span is
+invented too; a silent side is a violation even when its only structure is destination-only);
+round 6 P2 FIXED (price floor = half the current price, catching inventions below the span —
+ES "toward 4800"). Round 7: PASS with one remaining P2 — the aggregate agreement/stability
+counters don't score SECONDARY play ordering (only set + primary) — DISMISSED per the
+don't-loop-on-the-reviewer rule (13-round incident, 2026-08-23): the report prints both
+planners' full ordered play lists side by side, so an ordering disagreement is directly visible
+in the adjudication view; only the convenience counter omits it. Revisit if, once real shadow
+runs exist, secondary-order flips turn out common enough to need aggregation. Gate PASS
+recorded on 2885df9 (last code commit); this progress note is the only later delta.
+
 **Previous change (branch `feat-sierra-job-plan-bands`, PR #192): Job plan bands on the Sierra
 charts.** New `job_plan_bands` view (migration `20260831210000_job_plan_bands_view.sql`, applied
 live the same day + gekko-db skill updated) flattens the latest ready `job_plans` row into flat
