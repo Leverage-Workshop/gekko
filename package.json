@@ -13,7 +13,8 @@
     "lvn:eval": "tsx scripts/lvn-eval.ts",
     "profile-vision:bench": "tsx scripts/profile-vision-bench.ts",
     "codex:gate": "tsx scripts/codex-gate.ts",
-    "format": "prettier --write \"{app,lib,tests}/**/*.{ts,tsx,css}\""
+    "format": "prettier --write \"{app,lib,tests}/**/*.{ts,tsx,css}\"",
+    "llm-planner:shadow": "tsx scripts/llm-planner-shadow.ts"
   },
   "dependencies": {
     "@openrouter/ai-sdk-provider": "^2.9.1",

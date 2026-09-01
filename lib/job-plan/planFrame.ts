@@ -28,7 +28,7 @@ import type { ReferenceSource } from './rules'
  */
 
 /** Importance order, most important first — G line > weekly pivot > weekly extensions > daily pivot. */
-const FRAME_LADDER: readonly ReferenceSource[] = ['g-line', 'weekly-job-pivot', 'weekly-rung', 'daily-job-pivot']
+export const FRAME_LADDER: readonly ReferenceSource[] = ['g-line', 'weekly-job-pivot', 'weekly-rung', 'daily-job-pivot']
 
 type Measured = { readonly ref: Reference; readonly distance: number }
 

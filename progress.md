@@ -4,7 +4,32 @@
 
 **Last Updated:** 2026-08-31
 
-**Latest change (branch `feat-sierra-job-plan-bands`, PR #192): Job plan bands on the Sierra
+**Latest change (branch `feat-144-llm-planner-shadow`): feat-144 — LLM Job planner shadow
+experiment.** Ratified proposal + draft prompt in `docs/job-plan-llm-planner-proposal.md`
+(operator revisions applied: NO entry price action anywhere — plans name levels, the operator
+trades them; farther-more-significant beats nearer only under the breach-likelihood test).
+New `lib/job-plan/llm-planner/`: `prompt.ts` (`LLM_PLANNER_REVISION llm-planner/2026-08-31.1`,
+ROLE + MECHANISM + 6 future-tense rules, positive canaries per rule and a NEGATIVE canary list
+`FORBIDDEN_PHRASES` pinning the no-entry-action doctrine), `schema.ts` (id-referenced judgment —
+the model picks `bandId`/`referenceId` from the payload, so an invented price has no field to
+live in), `contextPayload.ts` (code measures everything; all bands with roles + R9
+`triggerStatus` as the ONLY session fact), `validate.ts` (hard gates: tier-one non-historical
+frame, geometry-consistent directions, destination-only rungs never play, both sides addressed,
+stand-down carries text), `runLlmPlanner.ts` (one retry with violations spelled out — the eval
+contract pattern — then violations recorded, never thrown), `diff.ts` (frame/play-set/primary/
+stand-down A/B diff + double-run stability). `scripts/llm-planner-shadow.ts`
+(`npm run llm-planner:shadow`, gated on RUN_LLM_INTEGRATION=1 — never key presence) pulls the
+latest ready `job_plans` row per trading day, re-runs the deterministic `buildPlan` fresh on the
+PERSISTED context and the LLM judgment twice, and writes a markdown adjudication report to
+`docs/shadow-runs/`. Nothing persists to the DB — `job_plan_bands`/Sierra never see a shadow
+plan; the deterministic planner stays production. Adaptation from the proposal recorded here:
+the model outputs a dedicated judgment schema (not the full persisted `JobPlan`) — inventory
+membership is enforced BY CONSTRUCTION via ids, which is stronger than post-hoc price checking;
+code-side assembly of a full shadow JobPlan is deferred until the judgment wins adjudication.
+`planFrame.ts` exports `FRAME_LADDER` (shared by payload + validator). 12 new tests in
+`tests/job-plan.llmPlanner.test.ts`.
+
+**Previous change (branch `feat-sierra-job-plan-bands`, PR #192): Job plan bands on the Sierra
 charts.** New `job_plan_bands` view (migration `20260831210000_job_plan_bands_view.sql`, applied
 live the same day + gekko-db skill updated) flattens the latest ready `job_plans` row into flat
 rows granted to anon — `kind` frame/long/short/both (both = one band carrying a short AND a long
