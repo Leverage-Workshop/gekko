@@ -31,8 +31,15 @@ is never persisted); unseeded config falls back to the deterministic plan with
 carries `PLANNER_REVISION+LLM_PLANNER_REVISION` so llm/deterministic runs never collide, task
 metadata reports judgment spend like vision. Downstream (job_plan_bands view, Sierra study,
 plan card) untouched — persisted shape schema-identical, so the next Run Job plan press shows
-the LLM plan on the dashboard card and the chart bands. 10 new tests in
+the LLM plan on the dashboard card and the chart bands. 11 new tests in
 `tests/job-plan.llmCutover.test.ts`.
+
+Codex gate: round 1 found a real P1 — `standDown: true` where the code-measured R10 says price
+is NOT mid-zone skipped both-side coverage while the assembler silently dropped the two-way
+draft, so a zero-play `ready` plan claiming a two-way could persist. FIXED as a contract
+violation (`stand_down_without_mid_zone` — the retry corrects it; mid-zone is a supplied fact,
+not a judgment) plus a defensive `LlmPlanAssemblyError`; the feat-144 test that accepted a
+directional-context stand-down was tightened to the new contract. Round 2: PASS, no findings.
 
 ---
 

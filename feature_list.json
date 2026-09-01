@@ -1445,8 +1445,8 @@
       "dependencies": [
         "feat-144"
       ],
-      "status": "in-progress",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/job-plan/plannerMode.ts (JOB_PLANNER='llm', one-line rollback); lib/job-plan/llm-planner/assemblePlan.ts (assembleLlmPlan: judgment -> persisted JobPlan via buildBandPlay/zoneDraft/frameFor, model text as summary + llmRationale, LlmPlanAssemblyError on broken invariants, combined revision PLANNER_REVISION+LLM_PLANNER_REVISION); runLlmPlanner.ts LlmPlanContractError (retryable); validate.ts stand_down_without_mid_zone (gate round-1 P1); runJobPlan planner:'llm' branch (insufficient fails closed pre-spend, unseeded config falls back deterministic w/ llm_planner_off warning, llm spend in result/task metadata); JobPlanConfig + deps carry config.model_id/model_effort + generateJudgment; jobPlanTask passes JOB_PLANNER. Schema: PlanMeta.jobPlanner/llmModelId/llmPromptRevision, Play/PlanFrame.llmRationale (optional; old rows parse). 11 new tests tests/job-plan.llmCutover.test.ts + tightened feat-144 stand-down test. ./init.sh green (2233 tests). Codex gate: round 1 P1 (stand-down outside mid-zone -> zero-play ready plan) FIXED as contract violation + assembly throw; round 2 PASS, no findings. Merged in PR #194."
     }
   ]
 }
