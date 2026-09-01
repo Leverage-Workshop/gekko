@@ -60,12 +60,10 @@ function frameText(ref: Reference, side: PlanFrame['side'], distancePts: number)
   return `${side === 'above' ? 'Above' : 'Below'} the ${ref.label} ${fmtPrice(ref.price)} (${fmtPrice(distancePts)} pts) — ${productive} is productive; lean with it and don't counter until price is back ${counter} the line`
 }
 
-/** The frame, or null when no tier-one reference is in the inventory. */
-export function planFrame(context: JobContext): PlanFrame | null {
-  const line = frameLine(context)
-  if (line === null) return null
-  const { ref, distance } = line
+/** The frame composed around one chosen tier-one reference (the ladder's pick, or the LLM's — feat-145). */
+export function frameFor(context: JobContext, ref: Reference): PlanFrame {
   const price = context.price.value
+  const distance = Math.abs(ref.price - price)
   const distancePts = Math.round(distance * 100) / 100
   const side: PlanFrame['side'] = distance <= context.tolerance.merge ? 'at' : price > ref.price ? 'above' : 'below'
   return {
@@ -77,6 +75,13 @@ export function planFrame(context: JobContext): PlanFrame | null {
     text: frameText(ref, side, distancePts),
     provenance: referenceProvenance([ref]),
   }
+}
+
+/** The frame, or null when no tier-one reference is in the inventory. */
+export function planFrame(context: JobContext): PlanFrame | null {
+  const line = frameLine(context)
+  if (line === null) return null
+  return frameFor(context, line.ref)
 }
 
 /** The direction the frame favours — long above the line, short below, none at it. */

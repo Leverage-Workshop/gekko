@@ -2,7 +2,48 @@
 
 ## Current State
 
-**Last Updated:** 2026-08-31
+**Last Updated:** 2026-09-01
+
+**Latest change (branch `feat-145-llm-planner-cutover`): feat-145 — LLM Job planner production
+cutover.** Operator decision 2026-09-01 after the first live shadow run
+(`docs/shadow-runs/job-plan-llm-2026-09-01.md`, 3 bundles: frame 3/3, stand-down 3/3, zero
+contract violations; the LLM wrote edges-only plays where the deterministic planner also armed
+interacted internal levels): the report alone is not adjudicable — "I can't adjudicate anything
+without seeing it on my charts and seeing the plan in the UI" — so the LLM planner becomes what
+production uses now, rollback if it doesn't reach a point the operator likes (Job is not yet
+traded live). ROLLBACK IS ONE LINE: flip `JOB_PLANNER` in `lib/job-plan/plannerMode.ts` to
+`'deterministic'` and merge (deliberately a module constant, not a config column — the config
+read's six-tier missing-column cascade and the can't-apply-DDL-here constraint make a column the
+riskier rollback lever). Shape: `runJobPlan` runs the deterministic pipeline unchanged; when the
+task selects `planner: 'llm'` and the plan is `ready`, ONE judgment call (feat-144's
+`runLlmPlanner`, model from `config.model_id`/`model_effort`) re-decides frame / play bands /
+direction / order / lean, and new `assembleLlmPlan` composes the persisted `JobPlan`: the
+model's forward conditional becomes each play's `summary` (+ new optional `llmRationale` on
+Play/PlanFrame), while trigger, invalidation, destination chains, provenance and deadlines come
+from the SAME code grammar (`buildBandPlay`, `zoneDraft`, new `frameFor` split out of
+`planFrame`) so every schema refinement holds by construction; a `standDown` judgment prepends
+the two-way zone play as rank-1 primary (deterministic semantics preserved). Fail modes:
+`insufficient` fails closed before any judgment spend; violations surviving the one retry throw
+`LlmPlanContractError` (RETRYABLE — fresh task attempt gets a fresh call; a gate-breaking plan
+is never persisted); unseeded config falls back to the deterministic plan with
+`llm_planner_off` warning. Provenance: `plan.meta.jobPlanner/llmModelId/llmPromptRevision`,
+`planner_revision` records what actually produced the persisted plan, the input fingerprint
+carries `PLANNER_REVISION+LLM_PLANNER_REVISION` so llm/deterministic runs never collide, task
+metadata reports judgment spend like vision. Downstream (job_plan_bands view, Sierra study,
+plan card) untouched — persisted shape schema-identical, so the next Run Job plan press shows
+the LLM plan on the dashboard card and the chart bands. 11 new tests in
+`tests/job-plan.llmCutover.test.ts`.
+
+Codex gate: round 1 found a real P1 — `standDown: true` where the code-measured R10 says price
+is NOT mid-zone skipped both-side coverage while the assembler silently dropped the two-way
+draft, so a zero-play `ready` plan claiming a two-way could persist. FIXED as a contract
+violation (`stand_down_without_mid_zone` — the retry corrects it; mid-zone is a supplied fact,
+not a judgment) plus a defensive `LlmPlanAssemblyError`; the feat-144 test that accepted a
+directional-context stand-down was tightened to the new contract. Round 2: PASS, no findings.
+
+---
+
+**Previous state (2026-08-31):**
 
 **Latest change (branch `feat-144-llm-planner-shadow`): feat-144 — LLM Job planner shadow
 experiment.** Ratified proposal + draft prompt in `docs/job-plan-llm-planner-proposal.md`

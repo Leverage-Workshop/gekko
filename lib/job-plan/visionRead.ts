@@ -27,11 +27,14 @@ export { JOB_PLAN_IMAGES_BUCKET } from './jobPlanImages'
 export const VISION_OFF_WARNING =
   'profile_nodes_unavailable: the profile vision read is OFF (config.profile_vision_model_id is NULL) — plan produced without balance-area / 400-pt rotation profile nodes (R14)'
 
-/** The `config` columns the vision read consumes (feat-124). */
+/** The `config` columns the job-plan task consumes: the vision read (feat-124) + the LLM planner's model slot (feat-145, `config.model_id` — the briefing model, same columns the shadow ran with). */
 export type JobPlanConfig = {
   readonly profile_vision_model_id: string | null
   readonly profile_vision_model_effort: ReasoningEffort | null
   readonly profile_vision_samples: number
+  /** Null only when the config row is unseeded — the LLM planner then falls back to deterministic with a warning. */
+  readonly model_id: string | null
+  readonly model_effort: ReasoningEffort | null
 }
 
 export type VisionUsage = {

@@ -20,6 +20,24 @@ import { validateJudgment, type JudgmentViolation } from './validate'
 
 export type LlmPlannerGenerate = typeof generateStructured
 
+/**
+ * Violations that survived the one retry, thrown by the PRODUCTION path
+ * (feat-145) — never persist a plan that breaks the hard gates. Deliberately
+ * NOT in `isNonRetryableJobPlanError`: a fresh task attempt gets a fresh
+ * model call, the eval-contract pattern.
+ */
+export class LlmPlanContractError extends Error {
+  readonly violations: readonly JudgmentViolation[]
+  constructor(violations: readonly JudgmentViolation[]) {
+    super(
+      `llm-planner contract: ${violations.length} violation(s) survived the retry — ` +
+        violations.map((v) => `${v.code}: ${v.message}`).join('; '),
+    )
+    this.name = 'LlmPlanContractError'
+    this.violations = violations
+  }
+}
+
 export type RunLlmPlannerInput = {
   readonly context: JobContext
   /** OpenRouter model id (`config.model_id` via the caller). */

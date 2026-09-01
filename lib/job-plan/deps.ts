@@ -23,6 +23,8 @@ export function realJobPlanDeps(client: SupabaseClient = getServiceClient()): Jo
         profile_vision_model_id: row.profile_vision_model_id,
         profile_vision_model_effort: row.profile_vision_model_effort,
         profile_vision_samples: row.profile_vision_samples,
+        model_id: row.model_id,
+        model_effort: row.model_effort,
       }
     },
 
@@ -100,5 +102,9 @@ export function realJobPlanDeps(client: SupabaseClient = getServiceClient()): Jo
         },
       }
     },
+
+    // The judgment call (feat-145): runLlmPlanner builds its own params
+    // (schema, prompt, requireParameters) — this is the raw structured call.
+    generateJudgment: generateStructured,
   }
 }

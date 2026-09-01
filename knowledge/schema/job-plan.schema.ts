@@ -178,8 +178,10 @@ export const Play = z.object({
   responseDeadline: ResponseDeadlineSchema.nullable(),
   dont: z.string().min(1),
   uncertaintyBand: UncertaintyBand.nullable(),
-  /** The 08-11-style one-liner. */
+  /** The 08-11-style one-liner (the model's forward conditional on LLM plans). */
   summary: z.string().min(1),
+  /** Why this area won its side (LLM plans only, feat-145). */
+  llmRationale: z.string().min(1).nullable().optional(),
 })
 export type Play = z.infer<typeof Play>
 
@@ -207,6 +209,16 @@ export const PlanMeta = z.object({
   }),
   visionPromptRevision: z.string().nullable(),
   visionModelId: z.string().nullable(),
+  /**
+   * Which planner composed the plays (feat-145). Optional: absent on every
+   * deterministic plan (pre-cutover rows included); 'llm' when the judgment
+   * core came from the model under lib/job-plan/llm-planner.
+   */
+  jobPlanner: z.enum(['deterministic', 'llm']).optional(),
+  /** Model id that served the judgment call, LLM plans only. */
+  llmModelId: z.string().nullable().optional(),
+  /** `LLM_PLANNER_REVISION` of the judgment prompt, LLM plans only. */
+  llmPromptRevision: z.string().nullable().optional(),
 })
 export type PlanMeta = z.infer<typeof PlanMeta>
 
@@ -252,6 +264,8 @@ export const PlanFrame = z.object({
   distancePts: z.number().finite(),
   text: z.string().min(1),
   provenance: PriceProvenance,
+  /** Why this line won the frame (LLM plans only, feat-145). */
+  llmRationale: z.string().min(1).nullable().optional(),
 })
 export type PlanFrame = z.infer<typeof PlanFrame>
 

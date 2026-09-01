@@ -5,19 +5,22 @@ import {
   describeJobPlanError,
   isNonRetryableJobPlanError,
 } from "@/lib/job-plan/jobPlanErrors";
+import { JOB_PLANNER } from "@/lib/job-plan/plannerMode";
 import { runJobPlan } from "@/lib/job-plan/runJobPlan";
 import { VISION_READ_DEADLINE_FROM_TASK_START_MS } from "@/lib/job-plan/profile-vision/identifyProfileNodes";
 import type { JobPlanRunResult } from "@/lib/job-plan/runJobPlan";
 import { awaitBoundBundle } from "./freshBundle";
 
-// job-plan-task — the deterministic Job planner (docs/job-planning-task-plan.md
-// step 6, feat-128): wait for the fresh bundle the button press requested and
-// BIND to it by id (awaitBoundBundle — never "latest") → download the exact
-// bytes → pre-flight parse → profile vision read (feat-123, model from config,
-// R14: off/partial degrades with a warning) → fingerprint → runPlanner →
-// persist ONE job_plans row (upsert on this run id; insufficient never
-// overwrites ready). No other LLM use, never touches briefings/entry_levels,
-// no push. Triggered on demand (feat-129's /api/job-plans/run).
+// job-plan-task — the Job planner (docs/job-planning-task-plan.md step 6,
+// feat-128): wait for the fresh bundle the button press requested and BIND to
+// it by id (awaitBoundBundle — never "latest") → download the exact bytes →
+// pre-flight parse → profile vision read (feat-123, model from config, R14:
+// off/partial degrades with a warning) → fingerprint → runPlanner → when
+// JOB_PLANNER is 'llm' (feat-145, lib/job-plan/plannerMode.ts) ONE judgment
+// call re-decides frame/plays/lean over the same context → persist ONE
+// job_plans row (upsert on this run id; insufficient never overwrites ready).
+// No other LLM use, never touches briefings/entry_levels, no push. Triggered
+// on demand (feat-129's /api/job-plans/run).
 export const jobPlanTask = schemaTask({
   id: "job-plan-task",
   schema: z.object({
@@ -50,6 +53,7 @@ export const jobPlanTask = schemaTask({
           triggerReason: payload.triggerReason,
           bundleRequestId: payload.bundleRequestId,
           visionDeadlineAt,
+          planner: JOB_PLANNER,
         },
       );
     } catch (error) {
@@ -77,6 +81,8 @@ export const jobPlanTask = schemaTask({
     metadata.set("warnings", [...result.warnings]);
     // Vision spend is auditable from the dashboard like the briefing tasks (feat-030).
     metadata.set("vision", result.vision);
+    // Judgment-call spend and provenance (feat-145), same discipline.
+    metadata.set("llmPlanner", result.llm);
 
     logger.info("job plan persisted", {
       jobPlanId: result.jobPlanId,
@@ -89,6 +95,7 @@ export const jobPlanTask = schemaTask({
       inputFingerprint: result.inputFingerprint,
       plays: result.plan.plays.length,
       vision: result.vision,
+      llmPlanner: result.llm,
       warnings: result.warnings,
     });
 
