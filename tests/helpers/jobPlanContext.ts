@@ -29,6 +29,8 @@ export type SynthRef = {
   readonly price: number
   readonly label?: string
   readonly boxIndex?: number
+  /** daily-job-pivot refs only; defaults to 'current'. */
+  readonly pivotRole?: 'current' | 'historical'
   readonly node?: Partial<ReferenceNode>
 }
 
@@ -67,7 +69,7 @@ export function synthRef(spec: SynthRef): Reference {
     origin: node ? 'profile-nodes' : spec.source === 'weekly-job-pivot' || spec.source === 'daily-job-pivot' || spec.source === 'jba-edge' ? 'job-study' : 'mgi',
     boxIndex: spec.boxIndex ?? null,
     node,
-    pivot: spec.source === 'daily-job-pivot' ? { role: 'current', sessionDate: '2026-08-24', testedStatus: null } : null,
+    pivot: spec.source === 'daily-job-pivot' ? { role: spec.pivotRole ?? 'current', sessionDate: '2026-08-24', testedStatus: spec.pivotRole === 'historical' ? 'untested' : null } : null,
     mgiCode: null,
   }
 }

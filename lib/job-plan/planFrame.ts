@@ -40,8 +40,10 @@ function nearest(candidates: readonly Measured[]): Measured | null {
 /** The most important in-reach ladder step's nearest line; nothing in reach → the nearest tier-one line overall. */
 function frameLine(context: JobContext): Measured | null {
   const price = context.price.value
+  // Historical daily pivots share the source but are not the FRESH line the
+  // operator framed on — only the current pivot may frame.
   const measured = context.references
-    .filter((r) => FRAME_LADDER.includes(r.source))
+    .filter((r) => FRAME_LADDER.includes(r.source) && r.pivot?.role !== 'historical')
     .map((ref) => ({ ref, distance: Math.abs(ref.price - price) }))
   for (const source of FRAME_LADDER) {
     const inReach = nearest(measured.filter((m) => m.ref.source === source && m.distance <= context.scale.reachPts))

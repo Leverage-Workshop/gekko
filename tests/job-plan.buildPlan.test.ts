@@ -99,6 +99,15 @@ describe('the frame: the tier-one MGI ladder — G line > weekly pivot > weekly 
     expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below', distancePts: 33.5 })
   })
 
+  it('only the CURRENT daily pivot may frame — a nearer historical pivot never does (it is not the fresh line)', () => {
+    const p = plan({
+      price: 29370,
+      reachPts: 30,
+      refs: [...BASE_REFS, { id: 'daily-pivot:2026-08-20', source: 'daily-job-pivot', price: 29365, label: 'Daily Job Pivot 2026-08-20', pivotRole: 'historical' }],
+    })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', price: 29393.5 })
+  })
+
   it('within one merge tolerance of the line the frame is AT it — balance, no productive side', () => {
     const p = plan({ price: 29310 })
     expect(p.frame).toMatchObject({ referenceId: 'g-line', side: 'at' })
