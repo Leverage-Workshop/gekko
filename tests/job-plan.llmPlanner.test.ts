@@ -54,8 +54,6 @@ function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
       { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'If price reaches the Daily Pivot, expect the bid and a turn back up toward the Weekly Pivot.', rationale: 'Nearest significant level below; no nearer level to breach.' },
     ],
     sidesWithoutPlay: [],
-    standDown: false,
-    standDownText: null,
     lean: 'Short into the Weekly Pivot — below the frame line, downside is productive.',
   }
 }
@@ -75,6 +73,14 @@ describe('llm-planner prompt', () => {
     for (const phrase of FORBIDDEN_PHRASES) {
       expect(prompt, `forbidden phrase "${phrase}"`).not.toContain(phrase)
     }
+  })
+
+  it('carries no stand-down rule and no play-the-edges clause (operator 2026-09-01: plans are scenario catalogs; edges never exhaust the plan)', () => {
+    const prompt = buildLlmPlannerPrompt('{}').toLowerCase()
+    expect(prompt).not.toContain('stand down')
+    expect(prompt).not.toContain('standdown')
+    expect(prompt).not.toContain('play the edges')
+    expect(prompt).not.toContain('mid-zone')
   })
 
   it('embeds the payload and pins the revision format', () => {
@@ -158,22 +164,13 @@ describe('llm-planner hard gates', () => {
     expect(validateJudgment(legitimate, ctx)).toEqual([])
   })
 
-  it('requires every playable side to carry a play or a reason — unless standing down', () => {
+  it('requires every playable side to carry a play or a reason — unconditionally (no stand-down escape since feat-146)', () => {
     const ctx = context()
     const base = cleanJudgment(ctx)
     const oneSided = { ...base, plays: [base.plays[0]] }
     expect(validateJudgment(oneSided, ctx).map((v) => v.code)).toContain('side_unaddressed')
     const excused = { ...oneSided, sidesWithoutPlay: [{ side: 'below' as const, reason: 'nothing significant within realistic reach below' }] }
     expect(validateJudgment(excused, ctx)).toEqual([])
-    // Stand-down still waives the side check, but this context is NOT
-    // mid-zone (R10 is a measured fact) — declaring it is its own violation
-    // (feat-145 gate round 1: a false stand-down could persist a ready plan
-    // with zero plays claiming a two-way).
-    const standing = { ...oneSided, standDown: true, standDownText: 'Two-way between the Daily Pivot and the Weekly Pivot.' }
-    const codes = validateJudgment(standing, ctx).map((v) => v.code)
-    expect(codes).toContain('stand_down_without_mid_zone')
-    expect(codes).not.toContain('side_unaddressed')
-    expect(validateJudgment({ ...standing, standDownText: null }, ctx).map((v) => v.code)).toContain('stand_down_without_text')
   })
 
   it('a side with only destination-only structure still needs its one-line reason', () => {
@@ -189,8 +186,6 @@ describe('llm-planner hard gates', () => {
       frame: { referenceId: 'wp', rationale: 'Most important line in reach.' },
       plays: [{ bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer.', rationale: 'Frame side.' }],
       sidesWithoutPlay: [],
-      standDown: false,
-      standDownText: null,
       lean: 'Short into the Weekly Pivot.',
     }
     expect(validateJudgment(judgment, ctx).map((v) => v.code)).toContain('side_unaddressed')
@@ -257,7 +252,7 @@ describe('shadow diff', () => {
     const diff = diffJudgment(det, judgment, ctx)
     expect(diff.frame.agree).toBe(true)
     expect(diff.primary.agree).toBe(true)
-    expect(diff.standDown.agree).toBe(true)
+    expect(diff.deterministicStandDown).toBe(false)
     expect([...diff.plays.sharedBandIds].sort()).toEqual([bandOf(ctx, 'dp'), bandOf(ctx, 'wp')].sort())
     expect(diff.plays.directionMismatches).toEqual([])
     // The deterministic planner also armed the historical daily pivot band.

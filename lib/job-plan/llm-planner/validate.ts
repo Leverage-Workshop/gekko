@@ -10,12 +10,9 @@ import type { LlmPlanJudgment } from './schema'
  * violations spelled out before recording them.
  *
  * What is deliberately NOT checked: which band the model picked within a side,
- * ranking order, reach (guidance, not a wall), whether a mid-zone context
- * SHOULD have been declared a stand-down. Those are the experiment. The
- * inverse is checked (feat-145 gate round 1): declaring stand-down where the
- * code-measured R10 says price is NOT mid-zone would skip both-side coverage
- * and could persist a ready plan with zero plays — mid-zone is a measured
- * fact in the payload, not a judgment the model may invent.
+ * ranking order, reach (guidance, not a wall). Those are the judgment. The
+ * stand-down concept was removed entirely 2026-09-01 (feat-146): both sides
+ * need a play or a stated reason UNCONDITIONALLY.
  */
 
 export type JudgmentViolationCode =
@@ -28,8 +25,6 @@ export type JudgmentViolationCode =
   | 'play_direction_geometry'
   | 'play_inside_without_frame_direction'
   | 'side_unaddressed'
-  | 'stand_down_without_text'
-  | 'stand_down_without_mid_zone'
   | 'invented_price'
 
 export type JudgmentViolation = {
@@ -77,7 +72,6 @@ export function inventedPrices(judgment: LlmPlanJudgment, context: JobContext): 
   const prose = [
     judgment.frame.rationale,
     judgment.lean,
-    judgment.standDownText ?? '',
     ...judgment.plays.flatMap((p) => [p.text, p.rationale]),
     ...judgment.sidesWithoutPlay.map((s) => s.reason),
   ].join('\n')
@@ -153,27 +147,13 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
   // Both sides, always (rule 2): every side gets a play or a one-line reason —
   // including a side holding only destination-only structure or nothing at all
   // ("nothing significant within reach below" is a valid answer; silence is
-  // not). A stand-down declaration is a two-way answer for both.
-  if (!judgment.standDown) {
-    for (const side of ['above', 'below'] as const) {
-      const hasPlay = judgment.plays.some((p) => roleByBand.get(p.bandId)?.side === side)
-      const hasReason = judgment.sidesWithoutPlay.some((s) => s.side === side)
-      if (!hasPlay && !hasReason) {
-        add('side_unaddressed', `the ${side} side carries no play and no stated reason`)
-      }
+  // not). Unconditional since feat-146 — there is no stand-down escape hatch.
+  for (const side of ['above', 'below'] as const) {
+    const hasPlay = judgment.plays.some((p) => roleByBand.get(p.bandId)?.side === side)
+    const hasReason = judgment.sidesWithoutPlay.some((s) => s.side === side)
+    if (!hasPlay && !hasReason) {
+      add('side_unaddressed', `the ${side} side carries no play and no stated reason`)
     }
-  }
-
-  if (judgment.standDown && (judgment.standDownText === null || judgment.standDownText.trim() === '')) {
-    add('stand_down_without_text', 'standDown is declared without the two-way text naming the edges')
-  }
-
-  const zone = context.location.enclosingZone
-  if (judgment.standDown && !(zone !== null && zone.midZone)) {
-    add(
-      'stand_down_without_mid_zone',
-      'standDown is declared but the measured location (R10) says price is NOT mid-zone — mid-zone is a supplied fact, not a judgment; answer both sides instead',
-    )
   }
 
   const invented = inventedPrices(judgment, context)

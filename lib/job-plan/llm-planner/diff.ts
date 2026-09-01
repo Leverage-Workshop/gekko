@@ -34,11 +34,8 @@ export type ShadowDiff = {
     readonly llm: string | null
     readonly agree: boolean
   }
-  readonly standDown: {
-    readonly deterministic: boolean
-    readonly llm: boolean
-    readonly agree: boolean
-  }
+  /** Whether the deterministic plan declared the R10 two-way (the LLM has no stand-down concept since feat-146). */
+  readonly deterministicStandDown: boolean
 }
 
 export type StabilityDiff = {
@@ -75,8 +72,6 @@ export function diffJudgment(plan: JobPlan, judgment: LlmPlanJudgment, context: 
   const detPrimary = plan.plays.find((p) => p.primary && p.stance !== 'stand-down')?.band.bandId ?? null
   const llmPrimary = judgment.plays[0]?.bandId ?? null
 
-  const detStandDown = plan.plays.some((p) => p.stance === 'stand-down')
-
   return {
     frame: {
       deterministic: plan.frame ? { referenceId: plan.frame.referenceId, label: plan.frame.label } : null,
@@ -103,11 +98,7 @@ export function diffJudgment(plan: JobPlan, judgment: LlmPlanJudgment, context: 
       llm: llmPrimary,
       agree: detPrimary === llmPrimary,
     },
-    standDown: {
-      deterministic: detStandDown,
-      llm: judgment.standDown,
-      agree: detStandDown === judgment.standDown,
-    },
+    deterministicStandDown: plan.plays.some((p) => p.stance === 'stand-down'),
   }
 }
 
@@ -130,7 +121,7 @@ export function stabilityDiff(a: LlmPlanJudgment, b: LlmPlanJudgment): Stability
   const bIds = b.plays.map((p) => p.bandId)
   const frameAgree = a.frame.referenceId === b.frame.referenceId
   const playSetAgree = aIds.length === bIds.length && new Set(aIds).size === new Set([...aIds, ...bIds]).size
-  const primaryAgree = (a.plays[0]?.bandId ?? null) === (b.plays[0]?.bandId ?? null) && a.standDown === b.standDown
+  const primaryAgree = (a.plays[0]?.bandId ?? null) === (b.plays[0]?.bandId ?? null)
   const bDir = new Map(b.plays.map((p) => [p.bandId, p.direction]))
   const directionsAgree = a.plays.every((p) => !bDir.has(p.bandId) || bDir.get(p.bandId) === p.direction)
   return {

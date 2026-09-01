@@ -18,10 +18,22 @@ import { MAX_PLAYS } from '../rules'
  *     misread, and session history's only legal effect is freshness.
  *
  * LLM_PLANNER_REVISION bumps whenever the rules or the payload shape change —
- * it is recorded with every shadow run so reports are attributable.
+ * it is recorded with every run so plans are attributable.
+ *
+ * 2026-09-01 operator corrections (feat-146, from the first production plan):
+ *   - Plans are SCENARIO CATALOGS, not trade-now decisions — the mid-zone
+ *     stand-down rule is removed entirely ("we're planning out possible
+ *     scenarios that could occur, not trying to identify a trade to take
+ *     this instant").
+ *   - Edges-only plans "won't cut it": the play-the-edges clause and the
+ *     demote-to-destination freshness wording collapsed every mid-zone plan
+ *     to the two JBA borders. Zone edges now compete on the same
+ *     significance test as internal structure, and an interacted area keeps
+ *     its play at a lower rank (mirroring R9) instead of vanishing into the
+ *     destinations.
  */
 
-export const LLM_PLANNER_REVISION = 'llm-planner/2026-08-31.2'
+export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-01.1'
 
 export const ROLE =
   'You are writing the trading-day plan for a futures session the way a professional prepares one before the session does anything: a frame, then a short list of forward conditionals — what to expect IF price reaches the few areas that matter. You are given everything already measured: the level inventory with importance ranks, the confluence bands, distances, the day’s volatility scale, and each area’s freshness. None of the measuring is your job. Your job is the judgment: which line frames the day, which areas deserve a play, and what to expect at each one.'
@@ -42,19 +54,15 @@ export const RULES: readonly Rule[] = [
   },
   {
     title: 'PICK AREAS BY WEIGHT, NOT DISTANCE ALONE',
-    text: 'The area that gets the play on a side is where you judge price will actually change direction — significance meaning MGI importance, confluence (several references stacking into one band), and profile prominence together. The test for reaching past a nearer level to a farther, more significant one: is it more likely than not that price will breach the nearer level to reach the farther one? If yes, the farther level gets the play; if no, the nearer level IS the level — it is where the direction change happens. When price is enclosed in a zone, its edges are the natural play areas ("play the edges"). Ladder rungs are destinations to gauge along the way, never trigger areas. Three or four plays is a full plan; the cap is a ceiling, never a target.',
+    text: 'The area that gets the play on a side is where you judge price will actually change direction — significance meaning MGI importance, confluence (several references stacking into one band), and profile prominence together. The test for reaching past a nearer level to a farther, more significant one: is it more likely than not that price will breach the nearer level to reach the farther one? If yes, the farther level gets the play; if no, the nearer level IS the level — it is where the direction change happens. An enclosing zone’s edges compete on this same test like any other area — they never exhaust the plan: significant structure inside the zone gets its own play when it is where price would turn. Cover the areas that matter on each side — one play per side is rarely a full read. Ladder rungs are destinations to gauge along the way, never trigger areas. Three or four plays is a full plan.',
   },
   {
     title: 'EVERY PLAY IS A FORWARD CONDITIONAL, WRITTEN IN FUTURE TENSE',
-    text: 'State the approach and the expected turn: price reaches the area from above or below, the area holds, and the traverse back runs toward the destinations beyond it. Do not prescribe the entry price action at the level — no trigger patterns, no confirmation recipes; the operator trades the level, the plan names it. Direction comes from geometry: an area above price is watched for offer, below for bid; inside an area, lean with the frame. If the session has already interacted with an area without producing a fail or a defense, say so and demote it — freshness is the only thing session history changes.',
+    text: 'State the approach and the expected turn: price reaches the area from above or below, the area holds, and the traverse back runs toward the destinations beyond it. Do not prescribe the entry price action at the level — no trigger patterns, no confirmation recipes; the operator trades the level, the plan names it. Direction comes from geometry: an area above price is watched for offer, below for bid; inside an area, lean with the frame. If the session has already interacted with an area without producing a fail or a defense, say so — it ranks behind fresh areas but KEEPS its play when it is still where price would turn; freshness is the only thing session history changes, and it never deletes an area from the plan.',
   },
   {
     title: 'STATE THE FORK',
     text: 'Every play carries its own failure: if price instead builds beyond the area — sustained closes beyond it, not a poke — the play is off. Don’t counter; go with it toward the next structure beyond. Past a major line, expect it to accelerate.',
-  },
-  {
-    title: 'MID-ZONE MEANS STAND DOWN',
-    text: 'When price is deep between the operative edges, say so and make the plan two-way at the edges. Don’t manufacture a directional play from the middle of a zone.',
   },
 ] as const
 
@@ -85,7 +93,6 @@ const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - frame.referenceId: the id of the tier-one line (choose from frameCandidates) that frames the day; frame.rationale: one sentence on why this line.
 - plays: at most ${MAX_PLAYS}, ordered by precedence — the first play is the primary look, and sides alternate starting from the frame side. Each play names its area by bandId (choose from bands); direction is 'long' for an area below price, 'short' for an area above (inside an area, lean with the frame). text: the play in the register of the rules — the approach, the expected turn, the traverse toward the structure beyond, and the fork if price builds through instead — naming levels by their labels (a numeric price you write must be one the payload carries — never invent one). rationale: why this area won its side, including the breach test whenever you reached past a nearer level.
 - sidesWithoutPlay: one entry per side (above / below) that carries no play, with the one-line reason.
-- standDown: true only when the mid-zone rule applies; then standDownText declares the two-way at the named edges. Otherwise false with standDownText null.
 - lean: one line naming the primary look and the side to lean with.
 - Every bandId and referenceId must come from the payload — never invent an id, a level, or a price. Do not restate session history as justification for any play.`
 
