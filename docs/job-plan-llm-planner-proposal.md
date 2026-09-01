@@ -79,21 +79,19 @@ The levels in the inventory matter because participation dried up or concentrate
 there — the participants who built the volume beside a level have to defend it, and
 beyond it there is little volume to slow price down. So the plan is a set of
 **forward conditionals**: each play names an area, the side price will approach it
-from, and the behavior to wait for on arrival. The entry behavior we like best is a
-**peak beyond and fail** — price pushes above (or below) the area, can't hold it, and
-the first close back inside is the signal that the defenders showed up. That is simply
-the entry price action to wait for **if price gets there**. It is never something that
-must already have happened: what the session has already done never justifies a play —
-it only tells you which areas are still fresh.
+from, and the direction change to expect **if price reaches it**. You are naming the
+places where price will change direction, based on the facts you have — nothing more.
+What happens at the level itself — the entry pattern, the timing — is the operator's
+craft, not yours; the plan supplies the level. And what the session has already done
+never justifies a play — it only tells you which areas are still fresh.
 
 ### RULES
 
 1. **FRAME FIRST.** Situate price against the operative tier-one line — the G line,
    the weekly Job Pivot, the weekly pivot extensions, or the current daily Job Pivot
    (historical daily pivots never frame). Prefer the most important line price can
-   realistically interact with today: a more important line slightly farther away
-   outranks a lesser line slightly nearer, and the reach scale you are given is
-   guidance for "realistically," not a hard wall. The side of the frame line price
+   realistically interact with today — the same likelihood test as rule 3, with the
+   reach scale as guidance, not a hard wall. The side of the frame line price
    sits on names the productive direction; within the merge tolerance of the line
    there is no productive side — expect balance until price takes the line and
    holds it.
@@ -104,23 +102,27 @@ it only tells you which areas are still fresh.
    one-line reason instead of a filler play.
 
 3. **PICK AREAS BY WEIGHT, NOT DISTANCE ALONE.** The area that gets the play on a
-   side is the most significant one within realistic reach — significance meaning
-   MGI importance, confluence (several references stacking into one band), and
-   profile prominence together. A prominent confluence slightly farther beats a lone
-   minor line nearby. When price is enclosed in a zone, its edges are the natural
+   side is where you judge price will actually change direction — significance
+   meaning MGI importance, confluence (several references stacking into one band),
+   and profile prominence together. The test for reaching past a nearer level to a
+   farther, more significant one: **is it more likely than not that price will
+   breach the nearer level to reach the farther one?** If yes, the farther level
+   gets the play; if no, the nearer level IS the level — it is where the direction
+   change happens. When price is enclosed in a zone, its edges are the natural
    play areas ("play the edges"). Ladder rungs are destinations to gauge along the
    way, never trigger areas. Three or four plays is a full plan; the cap is a
    ceiling, never a target.
 
-4. **EVERY PLAY IS A FORWARD CONDITIONAL, WRITTEN IN FUTURE TENSE.** State what
-   price must do next: the arrival from above or below, the response to wait for —
-   the rebid or reoffer holding, with a peak-beyond-and-fail as the stronger green
-   light — and then the traverse, staged along the destinations you are given, each
-   stage gauged for continuation. Direction comes from geometry: an area above price
-   is watched for offer, below for bid; inside an area, lean with the frame. If the
-   session has already interacted with an area without producing a fail or a
-   defense, say so and demote it to a destination — freshness is the only thing
-   session history changes.
+4. **EVERY PLAY IS A FORWARD CONDITIONAL, WRITTEN IN FUTURE TENSE.** State the
+   approach and the expected turn: price reaches the area from above or below, the
+   area holds, and the traverse back runs staged along the destinations you are
+   given, each stage gauged for continuation. Do not prescribe the entry price
+   action at the level — no trigger patterns, no confirmation recipes; the operator
+   trades the level, the plan names it. Direction comes from geometry: an area
+   above price is watched for offer, below for bid; inside an area, lean with the
+   frame. If the session has already interacted with an area without producing a
+   fail or a defense, say so and demote it to a destination — freshness is the
+   only thing session history changes.
 
 5. **STATE THE FORK.** Every play carries its own failure: if price instead builds
    beyond the area — sustained closes beyond it, not a poke — the play is off.
@@ -136,7 +138,7 @@ it only tells you which areas are still fresh.
 JSON only, matching the schema. Name every area by its level labels — every price you
 write must be one of the provided references or band edges, never an invented number.
 Frame-side play first, sides alternating. Keep each play's text in the register of the
-rules above: condition → response → traverse → fork.
+rules above: approach → expected turn → traverse → fork.
 
 ---
 
@@ -147,7 +149,8 @@ The point of the experiment is the gap between these two lists.
 **The model MAY (this is the new latitude):**
 
 - Prefer a more important frame line over a nearer one, and treat reach as soft.
-- Choose a farther, more significant band over a nearer, weaker one for a play.
+- Choose a farther, more significant band over a nearer, weaker one for a play —
+  when it judges price more likely than not to breach the nearer level to reach it.
 - Decline to write a play on a side, with a stated reason.
 - Weigh confluence, prominence, and freshness against distance without a fixed
   lexicographic order.
@@ -157,10 +160,10 @@ The point of the experiment is the gap between these two lists.
 - Quote a price that isn't in the inventory, frame off a historical pivot or a
   non-tier-one source, or exceed the play cap (schema + validators, retry on
   violation).
-- Arm or rank a play off a completed session fact. The 2026-08-31 correction stands:
-  "peak above and fail" is the entry price action to want **prospectively** — the
-  origin-fact inversion came from reading Job's tense wrong, and the prompt above is
-  written entirely in future tense so there is no tense to misread.
+- Arm or rank a play off a completed session fact — the prompt is written entirely
+  in future tense so the origin-fact inversion (a tense misreading) cannot recur.
+- Prescribe entry price action at a level (trigger patterns, confirmation recipes).
+  The plan supplies the level; the operator trades it.
 - Change any number: tolerances, reach, acceptance minutes, deadlines all stay
   code-owned and injected.
 
