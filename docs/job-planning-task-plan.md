@@ -836,8 +836,14 @@ expectation-setters, never triggers.
 What changed in the planner (PLANNER_REVISION `job-planner/2026-08-31.5`):
 
 - **Frame** (`planFrame.ts`, new): every ready plan opens the way every prep opens —
-  price vs the nearer of the G line and the weekly Job Pivot; the side names the
-  productive direction ('at' within one merge tolerance = balance, no side).
+  price vs the operative TIER-ONE MGI line, chosen off the importance ladder
+  **G line > weekly Job Pivot > weekly pivot extensions (rungs) > daily Job Pivot**
+  (operator, 2026-08-31: the daily pivot is fresh at run time — runs happen after the
+  RTH open — and ranks right below the weekly MGI). The most important line WITHIN
+  REACH (R4) wins, never a blind nearest-of-two (03-16: "G line is way down here" and
+  it drops out; 06-15 frames off the 1A). Nothing in reach → the nearest tier-one
+  line still frames, stated at its distance. The side names the productive direction
+  ('at' within one merge tolerance = balance, no side).
 - **Grammar** (`playGrammar.ts`): every directional play is a forward conditional —
   expected response on arrival (`hold-traverse`; the R11 deadline stays), with the
   look-and-fail fork preferred at structure edges (overnight / prior-day extremes,
