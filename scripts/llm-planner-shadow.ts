@@ -24,7 +24,7 @@ import type { JobPlan } from '@/knowledge/schema/job-plan.schema'
 import { fetchConfigRow } from '@/lib/config'
 import type { JobContext } from '@/lib/job-plan/contextTypes'
 import { buildPlan } from '@/lib/job-plan/buildPlan'
-import { diffJudgment, stabilityDiff, type ShadowDiff, type StabilityDiff } from '@/lib/job-plan/llm-planner/diff'
+import { diffJudgment, stabilityAcross, type ShadowDiff, type StabilityDiff } from '@/lib/job-plan/llm-planner/diff'
 import { LLM_PLANNER_REVISION } from '@/lib/job-plan/llm-planner/prompt'
 import { bandLabel } from '@/lib/job-plan/playText'
 import { runLlmPlanner, type LlmPlannerResult } from '@/lib/job-plan/llm-planner/runLlmPlanner'
@@ -79,20 +79,25 @@ type JobPlanRow = {
   plan: JobPlan
 }
 
-/** Latest ready plan per trading day, newest days first. */
+/** Latest ready plan per trading day, newest days first — paged until enough distinct days or the table is exhausted. */
 async function fetchRows(limit: number): Promise<JobPlanRow[]> {
   const client = getServiceClient()
-  const { data, error } = await client
-    .from('job_plans')
-    .select('id, trading_day, created_at, plan, status')
-    .eq('status', 'ready')
-    .order('created_at', { ascending: false })
-    .limit(limit * 4)
-  if (error) throw error
   const byDay = new Map<string, JobPlanRow>()
-  for (const row of (data ?? []) as (JobPlanRow & { status: string })[]) {
-    if (!byDay.has(row.trading_day)) byDay.set(row.trading_day, row)
-    if (byDay.size >= limit) break
+  const page = 200
+  for (let from = 0; byDay.size < limit; from += page) {
+    const { data, error } = await client
+      .from('job_plans')
+      .select('id, trading_day, created_at, plan, status')
+      .eq('status', 'ready')
+      .order('created_at', { ascending: false })
+      .range(from, from + page - 1)
+    if (error) throw error
+    const rows = (data ?? []) as (JobPlanRow & { status: string })[]
+    for (const row of rows) {
+      if (!byDay.has(row.trading_day)) byDay.set(row.trading_day, row)
+      if (byDay.size >= limit) break
+    }
+    if (rows.length < page) break
   }
   return [...byDay.values()]
 }
@@ -231,7 +236,7 @@ async function main(): Promise<void> {
         llm.push(await runLlmPlanner({ context, model, effort }))
       }
       const diff = diffJudgment(det, llm[0].judgment, context)
-      const stability = llm.length > 1 ? stabilityDiff(llm[0].judgment, llm[1].judgment) : null
+      const stability = stabilityAcross(llm.map((r) => r.judgment))
       entries.push({ row, context, det, llm, diff, stability, error: null })
       console.log(
         `  ${row.trading_day}: frame ${diff.frame.agree ? 'agree' : 'DISAGREE'}, primary ${diff.primary.agree ? 'agree' : 'DISAGREE'}${stability && !stability.stable ? ', UNSTABLE' : ''}`,

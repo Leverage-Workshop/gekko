@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildPlan } from '@/lib/job-plan/buildPlan'
 import type { JobContext } from '@/lib/job-plan/contextTypes'
 import { frameCandidates, llmContextPayload } from '@/lib/job-plan/llm-planner/contextPayload'
-import { diffJudgment, stabilityDiff } from '@/lib/job-plan/llm-planner/diff'
+import { diffJudgment, stabilityAcross, stabilityDiff } from '@/lib/job-plan/llm-planner/diff'
 import {
   buildLlmPlannerPrompt,
   FORBIDDEN_PHRASES,
@@ -177,6 +177,13 @@ describe('runLlmPlanner', () => {
   it('rejects an out-of-schema answer via the judgment schema', () => {
     expect(() => LlmPlanJudgmentSchema.parse({ frame: { referenceId: 'wp' } })).toThrow()
   })
+
+  it('fails closed on an insufficient context — no model call, no spend', async () => {
+    const ctx = context()
+    const insufficient: JobContext = { ...ctx, price: { ...ctx.price, value: Number.NaN } }
+    const generate = fakeGenerate([cleanJudgment(ctx)])
+    await expect(runLlmPlanner({ context: insufficient, model: 'test/model', generate })).rejects.toThrow(/insufficient context, no model call/)
+  })
 })
 
 describe('shadow diff', () => {
@@ -201,5 +208,14 @@ describe('shadow diff', () => {
     expect(stability.frameAgree).toBe(false)
     expect(stability.stable).toBe(false)
     expect(stabilityDiff(judgment, judgment).stable).toBe(true)
+  })
+
+  it('stabilityAcross catches a flip in ANY later run, not just the second', () => {
+    const ctx = context()
+    const judgment = cleanJudgment(ctx)
+    const reframed = { ...judgment, frame: { referenceId: 'dp', rationale: 'x' } }
+    expect(stabilityAcross([judgment])).toBeNull()
+    expect(stabilityAcross([judgment, judgment, judgment])?.stable).toBe(true)
+    expect(stabilityAcross([judgment, judgment, reframed])?.stable).toBe(false)
   })
 })

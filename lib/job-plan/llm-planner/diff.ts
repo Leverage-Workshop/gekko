@@ -111,6 +111,19 @@ export function diffJudgment(plan: JobPlan, judgment: LlmPlanJudgment, context: 
   }
 }
 
+/** Every run vs the first: any flip in ANY later run is a stability failure. */
+export function stabilityAcross(judgments: readonly LlmPlanJudgment[]): StabilityDiff | null {
+  if (judgments.length < 2) return null
+  const diffs = judgments.slice(1).map((j) => stabilityDiff(judgments[0], j))
+  return {
+    frameAgree: diffs.every((d) => d.frameAgree),
+    playSetAgree: diffs.every((d) => d.playSetAgree),
+    primaryAgree: diffs.every((d) => d.primaryAgree),
+    directionsAgree: diffs.every((d) => d.directionsAgree),
+    stable: diffs.every((d) => d.stable),
+  }
+}
+
 /** Two runs of the LLM planner on the same context: any flip is a stability failure. */
 export function stabilityDiff(a: LlmPlanJudgment, b: LlmPlanJudgment): StabilityDiff {
   const aIds = a.plays.map((p) => p.bandId)

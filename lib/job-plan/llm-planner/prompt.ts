@@ -21,7 +21,7 @@ import { MAX_PLAYS } from '../rules'
  * it is recorded with every shadow run so reports are attributable.
  */
 
-export const LLM_PLANNER_REVISION = 'llm-planner/2026-08-31.1'
+export const LLM_PLANNER_REVISION = 'llm-planner/2026-08-31.2'
 
 export const ROLE =
   'You are writing the trading-day plan for a futures session the way a professional prepares one before the session does anything: a frame, then a short list of forward conditionals — what to expect IF price reaches the few areas that matter. You are given everything already measured: the level inventory with importance ranks, the confluence bands, distances, the day’s volatility scale, and each area’s freshness. None of the measuring is your job. Your job is the judgment: which line frames the day, which areas deserve a play, and what to expect at each one.'
@@ -83,7 +83,7 @@ function rulesText(): string {
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - frame.referenceId: the id of the tier-one line (choose from frameCandidates) that frames the day; frame.rationale: one sentence on why this line.
-- plays: at most ${MAX_PLAYS}, ordered by precedence — the first play is the primary look, and sides alternate starting from the frame side. Each play names its area by bandId (choose from bands); direction is 'long' for an area below price, 'short' for an area above (inside an area, lean with the frame). text: the play in the register of the rules — the approach, the expected turn, the traverse toward the structure beyond, and the fork if price builds through instead — naming levels by their labels. rationale: why this area won its side, including the breach test whenever you reached past a nearer level.
+- plays: at most ${MAX_PLAYS}, ordered by precedence — the first play is the primary look, and sides alternate starting from the frame side. Each play names its area by bandId (choose from bands); direction is 'long' for an area below price, 'short' for an area above (inside an area, lean with the frame). text: the play in the register of the rules — the approach, the expected turn, the traverse toward the structure beyond, and the fork if price builds through instead — naming levels by their labels (a numeric price you write must be one the payload carries — never invent one). rationale: why this area won its side, including the breach test whenever you reached past a nearer level.
 - sidesWithoutPlay: one entry per side (above / below) that carries no play, with the one-line reason.
 - standDown: true only when the mid-zone rule applies; then standDownText declares the two-way at the named edges. Otherwise false with standDownText null.
 - lean: one line naming the primary look and the side to lean with.

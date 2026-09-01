@@ -26,8 +26,20 @@ plan; the deterministic planner stays production. Adaptation from the proposal r
 the model outputs a dedicated judgment schema (not the full persisted `JobPlan`) — inventory
 membership is enforced BY CONSTRUCTION via ids, which is stronger than post-hoc price checking;
 code-side assembly of a full shadow JobPlan is deferred until the judgment wins adjudication.
-`planFrame.ts` exports `FRAME_LADDER` (shared by payload + validator). 12 new tests in
+`planFrame.ts` exports `FRAME_LADDER` (shared by payload + validator). 14 new tests in
 `tests/job-plan.llmPlanner.test.ts`.
+
+Codex gate: PASS both rounds (no P0/P1). Round-1 P2 triage: (1) sufficiency check before the
+model call — FIXED (`runLlmPlanner` throws on `insufficiencyReasons` before any spend);
+(2) stability only compared runs 1–2 — FIXED (`stabilityAcross` ANDs every later run against the
+first); (3) `limit * 4` row fetch could under-fill unique days — FIXED (paged `range()` until
+enough distinct days or exhaustion); (4) invented numeric prices in model-authored prose —
+PARTIALLY ADDRESSED: OUTPUT rule now says a written price must be one the payload carries
+(revision → `llm-planner/2026-08-31.2`); hard prose-price linting DISMISSED — structural fields
+are id-constrained by the schema (invented prices have no field), prose legitimately carries
+non-price numerics (distances, minutes, sigma), and the shadow report hands the full text to the
+operator, whose adjudication is the whole point of the experiment. Revisit only if adjudication
+actually surfaces an invented price.
 
 **Previous change (branch `feat-sierra-job-plan-bands`, PR #192): Job plan bands on the Sierra
 charts.** New `job_plan_bands` view (migration `20260831210000_job_plan_bands_view.sql`, applied

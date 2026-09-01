@@ -1,5 +1,6 @@
 import { generateStructured } from '@/lib/llm'
 import type { ReasoningEffort } from '@/lib/llm/reasoning'
+import { insufficiencyReasons } from '../buildPlan'
 import type { JobContext } from '../contextTypes'
 import { llmContextPayload } from './contextPayload'
 import { buildLlmPlannerPrompt, LLM_PLANNER_REVISION } from './prompt'
@@ -54,6 +55,11 @@ function retryPrompt(base: string, judgment: LlmPlanJudgment, violations: readon
 
 export async function runLlmPlanner(input: RunLlmPlannerInput): Promise<LlmPlannerResult> {
   const { context, model, effort = null, generate = generateStructured } = input
+  // R13 fails closed BEFORE any model spend — same sufficiency bar as buildPlan.
+  const insufficient = insufficiencyReasons(context)
+  if (insufficient.length > 0) {
+    throw new Error(`llm-planner: insufficient context, no model call — ${insufficient.join('; ')}`)
+  }
   const payload = JSON.stringify(llmContextPayload(context), null, 1)
   const basePrompt = buildLlmPlannerPrompt(payload)
 
