@@ -13,7 +13,6 @@ import {
   MAX_ARMED_BANDS_PER_SIDE,
   MAX_PLAYS,
   MERGE_TOLERANCE_PTS,
-  ORIGIN_PRECEDENCE,
   PLANNER_REVISION,
   REACH_SIGMA,
   RESPONSE_DEADLINE_MINUTES,
@@ -21,7 +20,6 @@ import {
   SOURCE_SIGNIFICANCE,
   r10MidZone,
   r11ResponseDeadline,
-  r12OriginRank,
   r12SkipBand,
   r12WithinPlayCap,
   r13ExportSkewExceeded,
@@ -271,13 +269,9 @@ describe('R11 — response deadline (emitted, never evaluated)', () => {
   })
 })
 
-describe('R12 — actionable set + origin precedence', () => {
-  it('ranks the origin facts failed look > approach failure > accepted > holding side > defense', () => {
-    expect(ORIGIN_PRECEDENCE).toEqual(['failed-look', 'approach-failure', 'accepted', 'holding-side', 'defense'])
-    expect(r12OriginRank('failed-look')).toBe(0)
-    expect(r12OriginRank('approach-failure')).toBeLessThan(r12OriginRank('accepted'))
-    expect(r12OriginRank('accepted')).toBeLessThan(r12OriginRank('holding-side'))
-    expect(r12OriginRank('holding-side')).toBeLessThan(r12OriginRank('defense'))
+describe('R12 — actionable set (origin-precedence half retired 2026-08-31)', () => {
+  it('exports no origin-fact precedence: plays are forward conditionals ranked by frame + structure', () => {
+    expect(RULES_SOURCE).not.toMatch(/ORIGIN_PRECEDENCE|r12OriginRank/)
   })
 
   it.each([

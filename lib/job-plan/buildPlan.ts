@@ -1,5 +1,6 @@
-import { JobPlanSchema, type DestinationStage, type GeometryRefs, type JobPlan, type PlanMeta, type PlayBand, type PrunedBranch } from '@/knowledge/schema/job-plan.schema'
+import { JobPlanSchema, type DestinationStage, type GeometryRefs, type JobPlan, type PlanFrame, type PlanMeta, type PlayBand, type PrunedBranch } from '@/knowledge/schema/job-plan.schema'
 import type { EnclosingZone, JobContext, Reference } from './contextTypes'
+import { planFrame } from './planFrame'
 import { rankPlays } from './planPrecedence'
 import type { PlayDraft } from './planTypes'
 import { selectCandidates } from './playCandidates'
@@ -8,20 +9,23 @@ import { fmtPrice, fmtRange, membersAtPrice, referenceProvenance } from './playT
 import { PLANNER_REVISION } from './rules'
 
 /**
- * `buildPlan` (feat-127, docs/job-planning-task-plan.md "Key decisions" 4,
- * procedure steps 4–5): play generation + the explicit precedence table over
- * feat-126's `JobContext` → `JobPlan`. Pure and deterministic — same context
- * + revision ⇒ deep-equal output; no clock, no I/O, no LLM.
+ * `buildPlan` (feat-127; grammar rebuilt 2026-08-31 to the operator's
+ * forward-conditional correction): play generation + the precedence table
+ * over feat-126's `JobContext` → `JobPlan`. Pure and deterministic — same
+ * context + revision ⇒ deep-equal output; no clock, no I/O, no LLM.
  *
  *   1. Sufficiency: an `insufficient` data quality (R13) or missing CORE
  *      geometry (current daily + weekly pivot, at least one band, a price)
  *      → `status: 'insufficient'`, zero plays, reasons spelled out.
- *   2. R12 actionable set (playCandidates.ts).
- *   3. One play per candidate from the five-condition grammar, grounded in
- *      the band's freshest origin fact or its watched default (playGrammar.ts);
- *      a mid-zone context (R10) adds the two-way stand-down play.
- *   4. The precedence table ranks, caps at four and names the primary lean
- *      (planPrecedence.ts). Whatever is pruned says why.
+ *   2. The FRAME (planFrame.ts): price vs the nearer of the G line and the
+ *      weekly Job Pivot names the productive side.
+ *   3. R12 actionable set (playCandidates.ts).
+ *   4. One forward-conditional play per candidate — the expected response on
+ *      arrival with both outcomes stated (playGrammar.ts); a mid-zone
+ *      context (R10) adds the two-way stand-down play.
+ *   5. The precedence table ranks by frame alignment + structure, caps at
+ *      four and names the primary look (planPrecedence.ts). Whatever is
+ *      pruned says why.
  *
  * Every play price traces to the inventory (`geometryRefs`) or is a labeled
  * derivation; the schema parse at the end is the contract's boundary check.
@@ -172,16 +176,16 @@ function zoneDraft(zone: EnclosingZone, context: JobContext): PlayDraft {
     dont: "Don't trade full size in the middle — nobody wants to be full size in the middle; wait for the edges",
     uncertaintyBand: null,
     summary: `Stay inside ${fmtRange(zone.lowerEdge.price, zone.upperEdge.price)} (${zone.lowerEdge.label} – ${zone.upperEdge.label}) → balance; play the edges, stand down in the middle`,
-    precedence: { tier: 0, factMs: Number.NEGATIVE_INFINITY, enclosingEdge: false, distancePts: 0, bandKey: 'zone' },
+    precedence: { tier: 0, aligned: true, enclosingEdge: false, significance: -1, distancePts: 0, bandKey: 'zone' },
   }
 }
 
-function draftPlays(context: JobContext): { drafts: PlayDraft[]; pruned: PrunedBranch[] } {
+function draftPlays(context: JobContext, frame: PlanFrame | null): { drafts: PlayDraft[]; pruned: PrunedBranch[] } {
   const selection = selectCandidates(context)
   const drafts: PlayDraft[] = []
   const pruned: PrunedBranch[] = [...selection.pruned]
   for (const candidate of selection.candidates) {
-    const result = buildBandPlay(candidate, context)
+    const result = buildBandPlay(candidate, context, frame)
     if ('draft' in result) drafts.push(result.draft)
     else pruned.push({ bandId: candidate.band.id, label: `${candidate.band.members[0].label} ${fmtRange(candidate.band.low, candidate.band.high)}`, reason: result.pruned })
   }
@@ -195,6 +199,7 @@ function insufficientPlan(context: JobContext, meta: PlanMetaInput, reasons: rea
     meta: planMeta(context, meta),
     geometryRefs: geometryRefs(context),
     context,
+    frame: null,
     lean: { playId: null, basis: 'none', text: 'Insufficient input — no plan (fail closed)' },
     plays: [],
     pruned: [],
@@ -214,17 +219,19 @@ export function buildPlan(input: BuildPlanInput): JobPlan {
     return plan
   }
 
-  const { drafts, pruned } = draftPlays(context)
-  const ranked = rankPlays(drafts, context)
+  const frame = planFrame(context)
+  const { drafts, pruned } = draftPlays(context, frame)
+  const ranked = rankPlays(drafts, frame)
   const standDown = ranked.plays.filter((p) => p.stance === 'stand-down').map((p) => p.activation.evidence)
   const plan: JobPlan = {
     meta: planMeta(context, meta),
     geometryRefs: geometryRefs(context),
     context,
+    frame,
     lean: ranked.lean,
     plays: [...ranked.plays],
     pruned: [...pruned, ...ranked.pruned],
-    standDownReasons: ranked.plays.length === 0 ? ['no armable band in the actionable set — nothing to plan; destinations only'] : standDown,
+    standDownReasons: ranked.plays.length === 0 ? ['no playable band in the actionable set — nothing to watch; destinations only'] : standDown,
     warnings: [...context.warnings],
     status: 'ready',
   }

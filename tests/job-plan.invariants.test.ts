@@ -167,14 +167,14 @@ describe('invariants over the corpus', () => {
     }
   })
 
-  it.each(CORPUS)('%s: the lean names the rank-1 play only when an origin fact backs it', (_, p) => {
+  it.each(CORPUS)('%s: the lean always names the rank-1 play — frame-based for directional, mid-zone for the stand-down', (_, p) => {
     const first = p.plays[0]
-    if (!first || first.activation.grounding === 'none') {
+    if (!first) {
       expect(p.lean).toMatchObject({ playId: null, basis: 'none' })
-      expect(p.plays.some((x) => x.primary)).toBe(false)
     } else {
-      expect(p.lean).toMatchObject({ playId: first.id, basis: first.activation.grounding })
+      expect(p.lean).toMatchObject({ playId: first.id, basis: first.stance === 'stand-down' ? 'mid-zone' : 'frame' })
       expect(first.primary).toBe(true)
+      expect(p.plays.filter((x) => x.primary)).toHaveLength(1)
     }
   })
 

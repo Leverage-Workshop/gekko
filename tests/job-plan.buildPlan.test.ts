@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import type { JobPlan, Play } from '@/knowledge/schema/job-plan.schema'
+import type { JobPlan } from '@/knowledge/schema/job-plan.schema'
 import { buildPlan, insufficiencyReasons } from '@/lib/job-plan/buildPlan'
 import type { BandOriginFacts, Excursion } from '@/lib/job-plan/contextTypes'
 import { MAX_STAGES } from '@/lib/job-plan/destinationChain'
-import { REPEATED_DEFENSE_MIN } from '@/lib/job-plan/playGrammar'
 import { MAX_PLAYS, PLANNER_REVISION } from '@/lib/job-plan/rules'
 import { synthContext, type SynthRef, type SynthSpec } from './helpers/jobPlanContext'
 
 /**
- * buildPlan grammar + precedence over hand-built contexts (NQ, merge 20 /
- * cap 40 unless stated). BASE geometry, well separated so every reference is
- * its own band: ONL 29260, G line 29300, price 29360, daily pivot 29393.5,
- * Rip 29420, ONH 29460, weekly pivot 29500, PDH 29650, weekly 1A rung 29700,
- * PW High 29750 — no JBA box, the weekly read at its pivot (no re-ordering),
- * price between the G line and the pivot but inside the pivot's edge-play
- * distance (no mid-zone), so exactly four watched bands arm. BOXED adds the
+ * buildPlan over hand-built contexts (NQ, merge 20 / cap 40 unless stated),
+ * pinning the 2026-08-31 forward-conditional contract: every directional
+ * play is the EXPECTED response at a key area if price reaches it — origin
+ * facts never arm, demote only (R9). BASE geometry, well separated so every
+ * reference is its own band: ONL 29260, G line 29300, price 29360, daily
+ * pivot 29393.5, Rip 29420, ONH 29460, weekly pivot 29500, PDH 29650,
+ * weekly 1A rung 29700, PW High 29750 — no JBA box; price 60 pts above the
+ * G line, so the frame is above-the-G-line and longs lead. BOXED adds the
  * JBA box [29200, 29600] and sits price at 29350, mid-zone.
  */
 
@@ -52,9 +52,8 @@ const BOXED: SynthSpec = {
 const plan = (spec: Partial<SynthSpec> = {}): JobPlan => buildPlan({ context: synthContext({ ...BASE, ...spec }) })
 const boxed = (spec: Partial<SynthSpec> = {}): JobPlan => buildPlan({ context: synthContext({ ...BOXED, ...spec }) })
 const withFacts = (facts: SynthSpec['facts'], spec: Partial<SynthSpec> = {}) => plan({ ...spec, facts })
-const boxedWith = (facts: SynthSpec['facts'], spec: Partial<SynthSpec> = {}) => boxed({ ...spec, facts })
 /** The directional play at a band (the stand-down names both zone edges and is excluded). */
-const playAt = (p: JobPlan, memberLabel: string): Play | undefined => p.plays.find((x) => x.stance !== 'stand-down' && x.band.memberLabels.includes(memberLabel))
+const playAt = (p: JobPlan, memberLabel: string) => p.plays.find((x) => x.stance !== 'stand-down' && x.band.memberLabels.includes(memberLabel))
 
 const failedLook = (direction: 'above' | 'below', grade: 'EARLY' | 'LATE' = 'EARLY', endedAt = '2026-08-24T09:05:00'): Excursion => ({
   direction,
@@ -67,157 +66,119 @@ const failedLook = (direction: 'above' | 'below', grade: 'EARLY' | 'LATE' = 'EAR
   extremePrice: direction === 'below' ? 29285 : 29410,
 })
 
-const holding = (side: 'ABOVE' | 'BELOW'): BandOriginFacts['holdingSide'] => ({
-  side,
-  windowMinutes: 20,
-  closes: 15,
-  scope: 'session',
-  from: '2026-08-24T09:10:00',
-  to: '2026-08-24T09:28:00',
+describe('the frame: price vs the nearer of the G line and the weekly Job Pivot', () => {
+  it('names the operative line, the side and the productive direction', () => {
+    const p = plan()
+    expect(p.frame).toMatchObject({ referenceId: 'g-line', label: 'G line (week open)', price: 29300, side: 'above', distancePts: 60 })
+    expect(p.frame?.text).toContain('Above the G line (week open) 29300')
+    expect(p.frame?.text).toContain('upside is productive')
+    expect(p.frame?.provenance).toEqual({ kind: 'reference', referenceIds: ['g-line'], derivation: null })
+  })
+
+  it('picks the nearer of the two frame references', () => {
+    expect(plan({ price: 29450 }).frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'below', distancePts: 50 })
+  })
+
+  it('within one merge tolerance of the line the frame is AT it — balance, no productive side', () => {
+    const p = plan({ price: 29310 })
+    expect(p.frame).toMatchObject({ referenceId: 'g-line', side: 'at' })
+    expect(p.frame?.text).toContain('balance around the line')
+  })
+
+  it('an insufficient plan carries no frame', () => {
+    const p = plan({ dataQuality: { sufficient: false, issues: [{ code: 'export_skew', severity: 'insufficient', message: 'skewed' }] } })
+    expect(p.status).toBe('insufficient')
+    expect(p.frame).toBeNull()
+  })
 })
 
-describe('the five-condition grammar, one play per grounded band', () => {
-  it('look-and-fail (R5): a failed look below the G line arms a rebid, joins the rotation back across, and is the primary lean', () => {
-    const p = withFacts({ 'g-line': { latestFailedLook: failedLook('below') } })
+describe('the forward-conditional grammar: expected response on arrival, both outcomes stated', () => {
+  it('a band below price watches for bid: rebid on arrival, R11 deadline, build-below flip with acceleration past the G line', () => {
+    const p = plan()
     const g = playAt(p, 'G line (week open)')!
-    expect(g).toMatchObject({ rank: 1, primary: true, stance: 'rebid', direction: 'long', condition: 'look-and-fail' })
-    expect(g.activation).toMatchObject({ state: 'armed', grounding: 'failed-look', factAt: '2026-08-24T09:05:00', demoted: false })
-    expect(g.activation.rulesFired).toEqual(expect.arrayContaining(['R5', 'R12']))
-    expect(g.activation.evidence).toContain('EARLY (R5)')
-    expect(g.band).toMatchObject({ bandId: expect.any(String), low: 29300, high: 29300, role: 'actionable-now', side: 'below', distancePts: 60 })
+    expect(g).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse' })
+    expect(g.activation).toMatchObject({ state: 'conditional', grounding: 'none', factAt: null, demoted: false })
+    expect(g.activation.evidence).toContain('Expect the bid at G line (week open) 29300')
+    expect(g.trigger).toContain('Rebid G line (week open) 29300 on the arrival from above')
+    expect(g.trigger).toContain('a look below and fail is the stronger green light')
+    expect(g.responseDeadline).toMatchObject({ minutes: 30, evaluatedByPlanner: false })
     expect(g.invalidation).toMatchObject({ low: 29300, high: 29300, side: 'below' })
-    expect(g.invalidation.condition).toContain('Acceptance below 29300')
-    expect(g.invalidation.thenSeek).toMatchObject({ label: 'ONL', low: 29260, high: 29260 })
+    expect(g.invalidation.condition).toContain('Build below 29300')
+    expect(g.invalidation.condition).toContain('the rubber meets the road')
+    expect(g.invalidation.thenSeek).toMatchObject({ label: 'ONL', low: 29260 })
     expect(g.destinations.map((s) => [s.label, s.low, s.expect])).toEqual([
       ['Daily Job Pivot', 29393.5, 'gate-continuation'],
       ['Rip', 29420, 'gate-continuation'],
       ['ONH', 29460, 'reoffer'],
     ])
     expect(g.destinations[0].beeline).toEqual({ dontCounter: true, destinationLabel: 'Rip', destinationLow: 29420, destinationHigh: 29420 })
-    expect(g.destinations[2].beeline).toBeNull()
-    expect(g.responseDeadline).toBeNull()
-    expect(g.dont).toContain("Don't fade the break itself")
-    expect(g.summary).toBe('Look-below-and-fail at G line (week open) 29300 → rotate back across: press Daily Job Pivot 29393.5 → press Rip 29420; build above → ONH 29460; below 29300 (G line (week open)) → seek ONL 29260')
-    expect(p.lean).toMatchObject({ playId: g.id, basis: 'failed-look' })
+    expect(g.dont).toContain("Don't buy ahead of")
   })
 
-  it('approach-failure (R7): a stall short of the pivot from below arms a reoffer targeting back across', () => {
-    const p = withFacts({
-      'daily-pivot': {
-        approachFailure: { from: 'below', closestApproachPts: 30, closestApproachAt: '2026-08-24T09:10:00', closestPrice: 29363.5, retreatPts: 25, minutesSinceClosest: 20, scope: 'session' },
-      },
-    })
-    const pivot = playAt(p, 'Daily Job Pivot')!
-    expect(pivot).toMatchObject({ rank: 1, primary: true, stance: 'reoffer', direction: 'short', condition: 'approach-failure' })
-    expect(pivot.activation).toMatchObject({ state: 'armed', grounding: 'approach-failure', factAt: '2026-08-24T09:10:00' })
-    expect(pivot.activation.rulesFired).toContain('R7')
-    expect(pivot.invalidation).toMatchObject({ low: 29393.5, high: 29393.5, side: 'above' })
-    expect(pivot.destinations.map((s) => s.low)).toEqual([29300, 29260])
-    expect(pivot.destinations.at(-1)?.expect).toBe('rebid')
-    expect(pivot.dont).toContain('the stall short of it is the trigger')
-    expect(pivot.responseDeadline).toBeNull()
-  })
-
-  it('build-beyond-continuation (R6): acceptance below the G line is a continuation short, no fade at that band, don\'t-counter until back inside', () => {
-    const p = withFacts(
-      { 'g-line': { acceptance: { state: 'accepted', direction: 'below', sinceAt: '2026-08-24T09:00:00', minutes: 28, scope: 'session' } } },
-      { price: 29285 },
-    )
-    const g = playAt(p, 'G line (week open)')!
-    expect(g).toMatchObject({ rank: 1, primary: true, stance: 'continuation', direction: 'short', condition: 'build-beyond-continuation' })
-    expect(g.activation).toMatchObject({ state: 'armed', grounding: 'accepted', factAt: '2026-08-24T09:00:00' })
-    expect(g.activation.rulesFired).toContain('R6')
-    expect(g.invalidation).toMatchObject({ low: 29300, high: 29300, side: 'above' })
-    expect(g.invalidation.condition).toContain('close back inside')
-    expect(g.destinations.map((s) => s.low)).toEqual([29260])
-    expect(g.dont).toContain("Don't counter until price is back inside")
-    expect(p.plays.filter((x) => x.band.bandId === g.band.bandId)).toHaveLength(1)
-    expect(p.lean.basis).toBe('accepted')
-  })
-
-  it('R6 supersedes R5: a failed look re-broken and accepted beyond grounds the continuation, never a stale rebid (the 2026-08-25 OR Low incident)', () => {
-    const p = withFacts(
-      {
-        'g-line': {
-          latestFailedLook: failedLook('below'),
-          acceptance: { state: 'accepted', direction: 'below', sinceAt: '2026-08-24T09:06:00', minutes: 21, scope: 'session' },
-        },
-      },
-      { price: 29285 },
-    )
-    const g = playAt(p, 'G line (week open)')!
-    expect(g).toMatchObject({ stance: 'continuation', direction: 'short', condition: 'build-beyond-continuation' })
-    expect(g.activation).toMatchObject({ state: 'armed', grounding: 'accepted' })
-    expect(g.activation.rulesFired).toContain('R6')
-    expect(g.activation.rulesFired).not.toContain('R5')
-  })
-
-  it('only CONFIRMED acceptance voids the failed look: testing below (< 20 min of closes) leaves the rebid armed', () => {
-    const p = withFacts({
-      'g-line': {
-        latestFailedLook: failedLook('below'),
-        acceptance: { state: 'testing', direction: 'below', sinceAt: '2026-08-24T09:20:00', minutes: 8, scope: 'session' },
-      },
-    })
-    expect(playAt(p, 'G line (week open)')).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'look-and-fail' })
-  })
-
-  it('acceptance on the OTHER side of the band does not void the failed look — only adverse acceptance is the fade\'s invalidation', () => {
-    const p = withFacts({
-      'g-line': {
-        latestFailedLook: failedLook('below'),
-        acceptance: { state: 'accepted', direction: 'above', sinceAt: '2026-08-24T09:06:00', minutes: 21, scope: 'session' },
-      },
-    })
-    expect(playAt(p, 'G line (week open)')?.activation.grounding).toBe('failed-look')
-  })
-
-  it('acceptance that merely spans the whole observation window is not a fresh initiative — the band was never crossed', () => {
-    const p = withFacts(
-      { 'g-line': { acceptance: { state: 'accepted', direction: 'below', sinceAt: '2026-08-23T17:00:00', minutes: 900, scope: 'overnight' } } },
-      { price: 29285 },
-    )
-    expect(playAt(p, 'G line (week open)')?.condition).not.toBe('build-beyond-continuation')
-    expect(playAt(p, 'G line (week open)')?.activation.state).toBe('conditional')
-  })
-
-  it('hold-traverse (R8): holding BELOW the pivot inside the edge-play distance arms a reoffer with the R11 deadline as text', () => {
-    const p = withFacts({ 'daily-pivot': { holdingSide: holding('BELOW') } })
-    const pivot = playAt(p, 'Daily Job Pivot')!
+  it('a band above price watches for offer: reoffer on arrival targeting back across', () => {
+    const pivot = playAt(plan(), 'Daily Job Pivot')!
     expect(pivot).toMatchObject({ stance: 'reoffer', direction: 'short', condition: 'hold-traverse' })
-    expect(pivot.activation).toMatchObject({ state: 'armed', grounding: 'holding-side', factAt: '2026-08-24T09:28:00' })
-    expect(pivot.activation.rulesFired).toEqual(expect.arrayContaining(['R8', 'R11', 'R12']))
-    expect(pivot.responseDeadline).toMatchObject({ minutes: 30, evaluatedByPlanner: false })
-    expect(pivot.responseDeadline?.text).toContain('30 min of arrival at Daily Job Pivot 29393.5')
-    expect(pivot.trigger).toContain('Reoffer Daily Job Pivot 29393.5 on the arrival from below')
-    expect(pivot.destinations[0]).toMatchObject({ label: 'G line (week open)', low: 29300 })
+    expect(pivot.activation.evidence).toContain('Expect the offer at Daily Job Pivot 29393.5 (33.5 pts above)')
+    expect(pivot.invalidation).toMatchObject({ low: 29393.5, side: 'above' })
+    expect(pivot.destinations.map((s) => s.low)).toEqual([29300, 29260])
   })
 
-  it('hold-traverse guards: the holding side counts only within 2× merge of the band, and only on the band\'s own side of price', () => {
-    const far = withFacts({ 'daily-pivot': { holdingSide: holding('BELOW') } }, { price: 29350 })
-    expect(playAt(far, 'Daily Job Pivot')?.activation).toMatchObject({ state: 'conditional', grounding: 'none' })
-    const inconsistent = withFacts({ 'daily-pivot': { holdingSide: holding('ABOVE') } })
-    expect(playAt(inconsistent, 'Daily Job Pivot')?.activation).toMatchObject({ state: 'conditional', grounding: 'none' })
-    const straddling = withFacts({ 'daily-pivot': { holdingSide: { ...holding('ABOVE')!, side: 'STRADDLING' } } })
-    expect(playAt(straddling, 'Daily Job Pivot')?.activation.grounding).toBe('none')
+  it('overnight / prior-day / JBA edges wait for the look-and-fail, not the arrival alone', () => {
+    const onl = playAt(plan(), 'ONL')!
+    expect(onl).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'look-and-fail' })
+    expect(onl.trigger).toContain('Look below ONL 29260 and fail')
+    expect(onl.activation.evidence).toContain('a sweep beyond that fails is the trigger, not the arrival alone')
+    expect(onl.responseDeadline).toBeNull()
+    expect(onl.dont).toContain("Don't fade the break itself")
+    const big = boxed({ reachPts: 500 })
+    expect(playAt(big, 'JBA 1 high')).toMatchObject({ condition: 'look-and-fail', direction: 'short' })
+    expect(playAt(big, 'JBA 1 low')).toMatchObject({ condition: 'look-and-fail', direction: 'long' })
   })
 
-  it('repeated defense (R9): two session defenses ground a hold-traverse; one does not', () => {
-    const interaction = (session: number): BandOriginFacts['interaction'] => ({
-      interacted: true,
-      prints: 4,
-      firstAt: '2026-08-24T08:50:00',
-      lastAt: '2026-08-24T09:20:00',
-      defenses: { session, overnight: 0 },
-      failedLookThisSession: false,
-      triggerStatus: 'full',
+  it('origin facts NEVER arm a play — a completed failed look or acceptance leaves every play conditional (the 2026-08-25 OR Low regression)', () => {
+    const p = withFacts({
+      'g-line': { latestFailedLook: failedLook('below') },
+      'daily-pivot': { acceptance: { state: 'accepted', direction: 'above', sinceAt: '2026-08-24T09:06:00', minutes: 25, scope: 'session' } },
+      onl: { approachFailure: { from: 'above', closestApproachPts: 30, closestApproachAt: '2026-08-24T09:10:00', closestPrice: 29290, retreatPts: 25, minutesSinceClosest: 10, scope: 'session' } },
     })
-    expect(REPEATED_DEFENSE_MIN).toBe(2)
-    const twice = withFacts({ 'g-line': { interaction: interaction(2) } })
-    expect(playAt(twice, 'G line (week open)')).toMatchObject({ condition: 'hold-traverse', direction: 'long', stance: 'rebid' })
-    expect(playAt(twice, 'G line (week open)')?.activation).toMatchObject({ state: 'armed', grounding: 'defense', factAt: '2026-08-24T09:20:00' })
-    const once = withFacts({ 'g-line': { interaction: interaction(1) } })
-    expect(playAt(once, 'G line (week open)')?.activation.grounding).toBe('none')
+    for (const play of p.plays) {
+      expect(play.activation.state).toBe('conditional')
+      expect(play.activation.grounding).toBe('none')
+      expect(play.activation.factAt).toBeNull()
+      expect(play.activation.rulesFired).not.toContain('R5')
+      expect(play.activation.rulesFired).not.toContain('R6')
+      expect(play.activation.rulesFired).not.toContain('R7')
+      expect(play.activation.rulesFired).not.toContain('R8')
+    }
+    expect(p.plays.map((x) => x.condition)).not.toContain('build-beyond-continuation')
+  })
+
+  it('a band price sits inside leans with the frame', () => {
+    const p = plan({ price: 29420 })
+    const rip = playAt(p, 'Rip')!
+    expect(p.frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'below' })
+    expect(rip).toMatchObject({ stance: 'reoffer', direction: 'short' })
+    expect(rip.band.side).toBe('inside')
+    expect(rip.trigger).toContain('Lean against Rip 29420 from here')
+  })
+
+  it('a band price sits inside with no frame direction is pruned, not guessed', () => {
+    const p = plan({ price: 29300 })
+    expect(playAt(p, 'G line (week open)')).toBeUndefined()
+    expect(p.pruned.find((x) => x.label.startsWith('G line'))?.reason).toContain('no directional read')
+  })
+
+  it('R9 freshness: a touched band is demoted as a fresh trigger and ranks last', () => {
+    const touched: BandOriginFacts['interaction'] = { interacted: true, prints: 2, firstAt: '2026-08-24T08:40:00', lastAt: '2026-08-24T08:41:00', defenses: { session: 0, overnight: 0 }, failedLookThisSession: false, triggerStatus: 'demoted' }
+    const p = withFacts({ 'g-line': { interaction: touched } })
+    const g = playAt(p, 'G line (week open)')!
+    expect(g.activation.demoted).toBe(true)
+    expect(g.activation.state).toBe('conditional')
+    expect(g.activation.rulesFired).toContain('R9')
+    expect(g.activation.evidence).toContain('demoted as a fresh trigger (R9)')
+    expect(g.rank).toBe(p.plays.length)
+    const kept = withFacts({ 'g-line': { interaction: { ...touched, failedLookThisSession: true, triggerStatus: 'full' } } })
+    expect(playAt(kept, 'G line (week open)')).toMatchObject({ rank: 1, activation: { demoted: false } })
   })
 
   it('mid-zone two-way (R10): price in the middle of the JBA box declares the two-way trade between the named edges and stands down', () => {
@@ -242,98 +203,50 @@ describe('the five-condition grammar, one play per grounded band', () => {
     expect(p.plays.some((x) => x.stance === 'stand-down')).toBe(false)
     expect(p.standDownReasons).toEqual([])
   })
-
-  it('watched bands default by structure: overnight / prior-day / JBA edges wait for a look-and-fail, interior bands for a hold', () => {
-    const p = plan()
-    expect(p.plays.map((x) => x.band.memberLabels[0])).toEqual(['Daily Job Pivot', 'G line (week open)', 'Rip', 'ONL'])
-    expect(playAt(p, 'G line (week open)')).toMatchObject({ condition: 'hold-traverse', direction: 'long', stance: 'rebid' })
-    expect(playAt(p, 'G line (week open)')?.activation).toMatchObject({ state: 'conditional', grounding: 'none', factAt: null })
-    expect(playAt(p, 'ONL')).toMatchObject({ condition: 'look-and-fail', direction: 'long', stance: 'rebid' })
-    expect(playAt(p, 'ONL')?.activation.state).toBe('conditional')
-    expect(playAt(p, 'Daily Job Pivot')).toMatchObject({ condition: 'hold-traverse', direction: 'short', stance: 'reoffer' })
-    expect(playAt(p, 'Rip')).toMatchObject({ condition: 'hold-traverse', direction: 'short' })
-    expect(p.lean).toMatchObject({ playId: null, basis: 'none' })
-    expect(p.plays.some((x) => x.primary)).toBe(false)
-    const big = boxed({ reachPts: 500 })
-    expect(playAt(big, 'JBA 1 high')).toMatchObject({ condition: 'look-and-fail', direction: 'short', activation: { state: 'conditional' } })
-    expect(playAt(big, 'JBA 1 low')).toMatchObject({ condition: 'look-and-fail', direction: 'long', activation: { state: 'conditional' } })
-  })
 })
 
-describe('the precedence table', () => {
-  it('failed look > approach failure > accepted > stand-down > holding side > defense > watched, then freshness', () => {
-    const p = boxedWith(
-      {
-        onl: { latestFailedLook: failedLook('below', 'LATE', '2026-08-24T09:00:00') },
-        'daily-pivot': { approachFailure: { from: 'below', closestApproachPts: 30, closestApproachAt: '2026-08-24T09:20:00', closestPrice: 29363.5, retreatPts: 25, minutesSinceClosest: 10, scope: 'session' } },
-        'g-line': { holdingSide: holding('ABOVE') },
-      },
-      { price: 29335, reachPts: 500 },
-    )
-    expect(p.plays.map((x) => [x.band.memberLabels[0], x.activation.grounding])).toEqual([
-      ['ONL', 'failed-look'],
-      ['Daily Job Pivot', 'approach-failure'],
-      ['JBA 1 low', 'mid-zone'],
-      ['G line (week open)', 'holding-side'],
+describe('the precedence table: frame side leads, sides alternate, structure ranks', () => {
+  it('above the G line the longs lead and the sides alternate; the frame-aligned play is the primary look', () => {
+    const p = plan()
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction])).toEqual([
+      ['G line (week open)', 'long'],
+      ['Daily Job Pivot', 'short'],
+      ['ONL', 'long'],
+      ['Rip', 'short'],
     ])
-    expect(p.pruned.map((x) => x.reason)).toEqual(expect.arrayContaining([expect.stringContaining(`R12: max ${MAX_PLAYS} branches`)]))
+    expect(p.plays[0].primary).toBe(true)
+    expect(p.lean).toMatchObject({ playId: p.plays[0].id, basis: 'frame' })
+    expect(p.lean.text).toContain('frame-aligned look (above the G line (week open))')
   })
 
-  it('an EARLY failed look outranks a LATE one; fresher wins inside a tier', () => {
-    const p = withFacts({
-      onl: { latestFailedLook: failedLook('below', 'EARLY', '2026-08-24T08:55:00') },
-      'daily-pivot': { latestFailedLook: failedLook('above', 'LATE', '2026-08-24T09:20:00') },
-    })
-    expect(p.plays.map((x) => x.band.memberLabels[0]).slice(0, 2)).toEqual(['ONL', 'Daily Job Pivot'])
-    const fresher = withFacts({
-      onl: { latestFailedLook: failedLook('below', 'EARLY', '2026-08-24T08:55:00') },
-      'daily-pivot': { latestFailedLook: failedLook('above', 'EARLY', '2026-08-24T09:20:00') },
-    })
-    expect(fresher.plays.map((x) => x.band.memberLabels[0]).slice(0, 2)).toEqual(['Daily Job Pivot', 'ONL'])
+  it('below the line the shorts lead (mirrored frame)', () => {
+    const p = plan({ price: 29240 })
+    expect(p.frame).toMatchObject({ referenceId: 'g-line', side: 'below' })
+    expect(p.plays[0].direction).toBe('short')
   })
 
-  it('mid-box stand-down beats weak directional context (holding side) but not a confirmed initiative', () => {
-    const weak = boxedWith({ 'g-line': { holdingSide: holding('ABOVE') } }, { price: 29335 })
-    expect(weak.plays[0].stance).toBe('stand-down')
-    expect(weak.plays[1].activation.grounding).toBe('holding-side')
-    const initiative = boxedWith(
-      { 'jba:0:low': { acceptance: { state: 'accepted', direction: 'above', sinceAt: '2026-08-24T09:00:00', minutes: 28, scope: 'session' } } },
-      { reachPts: 500 },
-    )
-    expect(initiative.plays[0]).toMatchObject({ condition: 'build-beyond-continuation', direction: 'long' })
-    expect(initiative.plays[1].stance).toBe('stand-down')
+  it('the enclosing zone\'s edges rank first within a side ("play the edges")', () => {
+    const p = boxed({ reachPts: 500 })
+    expect(p.plays.map((x) => x.band.memberLabels[0])).toEqual(['JBA 1 low', 'JBA 1 low', 'JBA 1 high', 'G line (week open)'])
+    expect(p.plays[0].stance).toBe('stand-down')
   })
 
-  it('touched bands (R9) are demoted below untouched watched bands unless they produced a failed look or a defense', () => {
-    const touched: BandOriginFacts['interaction'] = { interacted: true, prints: 2, firstAt: '2026-08-24T08:40:00', lastAt: '2026-08-24T08:41:00', defenses: { session: 0, overnight: 0 }, failedLookThisSession: false, triggerStatus: 'demoted' }
-    const p = withFacts({ 'g-line': { interaction: touched } })
-    const g = playAt(p, 'G line (week open)')!
-    expect(g.activation.demoted).toBe(true)
-    expect(g.activation.rulesFired).toContain('R9')
-    expect(g.activation.evidence).toContain('demoted as a fresh trigger (R9)')
-    expect(g.rank).toBeGreaterThan(playAt(p, 'ONL')!.rank)
-    const kept = withFacts({ 'g-line': { interaction: { ...touched, failedLookThisSession: true, triggerStatus: 'full' }, latestFailedLook: failedLook('below') } })
-    expect(playAt(kept, 'G line (week open)')).toMatchObject({ rank: 1, activation: { demoted: false } })
-  })
-
-  it('weekly context re-orders equal-precedence plays but never manufactures one', () => {
-    const above = plan({ weekly: { valueLow: 29000, pivot: 29100, valueHigh: 29200 } })
-    const below = plan({ weekly: { valueLow: 29500, pivot: 29600, valueHigh: 29700 } })
-    const conditional = (p: JobPlan) => p.plays.filter((x) => x.activation.grounding === 'none').map((x) => x.direction)
-    expect(above.context.location.vsWeeklyValue.read).toBe('above')
-    expect(below.context.location.vsWeeklyValue.read).toBe('below')
-    expect(conditional(above)[0]).toBe('long')
-    expect(conditional(below)[0]).toBe('short')
-    const ids = (p: JobPlan) => p.plays.map((x) => `${x.band.bandId}:${x.condition}:${x.activation.state}`).sort()
-    expect(ids(above)).toEqual(ids(below))
-    expect(above.plays.every((x) => !x.activation.evidence.includes('weekly'))).toBe(true)
+  it('at the frame line no side leads — the enclosing zone\'s edges rank first, then nearest, and the lean names the at-line frame', () => {
+    const p = plan({ price: 29310 })
+    expect(p.frame?.side).toBe('at')
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.band.distancePts])).toEqual([
+      ['G line (week open)', 10],
+      ['Daily Job Pivot', 83.5],
+      ['ONL', 50],
+      ['Rip', 110],
+    ])
+    expect(p.lean.text).toContain('(frame: at the G line (week open))')
   })
 })
 
 describe('R12 cardinality and pruning', () => {
   it('arms at most 2 bands per side nearest-first plus the enclosing zone\'s edges, max 4 plays, and lists every pruned band with its reason', () => {
     const p = boxed({ reachPts: 500 })
-    expect(p.plays.map((x) => x.band.memberLabels[0])).toEqual(['JBA 1 low', 'JBA 1 low', 'JBA 1 high', 'Daily Job Pivot'])
     expect(p.plays).toHaveLength(MAX_PLAYS)
     const labels = p.pruned.map((x) => `${x.label} :: ${x.reason}`)
     expect(labels).toEqual(expect.arrayContaining([expect.stringMatching(/^ONH 29460 :: R12: beyond the 2 nearest armed bands above/)]))
@@ -341,10 +254,9 @@ describe('R12 cardinality and pruning', () => {
     expect(labels).toEqual(expect.arrayContaining([expect.stringMatching(/R12: max 4 branches/)]))
     expect(p.pruned.some((x) => x.label.startsWith('JBA 1 low') && x.reason.includes('beyond the 2 nearest'))).toBe(false)
     expect(p.pruned.some((x) => x.label.startsWith('Weekly Job Pivot 1A'))).toBe(false)
-    expect(p.pruned.filter((x) => x.reason.includes('max 4')).map((x) => x.label)).toEqual(['G line (week open) 29300', 'Rip 29420', 'ONL 29260'])
   })
 
-  it('an enclosing-zone edge beyond the R4 reach stays a destination (never armed) — the stand-down still names it', () => {
+  it('an enclosing-zone edge beyond the R4 reach stays a destination (never played) — the stand-down still names it', () => {
     const p = boxed({ reachPts: 120 })
     expect(playAt(p, 'JBA 1 high')).toBeUndefined()
     expect(p.plays[0]).toMatchObject({ stance: 'stand-down', band: { high: 29600 } })
@@ -363,14 +275,8 @@ describe('R12 cardinality and pruning', () => {
     expect(playAt(p, 'PDC')?.band.memberLabels).toEqual(['G line (week open)', 'PDC'])
   })
 
-  it('a band price sits inside with no directional read is pruned, not guessed', () => {
-    const p = plan({ price: 29300 })
-    expect(playAt(p, 'G line (week open)')).toBeUndefined()
-    expect(p.pruned.find((x) => x.label.startsWith('G line'))?.reason).toContain('no directional read')
-  })
-
   it('caps the destination chain and never chains through rung-only bands unless nothing else is out there', () => {
-    const p = withFacts({ 'g-line': { latestFailedLook: failedLook('below') } })
+    const p = plan()
     const g = playAt(p, 'G line (week open)')!
     expect(g.destinations.length).toBeLessThanOrEqual(MAX_STAGES)
     expect(g.destinations.every((s) => s.label !== 'Weekly Job Pivot 1A')).toBe(true)
@@ -378,9 +284,9 @@ describe('R12 cardinality and pruning', () => {
     const weeklyBelow = { id: 'weekly-pivot', source: 'weekly-job-pivot' as const, price: 29100, label: 'Weekly Job Pivot' }
     const rung = BASE_REFS.find((r) => r.source === 'weekly-rung')!
     const pivot = BASE_REFS.find((r) => r.source === 'daily-job-pivot')!
-    const withPivot = withFacts({ 'g-line': { latestFailedLook: failedLook('below') } }, { refs: [...below, weeklyBelow, pivot, rung] })
+    const withPivot = plan({ refs: [...below, weeklyBelow, pivot, rung] })
     expect(playAt(withPivot, 'G line (week open)')!.destinations.map((s) => [s.label, s.expect])).toEqual([['Daily Job Pivot', 'reoffer']])
-    const rungOnly = withFacts({ 'g-line': { latestFailedLook: failedLook('below') } }, { refs: [...below, weeklyBelow, { ...pivot, price: 29150 }, rung] })
+    const rungOnly = plan({ refs: [...below, weeklyBelow, { ...pivot, price: 29150 }, rung] })
     expect(playAt(rungOnly, 'G line (week open)')!.destinations.map((s) => [s.label, s.expect, s.beeline])).toEqual([['Weekly Job Pivot 1A', 'hold', null]])
   })
 })
@@ -405,11 +311,12 @@ describe('sufficiency and the UI-only uncertainty band', () => {
     expect(buildPlan({ context: noBands }).standDownReasons).toEqual(expect.arrayContaining([expect.stringContaining('no confluence bands')]))
   })
 
-  it('a ready plan with nothing armable stands down explicitly', () => {
+  it('a ready plan with nothing playable stands down explicitly, frame still stated', () => {
     const p = plan({ reachPts: 10 })
     expect(p.status).toBe('ready')
     expect(p.plays).toEqual([])
-    expect(p.standDownReasons).toEqual(['no armable band in the actionable set — nothing to plan; destinations only'])
+    expect(p.standDownReasons).toEqual(['no playable band in the actionable set — nothing to watch; destinations only'])
+    expect(p.frame).not.toBeNull()
   })
 
   it('provisional JBA edges carry a derived, labeled, UI-only expansion band; nothing else does', () => {
@@ -452,22 +359,41 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     boxes: [{ low: 7955, high: 8005 }],
     weekly: { valueLow: 7930, pivot: 7970, valueHigh: 8010 },
     daily: { valueLow: 7960, pivot: 7970, valueHigh: 7985 },
-    facts: { rip: { holdingSide: { side: 'ABOVE', windowMinutes: 20, closes: 12, scope: 'session', from: '2026-08-24T09:08:00', to: '2026-08-24T09:28:00' } } },
   }
 
   const p = buildPlan({ context: synthContext(GOAL) })
 
-  it('"stay inside → balance": the two-way declaration between yesterday\'s low and the JBA high leads', () => {
+  it('frames off the weekly pivot (no G line in the inventory) and leads with the two-way declaration', () => {
     expect(p.status).toBe('ready')
-    expect(p.plays).toHaveLength(4)
+    expect(p.frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'above', distancePts: 20 })
     expect(p.plays[0]).toMatchObject({ stance: 'stand-down', condition: 'mid-zone-two-way', primary: true })
     expect(p.plays[0].summary).toBe('Stay inside 7955–8005 (JBA 1 low – JBA 1 high) → balance; play the edges, stand down in the middle')
     expect(p.lean.basis).toBe('mid-zone')
   })
 
+  it('both edges are watched with look-and-fail forks and the near LVN rebid rides the frame side', () => {
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.condition, x.direction])).toEqual([
+      ['JBA 1 low', 'mid-zone-two-way', 'two-way'],
+      ['JBA 1 low', 'look-and-fail', 'long'],
+      ['JBA 1 high', 'look-and-fail', 'short'],
+      ['Rip', 'hold-traverse', 'long'],
+    ])
+  })
+
+  it('"look-below-and-fail → rotate back across" at yesterday\'s low, and "below yesterday\'s low → seek the 7720s" as its flip clause', () => {
+    const pdl = playAt(p, 'PDL')!
+    expect(pdl).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'look-and-fail', activation: { state: 'conditional', grounding: 'none' } })
+    expect(pdl.band).toMatchObject({ low: 7955, high: 7955, memberLabels: ['JBA 1 low', 'PDL'] })
+    expect(pdl.destinations[0]).toMatchObject({ label: 'Weekly Job Pivot (+1)', low: 7970 })
+    expect(pdl.invalidation).toMatchObject({ low: 7955, side: 'below' })
+    expect(pdl.invalidation.condition).toContain('the rubber meets the road')
+    expect(pdl.invalidation.thenSeek).toMatchObject({ label: 'Weekly Job Pivot 1B', low: 7722, high: 7722, expect: 'hold' })
+    expect(pdl.invalidation.thenSeek?.text).toBe('below 7955 (JBA 1 low (+1)) → seek Weekly Job Pivot 1B 7722')
+  })
+
   it('"rebid 7980–82 into the LVN → press the 8004s; build above → attack prior week high"', () => {
-    const rebid = p.plays[1]
-    expect(rebid).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse', activation: { state: 'armed', grounding: 'holding-side' } })
+    const rebid = playAt(p, 'Rip')!
+    expect(rebid).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse', activation: { state: 'conditional', grounding: 'none' } })
     expect(rebid.band).toMatchObject({ low: 7980, high: 7982, memberLabels: ['Rip', 'balance-area lvn (primary) #1'] })
     expect(rebid.destinations.map((s) => [s.label, s.low, s.high, s.expect])).toEqual([
       ['JBA 1 high (+2)', 8004, 8005, 'gate-continuation'],
@@ -478,19 +404,7 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     expect(rebid.summary).toBe('Rebid 7980–7982 into Rip (+1) → press JBA 1 high (+2) 8004–8005; build above → PW High 8040; below 7980 (Rip (+1)) → seek Weekly Job Pivot (+1) 7970')
   })
 
-  it('"look-below-and-fail → rotate back across" at yesterday\'s low, and "below yesterday\'s low → seek the 7720s" as its flip clause', () => {
-    const pdl = playAt(p, 'PDL')!
-    expect(pdl).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'look-and-fail', activation: { state: 'conditional', grounding: 'none' } })
-    expect(pdl.band).toMatchObject({ low: 7955, high: 7955, memberLabels: ['JBA 1 low', 'PDL'] })
-    expect(pdl.destinations[0]).toMatchObject({ label: 'Weekly Job Pivot (+1)', low: 7970 })
-    expect(pdl.invalidation).toMatchObject({ low: 7955, side: 'below' })
-    expect(pdl.invalidation.thenSeek).toMatchObject({ label: 'Weekly Job Pivot 1B', low: 7722, high: 7722, expect: 'hold' })
-    expect(pdl.invalidation.thenSeek?.text).toBe('below 7955 (JBA 1 low (+1)) → seek Weekly Job Pivot 1B 7722')
-  })
-
-  it('the JBA high is the other watched edge; the lone prior-week high is skipped as a trigger (R12) but kept as a destination', () => {
-    const high = playAt(p, 'JBA 1 high')!
-    expect(high).toMatchObject({ stance: 'reoffer', direction: 'short', condition: 'look-and-fail', activation: { state: 'conditional' } })
+  it('the lone prior-week high is skipped as a trigger (R12) but kept as a destination; the pivot band falls to the cap', () => {
     expect(p.pruned.find((x) => x.label.startsWith('PW High'))?.reason).toContain('R12: skipped')
     expect(p.pruned.find((x) => x.label.startsWith('Weekly Job Pivot (+1)'))?.reason).toContain('max 4')
   })

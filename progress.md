@@ -4743,3 +4743,37 @@ Operator follow-up on feat-143: the table's row labels now use the objective car
 vocabulary — `Entry (Rebid) — <band label>`, `Structural stop below/above <band label>`
 (`— either side` for two-way), `Target n (Tn)` per destination stage; the sequence line
 reads "Target sequence:". The gate/reoffer expectation stays in each row's description.
+
+## 2026-08-31 (evening): forward-conditional planner — the operator's Job-process correction
+
+Operator directive after reviewing rendered plans against the prep transcripts (all 25
+read end-to-end this session): the origin-facts arming model inverted Job's process —
+"a look above and fail is what he's looking to HAVE HAPPEN at the levels he's
+identifying if price reaches there," not a pattern to mine from recent tape. Confirmed
+in the corpus: every prep is (1) situate price vs the G line / weekly pivot / JBA,
+(2) name a few significant areas per side, (3) state the fork at each — response →
+traverse with gauge stages; breach/build → don't counter, accelerate past major lines;
+(4) two-way declaration when enclosed. Implemented as ratified by the operator
+("Implement it the way Job is doing it"):
+
+- NEW `lib/job-plan/planFrame.ts`: the frame — price vs the nearer of G line / weekly
+  Job Pivot; 'at' within one merge tolerance; names the productive side.
+- `playGrammar.ts` rewritten: every directional play is a forward conditional
+  (hold-traverse arrival response, look-and-fail at overnight/prior-day/JBA edges,
+  breach fork on the invalidation with acceleration language past G line / pivots /
+  box edges); inside-band plays lean with the frame; R5–R8 facts never ground a play
+  (still computed into context); R9 already-interacted survives as the demotion.
+- `planPrecedence.ts` rewritten: stand-down (R10) > fresh > demoted; sides ALTERNATE
+  frame-side-first within a tier; zone edges > nearest > R2 significance within a
+  side; lean = rank-1 play (basis 'frame' / 'mid-zone').
+- Schema: `frame` (optional — pre-frame rows parse), `LeanBasis` + 'frame'; card gets
+  a FrameBlock above the lean. R12's origin-precedence half retired in rules.ts and
+  docs/job-planning-task-plan.md (dated correction section added).
+- PLANNER_REVISION → job-planner/2026-08-31.5.
+
+Shadow-ran the real 2026-08-25 bundle (5ba75872): frame "Below the G line 29392.25 —
+downside is productive"; plays = two-way inside the wide JBA, frame-aligned reoffer at
+the rotation HVN price sits on, look-below-and-fail at JBA 1 low, look-above-and-fail
+at PDH. The OR Low rebid that triggered the investigation is pruned. Verification:
+./init.sh green (2201 tests), buildPlan/invariants/card suites rewritten to the new
+contract.

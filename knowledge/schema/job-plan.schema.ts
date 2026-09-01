@@ -236,9 +236,32 @@ export const GeometryRefs = z.object({
 })
 export type GeometryRefs = z.infer<typeof GeometryRefs>
 
+/**
+ * The plan's FRAME (2026-08-31 operator correction — Job's process): where
+ * price sits relative to the operative major structure (the G line or the
+ * weekly Job Pivot, whichever is nearer). The frame names the productive
+ * side; the primary look is the frame-aligned play. Optional so pre-frame
+ * persisted plans keep parsing; every new ready plan carries it.
+ */
+export const PlanFrame = z.object({
+  referenceId: z.string().min(1),
+  label: z.string().min(1),
+  price: z.number().finite(),
+  /** Which side of the frame line price is on ('at' = within one merge tolerance). */
+  side: z.enum(['above', 'below', 'at']),
+  distancePts: z.number().finite(),
+  text: z.string().min(1),
+  provenance: PriceProvenance,
+})
+export type PlanFrame = z.infer<typeof PlanFrame>
+
+/** `frame` = the frame names the lean; `mid-zone` = the stand-down declaration leads; legacy values kept so pre-2026-08-31 rows parse. */
+export const LeanBasis = z.enum([...GroundingKind.options, 'frame'])
+export type LeanBasis = z.infer<typeof LeanBasis>
+
 export const PrimaryLean = z.object({
   playId: z.string().nullable(),
-  basis: GroundingKind,
+  basis: LeanBasis,
   text: z.string().min(1),
 })
 export type PrimaryLean = z.infer<typeof PrimaryLean>
@@ -381,6 +404,8 @@ export const JobPlanSchema = z
     meta: PlanMeta,
     geometryRefs: GeometryRefs,
     context: jobContextSchema,
+    /** Optional + nullable: pre-2026-08-31 rows lack it; an insufficient plan has none to state. */
+    frame: PlanFrame.nullable().optional(),
     lean: PrimaryLean,
     plays: z.array(Play).max(MAX_PLAYS_IN_SCHEMA),
     pruned: z.array(PrunedBranch),
@@ -402,6 +427,14 @@ export const JobPlanSchema = z
       ctx.addIssue({ code: 'custom', path: ['lean'], message: 'lean.playId must name the primary play' })
     }
     const inventory: Inventory = new Map(plan.geometryRefs.references.map((r) => [r.id, r]))
+    if (plan.frame) {
+      const ref = inventory.get(plan.frame.referenceId)
+      if (!ref) {
+        ctx.addIssue({ code: 'custom', path: ['frame'], message: `frame reference ${plan.frame.referenceId} is not in the inventory` })
+      } else if (Math.abs(ref.price - plan.frame.price) >= PRICE_EPSILON) {
+        ctx.addIssue({ code: 'custom', path: ['frame'], message: `frame price ${plan.frame.price} is not ${ref.id}'s price` })
+      }
+    }
     plan.plays.forEach((play, i) => {
       if (play.rank !== i + 1) ctx.addIssue({ code: 'custom', path: ['plays', i, 'rank'], message: 'ranks are 1..n in order' })
       refinePlay(play, ctx, i)
