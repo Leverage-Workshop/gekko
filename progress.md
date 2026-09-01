@@ -4,7 +4,61 @@
 
 **Last Updated:** 2026-08-31
 
-**Latest change (branch `feat-sierra-job-plan-bands`, PR #192): Job plan bands on the Sierra
+**Latest change (branch `feat-144-llm-planner-shadow`): feat-144 — LLM Job planner shadow
+experiment.** Ratified proposal + draft prompt in `docs/job-plan-llm-planner-proposal.md`
+(operator revisions applied: NO entry price action anywhere — plans name levels, the operator
+trades them; farther-more-significant beats nearer only under the breach-likelihood test).
+New `lib/job-plan/llm-planner/`: `prompt.ts` (`LLM_PLANNER_REVISION llm-planner/2026-08-31.1`,
+ROLE + MECHANISM + 6 future-tense rules, positive canaries per rule and a NEGATIVE canary list
+`FORBIDDEN_PHRASES` pinning the no-entry-action doctrine), `schema.ts` (id-referenced judgment —
+the model picks `bandId`/`referenceId` from the payload, so an invented price has no field to
+live in), `contextPayload.ts` (code measures everything; all bands with roles + R9
+`triggerStatus` as the ONLY session fact), `validate.ts` (hard gates: tier-one non-historical
+frame, geometry-consistent directions, destination-only rungs never play, both sides addressed,
+stand-down carries text), `runLlmPlanner.ts` (one retry with violations spelled out — the eval
+contract pattern — then violations recorded, never thrown), `diff.ts` (frame/play-set/primary/
+stand-down A/B diff + double-run stability). `scripts/llm-planner-shadow.ts`
+(`npm run llm-planner:shadow`, gated on RUN_LLM_INTEGRATION=1 — never key presence) pulls the
+latest ready `job_plans` row per trading day, re-runs the deterministic `buildPlan` fresh on the
+PERSISTED context and the LLM judgment twice, and writes a markdown adjudication report to
+`docs/shadow-runs/`. Nothing persists to the DB — `job_plan_bands`/Sierra never see a shadow
+plan; the deterministic planner stays production. Adaptation from the proposal recorded here:
+the model outputs a dedicated judgment schema (not the full persisted `JobPlan`) — inventory
+membership is enforced BY CONSTRUCTION via ids, which is stronger than post-hoc price checking;
+code-side assembly of a full shadow JobPlan is deferred until the judgment wins adjudication.
+`planFrame.ts` exports `FRAME_LADDER` (shared by payload + validator). 14 new tests in
+`tests/job-plan.llmPlanner.test.ts`.
+
+Codex gate: PASS both rounds (no P0/P1). Round-1 P2 triage: (1) sufficiency check before the
+model call — FIXED (`runLlmPlanner` throws on `insufficiencyReasons` before any spend);
+(2) stability only compared runs 1–2 — FIXED (`stabilityAcross` ANDs every later run against the
+first); (3) `limit * 4` row fetch could under-fill unique days — FIXED (paged `range()` until
+enough distinct days or exhaustion); (4) invented numeric prices in model-authored prose —
+initially dismissed as brittle, then ESCALATED to P1 in round 2 (the proposal names it a hard
+gate) and FIXED properly: `inventedPrices()` in validate.ts extracts standalone numbers from all
+prose fields, keeps only those inside the inventory's price span (± band cap — distances,
+minutes, and sigma multiples live orders of magnitude below an NQ/ES price so the span filter
+excludes them), and flags any that match no supplied price (schema epsilon 0.005) as an
+`invented_price` violation the retry corrects. OUTPUT rule also states it (revision →
+`llm-planner/2026-08-31.2`). Round-2 P2 (report showed `args.effort`, not the resolved
+config effort) FIXED — the report renders the effort actually passed to the model.
+
+Gate rounds 3–7 (each PASS or fixed-next-round; the reviewer surfaced one new smaller finding
+per round): round 3 P2s FIXED (a failed later run keeps completed calls' cost/evidence; `--runs 1`
+reports "stability not measured", never stable N/N); round 4 P2 FIXED (sample newest TRADING
+days — a recently regenerated replay of an old day no longer displaces a newer day); round 5
+P1+P2 FIXED (invented-price check lost its upper bound — "toward 21000" above the span is
+invented too; a silent side is a violation even when its only structure is destination-only);
+round 6 P2 FIXED (price floor = half the current price, catching inventions below the span —
+ES "toward 4800"). Round 7: PASS with one remaining P2 — the aggregate agreement/stability
+counters don't score SECONDARY play ordering (only set + primary) — DISMISSED per the
+don't-loop-on-the-reviewer rule (13-round incident, 2026-08-23): the report prints both
+planners' full ordered play lists side by side, so an ordering disagreement is directly visible
+in the adjudication view; only the convenience counter omits it. Revisit if, once real shadow
+runs exist, secondary-order flips turn out common enough to need aggregation. Gate PASS
+recorded on 2885df9 (last code commit); this progress note is the only later delta.
+
+**Previous change (branch `feat-sierra-job-plan-bands`, PR #192): Job plan bands on the Sierra
 charts.** New `job_plan_bands` view (migration `20260831210000_job_plan_bands_view.sql`, applied
 live the same day + gekko-db skill updated) flattens the latest ready `job_plans` row into flat
 rows granted to anon — `kind` frame/long/short/both (both = one band carrying a short AND a long
