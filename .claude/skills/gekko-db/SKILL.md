@@ -6,11 +6,10 @@ description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomx
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-26 (35 applied migrations live;
-nothing pending — latest applied: `20260826120000_job_plans.sql` +
-`20260826130000_job_plans_keep_ready.sql` (feat-128) via the
-claude.ai Supabase MCP `apply_migration` tool, same day it landed in the repo, verified
-in information_schema / pg_constraint / storage.buckets / pg_get_functiondef).
+the project's REST APIs. Schema snapshot updated 2026-08-31 (nothing pending — latest
+applied: `20260831210000_job_plan_bands_view.sql`, the `job_plan_bands` view + anon grant
+for the Sierra Job Plan Bands study, via the claude.ai Supabase MCP `apply_migration`
+tool, same day it landed in the repo, verified with an anon-key read).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -199,6 +198,15 @@ update is a no-op; RETURNING shows the kept row), plus a task-side pre-read
 | created_at | timestamptz | now() |
 Indexes: `job_plans_bundle_id_idx (bundle_id)`, `job_plans_created_at_idx (created_at desc)`.
 
+### job_plan_bands — VIEW over `job_plans` (2026-08-31, Sierra chart overlay)
+Flat band rows of the LATEST ready plan (`security_invoker = off`, SELECT granted to
+`anon`) for the Sierra "Gekko Job Plan Bands" study (`D:\SierraChart\ACS_Source\GekkoJobPlan.cpp`),
+mirroring how `entry_levels` feeds the Entry A Bands study. Columns:
+`kind` ('frame' = trend-filter line | 'long' | 'short' | 'both' = a band carrying a long
+AND a short play, grouped by `band.bandId`), `label`, `low`, `high` (float8; frame is a
+single price, low = high), `trading_day`. Stand-down (two-way) plays are excluded.
+Migration: `20260831210000_job_plan_bands_view.sql`.
+
 ```bash
 curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,run_id,created_at&order=created_at.desc&limit=5" "${AUTH[@]}"
 ```
@@ -227,11 +235,17 @@ curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,ru
   Client topic constant: `lib/notifications/events.ts` GEKKO_ALERTS_TOPIC.
 - **RLS policies**: only one — `anon` can SELECT `entry_levels` where `active = true`.
   Everything else is service-role-only. (The frontend otherwise goes through API routes.)
+  Plus one owner-rights VIEW granted to `anon`: `job_plan_bands` (see above) — it exposes
+  only the flattened band geometry of the newest ready plan, not `job_plans` itself.
 - **Buckets**: `chart-images`, `bundle-csvs`, `job-plan-images` — all private.
 
 ## Migrations & DDL
 
-- **Nothing is pending as of 2026-08-26.** `20260826120000_job_plans.sql` (feat-128:
+- **Nothing is pending as of 2026-08-31.** `20260831210000_job_plan_bands_view.sql`
+  (the `job_plan_bands` view + anon grant for the Sierra Job Plan Bands study) was applied
+  the same day via the claude.ai Supabase MCP `apply_migration` tool and verified with an
+  anon-key read (view returns rows; `job_plans` itself still returns none to anon).
+- Before that: `20260826120000_job_plans.sql` (feat-128:
   `job_plans` table + `job-plan-images` bucket + the `unused_bundles_before` job_plans
   guard) and `20260826130000_job_plans_keep_ready.sql` (the atomic write-contract trigger)
   were applied that day via the MCP tool below (live names `job_plans`,
