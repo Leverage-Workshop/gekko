@@ -13,9 +13,10 @@ Globex, 44 trading sessions 07-07..09-04), `score-dnd.mjs` (primary scorer: grou
 print bars into events, scores from the bar END to avoid the look-ahead the overlay stamp
 introduces, buckets day/afternoon/Asia/Europe, extension-then-reversal profile, cross-setting
 agreement), `events.csv`, and `report-2026-09-05.md` with per-Dominator verdicts. Headline, stable
-across both halves: 60-min-window prints mark a push with 80-95 pts / 35-45 min left; 30-min-window
-prints mark a push about to turn (40-50 pts / 15-20 min, then a bigger turn; end of a re-print
-string = turn now). Solo prints (no other setting within 10 min) score at baseline; agreement is
+across both halves: 60-min-window prints mark a push with ~75 pts / ~30 min left; 30-min-window
+prints mark a push about to turn (40-45 pts / 15-20 min, then a bigger turn; end of a re-print
+string = turn now). Codex gate P2s (window-boundary bars, even-n median) fixed in a second commit;
+figures moved a few points, no verdict changed. Solo prints (no other setting within 10 min) score at baseline; agreement is
 the filter. Recommended: retire 6750v30, repurpose its chart as Job's 6250v 2-hour test; keep
 5250v60 as the workhorse; 7250v60 as opening/confirming print; 4500v60 optional. Operator
 directives recorded: measure from the LAST bar of a string too ("waiting that many points and

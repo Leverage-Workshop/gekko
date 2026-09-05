@@ -94,17 +94,18 @@ light 60-minute settings about 45 percent.
 ## What happens after a print
 
 Reference is the close of the event's first bar, taken at that bar's end. Windows are wall-clock
-minutes after that. MFE is the furthest price went in the print's direction, MAE the furthest
-against it, medians in points. Baseline is every day-session bar treated the same way.
+minutes after that and count only bars that complete inside them. MFE is the furthest price went
+in the print's direction, MAE the furthest against it, medians in points. Baseline is every
+day-session bar treated the same way.
 
 | Setting | 60-min MFE | 60-min MAE | Ratio | Closed in print direction | July / Aug+ ratio |
 | --- | --- | --- | --- | --- | --- |
-| 7250v 60min | 94.8 | 50.8 | 1.87 | 63% | 1.84 / 2.01 |
-| 7250v 30min | 49.3 | 64.3 | 0.77 | 50% | 0.78 / 0.66 |
-| 6750v 30min | 39.3 | 65.5 | 0.60 | 45% | 0.73 / 0.51 |
-| 5250v 60min | 78.0 | 49.3 | 1.58 | 62% | 1.53 / 1.83 |
-| 4500v 60min | 77.0 | 50.8 | 1.52 | 60% | 1.33 / 1.50 |
-| Baseline | 60.5 | 60.5 | 1.00 | 50% | |
+| 7250v 60min | 78.0 | 50.8 | 1.54 | 63% | 1.67 / 1.72 |
+| 7250v 30min | 46.3 | 57.0 | 0.81 | 48% | 0.92 / 0.64 |
+| 6750v 30min | 38.3 | 65.5 | 0.58 | 37% | 0.70 / 0.50 |
+| 5250v 60min | 75.6 | 47.9 | 1.58 | 61% | 1.55 / 1.76 |
+| 4500v 60min | 75.0 | 50.0 | 1.50 | 56% | 1.32 / 1.50 |
+| Baseline | 57.5 | 57.5 | 1.00 | 50% | |
 
 The split by window length is the headline and it holds in both halves of the sample: **after a
 60-minute-window print the push keeps going; after a 30-minute-window print it turns.**
@@ -114,15 +115,15 @@ peaks, and how far it comes back afterwards (60-minute window, day session):
 
 | Setting | Push left after the print | Peaks after | Comes back | Comes all the way back |
 | --- | --- | --- | --- | --- |
-| 7250v 60min | 95 pts | 44 min | 71 pts | 45% |
-| 7250v 30min | 49 pts | 19 min | 82 pts | 61% |
-| 6750v 30min | 39 pts | 17 min | 91 pts | 64% |
-| 5250v 60min | 78 pts | 36 min | 77 pts | 51% |
-| 4500v 60min | 77 pts | 36 min | 92 pts | 53% |
+| 7250v 60min | 78 pts | 33 min | 71 pts | 48% |
+| 7250v 30min | 46 pts | 18 min | 80 pts | 63% |
+| 6750v 30min | 38 pts | 16 min | 87 pts | 67% |
+| 5250v 60min | 76 pts | 30 min | 76 pts | 51% |
+| 4500v 60min | 75 pts | 29 min | 92 pts | 54% |
 
-Read: a 30-minute-window print says the push has about 40 to 50 points and 15 to 20 minutes left,
-and then the turn is bigger than what remained. A 60-minute-window print says the push has 80 to
-95 points and 35 to 45 minutes left; it comes all the way back only half the time within the hour.
+Read: a 30-minute-window print says the push has about 40 to 45 points and 15 to 20 minutes left,
+and then the turn is bigger than what remained. A 60-minute-window print says the push has about
+75 points and half an hour left; it comes all the way back only half the time within the hour.
 
 **Measured from the last bar of the run instead** (operator ask, 2026-09-05: waiting 40 points and
 20 minutes after the first print is not much of a signal). Most events are one bar, so first and
@@ -130,36 +131,38 @@ last coincide for 78 to 90 percent of them. The multi-bar runs are where it diff
 
 | Setting | Events that are 1 bar / 2 / 3+ | Multi-bar run lasts | Push left after the LAST bar, multi-bar runs | Peaks after | Comes back |
 | --- | --- | --- | --- | --- | --- |
-| 7250v 60min | 51 / 7 / 7 | 31 min | 90 pts | 36 min | 101 pts |
-| 7250v 30min | 58 / 10 / 13 | 31 min | 27 pts | 6 min | 91 pts |
-| 6750v 30min | 70 / 9 / 12 | 28 min | 33 pts | 0 min | 71 pts |
-| 5250v 60min | 103 / 4 / 5 | 17 min | 107 pts | 42 min | 85 pts |
-| 4500v 60min | 102 / 8 / 4 | 9 min | 118 pts | 36 min | 105 pts |
+| 7250v 60min | 51 / 7 / 7 | 30 min | 66 pts | 33 min | 78 pts |
+| 7250v 30min | 58 / 10 / 13 | 31 min | 25 pts | 6 min | 64 pts |
+| 6750v 30min | 70 / 9 / 12 | 28 min | 33 pts | 0 min | 53 pts |
+| 5250v 60min | 103 / 4 / 5 | 17 min | 86 pts | 42 min | 68 pts |
+| 4500v 60min | 102 / 8 / 4 | 9 min | 95 pts | 34 min | 90 pts |
 
-Read: on the 60-minute settings, waiting for the string to end costs nothing, because the push
-still has 90 to 120 points in it when the arrow stops re-printing. On the 30-minute settings the
-end of the string *is* the turn: the extreme is in within 0 to 6 minutes and 27 to 33 points, and
-the turn afterwards is two to three times that. The 30-minute multi-bar runs are n 21 and 22, so
-treat the minutes as indicative, but the direction of the difference matches the single-bar
-events. Single-bar 30-minute events still have 39 to 49 points and 17 to 24 minutes to go from the
-bar's end.
+Read: on the 60-minute settings, waiting for the string to end costs little, because the push
+still has 65 to 95 points in it when the arrow stops re-printing. On the 30-minute settings the end
+of the string *is* the turn: the extreme is in within 0 to 6 minutes and 25 to 33 points, and the
+turn afterwards is about twice that. The 30-minute multi-bar runs are n 21 and 23, so treat the
+minutes as indicative, but the direction of the difference matches the single-bar events.
 
 The studies print live (operator, 2026-09-05), so the arrow is visible during the bar; measuring
 from the bar's end is the conservative choice.
 
 Other splits worth knowing, all at 60 minutes:
 
-- **Opening half hour.** 7250v60 and 5250v60 prints between 08:30 and 09:00 extend a median 155
-  points and close in the print's direction 69 to 75 percent of the time (n 20 and 26). Do not
-  fade those. 4500v60's opening prints are much weaker (ratio 1.21).
+- **Opening half hour.** 7250v60 and 5250v60 prints between 08:30 and 09:00 extend a median 128
+  to 146 points and close in the print's direction 70 to 73 percent of the time (n 20 and 26). Do
+  not fade those. 4500v60's opening prints are much weaker (ratio 1.13).
 - **After 14:00.** Every setting is at or below baseline, and 7250v60's afternoon prints reverse
-  (ratio 0.55, 41 percent). The afternoon is not the same instrument.
+  (ratio 0.74 at 120 minutes). The afternoon is not the same instrument.
 - **Agreement between settings is the strongest filter in the data.** A 60-minute-window print with
-  no other setting agreeing within 10 minutes has no edge (7250v60 solo 0.60 on n 14; 5250v60 solo
-  0.87 on n 37; 4500v60 solo 0.82 on n 44). With one or more agreeing: 1.3 to 2.2 and 59 to 72
+  no other setting agreeing within 10 minutes has no edge (7250v60 solo 0.80 on n 14; 5250v60 solo
+  0.89 on n 37; 4500v60 solo 0.71 on n 44). With one or more agreeing: 1.2 to 2.2 and 59 to 69
   percent. Roughly 40 percent of 4500v60's events are solo.
-- **Buy and sell both carry the pattern** on the 60-minute settings (buy 1.1 to 1.7, sell 1.5 to
-  2.0). On the 30-minute settings both sides turn.
+- **Buy and sell both carry the pattern** on the 60-minute settings (buy 1.0 to 1.7, sell 1.5 to
+  1.8). On the 30-minute settings both sides turn.
+- **Overnight** (Asia 17:00 to 02:00, Europe 02:00 to 08:30) is one volume bar per window and only
+  indicative. The 30-minute settings print more in Asia than in the day and score at the ordinary
+  bar; 7250v60 is below baseline both overnight buckets; 5250v60 is above in Asia (1.50, n 41) and
+  below in Europe.
 
 ## Recommendations
 

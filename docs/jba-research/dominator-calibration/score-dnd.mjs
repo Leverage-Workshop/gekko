@@ -9,8 +9,8 @@
 // Aggression" pair. A print is a non-zero price. The study re-prints on consecutive bars while the
 // anomaly holds, so consecutive same-side print bars are grouped into one EVENT. The scoring
 // reference is the close of a bar taken at that bar's end (the next bar's start), which is the
-// latest moment the print is certainly known. Windows are wall-clock minutes and never cross the
-// 16:00-17:00 CST halt. Writes events.csv next to this script and prints the tables to stdout.
+// latest moment the print is certainly known. Windows are wall-clock minutes, count only bars that
+// complete inside the window, and never cross the 16:00-17:00 CST halt. Writes events.csv next to this script and prints the tables to stdout.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -84,7 +84,9 @@ const eventsOf = (s, bars) => {
 
 const median = (a) => {
   const b = [...a].sort((x, y) => x - y);
-  return b.length ? b[Math.floor(b.length / 2)] : NaN;
+  if (!b.length) return NaN;
+  const mid = Math.floor(b.length / 2);
+  return b.length % 2 ? b[mid] : (b[mid - 1] + b[mid]) / 2;
 };
 const pad = (v, n) => String(v).padStart(n);
 
@@ -133,6 +135,7 @@ const walk = (bars, i, W) => {
   for (let j = i + 1; j < bars.length; j++) {
     const x = bars[j];
     if (x.abs >= tEnd) return { ref: b.c, refEnd: b.end, seen };
+    if (x.end === null || x.end > tEnd) return seen.length ? { ref: b.c, refEnd: b.end, seen } : null; // only bars that complete inside the window count
     seen.push(x);
     if (x.halt) return null;
   }

@@ -36,7 +36,9 @@ const prints = rows.flatMap((r, idx) =>
 );
 const median = (a) => {
   const b = [...a].sort((x, y) => x - y);
-  return b.length ? b[Math.floor(b.length / 2)] : NaN;
+  if (!b.length) return NaN;
+  const mid = Math.floor(b.length / 2);
+  return b.length % 2 ? b[mid] : (b[mid - 1] + b[mid]) / 2;
 };
 const pad = (v, n) => String(v).padStart(n);
 
