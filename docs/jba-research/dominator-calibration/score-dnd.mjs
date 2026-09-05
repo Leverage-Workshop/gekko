@@ -158,7 +158,7 @@ const extensionProfile = (bars, i, side, W) => {
   let extIdx = -1;
   w.seen.forEach((x, k) => {
     const move = dir === 1 ? x.h - w.ref : w.ref - x.l;
-    if (move > ext) { ext = move; extAt = x.abs; extIdx = k; }
+    if (move > ext) { ext = move; extAt = x.end; extIdx = k; } // peak timed at the bar's end, the conservative observable
   });
   const extreme = w.ref + dir * ext;
   const back = Math.max(0, ...w.seen.slice(extIdx + 1).map((x) => (dir === 1 ? extreme - x.l : x.h - extreme)));
@@ -218,9 +218,12 @@ for (const s of SETTINGS) {
 }
 
 // --- agreement between settings, day and globex ------------------------------------------------------
-const agrees = (e, other) => events[other].some((f) => f.side === e.side && Math.abs(f.abs - e.abs) <= COINCIDE_MIN);
+// Agreement is compared on first-bar END times: the print is only certainly known then, and the
+// settings' volume bars start and finish at different moments.
+const knownAt = (e) => data[e.s][e.first].end;
+const agrees = (e, other) => knownAt(e) !== null && events[other].some((f) => f.side === e.side && knownAt(f) !== null && Math.abs(knownAt(f) - knownAt(e)) <= COINCIDE_MIN);
 for (const k of ['day', 'asia', 'europe']) {
-  console.log(`\n=== ${k.toUpperCase()} agreement: events of A with a same-side event of B within ${COINCIDE_MIN} min ===`);
+  console.log(`\n=== ${k.toUpperCase()} agreement: events of A with a same-side event of B known within ${COINCIDE_MIN} min (first-bar ends) ===`);
   console.log(`${''.padEnd(8)}${SETTINGS.map((s) => pad(s, 9)).join('')}   of`);
   for (const a of SETTINGS) {
     const r = events[a].filter(inBucket(k));

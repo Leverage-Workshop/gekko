@@ -115,15 +115,17 @@ peaks, and how far it comes back afterwards (60-minute window, day session):
 
 | Setting | Push left after the print | Peaks after | Comes back | Comes all the way back |
 | --- | --- | --- | --- | --- |
-| 7250v 60min | 78 pts | 33 min | 71 pts | 48% |
-| 7250v 30min | 46 pts | 18 min | 80 pts | 63% |
-| 6750v 30min | 38 pts | 16 min | 87 pts | 67% |
-| 5250v 60min | 76 pts | 30 min | 76 pts | 51% |
-| 4500v 60min | 75 pts | 29 min | 92 pts | 54% |
+| 7250v 60min | 78 pts | 42 min | 71 pts | 48% |
+| 7250v 30min | 46 pts | 28 min | 80 pts | 63% |
+| 6750v 30min | 38 pts | 22 min | 87 pts | 67% |
+| 5250v 60min | 76 pts | 36 min | 76 pts | 51% |
+| 4500v 60min | 75 pts | 33 min | 92 pts | 54% |
 
-Read: a 30-minute-window print says the push has about 40 to 45 points and 15 to 20 minutes left,
+Read: a 30-minute-window print says the push has about 40 to 45 points and 20 to 30 minutes left,
 and then the turn is bigger than what remained. A 60-minute-window print says the push has about
-75 points and half an hour left; it comes all the way back only half the time within the hour.
+75 points and 35 to 40 minutes left; it comes all the way back only half the time within the hour.
+Peak times are taken at the end of the bar that made the extreme, so each is one bar later than
+the extreme itself.
 
 **Measured from the last bar of the run instead** (operator ask, 2026-09-05: waiting 40 points and
 20 minutes after the first print is not much of a signal). Most events are one bar, so first and
@@ -131,16 +133,16 @@ last coincide for 78 to 90 percent of them. The multi-bar runs are where it diff
 
 | Setting | Events that are 1 bar / 2 / 3+ | Multi-bar run lasts | Push left after the LAST bar, multi-bar runs | Peaks after | Comes back |
 | --- | --- | --- | --- | --- | --- |
-| 7250v 60min | 51 / 7 / 7 | 30 min | 66 pts | 33 min | 78 pts |
-| 7250v 30min | 58 / 10 / 13 | 31 min | 25 pts | 6 min | 64 pts |
-| 6750v 30min | 70 / 9 / 12 | 28 min | 33 pts | 0 min | 53 pts |
-| 5250v 60min | 103 / 4 / 5 | 17 min | 86 pts | 42 min | 68 pts |
-| 4500v 60min | 102 / 8 / 4 | 9 min | 95 pts | 34 min | 90 pts |
+| 7250v 60min | 51 / 7 / 7 | 30 min | 66 pts | 40 min | 78 pts |
+| 7250v 30min | 58 / 10 / 13 | 31 min | 25 pts | 18 min | 64 pts |
+| 6750v 30min | 70 / 9 / 12 | 28 min | 33 pts | 17 min | 53 pts |
+| 5250v 60min | 103 / 4 / 5 | 17 min | 86 pts | 47 min | 68 pts |
+| 4500v 60min | 102 / 8 / 4 | 9 min | 95 pts | 37 min | 90 pts |
 
 Read: on the 60-minute settings, waiting for the string to end costs little, because the push
 still has 65 to 95 points in it when the arrow stops re-printing. On the 30-minute settings the end
-of the string *is* the turn: the extreme is in within 0 to 6 minutes and 25 to 33 points, and the
-turn afterwards is about twice that. The 30-minute multi-bar runs are n 21 and 23, so treat the
+of the string is close to the turn: the extreme is in within 25 to 33 points and the next one to
+three bars (17 to 18 minutes at bar end), and the turn afterwards is about twice that. The 30-minute multi-bar runs are n 21 and 23, so treat the
 minutes as indicative, but the direction of the difference matches the single-bar events.
 
 The studies print live (operator, 2026-09-05), so the arrow is visible during the bar; measuring
@@ -153,10 +155,11 @@ Other splits worth knowing, all at 60 minutes:
   not fade those. 4500v60's opening prints are much weaker (ratio 1.13).
 - **After 14:00.** Every setting is at or below baseline, and 7250v60's afternoon prints reverse
   (ratio 0.74 at 120 minutes). The afternoon is not the same instrument.
-- **Agreement between settings is the strongest filter in the data.** A 60-minute-window print with
-  no other setting agreeing within 10 minutes has no edge (7250v60 solo 0.80 on n 14; 5250v60 solo
-  0.89 on n 37; 4500v60 solo 0.71 on n 44). With one or more agreeing: 1.2 to 2.2 and 59 to 69
-  percent. Roughly 40 percent of 4500v60's events are solo.
+- **Agreement between settings is the strongest filter in the data.** Agreement is measured on
+  first-bar end times, when each print is certainly known. A 60-minute-window print with no other
+  setting known within 10 minutes has no edge (7250v60 solo 0.80 on n 14; 5250v60 solo 1.01 on
+  n 40; 4500v60 solo 0.73 on n 41). With one or more agreeing: 1.4 to 2.6 and 60 to 68 percent.
+  Roughly 36 percent of 4500v60's events are solo.
 - **Buy and sell both carry the pattern** on the 60-minute settings (buy 1.0 to 1.7, sell 1.5 to
   1.8). On the 30-minute settings both sides turn.
 - **Overnight** (Asia 17:00 to 02:00, Europe 02:00 to 08:30) is one volume bar per window and only
