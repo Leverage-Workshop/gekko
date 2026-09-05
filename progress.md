@@ -16,7 +16,11 @@ agreement), `events.csv`, and `report-2026-09-05.md` with per-Dominator verdicts
 across both halves: 60-min-window prints mark a push with ~75 pts / ~30 min left; 30-min-window
 prints mark a push about to turn (40-45 pts / 15-20 min, then a bigger turn; end of a re-print
 string = turn now). Codex gate P2s (window-boundary bars, even-n median) fixed in a second commit;
-figures moved a few points, no verdict changed. Solo prints (no other setting within 10 min) score at baseline; agreement is
+figures moved a few points, no verdict changed. Gate rounds 2 and 3 raised P1s on agreement
+timing (compare bar ends, score confirmed events from the confirmation) — both fixed; round 4
+PASSED with one P2 (bucket events by bar end rather than bar start) DISMISSED: it touches a
+handful of events whose bar straddles 09:00 or 14:00, shifts counts by one or two per setting,
+and the operator's window edges are soft; noted in the report's confidence section instead. Solo prints (no other setting within 10 min) score at baseline; agreement is
 the filter. Recommended: retire 6750v30, repurpose its chart as Job's 6250v 2-hour test; keep
 5250v60 as the workhorse; 7250v60 as opening/confirming print; 4500v60 optional. Operator
 directives recorded: measure from the LAST bar of a string too ("waiting that many points and
