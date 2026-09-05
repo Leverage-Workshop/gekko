@@ -2,7 +2,28 @@
 
 ## Current State
 
-**Last Updated:** 2026-09-01
+**Last Updated:** 2026-09-05
+
+**Latest change (branch `docs-dominator-calibration`): Dominator 2.0 settings review, research
+only.** Operator started calibrating five Dominator 2.0 settings (7250v/60, 7250v/30, 6750v/30,
+5250v/60, 4500v/60; session anchored 08:30 CST). New folder
+`docs/jba-research/dominator-calibration/`: per-setting screenshots (colours reassigned so hue
+tracks weight), the 5-min overlay export and the five hidden volume-bar (DND) chart exports (full
+Globex, 44 trading sessions 07-07..09-04), `score-dnd.mjs` (primary scorer: groups consecutive
+print bars into events, scores from the bar END to avoid the look-ahead the overlay stamp
+introduces, buckets day/afternoon/Asia/Europe, extension-then-reversal profile, cross-setting
+agreement), `events.csv`, and `report-2026-09-05.md` with per-Dominator verdicts. Headline, stable
+across both halves: 60-min-window prints mark a push with 80-95 pts / 35-45 min left; 30-min-window
+prints mark a push about to turn (40-50 pts / 15-20 min, then a bigger turn; end of a re-print
+string = turn now). Solo prints (no other setting within 10 min) score at baseline; agreement is
+the filter. Recommended: retire 6750v30, repurpose its chart as Job's 6250v 2-hour test; keep
+5250v60 as the workhorse; 7250v60 as opening/confirming print; 4500v60 optional. Operator
+directives recorded: measure from the LAST bar of a string too ("waiting that many points and
+time isn't much of a signal"); day session 08:30-14:00 is what matters; studies print live. Not
+scored against structure yet (MGI levels join is next). No engine code touched; Dominator stays
+out of Gekko's engine.
+
+---
 
 **Latest change (branch `feat-146-llm-planner-scenario-plans`): feat-146 — LLM planner writes
 scenario catalogs; stand-down removed; edges-only collapse fixed.** Operator corrections after

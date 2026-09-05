@@ -372,6 +372,9 @@ then hit rate**:
 A setting that fires once a week cannot be evaluated — there is no sample. Tune for enough prints to
 measure, then measure. He re-tests his own *"bi-weekly"* ([DD @07:35](https://youtu.be/87iRywxnwj4?t=455)).
 
+The operator's own calibration of five settings, with per-setting screenshots and print counts, lives
+in [`dominator-calibration/`](./dominator-calibration/README.md).
+
 ### Does it work outside RTH?
 
 Yes — because the mechanism is clock-relative, not session-relative. A 2-hour Globex window gets

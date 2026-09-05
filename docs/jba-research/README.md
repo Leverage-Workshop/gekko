@@ -17,6 +17,7 @@ that produced it.
 | [`execution-steps.md`](./execution-steps.md) | **The entry sequence (2026-08-27).** Job's entry process as five gated steps — arrive → locate the defense → withdraw → take → accept — each an observable with a Sierra Chart study proposal; self-contained, sourced from the replays and reference material only. Supersedes the 39-rule catalogue below for entry work |
 | [`execution-process.md`](./execution-process.md) | Earlier execution distillation: 39 rules across seven phases — **not used as a reference by `execution-steps.md`** (operator instruction, 2026-08-27) |
 | [`execution-notes.md`](./execution-notes.md) | **Evidence log for execution.** Replay-by-replay findings, tool inventory, and the data/studies an implementation would need |
+| [`dominator-calibration/`](./dominator-calibration/README.md) | **Operator's Dominator 2.0 calibration log (2026-09-05).** Five settings, one colour each, screenshots + pixel-extracted `prints.csv` + counts and overlap read; scorecard still to do |
 | `transcripts/` | Raw auto-caption transcripts for the 25 prep videos, named `YYYY-MM-DD_<youtube-id>.txt` |
 | `replays/` | 9 trade-replay transcripts (~5.4 hrs), the execution evidence base |
 | `reference/` | Job Pivot deep dive, Dominator 2.0 deep dive, OFL 101 Time & Sales, and the DOM / Time & Sales / Dominator course PDFs |
