@@ -158,8 +158,10 @@ Other splits worth knowing, all at 60 minutes:
 - **Agreement between settings is the strongest filter in the data.** Agreement is measured on
   first-bar end times, when each print is certainly known. A 60-minute-window print with no other
   setting known within 10 minutes has no edge (7250v60 solo 0.80 on n 14; 5250v60 solo 1.01 on
-  n 40; 4500v60 solo 0.73 on n 41). With one or more agreeing: 1.4 to 2.6 and 60 to 68 percent.
-  Roughly 36 percent of 4500v60's events are solo.
+  n 40; 4500v60 solo 0.73 on n 41). With one or more agreeing, scored from the bar in which the
+  last confirming print became known: 1.5 to 3.2 and 58 to 68 percent. Roughly 36 percent of
+  4500v60's events are solo. A 30-minute print confirmed by two or more others continues too
+  (1.5 to 1.6, about 60 percent).
 - **Buy and sell both carry the pattern** on the 60-minute settings (buy 1.0 to 1.7, sell 1.5 to
   1.8). On the 30-minute settings both sides turn.
 - **Overnight** (Asia 17:00 to 02:00, Europe 02:00 to 08:30) is one volume bar per window and only

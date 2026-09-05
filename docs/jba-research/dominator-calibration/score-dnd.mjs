@@ -229,10 +229,21 @@ for (const k of ['day', 'asia', 'europe']) {
     const r = events[a].filter(inBucket(k));
     console.log(`${a.padEnd(8)}${SETTINGS.map((b) => (a === b ? pad('-', 9) : pad(r.filter((e) => agrees(e, b)).length, 9))).join('')}  ${pad(r.length, 4)}`);
   }
-  console.log(`by number of OTHER settings agreeing, 60 min\n${SCORE_HDR}`);
+  console.log(`by number of OTHER settings agreeing, 60 min; confirmed events are scored from the bar in which the LAST agreeing print became known\n${SCORE_HDR}`);
   for (const s of SETTINGS) {
     const others = SETTINGS.filter((x) => x !== s);
-    const tagged = events[s].filter(inBucket(k)).map((e) => ({ e, n: others.filter((o) => agrees(e, o)).length }));
+    const tagged = events[s]
+      .filter(inBucket(k))
+      .map((e) => {
+        const agreeing = others.flatMap((o) => events[o].filter((f) => f.side === e.side && knownAt(f) !== null && knownAt(e) !== null && Math.abs(knownAt(f) - knownAt(e)) <= COINCIDE_MIN));
+        const n = new Set(agreeing.map((f) => f.s)).size;
+        const confirmAt = Math.max(knownAt(e) ?? -Infinity, ...agreeing.map((f) => knownAt(f)));
+        // first bar of this setting, at or after the print, whose end is at or after the confirmation
+        const bars = data[s];
+        let i = e.first;
+        while (i < bars.length && bars[i].end !== null && bars[i].end < confirmAt) i++;
+        return { e: { s, side: e.side, first: i, last: i }, n };
+      });
     console.log(scoreLine(`${s} solo`, tagged.filter((x) => x.n === 0).map((x) => x.e), 60));
     console.log(scoreLine(`${s} +1`, tagged.filter((x) => x.n === 1).map((x) => x.e), 60));
     console.log(scoreLine(`${s} +2..4`, tagged.filter((x) => x.n >= 2).map((x) => x.e), 60));
