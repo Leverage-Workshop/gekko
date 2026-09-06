@@ -253,8 +253,8 @@ low to 08-19's value high, the union of the 08-19/08-21/08-20 chain. That is the
 > and say, okay, let's traverse value. I would do the same."*
 > — [DD @30:54](https://youtu.be/CoKoCpLYnC8?t=1854)
 
-Five days of overlapping value means five days of positions built in the same band. That is a lot
-of people with a reason to defend the edges and a lot of two-way business in the middle. Hence the
+A chain of overlapping value zones means several sessions' positions built in the same band. That
+is a lot of people with a reason to defend the edges and a lot of two-way business in the middle. Hence the
 one rule Job repeats more than any other about these boxes:
 
 > *"Nobody wants to be full size in the middle of a balance zone. We patiently wait to exploit the
@@ -791,8 +791,8 @@ each of the five daily rows and 1.00, 2.00, 3.00 on the weekly row. Three exampl
 | 08-19 | 29506.75 – 29696.25 | 189.50 | 29885.75 | 29317.25 |
 | Week of 08-24 | 29292.25 – 29683.50 | 391.25 | 30074.75 | 28901.00 |
 
-So the 08-18 session, three and a half times narrower than 08-19, had rungs every 73.5 points —
-that is the compression case from §1 in numbers.
+So the 08-18 session, about two and a half times narrower than 08-19, had rungs every 73.5 points
+— that is the compression case from §1 in numbers.
 
 ### "Pivot" versus "RP"
 
