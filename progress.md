@@ -2,7 +2,23 @@
 
 ## Current State
 
-**Last Updated:** 2026-09-05
+**Last Updated:** 2026-09-06
+
+**Latest change (branch `docs-job-pivots-explainer`): explainer doc — Job pivots and balance
+areas, research only.** New file `docs/jba-research/job-pivots-and-balance-areas-explained.md`
+(837 lines, 5 diagrams, 128 distinct timestamped links) written to the `explainer-doc` skill's
+contract. Sources: the author's 39-min deep dive (`reference/job-pivots-deep-dive.txt`), VP 101,
+the nine replays, the 25 prep transcripts (flat — links go to the video, not the second), and the
+real `chart-data/job-study-daily.json` export. Two receipts the deep dive only asserts are now
+measured off the export: every ladder rung is exactly n × the value-zone width beyond the zone's
+EDGE (1A = valueHigh + width, not pivot + width), and the JBA rectangle drawn on 2026-08-20
+(29240.00–29696.25) is the union of the 08-19/08-21/08-20 value-zone chain — the box is hand-drawn
+(`source: "user"`, `(BA) Balance Area Mode: Off`, `(BA) Lookback: 5`) and it excluded 08-18's zone
+despite an 8.75-pt overlap, which the doc lists as a known defect. Every YouTube link's arithmetic
+and every quote (inline and index-table) verified by script against the transcripts: 0 problems.
+No engine code touched.
+
+---
 
 **Latest change (branch `docs-dominator-calibration`): Dominator 2.0 settings review, research
 only.** Operator started calibrating five Dominator 2.0 settings (7250v/60, 7250v/30, 6750v/30,
@@ -4957,3 +4973,41 @@ in `app/components/job-plan-card.tsx` now tones by `frame.side` — above = bmw-
 label + blue top-border accent, below = m-red equivalents, at = unchanged neutral —
 reusing the Primary Lean accent pattern. ./init.sh green, codex gate PASS (no
 findings), squash-merged to main.
+
+## 2026-09-06 — explainer doc: Job pivots and balance areas
+
+**Branch `docs-job-pivots-explainer`.** New file
+**`docs/jba-research/job-pivots-and-balance-areas-explained.md`** (837 lines, 5 diagrams, 128
+distinct timestamped links, ~40 inline quotes plus three per-source index tables) and five
+Excalidraw diagrams in `docs/jba-research/diagrams/` (`.png` + `.excalidraw` each):
+
+- `jp-01-pivot-anatomy` — pivot, 70% value zone, targets stacked one zone-width at a time, with
+  the 2026-08-20 numbers.
+- `jp-02-three-reads` — mechanical / emotional / two-way trade, and the action for each.
+- `jp-03-jba-construction` — the five real value zones of 08-18..08-24 and the drawn box.
+- `jp-04-four-situations` — outside vs inside × fails vs holds, the two-by-two that separates
+  "fade the failed look" from "never fade acceptance".
+- `jp-05-walkthrough-05-04` — the JBA-high reoffer on 05-04 as a seven-stage timeline.
+
+Structure: §1 what a Job pivot is (setup → definition → the ladder arithmetic verified on the
+export → three jobs of the pivot → three reads → where did we open → compression/expansion →
+weekly pivot); §2 what a balance area is (construction with the receipt from the study settings
+and the drawn rectangle → value-zone rules → the four situations → what ends it → why boxes move
+→ autoplot ⊃ JBA ⊃ pivot); §3 how to use them (top-down/left-to-right, entry at the edge with
+the box as the stop, the edge as a question, the ladder, the 05-04 walkthrough); §4 reading it on
+your own screen (export fields, the procedure, known defects); §5 timestamped index; §6 ladder
+arithmetic table and pivot-vs-RP disambiguation; §7 one-paragraph summary.
+
+**Verification was mechanical.** `verify.py` (scratchpad) checks every `?t=` against the `@m:ss`
+in the link text AND against a real caption line / deep-dive range start in the source file;
+every `*"…"*` quote and every quoted string in an index-table cell is a case-insensitive
+substring of the corpus (blockquote `> ` prefixes stripped). Final run: links 0 problems,
+relative links 0 missing, inline quotes 0, table quotes 0. Six index quotes were corrected to
+verbatim during the pass (caption disfluencies such as `[clears throat]`, `[snorts]`, "beline",
+"this 6 7615 area" restored).
+
+**Flags for the operator, recorded in the doc's "known defects":** the JBA boxes are hand-drawn,
+not the strict five-day overlap; which session (pit vs Globex) builds the daily pivot is not
+stated on tape (`Pit Session: Indexes 9:30ET` in the export settings suggests pit); the deep dive
+names Cap as the morning-prep speaker, so prep-video attribution to Job is uncertain; prep
+transcripts carry no timestamps.

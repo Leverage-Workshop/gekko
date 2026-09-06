@@ -1,0 +1,775 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "mcp-excalidraw-server",
+  "elements": [
+    {
+      "id": "w5_title",
+      "type": "text",
+      "x": 40,
+      "y": 30,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "The 05-04 walkthrough: a JBA-high reoffer, start to finish",
+      "fontSize": 28,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_sub",
+      "type": "text",
+      "x": 40,
+      "y": 70,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "ES, simulated entry, narrated live. Seven stages in six minutes — https://youtu.be/9iNMcMoI9nk?t=218",
+      "fontSize": 16,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_hi",
+      "type": "rectangle",
+      "x": 40,
+      "y": 140,
+      "width": 840,
+      "height": 3,
+      "backgroundColor": "#1e1e1e",
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_hil",
+      "type": "text",
+      "x": 890,
+      "y": 130,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "top of the JBA  7272¾",
+      "fontSize": 15,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_lvn",
+      "type": "rectangle",
+      "x": 40,
+      "y": 182,
+      "width": 840,
+      "height": 2,
+      "backgroundColor": "#2f9e44",
+      "strokeColor": "#2f9e44",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_lvnl",
+      "type": "text",
+      "x": 890,
+      "y": 172,
+      "strokeColor": "#2f9e44",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "7258 primary LVN — first target",
+      "fontSize": 15,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_p1",
+      "type": "line",
+      "x": 60,
+      "y": 196,
+      "width": 190,
+      "height": -52,
+      "strokeColor": "#1971c2",
+      "strokeWidth": 3,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_p2",
+      "type": "line",
+      "x": 250,
+      "y": 144,
+      "width": 130,
+      "height": 1,
+      "strokeColor": "#1971c2",
+      "strokeWidth": 3,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_p3",
+      "type": "arrow",
+      "x": 380,
+      "y": 145,
+      "width": 300,
+      "height": 36,
+      "strokeColor": "#e03131",
+      "strokeWidth": 3,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "endArrowhead": "arrow",
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_t1",
+      "type": "text",
+      "x": 40,
+      "y": 222,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "@03:38",
+      "fontSize": 14,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_t2",
+      "type": "text",
+      "x": 185,
+      "y": 222,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "@04:46",
+      "fontSize": 14,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_t3",
+      "type": "text",
+      "x": 330,
+      "y": 222,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "@05:08",
+      "fontSize": 14,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_t4",
+      "type": "text",
+      "x": 475,
+      "y": 222,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "@05:19",
+      "fontSize": 14,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_t5",
+      "type": "text",
+      "x": 620,
+      "y": 222,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "@06:59",
+      "fontSize": 14,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_t6",
+      "type": "text",
+      "x": 765,
+      "y": 222,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "@09:03",
+      "fontSize": 14,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_t7",
+      "type": "text",
+      "x": 910,
+      "y": 222,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "@09:25",
+      "fontSize": 14,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_b1",
+      "type": "rectangle",
+      "x": 40,
+      "y": 244,
+      "width": 135,
+      "height": 160,
+      "backgroundColor": "#a5d8ff",
+      "strokeColor": "#1971c2",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_b2",
+      "type": "rectangle",
+      "x": 185,
+      "y": 244,
+      "width": 135,
+      "height": 160,
+      "backgroundColor": "#a5d8ff",
+      "strokeColor": "#1971c2",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_b3",
+      "type": "rectangle",
+      "x": 330,
+      "y": 244,
+      "width": 135,
+      "height": 160,
+      "backgroundColor": "#b2f2bb",
+      "strokeColor": "#2f9e44",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_b4",
+      "type": "rectangle",
+      "x": 475,
+      "y": 244,
+      "width": 135,
+      "height": 160,
+      "backgroundColor": "#ffd8a8",
+      "strokeColor": "#e8590c",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_b5",
+      "type": "rectangle",
+      "x": 620,
+      "y": 244,
+      "width": 135,
+      "height": 160,
+      "backgroundColor": "#b2f2bb",
+      "strokeColor": "#2f9e44",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_b6",
+      "type": "rectangle",
+      "x": 765,
+      "y": 244,
+      "width": 135,
+      "height": 160,
+      "backgroundColor": "#e9ecef",
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_b7",
+      "type": "rectangle",
+      "x": 910,
+      "y": 244,
+      "width": 135,
+      "height": 160,
+      "backgroundColor": "#ffc9c9",
+      "strokeColor": "#e03131",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_x1",
+      "type": "text",
+      "x": 47,
+      "y": 252,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "APPROACH\n\nPrice rising into\nthe top of the box.\n\"watch my bid\" —\nfor a short, the\nbuyers are the\nopponent.",
+      "fontSize": 12,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_x2",
+      "type": "text",
+      "x": 192,
+      "y": 252,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "TAG OR ABSORB\n\n\"Really want this\nto tag top of the\nJVA. If not, I want\nto see some\nabsorption like\nthis.\"",
+      "fontSize": 12,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.464Z",
+      "updatedAt": "2026-09-06T19:25:45.464Z",
+      "version": 1
+    },
+    {
+      "id": "w5_x3",
+      "type": "text",
+      "x": 337,
+      "y": 252,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "STEP AWAY = GO\n\n\"when that step\naway from the bid\nhappens ... that's\nwhere I would\nposition\"\nSHORT.",
+      "fontSize": 12,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1
+    },
+    {
+      "id": "w5_x4",
+      "type": "text",
+      "x": 482,
+      "y": 252,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "STOP = THE EDGE\n\nJBA high 7272¾.\n\"there should be\nno risk above\nthe 73s.\"",
+      "fontSize": 12,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1
+    },
+    {
+      "id": "w5_x5",
+      "type": "text",
+      "x": 627,
+      "y": 252,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "FIRST TARGET\n\n7258 primary LVN,\nfirst structure\ninside the box.\n\"Get something\noff ... Gauge\ncontinuation.\"",
+      "fontSize": 12,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1
+    },
+    {
+      "id": "w5_x6",
+      "type": "text",
+      "x": 772,
+      "y": 252,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "SIT THROUGH IT\n\n\"the offer is still\nheavy and filling\n... Absorption\ntakes time.\"\nOwn side still\ndefending.",
+      "fontSize": 12,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1
+    },
+    {
+      "id": "w5_x7",
+      "type": "text",
+      "x": 917,
+      "y": 252,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "HOW IT DIES\n\nStop-run above\nand SETTLE above\nthe JBA highs:\n\"don't fight it.\nLet it move.\"",
+      "fontSize": 12,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1
+    },
+    {
+      "id": "w5_a1",
+      "type": "arrow",
+      "x": 183,
+      "y": 324,
+      "width": 10,
+      "height": 1,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -6,
+          0
+        ]
+      ],
+      "start": {
+        "id": "w5_b1"
+      },
+      "end": {
+        "id": "w5_b2"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1,
+      "startBinding": {
+        "elementId": "w5_b1",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "w5_b2",
+        "focus": 0,
+        "gap": 8
+      }
+    },
+    {
+      "id": "w5_a2",
+      "type": "arrow",
+      "x": 328,
+      "y": 324,
+      "width": 10,
+      "height": 1,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -6,
+          0
+        ]
+      ],
+      "start": {
+        "id": "w5_b2"
+      },
+      "end": {
+        "id": "w5_b3"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1,
+      "startBinding": {
+        "elementId": "w5_b2",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "w5_b3",
+        "focus": 0,
+        "gap": 8
+      }
+    },
+    {
+      "id": "w5_a3",
+      "type": "arrow",
+      "x": 473,
+      "y": 324,
+      "width": 10,
+      "height": 1,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -6,
+          0
+        ]
+      ],
+      "start": {
+        "id": "w5_b3"
+      },
+      "end": {
+        "id": "w5_b4"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1,
+      "startBinding": {
+        "elementId": "w5_b3",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "w5_b4",
+        "focus": 0,
+        "gap": 8
+      }
+    },
+    {
+      "id": "w5_a4",
+      "type": "arrow",
+      "x": 618,
+      "y": 324,
+      "width": 10,
+      "height": 1,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -6,
+          0
+        ]
+      ],
+      "start": {
+        "id": "w5_b4"
+      },
+      "end": {
+        "id": "w5_b5"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1,
+      "startBinding": {
+        "elementId": "w5_b4",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "w5_b5",
+        "focus": 0,
+        "gap": 8
+      }
+    },
+    {
+      "id": "w5_a5",
+      "type": "arrow",
+      "x": 763,
+      "y": 324,
+      "width": 10,
+      "height": 1,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -6,
+          0
+        ]
+      ],
+      "start": {
+        "id": "w5_b5"
+      },
+      "end": {
+        "id": "w5_b6"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1,
+      "startBinding": {
+        "elementId": "w5_b5",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "w5_b6",
+        "focus": 0,
+        "gap": 8
+      }
+    },
+    {
+      "id": "w5_a6",
+      "type": "arrow",
+      "x": 908,
+      "y": 324,
+      "width": 10,
+      "height": 1,
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -6,
+          0
+        ]
+      ],
+      "start": {
+        "id": "w5_b6"
+      },
+      "end": {
+        "id": "w5_b7"
+      },
+      "endArrowhead": "arrow",
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1,
+      "startBinding": {
+        "elementId": "w5_b6",
+        "focus": 0,
+        "gap": 8
+      },
+      "endBinding": {
+        "elementId": "w5_b7",
+        "focus": 0,
+        "gap": 8
+      }
+    },
+    {
+      "id": "w5_cbox",
+      "type": "rectangle",
+      "x": 40,
+      "y": 430,
+      "width": 1115,
+      "height": 74,
+      "backgroundColor": "#e9ecef",
+      "strokeColor": "#868e96",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "fontSize": 20,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:26:12.411Z",
+      "version": 2
+    },
+    {
+      "id": "w5_ctxt",
+      "type": "text",
+      "x": 56,
+      "y": 440,
+      "strokeColor": "#1e1e1e",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "text": "Who you watch, in order: first the OPPONENT (the buyers, for a short) — refreshing = wait, dwindling = get ready, gone = go. Then YOUR OWN side (the offer) —\nheavy and filling = the trade is fine, thinning = out. The box edge is the stop; the first structure inside the box is the first extraction; the far edge is where the runner goes.",
+      "fontSize": 13,
+      "fontFamily": 5,
+      "createdAt": "2026-09-06T19:25:45.465Z",
+      "updatedAt": "2026-09-06T19:25:45.465Z",
+      "version": 1
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": null
+  },
+  "files": {}
+}
