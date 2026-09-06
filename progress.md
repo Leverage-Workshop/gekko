@@ -5011,3 +5011,8 @@ not the strict five-day overlap; which session (pit vs Globex) builds the daily 
 stated on tape (`Pit Session: Indexes 9:30ET` in the export settings suggests pit); the deep dive
 names Cap as the morning-prep speaker, so prep-video attribution to Job is uncertain; prep
 transcripts carry no timestamps.
+
+**Codex gate:** round 1 PASS with two P2s, both valid and fixed in a second commit (the "five days
+of overlapping value" sentence overstated the export — it is a connected chain of 08-19/08-21/08-20
+inside the lookback; and 189.5/73.5 is ~2.6×, not 3.5×). Round 2 PASS, no findings. `./init.sh`
+green (2234 tests).
