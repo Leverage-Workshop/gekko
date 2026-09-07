@@ -97,13 +97,6 @@ export type FrameCandidate = {
 
 const round2 = (n: number): number => Math.round(n * 100) / 100
 
-function tierOf(source: ReferenceSource): FrameTier | null {
-  for (const tier of [0, 1, 2, 3, 4] as const) {
-    if (FRAME_ANCHOR_SOURCES[tier].includes(source)) return tier
-  }
-  return null
-}
-
 function pivotAnchors(context: JobContext): FrameAnchor[] {
   return context.references
     .filter((r) => r.source === 'daily-job-pivot' && r.pivot?.role !== 'historical')
