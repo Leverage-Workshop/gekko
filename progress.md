@@ -2,7 +2,17 @@
 
 ## Current State
 
-**Last Updated:** 2026-09-06
+**Last Updated:** 2026-09-07
+
+**Latest change (branch `fix-llm-planner-telemetry`): LLM Job planner calls now traced in
+LangSmith.** Pulling the 2026-09-01 22:57Z plan's prompt back from LangSmith found only the four
+profile-vision calls under `job-plan-task` — the planner's judgment call (and its retry) never
+passed `telemetry`, so the exact prompt behind a persisted plan was unrecoverable. Both calls in
+`lib/job-plan/llm-planner/runLlmPlanner.ts` now record as `job-plan-task` runs with
+`stage=llm-planner`, the prompt revision, and `attempt=2` on the retry; one test pins it. Codex
+gate: PASS, no findings.
+
+---
 
 **Latest change (branch `docs-job-pivots-explainer`): explainer doc — Job pivots and balance
 areas, research only.** New file `docs/jba-research/job-pivots-and-balance-areas-explained.md`
