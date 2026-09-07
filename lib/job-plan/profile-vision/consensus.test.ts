@@ -608,6 +608,36 @@ describe('consensus — distributions (feat-147)', () => {
     expect(c.distributions[0]).toMatchObject({ low: 29102, high: 29302, rank: 1, agreement: 2 })
   })
 
+  it('two ADJACENT distributions sharing an LVN edge across the tile seam stay two (Codex P2)', () => {
+    // Tiles share 29180–29220. The upper tile reports the upper auction
+    // [29200, 29302]; the lower tile reports the lower auction [29102, 29200].
+    // They touch at the shared LVN 29200 and must NOT collapse into one zone.
+    const upper = { low: 29200, high: 29302, peak: 29260, rank: 1, rationale: 'x' }
+    const lower = { low: 29102, high: 29200, peak: 29140, rank: 2, rationale: 'x' }
+    const reads: SuccessfulRead[] = [0, 1].flatMap((s) => [
+      { sample: s, tile: 0, read: read([UPPER, PRIMARY, PEAK], { distributions: [upper] }) },
+      { sample: s, tile: 1, read: read([PRIMARY, LOWER], { distributions: [lower] }) },
+    ])
+    const c = buildConsensus(input(reads, 2, 2))!
+    expect(c.distributions.map((d) => [d.low, d.high, d.rank])).toEqual([
+      [29200, 29302, 1],
+      [29102, 29200, 2],
+    ])
+  })
+
+  it('two reports that overlap only OUTSIDE the tiles\' shared span are two distributions', () => {
+    // Both tiles see 29180–29220; a report on tile 1 that stops at 29190 and one
+    // on tile 0 that starts at 29185 overlap by 5 pts inside the seam and merge;
+    // move the lower report's top to 29180 (the seam's floor) and they do not.
+    const upper = { low: 29185, high: 29302, peak: 29260, rank: 1, rationale: 'x' }
+    const touching = { low: 29102, high: 29180, peak: 29140, rank: 2, rationale: 'x' }
+    const reads: SuccessfulRead[] = [0, 1].flatMap((s) => [
+      { sample: s, tile: 0, read: read([UPPER, PRIMARY, PEAK], { distributions: [upper] }) },
+      { sample: s, tile: 1, read: read([PRIMARY, LOWER], { distributions: [touching] }) },
+    ])
+    expect(buildConsensus(input(reads, 2, 2))!.distributions).toHaveLength(2)
+  })
+
   it('caps at 4, keeping the ones most samples saw, and orders the output rank 1 first', () => {
     const many = Array.from({ length: 6 }, (_, i) => ({
       low: 29000 + i * 60,

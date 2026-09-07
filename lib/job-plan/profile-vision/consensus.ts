@@ -140,7 +140,7 @@ function toCandidates(reads: readonly SuccessfulRead[], grid: Grid): Candidate[]
 }
 
 /** The price span two tiles share, or null when they do not overlap. */
-function overlapSpan(
+export function overlapSpan(
   tiles: readonly TileRange[],
   a: number,
   b: number
@@ -315,11 +315,6 @@ export type Zone = {
   readonly high: number
 }
 
-/** The default tile merge: the union span, the keeper's other fields. */
-function unionZone<T extends Zone>(keep: T, dup: T): T {
-  return { ...keep, low: Math.min(keep.low, dup.low), high: Math.max(keep.high, dup.high) }
-}
-
 /** A consensus zone still carrying the samples behind it, until the final merge. */
 type ZoneWithSamples = ConsensusThinZone & { readonly voters: ReadonlySet<number> }
 
@@ -337,21 +332,24 @@ function zonesOf(reads: readonly SuccessfulRead[], grid: Grid): Zone[] {
 }
 
 /**
- * Within one sample, zones from different tiles that touch are one zone (their
- * union — a tile seam cuts zones). `merge` decides what else the keeper takes
- * from the duplicate (distributions carry a peak and a rank).
+ * Within one sample, thin zones from different tiles that touch are one zone
+ * (their union — a tile seam cuts zones). Distributions have their own,
+ * stricter rule in `consensusDistributions.ts`: adjacent auctions share an
+ * edge by definition, so contact is not evidence there.
  */
-export function dedupeZoneTiles<T extends Zone>(
-  zones: readonly T[],
-  merge: (keep: T, dup: T) => T = unionZone
-): T[] {
-  const kept: T[] = []
+function dedupeZoneTiles(zones: readonly Zone[]): Zone[] {
+  const kept: Zone[] = []
   for (const z of zones) {
     const idx = kept.findIndex(
       (k) => k.sample === z.sample && k.tile !== z.tile && z.low <= k.high && k.low <= z.high
     )
     if (idx === -1) kept.push(z)
-    else kept[idx] = merge(kept[idx], z)
+    else
+      kept[idx] = {
+        ...kept[idx],
+        low: Math.min(kept[idx].low, z.low),
+        high: Math.max(kept[idx].high, z.high),
+      }
   }
   return kept
 }
@@ -456,7 +454,7 @@ export function buildConsensus(input: ConsensusInput): ProfileConsensus | null {
   return {
     nodes,
     thinZones: consensusThinZones(reads, input.grid, tolerance, threshold, input.samples),
-    distributions: consensusDistributions(reads, input.grid, tolerance, threshold, input.samples, nodes),
+    distributions: consensusDistributions(reads, input.grid, input.tiles, tolerance, threshold, input.samples, nodes),
     successfulSamples: complete.size,
     samples: input.samples,
   }

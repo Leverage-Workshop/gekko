@@ -1,11 +1,12 @@
 import { MAX_DISTRIBUTIONS } from './schema'
 import {
-  dedupeZoneTiles,
   median,
+  overlapSpan,
   snapToGrid,
   zoneClusters,
   type Grid,
   type SuccessfulRead,
+  type TileRange,
   type Zone,
 } from './consensus'
 import type { ConsensusDistribution, ConsensusNode } from './types'
@@ -48,6 +49,36 @@ function zonesOf(reads: readonly SuccessfulRead[], grid: Grid): DistributionZone
   return out.sort(
     (a, b) => a.low - b.low || a.high - b.high || a.sample - b.sample || a.tile - b.tile
   )
+}
+
+/**
+ * Within one sample, the same distribution seen in two tiles is one
+ * distribution. Unlike thin zones, CONTACT is not evidence: adjacent auctions
+ * share their boundary LVN by definition (`[low, sharedLVN]` next to
+ * `[sharedLVN, high]`), so a pair merges only when the two reports overlap in
+ * their INTERIOR and that overlap lies inside the tiles' shared span — the
+ * signature of one zone cut by the seam, not two zones meeting at an edge.
+ * (Codex P2 on the first cut, which merged on inclusive contact.)
+ */
+function dedupeDistributionTiles(
+  zones: readonly DistributionZone[],
+  tiles: readonly TileRange[]
+): DistributionZone[] {
+  if (tiles.length < 2) return [...zones]
+  const kept: DistributionZone[] = []
+  for (const z of zones) {
+    const idx = kept.findIndex((k) => {
+      if (k.sample !== z.sample || k.tile === z.tile) return false
+      const span = overlapSpan(tiles, k.tile, z.tile)
+      if (span === null) return false
+      const low = Math.max(k.low, z.low, span.low)
+      const high = Math.min(k.high, z.high, span.high)
+      return low < high
+    })
+    if (idx === -1) kept.push(z)
+    else kept[idx] = mergeTilePair(kept[idx], z)
+  }
+  return kept
 }
 
 /** A distribution cut by a tile seam: the union span, the better-ranked report's peak, the best rank. */
@@ -134,12 +165,13 @@ function byRank(a: ConsensusDistribution, b: ConsensusDistribution): number {
 export function consensusDistributions(
   reads: readonly SuccessfulRead[],
   grid: Grid,
+  tiles: readonly TileRange[],
   tolerance: number,
   threshold: number,
   samples: number,
   nodes: readonly ConsensusNode[]
 ): ConsensusDistribution[] {
-  const zones = dedupeZoneTiles(zonesOf(reads, grid), mergeTilePair)
+  const zones = dedupeDistributionTiles(zonesOf(reads, grid), tiles)
   return zoneClusters(zones, tolerance)
     .map((cl) => summarize(cl, grid, samples))
     .filter((d) => d.agreement >= threshold)
