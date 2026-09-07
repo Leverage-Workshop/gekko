@@ -62,7 +62,7 @@ function bandOf(ctx: JobContext, memberId: string): string {
 
 function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
   return {
-    frame: { referenceId: 'wp', rationale: 'Most important line within realistic reach.' },
+    frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Nearest stacked structure within reach.' },
     plays: [
       { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer and a turn back toward the Daily Pivot.', rationale: 'Confluent with the overnight high; frame side.' },
       { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'If price reaches the Daily Pivot, expect the bid and a turn back toward the Weekly Pivot.', rationale: 'Nearest significant level below.' },
@@ -117,7 +117,7 @@ describe('assembleLlmPlan', () => {
     const ctx = midZoneContext()
     expect(ctx.location.enclosingZone?.midZone).toBe(true)
     const judgment: LlmPlanJudgment = {
-      frame: { referenceId: 'wp', rationale: 'Weekly pivot frames from above.' },
+      frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Weekly pivot frames from above.' },
       plays: [
         { bandId: bandOf(ctx, 'jba:0:high'), direction: 'short', text: 'If price reaches JBA 1 high, the upper edge will hold and rotate back down.', rationale: 'Enclosing zone edge above.' },
         { bandId: bandOf(ctx, 'jba:0:low'), direction: 'long', text: 'If price reaches JBA 1 low, the lower edge will hold and rotate back up.', rationale: 'Enclosing zone edge below.' },
@@ -143,7 +143,7 @@ describe('assembleLlmPlan', () => {
   it('a mid-zone judgment with no plays still needs both sides answered — no stand-down escape hatch', () => {
     const mid = midZoneContext()
     const empty: LlmPlanJudgment = {
-      frame: { referenceId: 'wp', rationale: 'Weekly pivot frames from above.' },
+      frame: { bandId: bandOf(mid, 'wp'), rationale: 'Weekly pivot frames from above.' },
       plays: [],
       sidesWithoutPlay: [],
       lean: 'Nothing to do yet.',
@@ -173,7 +173,7 @@ function judgmentFor(payload: LlmContextPayload): LlmPlanJudgment {
   const above = nearest('above')
   const below = nearest('below')
   return {
-    frame: { referenceId: frame.id, rationale: 'The operative tier-one line within reach.' },
+    frame: { bandId: frame.bandId, rationale: 'The strongest candidate band within reach.' },
     plays: [
       ...(above ? [{ bandId: above.bandId, direction: 'short' as const, text: `If price reaches ${above.label}, expect the offer and a turn back down.`, rationale: 'Nearest significant area above.' }] : []),
       ...(below ? [{ bandId: below.bandId, direction: 'long' as const, text: `If price reaches ${below.label}, expect the bid and a turn back up.`, rationale: 'Nearest significant area below.' }] : []),
@@ -195,7 +195,7 @@ const answeringJudgment: LlmPlannerGenerate = (async (params: { prompt: string }
 })) as unknown as LlmPlannerGenerate
 
 const brokenJudgment: LlmPlannerGenerate = (async (params: { prompt: string }) => ({
-  object: { ...judgmentFor(payloadOf(params.prompt)), frame: { referenceId: 'not-a-reference', rationale: 'x' } },
+  object: { ...judgmentFor(payloadOf(params.prompt)), frame: { bandId: 'not-a-candidate', rationale: 'x' } },
   model: 'served/planner-model',
   cost: 0.02,
   latencyMs: 7,
@@ -276,7 +276,7 @@ describe("runJobPlan planner: 'llm'", () => {
     const { result, state } = runWith({ generateJudgment: brokenJudgment }, 'llm')
     const error = await result.catch((e: unknown) => e)
     expect(error).toBeInstanceOf(LlmPlanContractError)
-    expect((error as LlmPlanContractError).violations.map((v) => v.code)).toContain('frame_unknown_reference')
+    expect((error as LlmPlanContractError).violations.map((v) => v.code)).toContain('frame_unknown_candidate')
     expect(isNonRetryableJobPlanError(error)).toBe(false)
     expect(state.judgmentCalls).toHaveLength(2)
     expect(state.inserted).toEqual([])

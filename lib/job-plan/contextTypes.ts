@@ -21,6 +21,19 @@ export type ReferenceOrigin = 'mgi' | 'job-study' | 'profile-nodes' | 'htf-bars'
 
 export type PivotTestedStatus = 'untested' | 'unknown'
 
+/**
+ * A distribution this node is an EDGE of (feat-147/148): the consensus
+ * distribution's zone and rank, and which edge of it the node forms. A node
+ * can be the upper edge of one distribution and the lower edge of the next.
+ */
+export type DistributionEdge = {
+  readonly edge: 'lower' | 'upper'
+  readonly rank: number
+  readonly low: number
+  readonly high: number
+  readonly peak: number
+}
+
 export type ReferenceNode = {
   readonly profile: ProfileKey
   readonly kind: NodeKind
@@ -31,6 +44,8 @@ export type ReferenceNode = {
   readonly edgeAbove: NodeEdge
   readonly agreement: number
   readonly samples: number
+  /** Distributions this node bounds (lvn nodes only in practice); empty when none. */
+  readonly distributionEdges: readonly DistributionEdge[]
 }
 
 export type ReferencePivot = {

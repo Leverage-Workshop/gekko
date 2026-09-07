@@ -4,13 +4,14 @@ import type { HtfBar } from '@/lib/engine/parseHtfBars'
 import { rthOpenMsOf } from './chartClock'
 import type {
   DataQualityIssue,
+  DistributionEdge,
   ExcludedReference,
   PivotTestedStatus,
   Reference,
   ReferencePivot,
 } from './contextTypes'
 import type { ObservedBar } from './observedBars'
-import { PROFILE_KEYS, type ProfileKey, type ProfileNodes } from './profile-vision/types'
+import { PROFILE_KEYS, type ConsensusDistribution, type ProfileKey, type ProfileNodes } from './profile-vision/types'
 import { r2DestinationOnly, r2Significance, type ReferenceSource } from './rules'
 import type { DailyPivot, JobStudy, PivotLadder } from './types'
 
@@ -176,6 +177,19 @@ function overnightRefs(
   ]
 }
 
+/** The distributions node `index` bounds, as the reference carries them (feat-148). */
+export function distributionEdgesOf(
+  distributions: readonly ConsensusDistribution[] | undefined,
+  index: number,
+): DistributionEdge[] {
+  return (distributions ?? []).flatMap((d) => {
+    const edges: DistributionEdge[] = []
+    if (d.lowerEdgeNode === index) edges.push({ edge: 'lower', rank: d.rank, low: d.low, high: d.high, peak: d.peak })
+    if (d.upperEdgeNode === index) edges.push({ edge: 'upper', rank: d.rank, low: d.low, high: d.high, peak: d.peak })
+    return edges
+  })
+}
+
 function profileRefs(profileNodes: ProfileNodes | null): Reference[] {
   if (profileNodes === null) return []
   const sourceOf: Record<ProfileKey, ReferenceSource> = { balance: 'profile-balance', rotation: 'profile-rotation' }
@@ -202,6 +216,7 @@ function profileRefs(profileNodes: ProfileNodes | null): Reference[] {
           edgeAbove: node.edgeAbove,
           agreement: node.agreement,
           samples: node.samples,
+          distributionEdges: distributionEdgesOf(consensus.distributions, index),
         },
       }),
     )

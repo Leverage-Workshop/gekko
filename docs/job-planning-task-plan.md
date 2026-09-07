@@ -876,6 +876,34 @@ The five-condition grammar table in step 4 remains the corpus-true vocabulary; t
 standalone plays (the breach fork carries continuation; approach failure is a stated
 qualifier in the preps, not a play class).
 
+## 2026-09-07 ratification — the frame is a BIAS LINE (feat-147/148)
+
+Operator: "the real question we're trying to answer with the trend filter is: at what level
+do I look for longs above it and shorts below it" — positions do not have to initiate from
+that level, just be on that side. Replaces the 2026-08-31 tier-one ladder (G line > weekly
+pivot > weekly rungs > daily pivot, most important in reach wins) in BOTH planners:
+
+- **Anchor ladder** (`lib/job-plan/frameCandidates.ts`): 0 the CURRENT daily Job Pivot (runs
+  happen after the RTH open, so it is fresh) → 1 the weekly Job Pivot and the G line at EQUAL
+  rank → 2 the borders of the JBA price is inside, or the nearest border each side ("structure
+  precedes execution"; a JBA is a composite profile) → 3 the boundary LVNs of the balance-area
+  distribution price is inside (or the nearest edge each side) → 4 the same on the 400-pt
+  rotation profile. Historical pivots, hvns and lvns without a distribution edge never anchor.
+- **Confluence-only members**: weekly rungs, ONH, ONL, PDH, PDL strengthen a band but never
+  anchor one. A candidate is the confluence BAND its anchor sits in; a stacked band outranks a
+  lone line. Beyond that the model keeps its latitude ("don't keep it so restrictive that we
+  don't allow the model a bit of latitude"); the deterministic rollback path takes stacked →
+  tier → distance.
+- **Reach is a wall** for every tier but the daily pivot when anything is in reach (a line a
+  session away fixes the bias all day, which is no filter); with nothing in reach the strongest
+  candidate still frames, stated at its distance.
+- **'At' the band is a legal state** — the fork (holding above it, longs at the areas above;
+  losing it, shorts below) — never a reason to reach for a farther line to manufacture a side.
+- **The frame is a BAND** (`PlanFrame.bandId/low/high/tier/memberLabels`, lone lines low = high):
+  `job_plan_bands` emits the range (`20260907200000_job_plan_bands_frame_range.sql`) and the
+  Sierra study labels it.
+- The vision read's ranked `distributions` (feat-147) are what make tier 3/4 expressible.
+
 ## Claude / Codex review notes
 
 - **LLM in the loop**: Claude initially proposed a thin LLM step (narrative + judgment

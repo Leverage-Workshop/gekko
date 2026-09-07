@@ -17,7 +17,7 @@ import { PLANNER_REVISION } from './rules'
  *   1. Sufficiency: an `insufficient` data quality (R13) or missing CORE
  *      geometry (current daily + weekly pivot, at least one band, a price)
  *      → `status: 'insufficient'`, zero plays, reasons spelled out.
- *   2. The FRAME (planFrame.ts): price vs the nearer of the G line and the
+ *   2. The FRAME (planFrame.ts / frameCandidates.ts): the BIAS LINE — feat-148 — price vs the
  *      weekly Job Pivot names the productive side.
  *   3. R12 actionable set (playCandidates.ts).
  *   4. One forward-conditional play per candidate — the expected response on

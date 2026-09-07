@@ -249,23 +249,32 @@ export const GeometryRefs = z.object({
 export type GeometryRefs = z.infer<typeof GeometryRefs>
 
 /**
- * The plan's FRAME (2026-08-31 operator correction — Job's process): where
- * price sits relative to the operative major structure (the G line or the
- * weekly Job Pivot, whichever is nearer). The frame names the productive
- * side; the primary look is the frame-aligned play. Optional so pre-frame
- * persisted plans keep parsing; every new ready plan carries it.
+ * The plan's FRAME — the BIAS LINE (feat-148, operator 2026-09-07; before
+ * that the 2026-08-31 tier-one line): above it the plan looks only for
+ * longs, below it only for shorts. Since feat-148 the frame is a BAND
+ * (`bandId` / `low` / `high`, a lone line collapsing to low = high) anchored
+ * on `referenceId`, whose price is `price`. The band fields are optional so
+ * pre-feat-148 rows keep parsing; every new ready plan carries them.
  */
 export const PlanFrame = z.object({
   referenceId: z.string().min(1),
   label: z.string().min(1),
   price: z.number().finite(),
-  /** Which side of the frame line price is on ('at' = within one merge tolerance). */
+  /** Which side of the frame band price is on ('at' = inside it or within one merge tolerance). */
   side: z.enum(['above', 'below', 'at']),
   distancePts: z.number().finite(),
   text: z.string().min(1),
   provenance: PriceProvenance,
   /** Why this line won the frame (LLM plans only, feat-145). */
   llmRationale: z.string().min(1).nullable().optional(),
+  /** feat-148: the confluence band the anchor sits in. */
+  bandId: z.string().min(1).nullable().optional(),
+  low: z.number().finite().optional(),
+  high: z.number().finite().optional(),
+  /** feat-148: the anchor's ladder tier (0 = current daily pivot). */
+  tier: z.number().int().min(0).optional(),
+  /** feat-148: the members counting toward the band's confluence. */
+  memberLabels: z.array(z.string().min(1)).optional(),
 })
 export type PlanFrame = z.infer<typeof PlanFrame>
 
@@ -447,6 +456,10 @@ export const JobPlanSchema = z
         ctx.addIssue({ code: 'custom', path: ['frame'], message: `frame reference ${plan.frame.referenceId} is not in the inventory` })
       } else if (Math.abs(ref.price - plan.frame.price) >= PRICE_EPSILON) {
         ctx.addIssue({ code: 'custom', path: ['frame'], message: `frame price ${plan.frame.price} is not ${ref.id}'s price` })
+      }
+      const { low, high, price } = plan.frame
+      if (low !== undefined && high !== undefined && (low > high || price < low - PRICE_EPSILON || price > high + PRICE_EPSILON)) {
+        ctx.addIssue({ code: 'custom', path: ['frame'], message: `frame band [${low}, ${high}] must hold the anchor price ${price}` })
       }
     }
     plan.plays.forEach((play, i) => {

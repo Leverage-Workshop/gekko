@@ -1,5 +1,5 @@
 import type { JobContext } from '../contextTypes'
-import { FRAME_LADDER } from '../planFrame'
+import { eligibleFrameCandidates, frameCandidates, type FrameCandidate } from '../frameCandidates'
 import type { LlmPlanJudgment } from './schema'
 
 /**
@@ -16,9 +16,8 @@ import type { LlmPlanJudgment } from './schema'
  */
 
 export type JudgmentViolationCode =
-  | 'frame_unknown_reference'
-  | 'frame_not_tier_one'
-  | 'frame_historical_pivot'
+  | 'frame_unknown_candidate'
+  | 'frame_out_of_reach'
   | 'play_unknown_band'
   | 'play_duplicate_band'
   | 'play_destination_only'
@@ -84,32 +83,26 @@ export function inventedPrices(judgment: LlmPlanJudgment, context: JobContext): 
   return [...invented]
 }
 
-/** Which side of the judged frame line price sits on ('at' within one merge tolerance). */
-export function judgedFrameSide(context: JobContext, frameReferenceId: string): 'above' | 'below' | 'at' | null {
-  const ref = context.references.find((r) => r.id === frameReferenceId)
-  if (!ref) return null
-  const distance = Math.abs(context.price.value - ref.price)
-  if (distance <= context.tolerance.merge) return 'at'
-  return context.price.value > ref.price ? 'above' : 'below'
+/** The frame candidate the judgment named, or null when the id is not a candidate. */
+export function judgedFrameCandidate(context: JobContext, bandId: string): FrameCandidate | null {
+  return frameCandidates(context).find((c) => c.bandId === bandId) ?? null
 }
 
 export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext): JudgmentViolation[] {
   const violations: JudgmentViolation[] = []
   const add = (code: JudgmentViolationCode, message: string) => violations.push({ code, message })
 
-  const frameRef = context.references.find((r) => r.id === judgment.frame.referenceId)
-  if (!frameRef) {
-    add('frame_unknown_reference', `frame.referenceId "${judgment.frame.referenceId}" is not in the inventory`)
-  } else {
-    if (!FRAME_LADDER.includes(frameRef.source)) {
-      add('frame_not_tier_one', `frame reference ${frameRef.label} (${frameRef.source}) is not a tier-one line`)
-    }
-    if (frameRef.pivot?.role === 'historical') {
-      add('frame_historical_pivot', `frame reference ${frameRef.label} is a historical daily pivot — historical pivots never frame`)
-    }
+  // feat-148: the frame is one of the supplied candidate bands, and — unless
+  // nothing at all is in reach — one within reach (the daily pivot always).
+  const candidates = frameCandidates(context)
+  const frame = candidates.find((c) => c.bandId === judgment.frame.bandId) ?? null
+  if (!frame) {
+    add('frame_unknown_candidate', `frame.bandId "${judgment.frame.bandId}" is not one of the frameCandidates`)
+  } else if (!eligibleFrameCandidates(candidates).some((c) => c.bandId === frame.bandId)) {
+    add('frame_out_of_reach', `frame candidate ${frame.anchorLabel} is ${frame.distancePts} pts away — beyond reach while other candidates are within it; a bias line a session away is no filter`)
   }
 
-  const frameSide = frameRef ? judgedFrameSide(context, frameRef.id) : null
+  const frameSide = frame ? frame.side : null
   const frameDirection = frameSide === 'above' ? 'long' : frameSide === 'below' ? 'short' : null
 
   const roleByBand = new Map(context.roles.map((r) => [r.bandId, r]))

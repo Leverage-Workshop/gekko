@@ -18,8 +18,8 @@ export type PlayLine = {
 
 export type ShadowDiff = {
   readonly frame: {
-    readonly deterministic: { readonly referenceId: string; readonly label: string } | null
-    readonly llm: { readonly referenceId: string; readonly label: string }
+    readonly deterministic: { readonly bandId: string | null; readonly label: string } | null
+    readonly llm: { readonly bandId: string; readonly label: string }
     readonly agree: boolean
   }
   readonly plays: {
@@ -74,12 +74,12 @@ export function diffJudgment(plan: JobPlan, judgment: LlmPlanJudgment, context: 
 
   return {
     frame: {
-      deterministic: plan.frame ? { referenceId: plan.frame.referenceId, label: plan.frame.label } : null,
+      deterministic: plan.frame ? { bandId: plan.frame.bandId ?? null, label: plan.frame.label } : null,
       llm: {
-        referenceId: judgment.frame.referenceId,
-        label: context.references.find((r) => r.id === judgment.frame.referenceId)?.label ?? judgment.frame.referenceId,
+        bandId: judgment.frame.bandId,
+        label: bandLabelById(context, judgment.frame.bandId),
       },
-      agree: plan.frame?.referenceId === judgment.frame.referenceId,
+      agree: (plan.frame?.bandId ?? null) === judgment.frame.bandId,
     },
     plays: {
       sharedBandIds: shared,
@@ -119,7 +119,7 @@ export function stabilityAcross(judgments: readonly LlmPlanJudgment[]): Stabilit
 export function stabilityDiff(a: LlmPlanJudgment, b: LlmPlanJudgment): StabilityDiff {
   const aIds = a.plays.map((p) => p.bandId)
   const bIds = b.plays.map((p) => p.bandId)
-  const frameAgree = a.frame.referenceId === b.frame.referenceId
+  const frameAgree = a.frame.bandId === b.frame.bandId
   const playSetAgree = aIds.length === bIds.length && new Set(aIds).size === new Set([...aIds, ...bIds]).size
   const primaryAgree = (a.plays[0]?.bandId ?? null) === (b.plays[0]?.bandId ?? null)
   const bDir = new Map(b.plays.map((p) => [p.bandId, p.direction]))

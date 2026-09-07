@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildPlan } from '@/lib/job-plan/buildPlan'
 import type { JobContext } from '@/lib/job-plan/contextTypes'
-import { frameCandidates, llmContextPayload } from '@/lib/job-plan/llm-planner/contextPayload'
+import { frameCandidatesPayload, llmContextPayload } from '@/lib/job-plan/llm-planner/contextPayload'
 import { diffJudgment, stabilityAcross, stabilityDiff } from '@/lib/job-plan/llm-planner/diff'
 import {
   buildLlmPlannerPrompt,
@@ -48,7 +48,7 @@ function bandOf(ctx: JobContext, memberId: string): string {
 
 function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
   return {
-    frame: { referenceId: 'wp', rationale: 'The weekly pivot is the most important line within realistic interaction range.' },
+    frame: { bandId: bandOf(ctx, 'wp'), rationale: 'The weekly pivot band (with the overnight high) is the nearest stacked structure within reach.' },
     plays: [
       { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot band, expect the offer and a turn back down toward the Daily Pivot.', rationale: 'Confluent with the overnight high; frame side.' },
       { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'If price reaches the Daily Pivot, expect the bid and a turn back up toward the Weekly Pivot.', rationale: 'Nearest significant level below; no nearer level to breach.' },
@@ -90,12 +90,20 @@ describe('llm-planner prompt', () => {
 })
 
 describe('llm-planner context payload', () => {
-  it('frames only on tier-one non-historical lines; bands carry role + freshness', () => {
+  it('frame candidates are BANDS on the bias-line ladder (feat-148): daily pivot, weekly pivot, G line; rungs and historical pivots never anchor', () => {
     const ctx = context()
-    const frames = frameCandidates(ctx)
-    expect(frames.map((f) => f.id).sort()).toEqual(['dp', 'g', 'rung', 'wp'])
-    expect(frames.find((f) => f.id === 'g')?.withinReach).toBe(false)
-    expect(frames.find((f) => f.id === 'wp')?.withinReach).toBe(true)
+    const frames = frameCandidatesPayload(ctx)
+    expect(frames.map((f) => f.anchorId).sort()).toEqual(['dp', 'g', 'wp'])
+    const g = frames.find((f) => f.anchorId === 'g')!
+    const wp = frames.find((f) => f.anchorId === 'wp')!
+    const dp = frames.find((f) => f.anchorId === 'dp')!
+    expect(g).toMatchObject({ tier: 1, withinReach: false, stacked: false })
+    // the overnight high sits in the weekly pivot's band and counts toward confluence
+    expect(wp).toMatchObject({ bandId: bandOf(ctx, 'wp'), tier: 1, withinReach: true, stacked: true, side: 'below' })
+    expect(wp.confluenceLabels).toEqual(['Weekly Pivot', 'ON High'])
+    expect(dp).toMatchObject({ tier: 0, withinReach: true, side: 'above' })
+    // strongest first: the stacked weekly band, then the lone daily pivot, then the far G line
+    expect(frames.map((f) => f.anchorId)).toEqual(['wp', 'dp', 'g'])
 
     const payload = llmContextPayload(ctx)
     expect(payload.currentPrice).toBe(19930)
@@ -114,12 +122,15 @@ describe('llm-planner hard gates', () => {
     expect(validateJudgment(cleanJudgment(ctx), ctx)).toEqual([])
   })
 
-  it('rejects a non-tier-one or historical or unknown frame', () => {
+  it('rejects a frame that is not a candidate band (historical pivot, rung, unknown) or is out of reach while others are in reach', () => {
     const ctx = context()
     const base = cleanJudgment(ctx)
-    expect(validateJudgment({ ...base, frame: { ...base.frame, referenceId: 'on' } }, ctx).map((v) => v.code)).toContain('frame_not_tier_one')
-    expect(validateJudgment({ ...base, frame: { ...base.frame, referenceId: 'dph' } }, ctx).map((v) => v.code)).toContain('frame_historical_pivot')
-    expect(validateJudgment({ ...base, frame: { ...base.frame, referenceId: 'nope' } }, ctx).map((v) => v.code)).toContain('frame_unknown_reference')
+    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'dph') } }, ctx).map((v) => v.code)).toContain('frame_unknown_candidate')
+    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'rung') } }, ctx).map((v) => v.code)).toContain('frame_unknown_candidate')
+    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: 'nope' } }, ctx).map((v) => v.code)).toContain('frame_unknown_candidate')
+    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'g') } }, ctx).map((v) => v.code)).toContain('frame_out_of_reach')
+    // the daily pivot band is always eligible
+    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'dp') } }, ctx)).toEqual([])
   })
 
   it('rejects geometry-inverted directions and destination-only bands', () => {
@@ -183,7 +194,7 @@ describe('llm-planner hard gates', () => {
       ],
     })
     const judgment: LlmPlanJudgment = {
-      frame: { referenceId: 'wp', rationale: 'Most important line in reach.' },
+      frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Most important line in reach.' },
       plays: [{ bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer.', rationale: 'Frame side.' }],
       sidesWithoutPlay: [],
       lean: 'Short into the Weekly Pivot.',
@@ -216,23 +227,23 @@ describe('runLlmPlanner', () => {
 
   it('retries ONCE with the violations spelled out, then records what remains', async () => {
     const ctx = context()
-    const bad = { ...cleanJudgment(ctx), frame: { referenceId: 'on', rationale: 'x' } }
+    const bad = { ...cleanJudgment(ctx), frame: { bandId: bandOf(ctx, 'g'), rationale: 'x' } }
     const prompts: string[] = []
     const fixed = await runLlmPlanner({ context: ctx, model: 'test/model', generate: fakeGenerate([bad, cleanJudgment(ctx)], prompts) })
     expect(fixed.attempts).toBe(2)
     expect(fixed.violations).toEqual([])
     expect(fixed.costUsd).toBeCloseTo(0.02)
-    expect(prompts[1]).toContain('frame_not_tier_one')
+    expect(prompts[1]).toContain('frame_out_of_reach')
     expect(prompts[1]).toContain('violated the contract')
 
     const stubborn = await runLlmPlanner({ context: ctx, model: 'test/model', generate: fakeGenerate([bad, bad]) })
     expect(stubborn.attempts).toBe(2)
-    expect(stubborn.violations.map((v) => v.code)).toContain('frame_not_tier_one')
+    expect(stubborn.violations.map((v) => v.code)).toContain('frame_out_of_reach')
   })
 
   it('records BOTH planner calls as LangSmith job-plan-task runs (the prompt was never traced before)', async () => {
     const ctx = context()
-    const bad = { ...cleanJudgment(ctx), frame: { referenceId: 'on', rationale: 'x' } }
+    const bad = { ...cleanJudgment(ctx), frame: { bandId: bandOf(ctx, 'g'), rationale: 'x' } }
     const seen: Array<{ telemetry?: { functionId: string; metadata?: Record<string, unknown> } }> = []
     const generate = (async (params: { telemetry?: { functionId: string; metadata?: Record<string, unknown> } }) => {
       seen.push(params)
@@ -276,7 +287,7 @@ describe('shadow diff', () => {
     // The deterministic planner also armed the historical daily pivot band.
     expect(diff.plays.onlyDeterministic.map((p) => p.bandId)).toEqual([bandOf(ctx, 'dph')])
 
-    const reframed = { ...judgment, frame: { referenceId: 'dp', rationale: 'x' } }
+    const reframed = { ...judgment, frame: { bandId: bandOf(ctx, 'dp'), rationale: 'x' } }
     expect(diffJudgment(det, reframed, ctx).frame.agree).toBe(false)
     const stability = stabilityDiff(judgment, reframed)
     expect(stability.frameAgree).toBe(false)
@@ -287,7 +298,7 @@ describe('shadow diff', () => {
   it('stabilityAcross catches a flip in ANY later run, not just the second', () => {
     const ctx = context()
     const judgment = cleanJudgment(ctx)
-    const reframed = { ...judgment, frame: { referenceId: 'dp', rationale: 'x' } }
+    const reframed = { ...judgment, frame: { bandId: bandOf(ctx, 'dp'), rationale: 'x' } }
     expect(stabilityAcross([judgment])).toBeNull()
     expect(stabilityAcross([judgment, judgment, judgment])?.stable).toBe(true)
     expect(stabilityAcross([judgment, judgment, reframed])?.stable).toBe(false)

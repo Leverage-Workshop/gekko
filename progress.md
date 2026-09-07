@@ -4,6 +4,38 @@
 
 **Last Updated:** 2026-09-07
 
+**Latest change (branch `feat-148-frame-bias-line`): the Job plan frame is a BIAS LINE — part 2
+of the 2026-09-07 frame rewrite.** The frame answers "at what level do I look for longs above and
+shorts below"; positions never have to initiate at it. New `lib/job-plan/frameCandidates.ts`:
+anchor ladder (0 current daily pivot → 1 weekly pivot / G line equal rank → 2 JBA borders
+enclosing or bracketing price → 3 balance-area distribution boundary LVNs → 4 rotation), confluence-
+only members (weekly rungs, ONH/ONL/PDH/PDL), one candidate per confluence BAND with every eligible
+anchor listed, `stacked` (only actual eligible anchors + confluence-only members count), reach as a
+wall for every tier but the daily pivot, deterministic pick = strongest in reach else the NEAREST.
+`planFrame.ts` composes a band frame (`PlanFrame.bandId/low/high/tier/memberLabels`, optional so
+pre-feat-148 rows parse) with bias-line text; 'at' is the fork. LLM planner
+(`LLM_PLANNER_REVISION` → `llm-planner/2026-09-07.1`): rule 1 rewritten around the question, the
+judgment names `frame.bandId`, gates are `frame_unknown_candidate` / `frame_out_of_reach`, the
+assembler and shadow diff compare by band. Deterministic planner (rollback path) uses the same
+ladder. `job_plan_bands` emits the frame range (`20260907200000_job_plan_bands_frame_range.sql`,
+APPLIED the same day via the claude.ai Supabase MCP `apply_migration`; anon read verified — the
+2026-09-01 legacy plan falls back to its anchor price). Sierra `GekkoJobPlan.cpp` (D:\SierraChart
+\ACS_Source, outside the repo) now labels a stacked frame as a range — **operator must rebuild the
+DLL**. Tests: new `tests/job-plan.frameCandidates.test.ts` (19: ladder tiers, reach wall + nearest
+fallback, rungs/historical/hvn/no-edge lvn never anchor, JBA inside/between, distribution
+inside/gap, balance before rotation, stacking rules, band frame text, 'at'); buildPlan / llmPlanner /
+llmCutover expectations rewritten to the new ladder (BASE now frames below the daily pivot, shorts
+lead; GOAL frames off the stacked daily + weekly pivot band). Docs: task-plan section, proposal gate
+bullet, gekko-db skill.
+
+Codex gate: PASS x3. Round 1 two P2s, BOTH FIXED: (a) with nothing in reach the pick sorted by
+tier, so a far tier-1 line beat a near border — now the nearest frames; (b) confluence counted any
+anchorable SOURCE (an lvn with no distribution edge, an unselected JBA border) — now only actual
+eligible anchors + confluence-only sources stack. Rounds 2-3 no findings. One lint slip (unused
+helper) caught by `./init.sh` after round 2 and fixed in the final commit.
+
+---
+
 **Latest change (branch `feat-147-vision-distributions`): the profile vision read names and
 RANKS distributions — part 1 of the frame rewrite.** Operator ratification 2026-09-07 (memory
 `job_frame_bias_line_doctrine`): the Job plan frame is a BIAS LINE (longs only above, shorts only
