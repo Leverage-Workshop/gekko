@@ -230,6 +230,24 @@ describe('runLlmPlanner', () => {
     expect(stubborn.violations.map((v) => v.code)).toContain('frame_not_tier_one')
   })
 
+  it('records BOTH planner calls as LangSmith job-plan-task runs (the prompt was never traced before)', async () => {
+    const ctx = context()
+    const bad = { ...cleanJudgment(ctx), frame: { referenceId: 'on', rationale: 'x' } }
+    const seen: Array<{ telemetry?: { functionId: string; metadata?: Record<string, unknown> } }> = []
+    const generate = (async (params: { telemetry?: { functionId: string; metadata?: Record<string, unknown> } }) => {
+      seen.push(params)
+      const object = seen.length === 1 ? bad : cleanJudgment(ctx)
+      return { object, model: 'test/model', usage: {}, cost: 0, cachedInputTokens: null, latencyMs: 1 }
+    }) as unknown as LlmPlannerGenerate
+    await runLlmPlanner({ context: ctx, model: 'test/model', generate })
+    expect(seen).toHaveLength(2)
+    for (const call of seen) {
+      expect(call.telemetry?.functionId).toBe('job-plan-task')
+      expect(call.telemetry?.metadata).toMatchObject({ stage: 'llm-planner', promptRevision: LLM_PLANNER_REVISION })
+    }
+    expect(seen[1]?.telemetry?.metadata).toMatchObject({ attempt: 2 })
+  })
+
   it('rejects an out-of-schema answer via the judgment schema', () => {
     expect(() => LlmPlanJudgmentSchema.parse({ frame: { referenceId: 'wp' } })).toThrow()
   })
