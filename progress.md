@@ -4,6 +4,37 @@
 
 **Last Updated:** 2026-09-07
 
+**Latest change (branch `feat-147-vision-distributions`): the profile vision read names and
+RANKS distributions — part 1 of the frame rewrite.** Operator ratification 2026-09-07 (memory
+`job_frame_bias_line_doctrine`): the Job plan frame is a BIAS LINE (longs only above, shorts only
+below; entries anywhere on that side), chosen from a ladder — current daily pivot first, then
+weekly pivot / G line at equal rank and reach-gated, then JBA borders, then the boundary LVNs of
+the significant distribution price sits in; weekly rungs + ONH/ONL/PDH/PDL are confluence-only
+members; a multi-source band beats a lone line; the frame becomes a band; the model keeps
+latitude. This feature is the perception half: `VISION_PROMPT_REVISION` → `vision-2026-09-07.1`
+adds rule 5 (a distribution is Job's zone between LVNs — lvn-corpus #116/#117 — its edges ARE
+LVNs, the primary LVN is an EDGE never an interior, ranked by participation held);
+`ProfileNodesRead.distributions[]` ≤ 4 of `{ low, high, peak, rank, rationale }`;
+`consensusDistributions.ts` merges across samples (median zone, best rank, agreement ≥ ceil(S/2))
+and links each edge / peak to the consensus lvn / hvn it lands on (indices into `nodes`);
+dashboard schema defaults pre-feat-147 rows to none, overlay + profile table draw them; the bench
+reports distribution COHERENCE (edges on an lvn, peaks on an hvn) — the golden set has no
+distribution labels (the corpus never quotes bounds), so rank accuracy is unbenchmarked until the
+operator labels distributions in a replay pass. feat-148 (the frame itself: candidate bands, rule
+1 rewrite, PlanFrame range, view + Sierra study, deterministic ladder) is queued.
+
+Codex gate: PASS twice. Round 1 P2 (adjacent distributions sharing an LVN edge across a tile seam
+collapsed into one) — FIXED: distribution tile dedupe now requires strict interior overlap inside
+the tiles' shared span; two tests pin the adjacent and the seam-floor cases. Round 2 P2 (tile-local
+ranks combined as if profile-wide in two-tile mode) — DISMISSED, not looped on: `rank` is defined
+per image by contract exactly as node `prominence` is, and the two-tile path already treats
+prominence the same way (best across tiles, ties allowed, `capNodes` sorts by it); the frame
+feature takes rank as guidance beside agreement and the ladder, never as a sole gate. Noted as a
+known limitation of tiled reads alongside prominence; a profile-wide re-rank is the fix if it ever
+misleads in practice.
+
+---
+
 **Latest change (branch `fix-llm-planner-telemetry`): LLM Job planner calls now traced in
 LangSmith.** Pulling the 2026-09-01 22:57Z plan's prompt back from LangSmith found only the four
 profile-vision calls under `job-plan-task` — the planner's judgment call (and its retry) never
