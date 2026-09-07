@@ -11,7 +11,7 @@ import {
 import type { GoldenLabel } from './goldenSet'
 import { R1_MERGE_TOLERANCE, type Instrument } from './instrument'
 import type { NodeKind } from './schema'
-import type { ConsensusNode } from './types'
+import type { ConsensusNode, ProfileConsensus } from './types'
 
 /**
  * Scoring for the profile-vision bench (feat-124, docs/job-planning-task-plan.md
@@ -259,3 +259,63 @@ function pairAgreement(
 }
 
 export { precision, recall, f1, countDelta, sumMetrics, type Metrics }
+
+// ---------------------------------------------------------------------------
+// Distributions (feat-147). The golden set carries no distribution labels yet
+// (the corpus names distributions but never quotes their bounds), so the bench
+// cannot score their RANK against ground truth. What it CAN score without
+// labels is coherence: Job's definition says a distribution's edges are LVNs
+// and its peak an HVN, so a read whose distributions point at nodes the same
+// read reported is internally consistent; one whose edges land on nothing is
+// naming zones its own node list does not support.
+// ---------------------------------------------------------------------------
+
+export type DistributionCoherence = {
+  /** Distributions in the consensus. */
+  readonly distributions: number
+  /** Edges (2 per distribution) that link to a consensus lvn. */
+  readonly edges: number
+  readonly linkedEdges: number
+  /** Peaks that link to a consensus hvn. */
+  readonly linkedPeaks: number
+}
+
+export const EMPTY_COHERENCE: DistributionCoherence = {
+  distributions: 0,
+  edges: 0,
+  linkedEdges: 0,
+  linkedPeaks: 0,
+}
+
+export function distributionCoherence(consensus: ProfileConsensus | null): DistributionCoherence {
+  if (consensus === null) return EMPTY_COHERENCE
+  const ds = consensus.distributions
+  return {
+    distributions: ds.length,
+    edges: ds.length * 2,
+    linkedEdges: ds.reduce(
+      (n, d) => n + (d.lowerEdgeNode === null ? 0 : 1) + (d.upperEdgeNode === null ? 0 : 1),
+      0
+    ),
+    linkedPeaks: ds.filter((d) => d.peakNode !== null).length,
+  }
+}
+
+export function sumCoherence(a: DistributionCoherence, b: DistributionCoherence): DistributionCoherence {
+  return {
+    distributions: a.distributions + b.distributions,
+    edges: a.edges + b.edges,
+    linkedEdges: a.linkedEdges + b.linkedEdges,
+    linkedPeaks: a.linkedPeaks + b.linkedPeaks,
+  }
+}
+
+/** Fraction of edges that landed on an lvn, or null with nothing to judge. */
+export function edgeCoherence(c: DistributionCoherence): number | null {
+  return c.edges === 0 ? null : c.linkedEdges / c.edges
+}
+
+/** Fraction of peaks that landed on an hvn, or null with nothing to judge. */
+export function peakCoherence(c: DistributionCoherence): number | null {
+  return c.distributions === 0 ? null : c.linkedPeaks / c.distributions
+}

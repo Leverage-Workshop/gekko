@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`vision prompt > matches the snapshot (bump VISION_PROMPT_REVISION when this changes) 1`] = `
-"You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is, and what a low-volume node (LVN) and a high-volume node (HVN) are — the job here is to pick out the few LVNs and HVNs that are decisive, and the rules below say which ones those are.
+"You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is, and what a low-volume node (LVN) and a high-volume node (HVN) are — the job here is to pick out the few LVNs and HVNs that are decisive, and to name and rank the distributions they bound; the rules below say which ones those are.
 
 A volume profile shows where participants traded. What you are looking for is the price at which that participation dried up — a LOW-VOLUME NODE, an LVN. Those levels matter because the participants who traded the volume beside them have to defend them: if price leaves, there is little volume to slow it down, so it can travel a long way before finding any, and they take a loss. Every rule below follows from that.
 
@@ -11,6 +11,7 @@ RULES:
 2. AN LVN HAS TWO SIDES AND EACH GIVES WAY IN ONE OF TWO WAYS. A LEDGE: significant volume that stops abruptly and drops off a cliff into the low-volume area. A TAPER: a distribution that thins out gradually into it. Report BOTH sides separately, because they are frequently different — the same LVN is commonly a ledge from below and a taper from above. Neither form is inherently more prominent than the other; rule 1 decides that.
 3. A SIDE WITH NO DISTRIBUTION IS FLAT, AND THAT ONLY HELPS YOU LOCATE THE LVN. A side does not always have a distribution on it. Sometimes a FLAT, LOW-VOLUME STRETCH simply continues — call that side flat. Sometimes THE START OF A NEW DISTRIBUTION builds again — that side is a ledge or a taper. Use whichever it is to find the LVN and set its bounds. Neither changes how prominent the LVN is; that is rule 1 and rule 1 only.
 4. HIGH-VOLUME NODES (HVNs) ARE THE PEAKS OF LARGE DISTRIBUTIONS. Report the peak of each significant distribution as an HVN — not every fat bar, and not its boundary. The boundary is already carried as the neighbouring LVN edge.
+5. A DISTRIBUTION IS THE ZONE BETWEEN LVNs, AND THE BIG ONES GET NAMED AND RANKED. A distribution is the zone in which one auction is located: the build of volume between the LVN where it gives way below and the LVN where it gives way above. Its edges ARE those LVNs — the most prominent LVN is an edge of a distribution, never inside one — and its peak is the HVN you already reported. Name each significant distribution by its two boundary LVNs and its peak, and RANK them by how much participation they hold: the largest build in the image is rank 1. Small pockets of volume between two LVNs are not distributions worth naming; two or three is normal.
 
 Output JSON only, matching the schema. Rules:
 - Report only the DECISIVE levels: the most prominent LVN, the next two or three LVNs, and the peak of each significant distribution as an HVN. Three to five nodes is normal. The schema caps you at 8; that is a ceiling, never a target, and padding the list makes the read worse.
@@ -22,6 +23,7 @@ Output JSON only, matching the schema. Rules:
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
 - rationale: at most 20 words, describing only what is visible.
 - thinZones: at most 3 { low, high } spans that are thin across many rows.
+- distributions: at most 4 { low, high, peak, rank, rationale }. low and high are the boundary LVNs' prices (a distribution is a zone, so low is below high); peak is its HVN, inside the zone; rank is 1 (largest build in THIS image) to 5, ties allowed; rationale at most 20 words. An image with no complete auction zone reports none — never invent one to fill the list.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.
 
 Profile to read: NQ, row step 2 pts, image spans 28910.00–30073.00. POC 29900.00 (solid line), VAH 29995.00 / VAL 29361.00 (dashed, value area shaded), current price 29945.75 (orange line if inside the image).

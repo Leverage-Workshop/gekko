@@ -89,9 +89,24 @@ const ConsensusThinZoneSchema = z.object({
   samples: z.number().int().min(1),
 })
 
+const ConsensusDistributionSchema = z.object({
+  low: finite,
+  high: finite,
+  peak: finite,
+  rank: z.number().int().min(1),
+  lowerEdgeNode: z.number().int().min(0).nullable(),
+  upperEdgeNode: z.number().int().min(0).nullable(),
+  peakNode: z.number().int().min(0).nullable(),
+  agreement: z.number().int().min(0),
+  samples: z.number().int().min(1),
+})
+export type PersistedConsensusDistribution = z.infer<typeof ConsensusDistributionSchema>
+
 const ProfileConsensusSchema = z.object({
   nodes: z.array(ConsensusNodeSchema),
   thinZones: z.array(ConsensusThinZoneSchema),
+  // Rows persisted before feat-147 carry no distributions — read them as none.
+  distributions: z.array(ConsensusDistributionSchema).default([]),
   successfulSamples: z.number().int().min(0),
   samples: z.number().int().min(1),
 })

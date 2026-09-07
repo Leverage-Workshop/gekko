@@ -232,6 +232,44 @@ describe('profileOverlays — consensus nodes mapped onto the stored tiles', () 
     expect(overlays.every((o) => o.boxes.length === 0)).toBe(true)
   })
 
+  it('a row persisted before feat-147 (no distributions) still parses, reading as none', async () => {
+    const row = await persistedJobPlanRow('ready-vision-on')
+    const legacy = JSON.parse(JSON.stringify(row.profile_nodes)) as {
+      profiles: Record<string, { consensus: Record<string, unknown> | null }>
+    }
+    for (const entry of Object.values(legacy.profiles)) {
+      if (entry.consensus) delete entry.consensus.distributions
+    }
+    const parsed = parsePersistedProfileNodes(legacy)!
+    expect(parsed).not.toBeNull()
+    expect(parsed.profiles['balance']!.consensus!.distributions).toEqual([])
+  })
+
+  it('a distribution is drawn as its zone with its rank in the prominence slot (feat-147)', async () => {
+    const row = await persistedJobPlanRow('ready-vision-on')
+    const nodes = parsePersistedProfileNodes(row.profile_nodes)!
+    const entry = nodes.profiles['balance']!
+    const node = entry.consensus!.nodes[0]
+    const distribution = {
+      low: node.priceLow,
+      high: node.priceHigh + 40,
+      peak: node.priceHigh,
+      rank: 2,
+      lowerEdgeNode: 0,
+      upperEdgeNode: null,
+      peakNode: null,
+      agreement: 2,
+      samples: 3,
+    }
+    const overlays = profileOverlays({
+      ...entry,
+      consensus: { ...entry.consensus!, distributions: [distribution] },
+    })
+    const box = overlays[0].boxes.find((b) => b.kind === 'distribution')!
+    expect(box).toMatchObject({ prominence: 2, agreement: '2/3', primary: false })
+    expect(box.label).toMatch(/^Distribution /)
+  })
+
   it("a node outside a tile's span is not drawn on that tile", async () => {
     const row = await persistedJobPlanRow('ready-vision-on')
     const nodes = parsePersistedProfileNodes(row.profile_nodes)!

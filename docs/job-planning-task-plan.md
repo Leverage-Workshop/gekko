@@ -457,6 +457,18 @@ criteria) as the backup regression floor.
   don't mark every minor local minimum.
 - **Few-shot**: 2–3 golden-set images with their expected JSON, fixed (`VISION_PROMPT_REVISION`
   bumps when they change); the rest of the golden set is test-only and never tuned on.
+- **feat-147 addendum (2026-09-07, operator):** the read also returns `distributions[]` ≤ 4 of
+  `{ low, high, peak, rank 1–5, rationale }` — Job's distributions, "the zone in which that
+  auction is located" between two LVNs (lvn-corpus #116/#117). `low`/`high` are the boundary
+  LVNs (the primary LVN is an EDGE of a distribution, never inside one — operator correction),
+  `peak` its HVN, `rank` by participation held. Consensus (`consensusDistributions.ts`) merges
+  them like thin zones (median zone, best rank, agreement ≥ ceil(S/2)) and links each edge /
+  peak to the consensus node it lands on (`lowerEdgeNode` / `upperEdgeNode` / `peakNode`,
+  indices into `nodes`). Consumer: the frame (trend-filter) rewrite — when price sits inside a
+  significant distribution its boundary LVNs are bias-line candidates. The golden set carries
+  NO distribution labels (the corpus never quotes their bounds), so the bench reports
+  **coherence** (edges on an lvn, peaks on an hvn) rather than rank accuracy until the operator
+  labels distributions in a replay pass.
 
 ### Rendering (pure, deterministic)
 

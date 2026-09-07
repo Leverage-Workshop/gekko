@@ -169,7 +169,7 @@ export function profileNodes(balance: readonly ConsensusNode[] | null, rotation:
     consensus:
       nodes === null
         ? null
-        : { nodes, thinZones: [], profileShape: 'bell' as const, successfulSamples: 3, samples: 3 },
+        : { nodes, thinZones: [], distributions: [], successfulSamples: 3, samples: 3 },
     raw: [],
     imageHashes: [],
     render: {} as RenderMeta,

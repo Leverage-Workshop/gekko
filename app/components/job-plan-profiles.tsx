@@ -29,6 +29,7 @@ const KIND_COLOR: Readonly<Record<OverlayKind, string>> = {
   'hvn': 'var(--color-bmw-blue)',
   'exhaustive-node': 'var(--color-warning)',
   'thin-zone': 'var(--color-muted)',
+  distribution: 'var(--color-m-blue-light)',
 }
 
 const LABEL_FONT_PX = 16
@@ -45,10 +46,10 @@ function OverlayRect({ box }: { box: OverlayBox }) {
         width={box.width}
         height={box.height}
         fill={color}
-        fillOpacity={box.kind === 'thin-zone' ? 0.12 : 0.22}
+        fillOpacity={box.kind === 'thin-zone' || box.kind === 'distribution' ? 0.12 : 0.22}
         stroke={color}
         strokeWidth={box.primary ? 3 : 1.5}
-        strokeDasharray={box.kind === 'thin-zone' ? '6 4' : undefined}
+        strokeDasharray={box.kind === 'thin-zone' ? '6 4' : box.kind === 'distribution' ? '2 6' : undefined}
       />
       <text
         x={box.x + LABEL_INSET_PX}
@@ -150,6 +151,24 @@ function NodeTable({ entry }: { entry: PersistedProfileNodesEntry }) {
             <td className={td}>—</td>
             <td className={`${td} font-bold text-ink`}>
               {zone.agreement}/{zone.samples}
+            </td>
+          </tr>
+        ))}
+        {consensus.distributions.map((d, i) => (
+          <tr key={`dist-${i}`} className="border-b border-hairline-strong">
+            <td className={`${td} uppercase tracking-wide text-bmw-blue`}>distribution</td>
+            <td className={`${td} font-bold text-ink`}>
+              {d.low.toFixed(2)} – {d.high.toFixed(2)}
+            </td>
+            <td className={td}>{d.rank}</td>
+            <td className={td}>
+              peak {d.peak.toFixed(2)}
+              {' · edges '}
+              {d.lowerEdgeNode === null ? '?' : `#${d.lowerEdgeNode + 1}`}/
+              {d.upperEdgeNode === null ? '?' : `#${d.upperEdgeNode + 1}`}
+            </td>
+            <td className={`${td} font-bold text-ink`}>
+              {d.agreement}/{d.samples}
             </td>
           </tr>
         ))}

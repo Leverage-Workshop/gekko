@@ -102,6 +102,13 @@ describe('vision prompt', () => {
       'that is rule 1 and rule 1 only',
       'Three to five nodes is normal',
       'never a target',
+      // rule 5 (feat-147): distributions are Job's zones between LVNs, named and ranked
+      'zone in which one auction is located',
+      'Its edges ARE those LVNs',
+      'never inside one',
+      'RANK them by how much participation they hold',
+      'distributions: at most 4',
+      'never invent one to fill the list',
     ]) {
       expect(prompt).toContain(phrase)
     }

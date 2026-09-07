@@ -10,6 +10,7 @@ import {
   type ProfileNodesRead,
 } from './schema'
 import type { ConsensusNode, ConsensusThinZone, ProfileConsensus } from './types'
+import { consensusDistributions } from './consensusDistributions'
 
 /**
  * Consensus over S sampled vision reads of one profile (feat-123,
@@ -98,7 +99,7 @@ export function snapToGrid(price: number, grid: Grid): number {
   return round4(Math.min(grid.priceHigh, Math.max(grid.priceLow, snapped)))
 }
 
-function median(values: readonly number[]): number {
+export function median(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b)
   const mid = Math.floor(sorted.length / 2)
   return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
@@ -139,7 +140,7 @@ function toCandidates(reads: readonly SuccessfulRead[], grid: Grid): Candidate[]
 }
 
 /** The price span two tiles share, or null when they do not overlap. */
-function overlapSpan(
+export function overlapSpan(
   tiles: readonly TileRange[],
   a: number,
   b: number
@@ -307,7 +308,7 @@ function stripScore(n: Scored): ConsensusNode {
   return node
 }
 
-type Zone = {
+export type Zone = {
   readonly sample: number
   readonly tile: number
   readonly low: number
@@ -330,7 +331,12 @@ function zonesOf(reads: readonly SuccessfulRead[], grid: Grid): Zone[] {
   )
 }
 
-/** Within one sample, zones from different tiles that touch are one zone (their union — a tile seam cuts zones). */
+/**
+ * Within one sample, thin zones from different tiles that touch are one zone
+ * (their union — a tile seam cuts zones). Distributions have their own,
+ * stricter rule in `consensusDistributions.ts`: adjacent auctions share an
+ * edge by definition, so contact is not evidence there.
+ */
 function dedupeZoneTiles(zones: readonly Zone[]): Zone[] {
   const kept: Zone[] = []
   for (const z of zones) {
@@ -348,8 +354,9 @@ function dedupeZoneTiles(zones: readonly Zone[]): Zone[] {
   return kept
 }
 
-function zoneClusters(zones: readonly Zone[], tolerance: number): Zone[][] {
-  const clusters: Zone[][] = []
+/** Greedy clustering of zones across samples: overlapping within tolerance and near by center; one vote per sample. */
+export function zoneClusters<T extends Zone>(zones: readonly T[], tolerance: number): T[][] {
+  const clusters: T[][] = []
   for (const z of zones) {
     const idx = clusters.findIndex((cl) => {
       const lo = median(cl.map((x) => x.low))
@@ -444,10 +451,10 @@ export function buildConsensus(input: ConsensusInput): ProfileConsensus | null {
     .filter((n) => n.agreement >= threshold)
   const nodes = capNodes(resolvePrimary(scored)).map(stripScore)
 
-
   return {
     nodes,
     thinZones: consensusThinZones(reads, input.grid, tolerance, threshold, input.samples),
+    distributions: consensusDistributions(reads, input.grid, input.tiles, tolerance, threshold, input.samples, nodes),
     successfulSamples: complete.size,
     samples: input.samples,
   }

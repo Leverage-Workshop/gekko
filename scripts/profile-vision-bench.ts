@@ -50,6 +50,12 @@ import {
   selfAgreement,
   toleranceFor,
   type FamilyScores,
+  distributionCoherence,
+  edgeCoherence,
+  EMPTY_COHERENCE,
+  peakCoherence,
+  sumCoherence,
+  type DistributionCoherence,
   type NamedLabels,
   type PrimaryOutcome,
   type ProfilePredictions,
@@ -349,6 +355,8 @@ type CaseResult = {
   readonly detector: FamilyScores
   readonly primary: PrimaryOutcome
   readonly self: number | null
+  /** feat-147: how many of the read's distributions point at its own nodes. */
+  readonly coherence: DistributionCoherence
   readonly costUsd: number
   readonly latencyMs: number
   /** True when EVERY readable profile's consensus was unavailable (R14). */
@@ -411,6 +419,7 @@ async function scoreCase(
   const visionPreds: ProfilePredictions[] = []
   const primaryByKey = new Map<LegacyProfileKey, ScoredNode>()
   const selfs: number[] = []
+  let coherence = EMPTY_COHERENCE
   let costUsd = 0
   let latencyMs = 0
   let anyConsensus = false
@@ -436,6 +445,7 @@ async function scoreCase(
     visionPreds.push({ key, nodes: consensus ? consensus.nodes.map(consensusToScored) : [] })
     if (consensus) {
       anyConsensus = true
+      coherence = sumCoherence(coherence, distributionCoherence(consensus))
       const primaryNode = consensus.nodes.find((n) => n.primary)
       if (primaryNode) primaryByKey.set(key, consensusToScored(primaryNode))
       const s = perProfileSelf(entry?.raw ?? [], tolerance)
@@ -519,6 +529,7 @@ async function scoreCase(
     detector,
     primary,
     self: selfs.length === 0 ? null : selfs.reduce((a, b) => a + b, 0) / selfs.length,
+    coherence,
     costUsd,
     latencyMs,
     failed: !anyConsensus,
@@ -569,6 +580,7 @@ function summarize(cases: readonly CaseResult[]) {
   const primaries = cases.filter((c) => c.primary !== 'not_applicable')
   const primaryHits = primaries.filter((c) => c.primary === 'hit').length
   const selfs = cases.map((c) => c.self).filter((s): s is number => s !== null)
+  const coherence = cases.map((c) => c.coherence).reduce(sumCoherence, EMPTY_COHERENCE)
   return {
     detector,
     visionRecall: recall(vision),
@@ -579,6 +591,9 @@ function summarize(cases: readonly CaseResult[]) {
     detectorF1: f1(detector),
     primaryAgreement: primaries.length === 0 ? null : primaryHits / primaries.length,
     selfAgreement: selfs.length === 0 ? null : selfs.reduce((a, b) => a + b, 0) / selfs.length,
+    distributions: coherence.distributions,
+    distributionEdgeCoherence: edgeCoherence(coherence),
+    distributionPeakCoherence: peakCoherence(coherence),
     countDelta: countDelta(vision),
     costUsd: cases.reduce((s, c) => s + c.costUsd, 0),
     latencyMs: cases.reduce((s, c) => s + c.latencyMs, 0),
@@ -622,6 +637,7 @@ function reportBody(
     ``,
     `- primary agreement: ${s.primaryAgreement === null ? 'n/a' : pct(s.primaryAgreement)}`,
     `- self-agreement across samples: ${s.selfAgreement === null ? 'n/a' : pct(s.selfAgreement)}`,
+    `- distributions (feat-147): ${s.distributions} named; edges on an lvn: ${s.distributionEdgeCoherence === null ? 'n/a' : pct(s.distributionEdgeCoherence)}; peaks on an hvn: ${s.distributionPeakCoherence === null ? 'n/a' : pct(s.distributionPeakCoherence)} (coherence only — no golden distribution labels yet)`,
     `- calls: ${s.okCalls}/${s.calls} ok${s.calls > 0 ? ` (${pct(s.okCalls / s.calls)})` : ''}`,
     `- cost: $${s.costUsd.toFixed(4)}   latency: ${(s.latencyMs / 1000).toFixed(1)}s total`,
     ``,
