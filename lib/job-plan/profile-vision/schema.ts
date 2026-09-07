@@ -48,6 +48,7 @@ export type NodeEdge = (typeof NODE_EDGES)[number]
 
 export const MAX_NODES = 8
 export const MAX_THIN_ZONES = 3
+export const MAX_DISTRIBUTIONS = 4
 export const MAX_RATIONALE_WORDS = 20
 
 const finitePrice = z.number().finite()
@@ -77,6 +78,31 @@ export const thinZoneSchema = z.object({
 export type ThinZone = z.infer<typeof thinZoneSchema>
 
 /**
+ * A DISTRIBUTION (feat-147, operator 2026-09-07): the zone in which one
+ * auction is located — Job's own definition, lvn-corpus #116/#117 ("between
+ * the two [primary LVNs] we have a distribution of volume"; "I mean the Zone
+ * in which that auction is located"). Its edges ARE LVNs (the primary LVN is
+ * an edge of a distribution, never inside one — operator correction) and its
+ * `peak` is the HVN the read already reports. `rank` orders distributions by
+ * how much participation they hold, 1 = the most significant in THIS image.
+ *
+ * The frame (trend-filter) work consumes these: when price sits inside a
+ * significant distribution its boundary LVNs are bias-line candidates.
+ */
+export const distributionSchema = z.object({
+  /** Lower boundary — the LVN where this auction gives way below. */
+  low: finitePrice,
+  /** Upper boundary — the LVN where this auction gives way above. */
+  high: finitePrice,
+  /** The distribution's peak (its HVN), inside [low, high]. */
+  peak: finitePrice,
+  /** 1 = the most significant distribution in THIS image … 5 = least. Ties allowed. */
+  rank: z.number().int().min(1).max(5),
+  rationale: z.string().min(1).max(200),
+})
+export type Distribution = z.infer<typeof distributionSchema>
+
+/**
  * Per-IMAGE contract. A profile always shows at least one node (a POC-class
  * peak, an edge, a tail), so an empty `nodes` is a refusal to do the task and
  * is rejected; an lvn-free image (a tile that is one fat node) is legal, and
@@ -86,6 +112,8 @@ export type ThinZone = z.infer<typeof thinZoneSchema>
 const profileNodesReadBase = z.object({
   nodes: z.array(profileNodeSchema).min(1),
   thinZones: z.array(thinZoneSchema),
+  /** The ranked distributions (feat-147); empty when the image shows no complete auction zone. */
+  distributions: z.array(distributionSchema),
 })
 
 function wordCount(s: string): number {
@@ -139,6 +167,37 @@ export const profileNodesReadSchema = profileNodesReadBase.superRefine((read, ct
         code: 'custom',
         path: ['thinZones', i, 'low'],
         message: `low ${zone.low} > high ${zone.high}`,
+      })
+    }
+  })
+  if (read.distributions.length > MAX_DISTRIBUTIONS) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['distributions'],
+      message: `at most ${MAX_DISTRIBUTIONS} distributions (got ${read.distributions.length})`,
+    })
+  }
+  read.distributions.forEach((d, i) => {
+    // A distribution is a ZONE; a point cannot hold an auction.
+    if (d.low >= d.high) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['distributions', i, 'low'],
+        message: `low ${d.low} must be below high ${d.high}`,
+      })
+    }
+    if (d.peak < d.low || d.peak > d.high) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['distributions', i, 'peak'],
+        message: `peak ${d.peak} outside [${d.low}, ${d.high}]`,
+      })
+    }
+    if (wordCount(d.rationale) > MAX_RATIONALE_WORDS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['distributions', i, 'rationale'],
+        message: `rationale must be <= ${MAX_RATIONALE_WORDS} words`,
       })
     }
   })

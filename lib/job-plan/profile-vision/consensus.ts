@@ -10,6 +10,7 @@ import {
   type ProfileNodesRead,
 } from './schema'
 import type { ConsensusNode, ConsensusThinZone, ProfileConsensus } from './types'
+import { consensusDistributions } from './consensusDistributions'
 
 /**
  * Consensus over S sampled vision reads of one profile (feat-123,
@@ -98,7 +99,7 @@ export function snapToGrid(price: number, grid: Grid): number {
   return round4(Math.min(grid.priceHigh, Math.max(grid.priceLow, snapped)))
 }
 
-function median(values: readonly number[]): number {
+export function median(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b)
   const mid = Math.floor(sorted.length / 2)
   return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
@@ -307,11 +308,16 @@ function stripScore(n: Scored): ConsensusNode {
   return node
 }
 
-type Zone = {
+export type Zone = {
   readonly sample: number
   readonly tile: number
   readonly low: number
   readonly high: number
+}
+
+/** The default tile merge: the union span, the keeper's other fields. */
+function unionZone<T extends Zone>(keep: T, dup: T): T {
+  return { ...keep, low: Math.min(keep.low, dup.low), high: Math.max(keep.high, dup.high) }
 }
 
 /** A consensus zone still carrying the samples behind it, until the final merge. */
@@ -330,26 +336,29 @@ function zonesOf(reads: readonly SuccessfulRead[], grid: Grid): Zone[] {
   )
 }
 
-/** Within one sample, zones from different tiles that touch are one zone (their union — a tile seam cuts zones). */
-function dedupeZoneTiles(zones: readonly Zone[]): Zone[] {
-  const kept: Zone[] = []
+/**
+ * Within one sample, zones from different tiles that touch are one zone (their
+ * union — a tile seam cuts zones). `merge` decides what else the keeper takes
+ * from the duplicate (distributions carry a peak and a rank).
+ */
+export function dedupeZoneTiles<T extends Zone>(
+  zones: readonly T[],
+  merge: (keep: T, dup: T) => T = unionZone
+): T[] {
+  const kept: T[] = []
   for (const z of zones) {
     const idx = kept.findIndex(
       (k) => k.sample === z.sample && k.tile !== z.tile && z.low <= k.high && k.low <= z.high
     )
     if (idx === -1) kept.push(z)
-    else
-      kept[idx] = {
-        ...kept[idx],
-        low: Math.min(kept[idx].low, z.low),
-        high: Math.max(kept[idx].high, z.high),
-      }
+    else kept[idx] = merge(kept[idx], z)
   }
   return kept
 }
 
-function zoneClusters(zones: readonly Zone[], tolerance: number): Zone[][] {
-  const clusters: Zone[][] = []
+/** Greedy clustering of zones across samples: overlapping within tolerance and near by center; one vote per sample. */
+export function zoneClusters<T extends Zone>(zones: readonly T[], tolerance: number): T[][] {
+  const clusters: T[][] = []
   for (const z of zones) {
     const idx = clusters.findIndex((cl) => {
       const lo = median(cl.map((x) => x.low))
@@ -444,10 +453,10 @@ export function buildConsensus(input: ConsensusInput): ProfileConsensus | null {
     .filter((n) => n.agreement >= threshold)
   const nodes = capNodes(resolvePrimary(scored)).map(stripScore)
 
-
   return {
     nodes,
     thinZones: consensusThinZones(reads, input.grid, tolerance, threshold, input.samples),
+    distributions: consensusDistributions(reads, input.grid, tolerance, threshold, input.samples, nodes),
     successfulSamples: complete.size,
     samples: input.samples,
   }

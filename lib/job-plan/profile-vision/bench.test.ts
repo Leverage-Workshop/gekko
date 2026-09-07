@@ -16,6 +16,11 @@ import {
   selfAgreement,
   toleranceFor,
   type ScoredNode,
+  distributionCoherence,
+  edgeCoherence,
+  EMPTY_COHERENCE,
+  peakCoherence,
+  sumCoherence,
 } from './bench'
 import type { GoldenLabel } from './goldenSet'
 import type { ConsensusNode } from './types'
@@ -219,5 +224,37 @@ describe('bench — nearest', () => {
   it('feeds a within-tolerance any-primary to scorePrimary as a hit even when another profile misses', () => {
     const nodes = [nq(29500, 'lvn'), nq(29105, 'lvn')]
     expect(scorePrimary(nearest(nodes, 29100), nq(29100, 'lvn'), 20)).toBe('hit')
+  })
+})
+
+describe('bench — distribution coherence (feat-147)', () => {
+  const dist = (o: Partial<{ lowerEdgeNode: number | null; upperEdgeNode: number | null; peakNode: number | null }>) => ({
+    low: 1,
+    high: 2,
+    peak: 1.5,
+    rank: 1,
+    lowerEdgeNode: 0,
+    upperEdgeNode: 1,
+    peakNode: 2,
+    agreement: 2,
+    samples: 3,
+    ...o,
+  })
+
+  it('counts linked edges and peaks; null consensus and no distributions score n/a', () => {
+    expect(distributionCoherence(null)).toEqual(EMPTY_COHERENCE)
+    expect(edgeCoherence(EMPTY_COHERENCE)).toBeNull()
+    expect(peakCoherence(EMPTY_COHERENCE)).toBeNull()
+    const c = distributionCoherence({
+      nodes: [],
+      thinZones: [],
+      distributions: [dist({}), dist({ upperEdgeNode: null, peakNode: null })],
+      successfulSamples: 3,
+      samples: 3,
+    })
+    expect(c).toEqual({ distributions: 2, edges: 4, linkedEdges: 3, linkedPeaks: 1 })
+    expect(edgeCoherence(c)).toBeCloseTo(0.75)
+    expect(peakCoherence(c)).toBeCloseTo(0.5)
+    expect(sumCoherence(c, c)).toEqual({ distributions: 4, edges: 8, linkedEdges: 6, linkedPeaks: 2 })
   })
 })

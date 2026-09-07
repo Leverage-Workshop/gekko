@@ -11,7 +11,7 @@ import type { PersistedProfileNodesEntry } from './schema'
  * hash from the private bucket via /api/job-plans/images/[hash].
  */
 
-export type OverlayKind = NodeKind | 'thin-zone'
+export type OverlayKind = NodeKind | 'thin-zone' | 'distribution'
 
 export type OverlayBox = {
   readonly key: string
@@ -49,6 +49,7 @@ export const KIND_LABELS: Readonly<Record<OverlayKind, string>> = {
   'hvn': 'HVN',
   'exhaustive-node': 'Exhaustive',
   'thin-zone': 'Thin zone',
+  distribution: 'Distribution',
 }
 
 type BandSpec = {
@@ -87,6 +88,17 @@ function bandsOf(entry: PersistedProfileNodesEntry): BandSpec[] {
       agreement: z.agreement,
       samples: z.samples,
       prominence: null,
+    })),
+    // feat-147: a distribution is drawn as its zone; its rank rides in the prominence slot.
+    ...consensus.distributions.map((d, i) => ({
+      key: `dist-${i}`,
+      kind: 'distribution' as const,
+      priceLow: d.low,
+      priceHigh: d.high,
+      primary: false,
+      agreement: d.agreement,
+      samples: d.samples,
+      prominence: d.rank,
     })),
   ]
 }

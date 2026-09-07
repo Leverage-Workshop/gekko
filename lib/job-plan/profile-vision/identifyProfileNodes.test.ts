@@ -63,6 +63,7 @@ function goodRead(): ProfileNodesRead {
       },
     ],
     thinZones: [{ low: 29380, high: 29420 }],
+    distributions: [],
   }
 }
 

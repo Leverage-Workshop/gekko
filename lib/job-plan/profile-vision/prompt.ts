@@ -17,7 +17,13 @@ import type { RenderMeta, TileSpan } from './renderProfile'
  * feat-128 persists it with every read and feat-124's bench cache keys on it.
  */
 
-export const VISION_PROMPT_REVISION = 'vision-2026-08-31.5'
+/**
+ * vision-2026-09-07.1 (feat-147): the read also names and RANKS the
+ * distributions — Job's zones between LVNs (lvn-corpus #116/#117) — so the
+ * frame (trend filter) can take a significant distribution's boundary LVNs as
+ * bias-line candidates when price sits inside it (operator, 2026-09-07).
+ */
+export const VISION_PROMPT_REVISION = 'vision-2026-09-07.1'
 
 
 /**
@@ -64,6 +70,10 @@ export const CRITERIA: readonly Rule[] = [
     title: 'HIGH-VOLUME NODES (HVNs) ARE THE PEAKS OF LARGE DISTRIBUTIONS',
     text: 'Report the peak of each significant distribution as an HVN — not every fat bar, and not its boundary. The boundary is already carried as the neighbouring LVN edge.',
   },
+  {
+    title: 'A DISTRIBUTION IS THE ZONE BETWEEN LVNs, AND THE BIG ONES GET NAMED AND RANKED',
+    text: 'A distribution is the zone in which one auction is located: the build of volume between the LVN where it gives way below and the LVN where it gives way above. Its edges ARE those LVNs — the most prominent LVN is an edge of a distribution, never inside one — and its peak is the HVN you already reported. Name each significant distribution by its two boundary LVNs and its peak, and RANK them by how much participation they hold: the largest build in the image is rank 1. Small pockets of volume between two LVNs are not distributions worth naming; two or three is normal.',
+  },
 ] as const
 
 /** Canary phrases pinned by the prompt snapshot test — one per rule. */
@@ -83,9 +93,10 @@ const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - position: top | upper | mid | lower | bottom — where the node sits in this image.
 - rationale: at most 20 words, describing only what is visible.
 - thinZones: at most 3 { low, high } spans that are thin across many rows.
+- distributions: at most 4 { low, high, peak, rank, rationale }. low and high are the boundary LVNs' prices (a distribution is a zone, so low is below high); peak is its HVN, inside the zone; rank is 1 (largest build in THIS image) to 5, ties allowed; rationale at most 20 words. An image with no complete auction zone reports none — never invent one to fill the list.
 - Read prices from the axis labels; do not guess beyond the image's span. Ignore anything you believe about the market — this is perception only.`
 
-const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is, and what a low-volume node (LVN) and a high-volume node (HVN) are — the job here is to pick out the few LVNs and HVNs that are decisive, and the rules below say which ones those are.`
+const ROLE = `You are reading a volume-by-price profile image the way a professional futures trader reads it on screen: horizontal bars grow LEFT from the price axis on the right; a longer bar means more volume traded at that price. You know what a volume profile is, and what a low-volume node (LVN) and a high-volume node (HVN) are — the job here is to pick out the few LVNs and HVNs that are decisive, and to name and rank the distributions they bound; the rules below say which ones those are.`
 
 /** Per-call facts for the profile being read. Deliberately carries NO structure. */
 export type ProfileCallContext = {

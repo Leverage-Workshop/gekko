@@ -15,7 +15,7 @@ function node(overrides: Partial<ProfileNode> = {}): ProfileNode {
   }
 }
 
-const base = { thinZones: [], profileShape: 'bell' as const, unfinished: false }
+const base = { thinZones: [], distributions: [] }
 
 describe('profileNodesReadSchema', () => {
   it('accepts a minimal valid read', () => {
@@ -141,8 +141,57 @@ describe('profileNodesReadSchema', () => {
     const r = profileNodesReadSchema.safeParse({ ...base, nodes: [node()] })
     expect(r.success).toBe(true)
     expect(Object.keys(r.data!).sort()).toEqual([
+      'distributions',
       'nodes',
       'thinZones',
     ])
+  })
+})
+
+describe('profileNodesReadSchema — distributions (feat-147)', () => {
+  const dist = (o: Partial<{ low: number; high: number; peak: number; rank: number; rationale: string }> = {}) => ({
+    low: 90,
+    high: 110,
+    peak: 100,
+    rank: 1,
+    rationale: 'largest build between the two LVNs',
+    ...o,
+  })
+
+  it('accepts a ranked distribution whose peak sits inside its zone', () => {
+    const r = profileNodesReadSchema.safeParse({ ...base, nodes: [node()], distributions: [dist()] })
+    expect(r.success).toBe(true)
+  })
+
+  it('a distribution is a zone — a point (low >= high) is rejected', () => {
+    for (const d of [dist({ low: 100, high: 100 }), dist({ low: 110, high: 90, peak: 100 })]) {
+      expect(profileNodesReadSchema.safeParse({ ...base, nodes: [node()], distributions: [d] }).success).toBe(false)
+    }
+  })
+
+  it('rejects a peak outside [low, high]', () => {
+    for (const peak of [89, 111]) {
+      expect(
+        profileNodesReadSchema.safeParse({ ...base, nodes: [node()], distributions: [dist({ peak })] }).success
+      ).toBe(false)
+    }
+  })
+
+  it('rejects more than 4 distributions and a rank outside 1..5', () => {
+    const five = Array.from({ length: 5 }, (_, i) => dist({ low: i * 30, high: i * 30 + 20, peak: i * 30 + 10 }))
+    expect(profileNodesReadSchema.safeParse({ ...base, nodes: [node()], distributions: five }).success).toBe(false)
+    expect(profileNodesReadSchema.safeParse({ ...base, nodes: [node()], distributions: [dist({ rank: 0 })] }).success).toBe(false)
+    expect(profileNodesReadSchema.safeParse({ ...base, nodes: [node()], distributions: [dist({ rank: 6 })] }).success).toBe(false)
+  })
+
+  it('caps the rationale at 20 words, like a node', () => {
+    const long = Array.from({ length: 21 }, () => 'w').join(' ')
+    expect(
+      profileNodesReadSchema.safeParse({ ...base, nodes: [node()], distributions: [dist({ rationale: long })] }).success
+    ).toBe(false)
+  })
+
+  it('distributions is required — the model must answer, even with an empty list', () => {
+    expect(profileNodesReadSchema.safeParse({ thinZones: [], nodes: [node()] }).success).toBe(false)
   })
 })

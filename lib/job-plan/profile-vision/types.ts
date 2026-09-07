@@ -76,9 +76,32 @@ export type ConsensusThinZone = {
   readonly samples: number
 }
 
+/**
+ * A distribution after consensus (feat-147): median zone and peak, the best
+ * rank any sample gave it, and which consensus NODES its edges and peak land
+ * on — indices into `ProfileConsensus.nodes` (post-cap order), or null when no
+ * lvn / hvn sits within the merge tolerance of that price. The link is what
+ * lets the frame name "the boundary LVNs of the distribution price is in"
+ * without re-deriving it from prices.
+ */
+export type ConsensusDistribution = {
+  readonly low: number
+  readonly high: number
+  readonly peak: number
+  /** 1 = most significant in this profile; the best (lowest) rank across samples. */
+  readonly rank: number
+  readonly lowerEdgeNode: number | null
+  readonly upperEdgeNode: number | null
+  readonly peakNode: number | null
+  readonly agreement: number
+  readonly samples: number
+}
+
 export type ProfileConsensus = {
   readonly nodes: readonly ConsensusNode[]
   readonly thinZones: readonly ConsensusThinZone[]
+  /** Ranked distributions (feat-147), rank 1 first; empty when no sample agreed on one. */
+  readonly distributions: readonly ConsensusDistribution[]
   /** Successful samples the consensus was built from. */
   readonly successfulSamples: number
   readonly samples: number

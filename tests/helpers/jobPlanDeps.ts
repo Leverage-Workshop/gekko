@@ -66,6 +66,7 @@ export function balanceAreaRead(): ProfileNodesRead {
       { kind: 'hvn', priceLow: 29590, priceHigh: 29606, prominence: 1, primary: false, position: 'upper', edgeBelow: 'none', edgeAbove: 'none', rationale: 'poc' },
     ],
     thinZones: [],
+    distributions: [],
   }
 }
 
@@ -76,6 +77,7 @@ export function rotationRead(): ProfileNodesRead {
       { kind: 'hvn', priceLow: 29360, priceHigh: 29370, prominence: 1, primary: false, position: 'mid', edgeBelow: 'none', edgeAbove: 'none', rationale: 'poc' },
     ],
     thinZones: [],
+    distributions: [],
   }
 }
 

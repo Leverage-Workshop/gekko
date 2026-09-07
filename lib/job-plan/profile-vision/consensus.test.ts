@@ -31,7 +31,7 @@ function read(
   nodes: ProfileNode[],
   extra: Partial<Omit<ProfileNodesRead, 'nodes'>> = {}
 ): ProfileNodesRead {
-  return { nodes, thinZones: [], ...extra }
+  return { nodes, thinZones: [], distributions: [], ...extra }
 }
 
 function sample(
@@ -543,5 +543,96 @@ describe('consensus — tiles, caps, zones, shape', () => {
     const b = buildConsensus(input(reads))
     expect(JSON.stringify(reads)).toBe(before)
     expect(a).toEqual(b)
+  })
+})
+
+describe('consensus — distributions (feat-147)', () => {
+  const LOWER = n({ priceLow: 29100, priceHigh: 29104, prominence: 2 })
+  const PEAK = n({ kind: 'hvn', priceLow: 29196, priceHigh: 29204, prominence: 1, edgeBelow: 'none', edgeAbove: 'none' })
+  const UPPER = n({ priceLow: 29300, priceHigh: 29304, prominence: 3 })
+  // PRIMARY sits at 29200-29204 — reuse LOWER/UPPER around it so the read stays schema-valid.
+  const NODES = [PRIMARY, LOWER, PEAK, UPPER]
+  const D = { low: 29102, high: 29302, peak: 29200, rank: 1, rationale: 'x' }
+
+  it('a distribution every sample reports survives with the median zone, best rank, and links to its edge lvns and peak hvn', () => {
+    const c = buildConsensus(
+      input([
+        sample(0, NODES, { distributions: [D] }),
+        sample(1, NODES, { distributions: [{ ...D, low: 29100, high: 29306, rank: 2 }] }),
+        sample(2, NODES, { distributions: [{ ...D, high: 29300, rank: 1 }] }),
+      ])
+    )!
+    expect(c.distributions).toHaveLength(1)
+    const [d] = c.distributions
+    expect(d).toMatchObject({ low: 29102, high: 29302, peak: 29200, rank: 1, agreement: 3, samples: 3 })
+    // Node order is top-down: UPPER lvn, PRIMARY lvn (29200), PEAK hvn (29196-29204), LOWER lvn.
+    const kinds = c.nodes.map((x) => `${x.kind}@${x.priceLow}`)
+    expect(d.upperEdgeNode).toBe(kinds.indexOf('lvn@29300'))
+    expect(d.lowerEdgeNode).toBe(kinds.indexOf('lvn@29100'))
+    expect(d.peakNode).toBe(kinds.indexOf('hvn@29196'))
+  })
+
+  it('a distribution only one of three samples reports is dropped (agreement < ceil(S/2))', () => {
+    const c = buildConsensus(
+      input([
+        sample(0, NODES, { distributions: [D] }),
+        sample(1, NODES, { distributions: [] }),
+        sample(2, NODES, { distributions: [] }),
+      ])
+    )!
+    expect(c.distributions).toEqual([])
+  })
+
+  it('an edge with no lvn near it links to null but the distribution is kept', () => {
+    const c = buildConsensus(
+      input([
+        sample(0, [PRIMARY, PEAK], { distributions: [D] }),
+        sample(1, [PRIMARY, PEAK], { distributions: [D] }),
+      ])
+    )!
+    expect(c.distributions).toHaveLength(1)
+    expect(c.distributions[0].lowerEdgeNode).toBeNull()
+    expect(c.distributions[0].upperEdgeNode).toBeNull()
+    expect(c.distributions[0].peakNode).not.toBeNull()
+  })
+
+  it('a distribution cut by a tile seam is one distribution: the union span, the best rank', () => {
+    const upperTile = { ...D, low: 29180, high: 29302, peak: 29200, rank: 2 }
+    const lowerTile = { ...D, low: 29102, high: 29220, peak: 29200, rank: 1 }
+    const reads: SuccessfulRead[] = [0, 1].flatMap((s) => [
+      { sample: s, tile: 0, read: read([UPPER, PRIMARY, PEAK], { distributions: [upperTile] }) },
+      { sample: s, tile: 1, read: read([PRIMARY, LOWER], { distributions: [lowerTile] }) },
+    ])
+    const c = buildConsensus(input(reads, 2, 2))!
+    expect(c.distributions).toHaveLength(1)
+    expect(c.distributions[0]).toMatchObject({ low: 29102, high: 29302, rank: 1, agreement: 2 })
+  })
+
+  it('caps at 4, keeping the ones most samples saw, and orders the output rank 1 first', () => {
+    const many = Array.from({ length: 6 }, (_, i) => ({
+      low: 29000 + i * 60,
+      high: 29040 + i * 60,
+      peak: 29020 + i * 60,
+      rank: 6 - i > 5 ? 5 : 6 - i,
+      rationale: 'x',
+    }))
+    const c = buildConsensus(
+      input([
+        sample(0, NODES, { distributions: many.slice(0, 4) }),
+        sample(1, NODES, { distributions: many.slice(0, 4) }),
+        sample(2, NODES, { distributions: many.slice(2, 6) }),
+      ])
+    )!
+    expect(c.distributions.length).toBeLessThanOrEqual(4)
+    const ranks = c.distributions.map((d) => d.rank)
+    expect([...ranks].sort((a, b) => a - b)).toEqual(ranks)
+    // the two only sample 2 reported (i = 4, 5) fell below the threshold and never competed
+    expect(c.distributions.every((d) => d.low < 29000 + 4 * 60)).toBe(true)
+  })
+
+  it('a distribution whose zone lies wholly outside the grid is ignored', () => {
+    const far = { low: 30000, high: 30100, peak: 30050, rank: 1, rationale: 'x' }
+    const c = buildConsensus(input([sample(0, NODES, { distributions: [far] }), sample(1, NODES, { distributions: [far] })]))!
+    expect(c.distributions).toEqual([])
   })
 })
