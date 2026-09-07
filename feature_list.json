@@ -1475,8 +1475,8 @@
       "dependencies": [
         "feat-147"
       ],
-      "status": "not-started",
-      "evidence": ""
+      "status": "done",
+      "evidence": "lib/job-plan/{frameCandidates,planFrame,contextTypes,referenceInventory,buildPlan}.ts + llm-planner/{prompt,schema,validate,assemblePlan,diff,contextPayload}.ts + knowledge/schema/job-plan.schema.ts (PlanFrame band fields) + supabase/migrations/20260907200000_job_plan_bands_frame_range.sql (applied via MCP, anon read verified) + D:\\SierraChart\\ACS_Source\\GekkoJobPlan.cpp (range label; DLL rebuild pending) + docs. Tests: tests/job-plan.frameCandidates.test.ts (new, 19) + buildPlan / llmPlanner / llmCutover / classifyContext updated. ./init.sh green (2271 tests). Codex gate: PASS x3, two P2s fixed (see progress.md)."
     }
   ]
 }
