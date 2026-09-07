@@ -258,7 +258,7 @@ describe('confluence bands (R1 / R1b)', () => {
 
   it('breaks same-tier ties by within-tier order, then profile prominence, then closeness to the midpoint, then id', () => {
     const n = (id: string, price: number, prominence: number) =>
-      ref(id, 'profile-balance', price, { node: { profile: 'balance', kind: 'lvn', prominence, primary: false, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', agreement: 3, samples: 3 } })
+      ref(id, 'profile-balance', price, { node: { profile: 'balance', kind: 'lvn', prominence, primary: false, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', agreement: 3, samples: 3, distributionEdges: [] } })
     expect(buildConfluenceBands([n('x', 100, 3), n('y', 110, 1)], NQ)[0]).toMatchObject({ anchorId: 'y', prominence: 1 })
     const hist = ref('h', 'daily-job-pivot', 100, { subRank: 1 })
     const cur = ref('c', 'daily-job-pivot', 110, { subRank: 0 })
@@ -333,7 +333,7 @@ describe('band roles (R3 / R4, nearest-first gated by structural quality)', () =
     const weakNode = band('weak', 29380, 29385, {
       anchorSource: 'profile-rotation',
       significance: r2Significance('profile-rotation'),
-      members: [ref('weak:a', 'profile-rotation', 29382, { node: { profile: 'rotation', kind: 'lvn', prominence: 4, primary: false, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', agreement: 2, samples: 3 } })],
+      members: [ref('weak:a', 'profile-rotation', 29382, { node: { profile: 'rotation', kind: 'lvn', prominence: 4, primary: false, position: 'mid', edgeBelow: 'taper', edgeAbove: 'flat', agreement: 2, samples: 3, distributionEdges: [] } })],
       prominence: 4,
     })
     const weakMgi = band('other', 29390, 29390, { anchorSource: 'mgi-other', significance: r2Significance('mgi-other'), members: [ref('other:a', 'mgi-other', 29390)] })

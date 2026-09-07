@@ -1,5 +1,5 @@
 import type { JobContext } from '../contextTypes'
-import { FRAME_LADDER } from '../planFrame'
+import { frameCandidates, type FrameCandidate } from '../frameCandidates'
 import { bandLabel } from '../playText'
 
 /**
@@ -17,12 +17,28 @@ import { bandLabel } from '../playText'
  * the only thing history may change.
  */
 
+/**
+ * A frame candidate as the model sees it (feat-148): a BAND holding an
+ * eligible anchor, with its ladder tier, every anchor in it, the members
+ * that count toward confluence, and reach. The model answers with `bandId`.
+ */
 export type LlmFrameCandidatePayload = {
-  readonly id: string
-  readonly label: string
-  readonly source: string
-  readonly price: number
+  readonly bandId: string
+  readonly low: number
+  readonly high: number
+  readonly anchorId: string
+  readonly anchorLabel: string
+  readonly anchorSource: string
+  /** 0 = current daily pivot, 1 = weekly pivot / G line, 2 = JBA border, 3 = balance-area distribution edge, 4 = rotation distribution edge. */
+  readonly tier: number
+  readonly tierName: string
+  readonly anchors: readonly { readonly id: string; readonly label: string; readonly tier: number; readonly reason: string }[]
+  readonly confluenceLabels: readonly string[]
+  /** More than one counting member — a stacked band outranks a lone line. */
+  readonly stacked: boolean
+  readonly side: 'above' | 'below' | 'at'
   readonly distancePts: number
+  /** Hard gate for every tier but the daily pivot when any candidate is in reach. */
   readonly withinReach: boolean
 }
 
@@ -101,19 +117,28 @@ export type LlmContextPayload = {
   readonly dataWarnings: readonly string[]
 }
 
-/** Tier-one lines the frame may come from — historical daily pivots never frame. */
-export function frameCandidates(context: JobContext): LlmFrameCandidatePayload[] {
-  const price = context.price.value
-  return context.references
-    .filter((r) => FRAME_LADDER.includes(r.source) && r.pivot?.role !== 'historical')
-    .map((r) => ({
-      id: r.id,
-      label: r.label,
-      source: r.source,
-      price: r.price,
-      distancePts: round2(Math.abs(r.price - price)),
-      withinReach: Math.abs(r.price - price) <= context.scale.reachPts,
-    }))
+function frameCandidatePayload(c: FrameCandidate): LlmFrameCandidatePayload {
+  return {
+    bandId: c.bandId,
+    low: c.low,
+    high: c.high,
+    anchorId: c.anchorId,
+    anchorLabel: c.anchorLabel,
+    anchorSource: c.anchorSource,
+    tier: c.tier,
+    tierName: c.tierName,
+    anchors: c.anchors.map((a) => ({ id: a.id, label: a.label, tier: a.tier, reason: a.reason })),
+    confluenceLabels: c.confluenceLabels,
+    stacked: c.stacked,
+    side: c.side,
+    distancePts: c.distancePts,
+    withinReach: c.withinReach,
+  }
+}
+
+/** The frame candidates (feat-148, `frameCandidates.ts`), strongest first. */
+export function frameCandidatesPayload(context: JobContext): LlmFrameCandidatePayload[] {
+  return frameCandidates(context).map(frameCandidatePayload)
 }
 
 function round2(n: number): number {
@@ -134,7 +159,7 @@ export function llmContextPayload(context: JobContext): LlmContextPayload {
       sessionSigmaPts: context.scale.sessionSigmaPts,
       reachPts: context.scale.reachPts,
     },
-    frameCandidates: frameCandidates(context),
+    frameCandidates: frameCandidatesPayload(context),
     references: context.references.map((r) => ({
       id: r.id,
       label: r.label,

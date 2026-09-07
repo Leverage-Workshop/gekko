@@ -16,9 +16,9 @@ import { MAX_PLAYS } from '../rules'
  */
 
 export const LlmFrameChoice = z.object({
-  /** Id of a tier-one reference from the payload's `frameCandidates`. */
-  referenceId: z.string().min(1),
-  /** One sentence: why this line frames the day. */
+  /** `bandId` of a candidate from the payload's `frameCandidates` (feat-148: the frame is a band). */
+  bandId: z.string().min(1),
+  /** One sentence: why this band is the bias line. */
   rationale: z.string().min(1),
 })
 export type LlmFrameChoice = z.infer<typeof LlmFrameChoice>

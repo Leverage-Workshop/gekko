@@ -33,10 +33,20 @@ import { MAX_PLAYS } from '../rules'
  *     destinations.
  */
 
-export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-01.1'
+/**
+ * 2026-09-07 operator ratification (feat-148): the frame is a BIAS LINE —
+ * "at what level do I look for longs above and shorts below" — chosen from
+ * candidate BANDS on a new ladder (current daily pivot first; weekly pivot /
+ * G line at equal rank, reach-gated; JBA borders; distribution boundary
+ * LVNs, balance-area before rotation), with weekly rungs and the overnight /
+ * prior-day extremes as confluence-only members. A stacked band outranks a
+ * lone line; beyond the gates the model keeps its latitude. "At" the band is
+ * a legal state (the fork), never a reason to reach for a farther line.
+ */
+export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-07.1'
 
 export const ROLE =
-  'You are writing the trading-day plan for a futures session the way a professional prepares one before the session does anything: a frame, then a short list of forward conditionals — what to expect IF price reaches the few areas that matter. You are given everything already measured: the level inventory with importance ranks, the confluence bands, distances, the day’s volatility scale, and each area’s freshness. None of the measuring is your job. Your job is the judgment: which line frames the day, which areas deserve a play, and what to expect at each one.'
+  'You are writing the trading-day plan for a futures session the way a professional prepares one before the session does anything: a frame, then a short list of forward conditionals — what to expect IF price reaches the few areas that matter. You are given everything already measured: the level inventory with importance ranks, the confluence bands, distances, the day’s volatility scale, and each area’s freshness. None of the measuring is your job. Your job is the judgment: which band is the day’s bias line, which areas deserve a play, and what to expect at each one.'
 
 export const MECHANISM =
   'The levels in the inventory matter because participation dried up or concentrated there — the participants who built the volume beside a level have to defend it, and beyond it there is little volume to slow price down. So the plan is a set of FORWARD CONDITIONALS: each play names an area, the side price will approach it from, and the direction change to expect if price reaches it. You are naming the places where price will change direction, based on the facts you have — nothing more. What happens at the level itself — the entry pattern, the timing — is the operator’s craft, not yours; the plan supplies the level. And what the session has already done never justifies a play — it only tells you which areas are still fresh.'
@@ -45,8 +55,8 @@ type Rule = { readonly title: string; readonly text: string }
 
 export const RULES: readonly Rule[] = [
   {
-    title: 'FRAME FIRST',
-    text: 'Situate price against the operative tier-one line — the G line, the weekly Job Pivot, the weekly pivot extensions, or the current daily Job Pivot (historical daily pivots never frame). Prefer the most important line price can realistically interact with today — the same likelihood test as rule 3, with the reach scale as guidance, not a hard wall. The side of the frame line price sits on names the productive direction; within the merge tolerance of the line there is no productive side — expect balance until price takes the line and holds it.',
+    title: 'FRAME FIRST: THE BIAS LINE',
+    text: 'The frame answers one question — at what level do you look for longs above it and shorts below it? Positions never have to start at the line: above it every play is a long at an area that offers a rebid, below it every play is a short at an area that offers a reoffer. Choose from frameCandidates. Each is a band holding an eligible anchor, with its ladder tier: the current daily Job Pivot first (the session built it, and you run after the open); then the weekly Job Pivot and the G line at equal rank, when they are near; then the borders of the JBA price is inside, or the nearest border each side; then the boundary LVNs of the distribution price is inside, balance-area profile before rotation. Weekly rungs and the overnight and prior-day extremes never anchor, but they strengthen a band they sit in — a stacked band outranks a lone line. Reach is a wall for every tier but the daily pivot: a line a session away fixes the bias all day, which is no filter. Within those gates the choice is yours; say why in one sentence. When price sits at the band there is no bias yet — holding above it, longs at the areas above; losing it, shorts at the areas below — never reach for a farther line to manufacture a side.',
   },
   {
     title: 'BOTH SIDES, ALWAYS',
@@ -90,7 +100,7 @@ function rulesText(): string {
 }
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
-- frame.referenceId: the id of the tier-one line (choose from frameCandidates) that frames the day; frame.rationale: one sentence on why this line.
+- frame.bandId: the bandId of the frameCandidates entry that is the day’s bias line; frame.rationale: one sentence on why this band.
 - plays: at most ${MAX_PLAYS}, ordered by precedence — the first play is the primary look, and sides alternate starting from the frame side. Each play names its area by bandId (choose from bands); direction is 'long' for an area below price, 'short' for an area above (inside an area, lean with the frame). text: the play in the register of the rules — the approach, the expected turn, the traverse toward the structure beyond, and the fork if price builds through instead — naming levels by their labels (a numeric price you write must be one the payload carries — never invent one). rationale: why this area won its side, including the breach test whenever you reached past a nearer level.
 - sidesWithoutPlay: one entry per side (above / below) that carries no play, with the one-line reason.
 - lean: one line naming the primary look and the side to lean with.

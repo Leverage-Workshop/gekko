@@ -2,6 +2,7 @@ import { JobPlanSchema, type JobPlan, type Play, type PrunedBranch } from '@/kno
 import { geometryRefs, planMeta, type PlanMetaInput } from '../buildPlan'
 import type { JobContext } from '../contextTypes'
 import { frameFor } from '../planFrame'
+import { judgedFrameCandidate } from './validate'
 import { buildBandPlay } from '../playGrammar'
 import type { Candidate, PlayDraft } from '../planTypes'
 import { MAX_PLAYS, PLANNER_REVISION } from '../rules'
@@ -71,11 +72,11 @@ export function assembleLlmPlan(input: AssembleLlmPlanInput): JobPlan {
   const { judgment, context } = input
   const meta = input.meta ?? {}
 
-  const frameRef = context.references.find((r) => r.id === judgment.frame.referenceId)
-  if (!frameRef) {
-    throw new LlmPlanAssemblyError(`frame reference ${judgment.frame.referenceId} passed validation but is missing`)
+  const candidate = judgedFrameCandidate(context, judgment.frame.bandId)
+  if (!candidate) {
+    throw new LlmPlanAssemblyError(`frame candidate ${judgment.frame.bandId} passed validation but is missing`)
   }
-  const frame = { ...frameFor(context, frameRef), llmRationale: judgment.frame.rationale }
+  const frame = { ...frameFor(context, candidate), llmRationale: judgment.frame.rationale }
 
   const ordered = judgment.plays.map((play): PlayDraft => {
     const result = buildBandPlay(candidateFor(context, play.bandId), context, frame)

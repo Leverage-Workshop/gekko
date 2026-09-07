@@ -1,87 +1,68 @@
 import type { PlanFrame } from '@/knowledge/schema/job-plan.schema'
-import type { JobContext, Reference } from './contextTypes'
+import type { JobContext } from './contextTypes'
+import { selectFrameCandidate, type FrameCandidate } from './frameCandidates'
 import type { PlayDirectional } from './planTypes'
-import { fmtPrice, referenceProvenance } from './playText'
-import type { ReferenceSource } from './rules'
+import { fmtPrice, fmtRange, referenceProvenance } from './playText'
 
 /**
- * The plan FRAME (2026-08-31 operator correction — how Job opens every prep):
- * situate price against the operative tier-one MGI structure and name the
- * productive side. "We're below the weekly pivot… not out of the weeds";
- * "beneath the G line and underneath the JBAs… want to work to sell
- * pullbacks"; "we've worked our way up to the 1A".
+ * The plan FRAME — the BIAS LINE (feat-148, operator ratification 2026-09-07,
+ * replacing the 2026-08-31 tier-one ladder G > weekly > rungs > daily).
  *
- * The frame line comes from the TIER-ONE LADDER (operator, 2026-08-31): the
- * G line, then the weekly Job Pivot, then the weekly pivot extensions (the
- * ladder rungs — 06-15 and 08-04 frame off the 1A / 2A when the pivots are
- * far), then the daily Job Pivot — fresh at run time because runs happen
- * after the RTH open, ranked right below the weekly MGI. The most important
- * rung of the ladder WITHIN REACH (R4) wins — never a blind nearest-of-two,
- * which could name a line hundreds of points away (03-16: "G line is way
- * down here" and it drops out). With nothing in reach the nearest tier-one
- * line still frames the plan, stated at its distance.
+ * The frame answers one question: at what level do I look for longs above
+ * and shorts below? Above the line the plan's plays are longs at the areas
+ * that offer a rebid; below it, shorts at the areas that offer a reoffer.
+ * Positions never have to initiate at the line itself.
  *
- * Within one merge tolerance of the line the frame is 'at' (balance around
- * the line, no productive side — 03-19 "if we get above the G line, expect
- * some balance between there and the weekly pivot"); otherwise the side of
- * the line price is on names the direction to lean with.
+ * The candidate ladder, confluence and reach live in `frameCandidates.ts`.
+ * This module composes the persisted `PlanFrame` from a chosen candidate —
+ * the deterministic pick here (the rollback path behind JOB_PLANNER) or the
+ * LLM's (feat-145) — and names the side:
+ *
+ *   above / below  the productive direction; the other side's plays are the
+ *                  fork (what to expect if price takes the line)
+ *   at             inside the band or within one merge tolerance of it — a
+ *                  legal state, not a reason to reach for a farther line:
+ *                  holding above it, longs at the areas above; losing it,
+ *                  shorts at the areas below
+ *
+ * The frame is a BAND: a lone line collapses to low = high.
  */
 
-/** Importance order, most important first — G line > weekly pivot > weekly extensions > daily pivot. */
-export const FRAME_LADDER: readonly ReferenceSource[] = ['g-line', 'weekly-job-pivot', 'weekly-rung', 'daily-job-pivot']
-
-type Measured = { readonly ref: Reference; readonly distance: number }
-
-function nearest(candidates: readonly Measured[]): Measured | null {
-  if (candidates.length === 0) return null
-  return candidates.reduce((best, c) => (c.distance < best.distance || (c.distance === best.distance && c.ref.id < best.ref.id) ? c : best))
-}
-
-/** The most important in-reach ladder step's nearest line; nothing in reach → the nearest tier-one line overall. */
-function frameLine(context: JobContext): Measured | null {
-  const price = context.price.value
-  // Historical daily pivots share the source but are not the FRESH line the
-  // operator framed on — only the current pivot may frame.
-  const measured = context.references
-    .filter((r) => FRAME_LADDER.includes(r.source) && r.pivot?.role !== 'historical')
-    .map((ref) => ({ ref, distance: Math.abs(ref.price - price) }))
-  for (const source of FRAME_LADDER) {
-    const inReach = nearest(measured.filter((m) => m.ref.source === source && m.distance <= context.scale.reachPts))
-    if (inReach) return inReach
+function frameText(c: FrameCandidate): string {
+  const name = `${c.anchorLabel}${c.confluenceCount > 1 ? ` (+${c.confluenceCount - 1})` : ''} ${fmtRange(c.low, c.high)}`
+  if (c.side === 'at') {
+    return `At the ${name} — no bias yet: holding above it, longs at the areas above; losing it, shorts at the areas below`
   }
-  return nearest(measured)
+  if (c.side === 'above') {
+    return `Above the ${name} (${fmtPrice(c.distancePts)} pts) — longs only: look for rebids at the areas above the line; shorts come back only below it`
+  }
+  return `Below the ${name} (${fmtPrice(c.distancePts)} pts) — shorts only: look for reoffers at the areas below the line; longs come back only above it`
 }
 
-function frameText(ref: Reference, side: PlanFrame['side'], distancePts: number): string {
-  const at = `At the ${ref.label} ${fmtPrice(ref.price)} — balance around the line; no productive side until price takes one and holds it`
-  if (side === 'at') return at
-  const productive = side === 'above' ? 'upside' : 'downside'
-  const counter = side === 'above' ? 'below' : 'above'
-  return `${side === 'above' ? 'Above' : 'Below'} the ${ref.label} ${fmtPrice(ref.price)} (${fmtPrice(distancePts)} pts) — ${productive} is productive; lean with it and don't counter until price is back ${counter} the line`
-}
-
-/** The frame composed around one chosen tier-one reference (the ladder's pick, or the LLM's — feat-145). */
-export function frameFor(context: JobContext, ref: Reference): PlanFrame {
-  const price = context.price.value
-  const distance = Math.abs(ref.price - price)
-  const distancePts = Math.round(distance * 100) / 100
-  const side: PlanFrame['side'] = distance <= context.tolerance.merge ? 'at' : price > ref.price ? 'above' : 'below'
+/** The frame composed around one chosen candidate (the deterministic pick, or the LLM's — feat-145). */
+export function frameFor(context: JobContext, candidate: FrameCandidate): PlanFrame {
+  const band = context.bands.find((b) => b.id === candidate.bandId)
+  const members = band ? band.members : context.references.filter((r) => r.id === candidate.anchorId)
   return {
-    referenceId: ref.id,
-    label: ref.label,
-    price: ref.price,
-    side,
-    distancePts,
-    text: frameText(ref, side, distancePts),
-    provenance: referenceProvenance([ref]),
+    referenceId: candidate.anchorId,
+    label: candidate.anchorLabel,
+    price: candidate.anchorPrice,
+    side: candidate.side,
+    distancePts: candidate.distancePts,
+    text: frameText(candidate),
+    provenance: referenceProvenance(members),
+    bandId: candidate.bandId,
+    low: candidate.low,
+    high: candidate.high,
+    tier: candidate.tier,
+    memberLabels: [...candidate.confluenceLabels],
   }
 }
 
-/** The frame, or null when no tier-one reference is in the inventory. */
+/** The frame, or null when no eligible anchor is in the inventory. */
 export function planFrame(context: JobContext): PlanFrame | null {
-  const line = frameLine(context)
-  if (line === null) return null
-  return frameFor(context, line.ref)
+  const candidate = selectFrameCandidate(context)
+  return candidate === null ? null : frameFor(context, candidate)
 }
 
 /** The direction the frame favours — long above the line, short below, none at it. */

@@ -66,35 +66,36 @@ const failedLook = (direction: 'above' | 'below', grade: 'EARLY' | 'LATE' = 'EAR
   extremePrice: direction === 'below' ? 29285 : 29410,
 })
 
-describe('the frame: the tier-one MGI ladder — G line > weekly pivot > weekly extensions > daily pivot, most important in reach wins', () => {
-  it('names the operative line, the side and the productive direction', () => {
+describe('the frame: the BIAS LINE (feat-148) — current daily pivot first, then weekly pivot / G line in reach, stacked bands outrank lone lines', () => {
+  it('names the bias line as a band, the side and the productive direction', () => {
     const p = plan()
-    expect(p.frame).toMatchObject({ referenceId: 'g-line', label: 'G line (week open)', price: 29300, side: 'above', distancePts: 60 })
-    expect(p.frame?.text).toContain('Above the G line (week open) 29300')
-    expect(p.frame?.text).toContain('upside is productive')
-    expect(p.frame?.provenance).toEqual({ kind: 'reference', referenceIds: ['g-line'], derivation: null })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', label: 'Daily Job Pivot', price: 29393.5, side: 'below', distancePts: 33.5, low: 29393.5, high: 29393.5, tier: 0, memberLabels: ['Daily Job Pivot'] })
+    expect(p.frame?.text).toContain('Below the Daily Job Pivot 29393.5')
+    expect(p.frame?.text).toContain('shorts only')
+    expect(p.frame?.provenance).toEqual({ kind: 'reference', referenceIds: ['daily-pivot'], derivation: null })
   })
 
-  it('the G line in reach outranks a nearer weekly pivot — importance, never blind proximity', () => {
-    expect(plan({ price: 29450 }).frame).toMatchObject({ referenceId: 'g-line', side: 'above', distancePts: 150 })
+  it('the daily pivot frames even when the G line is nearer and in reach — the ladder, never blind proximity', () => {
+    expect(plan({ price: 29310 }).frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below', distancePts: 83.5 })
   })
 
-  it('with the G line out of reach the weekly pivot frames, even when the daily pivot is nearer', () => {
-    const p = plan({ refs: BASE_REFS.filter((r) => r.source !== 'g-line') })
-    expect(p.frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'below', distancePts: 140 })
+  it('a stacked band outranks the lone daily pivot ("a collection of candidates around a level is a very strong candidate")', () => {
+    const p = plan({ refs: BASE_REFS.map((r) => (r.id === 'onh' ? { ...r, price: 29490 } : r)) })
+    expect(p.frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'below', distancePts: 130, low: 29490, high: 29500, memberLabels: ['Weekly Job Pivot', 'ONH'] })
+    expect(p.frame?.text).toContain('Below the Weekly Job Pivot (+1) 29490–29500')
   })
 
-  it('a weekly pivot extension frames when the pivots are out of reach ("worked our way up to the 1A")', () => {
+  it('a weekly rung never frames ("worked our way up to the 1A" is a destination) — the daily pivot still frames from afar', () => {
     const p = plan({ price: 29660, reachPts: 100 })
-    expect(p.frame).toMatchObject({ referenceId: 'rung:weekly:1A', label: 'Weekly Job Pivot 1A', side: 'below', distancePts: 40 })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'above', distancePts: 266.5 })
   })
 
-  it('the fresh daily pivot frames when every weekly line is out of reach — ranked right below the weekly MGI', () => {
+  it('the daily pivot frames when every weekly line is out of reach', () => {
     const p = plan({ price: 29370, reachPts: 30 })
     expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below', distancePts: 23.5 })
   })
 
-  it('nothing in reach → the nearest tier-one line still frames, stated at its distance', () => {
+  it('nothing in reach → the daily pivot still frames, stated at its distance', () => {
     const p = plan({ reachPts: 10 })
     expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below', distancePts: 33.5 })
   })
@@ -108,10 +109,10 @@ describe('the frame: the tier-one MGI ladder — G line > weekly pivot > weekly 
     expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', price: 29393.5 })
   })
 
-  it('within one merge tolerance of the line the frame is AT it — balance, no productive side', () => {
-    const p = plan({ price: 29310 })
-    expect(p.frame).toMatchObject({ referenceId: 'g-line', side: 'at' })
-    expect(p.frame?.text).toContain('balance around the line')
+  it("within one merge tolerance of the band the frame is AT it — no bias yet, the fork stated", () => {
+    const p = plan({ price: 29390 })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'at' })
+    expect(p.frame?.text).toContain('no bias yet')
   })
 
   it('an insufficient plan carries no frame', () => {
@@ -185,19 +186,21 @@ describe('the forward-conditional grammar: expected response on arrival, both ou
   it('a band price sits inside leans with the frame', () => {
     const p = plan({ price: 29420 })
     const rip = playAt(p, 'Rip')!
-    expect(p.frame).toMatchObject({ referenceId: 'g-line', side: 'above' })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'above' })
     expect(rip).toMatchObject({ stance: 'rebid', direction: 'long' })
     expect(rip.band.side).toBe('inside')
     expect(rip.trigger).toContain('Lean on Rip 29420 from here')
-    const below = plan({ price: 29420, refs: BASE_REFS.map((r) => (r.source === 'g-line' ? { ...r, price: 29500 } : r.source === 'weekly-job-pivot' ? { ...r, price: 29800 } : r)) })
-    expect(below.frame).toMatchObject({ side: 'below' })
+    // the daily pivot moved above price: the frame flips and so does the inside read
+    const below = plan({ price: 29420, refs: BASE_REFS.map((r) => (r.source === 'daily-job-pivot' ? { ...r, price: 29450 } : r)) })
+    expect(below.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below' })
     expect(playAt(below, 'Rip')).toMatchObject({ stance: 'reoffer', direction: 'short' })
   })
 
   it('a band price sits inside with no frame direction is pruned, not guessed', () => {
-    const p = plan({ price: 29300 })
-    expect(playAt(p, 'G line (week open)')).toBeUndefined()
-    expect(p.pruned.find((x) => x.label.startsWith('G line'))?.reason).toContain('no directional read')
+    const p = plan({ price: 29393.5 })
+    expect(p.frame?.side).toBe('at')
+    expect(playAt(p, 'Daily Job Pivot')).toBeUndefined()
+    expect(p.pruned.find((x) => x.label.startsWith('Daily Job Pivot'))?.reason).toContain('no directional read')
   })
 
   it('R9 freshness: a touched band is demoted as a fresh trigger and ranks last', () => {
@@ -210,7 +213,7 @@ describe('the forward-conditional grammar: expected response on arrival, both ou
     expect(g.activation.evidence).toContain('demoted as a fresh trigger (R9)')
     expect(g.rank).toBe(p.plays.length)
     const kept = withFacts({ 'g-line': { interaction: { ...touched, failedLookThisSession: true, triggerStatus: 'full' } } })
-    expect(playAt(kept, 'G line (week open)')).toMatchObject({ rank: 1, activation: { demoted: false } })
+    expect(playAt(kept, 'G line (week open)')).toMatchObject({ rank: 2, activation: { demoted: false } })
   })
 
   it('mid-zone two-way (R10): price in the middle of the JBA box declares the two-way trade between the named edges and stands down', () => {
@@ -238,41 +241,41 @@ describe('the forward-conditional grammar: expected response on arrival, both ou
 })
 
 describe('the precedence table: frame side leads, sides alternate, structure ranks', () => {
-  it('above the G line the longs lead and the sides alternate; the frame-aligned play is the primary look', () => {
+  it('below the daily pivot the shorts lead and the sides alternate; the frame-aligned play is the primary look', () => {
     const p = plan()
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction])).toEqual([
-      ['G line (week open)', 'long'],
       ['Daily Job Pivot', 'short'],
-      ['ONL', 'long'],
+      ['G line (week open)', 'long'],
       ['Rip', 'short'],
+      ['ONL', 'long'],
     ])
     expect(p.plays[0].primary).toBe(true)
     expect(p.lean).toMatchObject({ playId: p.plays[0].id, basis: 'frame' })
-    expect(p.lean.text).toContain('frame-aligned look (above the G line (week open))')
+    expect(p.lean.text).toContain('frame-aligned look (below the Daily Job Pivot)')
   })
 
-  it('below the line the shorts lead (mirrored frame)', () => {
-    const p = plan({ price: 29240 })
-    expect(p.frame).toMatchObject({ referenceId: 'g-line', side: 'below' })
-    expect(p.plays[0].direction).toBe('short')
+  it('above the line the longs lead (mirrored frame)', () => {
+    const p = plan({ price: 29450 })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'above' })
+    expect(p.plays[0].direction).toBe('long')
   })
 
   it('the enclosing zone\'s edges rank first within a side ("play the edges")', () => {
     const p = boxed({ reachPts: 500 })
-    expect(p.plays.map((x) => x.band.memberLabels[0])).toEqual(['JBA 1 low', 'JBA 1 low', 'JBA 1 high', 'G line (week open)'])
+    expect(p.plays.map((x) => x.band.memberLabels[0])).toEqual(['JBA 1 low', 'JBA 1 high', 'JBA 1 low', 'Daily Job Pivot'])
     expect(p.plays[0].stance).toBe('stand-down')
   })
 
-  it('at the frame line no side leads — the enclosing zone\'s edges rank first, then nearest, and the lean names the at-line frame', () => {
-    const p = plan({ price: 29310 })
+  it('at the frame line no side leads — the structurally-first play\'s side leads, then nearest, and the lean names the at-line frame', () => {
+    const p = plan({ price: 29390 })
     expect(p.frame?.side).toBe('at')
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.band.distancePts])).toEqual([
-      ['G line (week open)', 10],
-      ['Daily Job Pivot', 83.5],
-      ['ONL', 50],
-      ['Rip', 110],
+      ['Daily Job Pivot', 3.5],
+      ['G line (week open)', 90],
+      ['Rip', 30],
+      ['ONL', 130],
     ])
-    expect(p.lean.text).toContain('(frame: at the G line (week open))')
+    expect(p.lean.text).toContain('(frame: at the Daily Job Pivot)')
   })
 })
 
@@ -395,9 +398,9 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
 
   const p = buildPlan({ context: synthContext(GOAL) })
 
-  it('frames off the weekly pivot (no G line in the inventory) and leads with the two-way declaration', () => {
+  it('frames off the stacked daily + weekly pivot band (no G line in the inventory) and leads with the two-way declaration', () => {
     expect(p.status).toBe('ready')
-    expect(p.frame).toMatchObject({ referenceId: 'weekly-pivot', side: 'above', distancePts: 20 })
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'above', distancePts: 20, low: 7970, high: 7970, memberLabels: ['Weekly Job Pivot', 'Daily Job Pivot'] })
     expect(p.plays[0]).toMatchObject({ stance: 'stand-down', condition: 'mid-zone-two-way', primary: true })
     expect(p.plays[0].summary).toBe('Stay inside 7955–8005 (JBA 1 low – JBA 1 high) → balance; play the edges, stand down in the middle')
     expect(p.lean.basis).toBe('mid-zone')

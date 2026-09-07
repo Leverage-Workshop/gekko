@@ -41,8 +41,11 @@ play text — under the rules below.
   pattern as briefings).
 - Every price the plan quotes exists in the provided reference inventory / band list —
   the model never invents a level.
-- The frame reference is tier-one (`g-line` / `weekly-job-pivot` / `weekly-rung` /
-  current `daily-job-pivot`) and never a historical pivot.
+- The frame is one of the supplied `frameCandidates` bands (feat-148, 2026-09-07: the bias
+  line — current daily pivot; weekly pivot / G line; JBA borders; distribution boundary LVNs;
+  rungs and ONH/ONL/PDH/PDL confluence-only) and within reach when any candidate is. The
+  2026-08-31 wording — tier-one line (`g-line` / `weekly-job-pivot` / `weekly-rung` / current
+  `daily-job-pivot`), never a historical pivot — is superseded.
 - At most `MAX_PLAYS` (4) plays; ladder rungs appear only as destinations (R2).
 - Both sides addressed: each side either carries a play or an explicit one-line reason
   it doesn't ("nothing significant within reach below" is a valid answer — padding
