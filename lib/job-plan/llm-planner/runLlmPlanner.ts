@@ -71,6 +71,18 @@ function retryPrompt(base: string, judgment: LlmPlanJudgment, violations: readon
   ].join('\n\n')
 }
 
+/**
+ * LangSmith trace name for the planner's judgment call — the same run name as
+ * the profile-vision read (`visionRead.ts`) so a plan's calls group under one
+ * job-plan-task trace. Without this the planner prompt was never recorded
+ * (only the vision calls were), so a persisted plan's exact prompt could not
+ * be pulled back from LangSmith.
+ */
+const PLANNER_TELEMETRY = {
+  functionId: 'job-plan-task',
+  metadata: { stage: 'llm-planner', promptRevision: LLM_PLANNER_REVISION },
+} as const
+
 export async function runLlmPlanner(input: RunLlmPlannerInput): Promise<LlmPlannerResult> {
   const { context, model, effort = null, generate = generateStructured } = input
   // R13 fails closed BEFORE any model spend — same sufficiency bar as buildPlan.
@@ -87,6 +99,7 @@ export async function runLlmPlanner(input: RunLlmPlannerInput): Promise<LlmPlann
     schema: LlmPlanJudgmentSchema,
     prompt: basePrompt,
     requireParameters: true,
+    telemetry: PLANNER_TELEMETRY,
   })
   let judgment = first.object
   let violations = validateJudgment(judgment, context)
@@ -102,6 +115,7 @@ export async function runLlmPlanner(input: RunLlmPlannerInput): Promise<LlmPlann
       schema: LlmPlanJudgmentSchema,
       prompt: retryPrompt(basePrompt, judgment, violations),
       requireParameters: true,
+      telemetry: { ...PLANNER_TELEMETRY, metadata: { ...PLANNER_TELEMETRY.metadata, attempt: 2 } },
     })
     judgment = second.object
     violations = validateJudgment(judgment, context)
