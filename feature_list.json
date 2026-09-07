@@ -1466,7 +1466,7 @@
         "feat-146"
       ],
       "status": "done",
-      "evidence": "lib/job-plan/profile-vision/{schema,prompt,types,consensus,consensusDistributions,bench}.ts + dashboard/{schema,overlay}.ts + app/components/job-plan-profiles.tsx + scripts/profile-vision-bench.ts (coherence line); tests: schema.test (distribution rules), consensus.test (merge, links, tile seam, adjacent-stay-two, cap/order), prompt.test (rule-5 canaries + snapshot), bench.test (coherence), job-plan.dashboardData.test (legacy rows default to none, overlay draws a distribution). ./init.sh green (2252 tests). Codex gate: PASS x2, see progress.md (one P2 fixed, one dismissed with reasoning)."
+      "evidence": "lib/job-plan/profile-vision/{schema,prompt,types,consensus,consensusDistributions,bench}.ts + dashboard/{schema,overlay}.ts + app/components/job-plan-profiles.tsx + scripts/profile-vision-bench.ts (coherence line); tests: schema.test (distribution rules), consensus.test (merge, links, tile seam, adjacent-stay-two, cap/order), prompt.test (rule-5 canaries + snapshot), bench.test (coherence), job-plan.dashboardData.test (legacy rows default to none, overlay draws a distribution). ./init.sh green (2252 tests). Codex gate: PASS x2, see progress.md (one P2 fixed, one dismissed with reasoning). Merged in PR #199."
     },
     {
       "id": "feat-148",
