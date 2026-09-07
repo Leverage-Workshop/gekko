@@ -59,12 +59,16 @@ describe('the anchor ladder', () => {
     expect(pick({ price: 29360, refs })).toMatchObject({ anchorId: 'g-line' })
   })
 
-  it('nothing in reach → every candidate is eligible and the strongest still frames, stated at its distance', () => {
+  it('nothing in reach → every candidate stays eligible for the model, and the deterministic pick is the NEAREST, stated at its distance', () => {
     const refs = without('daily-job-pivot')
     const all = cands({ price: 29660, reachPts: 100, refs })
     expect(all.every((x) => !x.withinReach)).toBe(true)
     expect(eligibleFrameCandidates(all).map((x) => x.anchorId)).toEqual(['weekly-pivot', 'g-line'])
     expect(pick({ price: 29660, reachPts: 100, refs })).toMatchObject({ anchorId: 'weekly-pivot', distancePts: 160 })
+    // a far tier-1 line does not beat a near tier-2 border just by tier (Codex P2)
+    const boxed = [...refs, { id: 'jba:0:low', source: 'jba-edge' as const, price: 29000, label: 'JBA 1 low', boxIndex: 0 }, { id: 'jba:0:high', source: 'jba-edge' as const, price: 29640, label: 'JBA 1 high', boxIndex: 0 }]
+    // (PDH 29650 stacks onto the 29640 border: the band is [29640, 29650], 150 pts away)
+    expect(pick({ price: 29800, reachPts: 100, refs: boxed, boxes: [{ low: 29000, high: 29640 }] })).toMatchObject({ anchorId: 'jba:0:high', tier: 2, distancePts: 150, stacked: true })
     // the daily pivot is eligible even out of reach
     expect(pick({ price: 29660, reachPts: 100 })).toMatchObject({ anchorId: 'daily-pivot', withinReach: false })
   })
@@ -161,6 +165,24 @@ describe('confluence and strength', () => {
     const refs = [...REFS, { id: 'mgi:weekly.pwHigh', source: 'mgi-other' as const, price: 29395, label: 'PW High' }]
     const dp = cands({ refs }).find((x) => x.anchorId === 'daily-pivot')!
     expect(dp).toMatchObject({ stacked: false, confluenceLabels: ['Daily Job Pivot'], low: 29393.5, high: 29395 })
+  })
+
+  it('an anchorable SOURCE that is not an eligible anchor (an lvn with no distribution edge, an unselected JBA border) does not stack the band (Codex P2)', () => {
+    const refs = [
+      ...REFS,
+      { id: 'node:balance:0', source: 'profile-balance' as const, price: 29395, label: 'balance-area lvn #1', node: { prominence: 1 } },
+      { id: 'jba:1:low', source: 'jba-edge' as const, price: 29500, label: 'JBA 2 low', boxIndex: 1 },
+      { id: 'jba:1:high', source: 'jba-edge' as const, price: 29800, label: 'JBA 2 high', boxIndex: 1 },
+      { id: 'jba:0:low', source: 'jba-edge' as const, price: 29000, label: 'JBA 1 low', boxIndex: 0 },
+      { id: 'jba:0:high', source: 'jba-edge' as const, price: 29100, label: 'JBA 1 high', boxIndex: 0 },
+    ]
+    // price 29360 sits between the boxes: the nearest borders (29100 below, 29500 above) anchor; 29800 / 29000 do not
+    const c = cands({ refs, boxes: [{ low: 29000, high: 29100 }, { low: 29500, high: 29800 }] })
+    expect(c.find((x) => x.anchorId === 'daily-pivot')).toMatchObject({ stacked: false, confluenceLabels: ['Daily Job Pivot'] })
+    // the selected border 29500 shares the weekly pivot's band and DOES count; the unselected 29800 / 29000 never appear
+    expect(c.find((x) => x.anchorId === 'weekly-pivot')).toMatchObject({ stacked: true, confluenceLabels: ['Weekly Job Pivot', 'JBA 2 low'] })
+    expect(c.flatMap((x) => x.confluenceLabels)).not.toContain('JBA 2 high')
+    expect(c.flatMap((x) => x.confluenceLabels)).not.toContain('balance-area lvn #1')
   })
 })
 

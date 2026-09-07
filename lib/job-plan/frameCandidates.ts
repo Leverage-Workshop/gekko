@@ -170,11 +170,14 @@ export function frameAnchors(context: JobContext): FrameAnchor[] {
   ].sort((a, b) => a.tier - b.tier || a.id.localeCompare(b.id))
 }
 
-/** A member counts toward confluence when it could anchor (any tier, current pivots, lvn nodes) or is a confluence-only source. */
-function countsTowardConfluence(member: Reference): boolean {
-  if (member.pivot?.role === 'historical') return false
-  if (member.node && member.node.kind !== 'lvn') return false
-  return tierOf(member.source) !== null || FRAME_CONFLUENCE_SOURCES.includes(member.source)
+/**
+ * A member counts toward confluence when it is itself an ELIGIBLE anchor
+ * (in `frameAnchors` — not merely of an anchorable source: an unselected JBA
+ * border or an lvn with no distribution edge cannot anchor and does not
+ * stack) or a confluence-only source. Codex P2 on the first cut.
+ */
+function countsTowardConfluence(member: Reference, eligibleAnchorIds: ReadonlySet<string>): boolean {
+  return eligibleAnchorIds.has(member.id) || FRAME_CONFLUENCE_SOURCES.includes(member.source)
 }
 
 function sideOf(band: ConfluenceBand, context: JobContext): FrameSide {
@@ -183,9 +186,14 @@ function sideOf(band: ConfluenceBand, context: JobContext): FrameSide {
   return price > band.high ? 'above' : 'below'
 }
 
-function candidateFor(band: ConfluenceBand, anchors: readonly FrameAnchor[], context: JobContext): FrameCandidate {
+function candidateFor(
+  band: ConfluenceBand,
+  anchors: readonly FrameAnchor[],
+  eligibleAnchorIds: ReadonlySet<string>,
+  context: JobContext,
+): FrameCandidate {
   const best = anchors[0]
-  const counting = band.members.filter(countsTowardConfluence)
+  const counting = band.members.filter((m) => countsTowardConfluence(m, eligibleAnchorIds))
   const distancePts = round2(distanceToBand(context.price.value, band.low, band.high))
   return {
     bandId: band.id,
@@ -216,6 +224,7 @@ export function byFrameStrength(a: FrameCandidate, b: FrameCandidate): number {
 /** One candidate per band that holds an eligible anchor, strongest first. */
 export function frameCandidates(context: JobContext): FrameCandidate[] {
   const anchors = frameAnchors(context)
+  const eligibleIds = new Set(anchors.map((a) => a.id))
   const anchorsByBand = new Map<string, FrameAnchor[]>()
   for (const band of context.bands) {
     const inBand = anchors.filter((a) => band.members.some((m) => m.id === a.id))
@@ -223,21 +232,39 @@ export function frameCandidates(context: JobContext): FrameCandidate[] {
   }
   return context.bands
     .filter((band) => anchorsByBand.has(band.id))
-    .map((band) => candidateFor(band, anchorsByBand.get(band.id) as FrameAnchor[], context))
+    .map((band) => candidateFor(band, anchorsByBand.get(band.id) as FrameAnchor[], eligibleIds, context))
     .sort(byFrameStrength)
+}
+
+/** Those within reach, the daily pivot always. Empty when nothing is in reach. */
+export function inReachFrameCandidates(candidates: readonly FrameCandidate[]): FrameCandidate[] {
+  return candidates.filter((c) => c.withinReach || c.tier === 0)
 }
 
 /**
  * The candidates the frame may legally come from: those within reach, the
  * daily pivot always; with nothing in reach at all, every candidate (the
- * nearest still frames the day, stated at its distance).
+ * model keeps its latitude; the deterministic pick takes the nearest).
  */
 export function eligibleFrameCandidates(candidates: readonly FrameCandidate[]): FrameCandidate[] {
-  const inReach = candidates.filter((c) => c.withinReach || c.tier === 0)
+  const inReach = inReachFrameCandidates(candidates)
   return inReach.length > 0 ? inReach : [...candidates]
 }
 
-/** The deterministic pick: the strongest eligible candidate, or null with no anchor in the inventory. */
+/** Nearest first, then the strength order. */
+export function byDistance(a: FrameCandidate, b: FrameCandidate): number {
+  return a.distancePts - b.distancePts || byFrameStrength(a, b)
+}
+
+/**
+ * The deterministic pick: the strongest candidate in reach; with nothing in
+ * reach, the NEAREST candidate frames the day, stated at its distance (a far
+ * tier-1 line must not beat a near border just by tier — Codex P2). Null with
+ * no anchor in the inventory.
+ */
 export function selectFrameCandidate(context: JobContext): FrameCandidate | null {
-  return eligibleFrameCandidates(frameCandidates(context)).sort(byFrameStrength)[0] ?? null
+  const candidates = frameCandidates(context)
+  const inReach = inReachFrameCandidates(candidates)
+  if (inReach.length > 0) return [...inReach].sort(byFrameStrength)[0]
+  return [...candidates].sort(byDistance)[0] ?? null
 }
