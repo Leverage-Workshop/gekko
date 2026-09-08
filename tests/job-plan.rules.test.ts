@@ -28,6 +28,7 @@ import {
   r1WithinCap,
   r2DestinationOnly,
   r2DestinationOnlyReference,
+  r2NeverStacks,
   r2Significance,
   r3AtBand,
   r4WithinReach,
@@ -151,6 +152,11 @@ describe('R2 — source significance', () => {
     expect(r2DestinationOnlyReference({ source: 'profile-balance', pivotRole: null, nodeKind: 'lvn' })).toBe(false)
     expect(r2DestinationOnlyReference({ source: 'profile-balance', pivotRole: null, nodeKind: 'exhaustive-node' })).toBe(false)
     expect(r2DestinationOnlyReference({ source: 'jba-edge', pivotRole: null, nodeKind: null })).toBe(false)
+    // never-stacking is the narrower set: rungs stack (confluence-only), prior pivots and hvns do not
+    expect(r2NeverStacks({ pivotRole: 'historical', nodeKind: null })).toBe(true)
+    expect(r2NeverStacks({ pivotRole: null, nodeKind: 'hvn' })).toBe(true)
+    expect(r2NeverStacks({ pivotRole: 'current', nodeKind: null })).toBe(false)
+    expect(r2NeverStacks({ pivotRole: null, nodeKind: 'lvn' })).toBe(false)
   })
 })
 

@@ -1,9 +1,10 @@
 import type { ConfluenceBand, Reference } from './contextTypes'
-import { r1SameBand, r1WithinCap, type BandTolerance } from './rules'
+import { r1SameBand, r1WithinCap, r2NeverStacks, type BandTolerance } from './rules'
 
 /**
  * Confluence bands (R1 / R1b, feat-126): references within one merge
- * tolerance chain TRANSITIVELY into a band; a chain wider than the cap splits
+ * tolerance chain TRANSITIVELY into a band (prior-day pivots and hvns never
+ * chain — feat-153); a chain wider than the cap splits
  * at its largest internal gap (recursively) until every piece fits; each band
  * is quoted as [lowest member, highest member] and anchored on its
  * highest-significance ARMABLE member (destination-only members last, then
@@ -88,13 +89,27 @@ function toBand(members: readonly Reference[], index: number): ConfluenceBand {
   }
 }
 
-/** Bands low → high, ids `band-01`… in that order. */
+/** A prior-day pivot or an hvn never joins a band (R2, feat-153): it stands alone as a target. */
+export function neverStacks(reference: Reference): boolean {
+  return r2NeverStacks({ pivotRole: reference.pivot?.role ?? null, nodeKind: reference.node?.kind ?? null })
+}
+
+const byPrice = (a: Reference, b: Reference): number => a.price - b.price || a.id.localeCompare(b.id)
+
+/**
+ * Bands low → high, ids `band-01`… in that order. Never-stacking references
+ * (prior-day pivots, hvns) are kept OUT of the chaining — each is its own
+ * single-member band, so it never widens, anchors, or strengthens a level;
+ * an armable band on either side of one is not bridged through it.
+ */
 export function buildConfluenceBands(
   references: readonly Reference[],
   tolerance: BandTolerance,
 ): ConfluenceBand[] {
-  const sorted = [...references].sort((a, b) => a.price - b.price || a.id.localeCompare(b.id))
-  return chain(sorted, tolerance.merge)
-    .flatMap((cluster) => splitToCap(cluster, tolerance.cap))
+  const stacking = references.filter((r) => !neverStacks(r)).sort(byPrice)
+  const standalone = references.filter(neverStacks).map((r) => [r])
+  const clusters = chain(stacking, tolerance.merge).flatMap((cluster) => splitToCap(cluster, tolerance.cap))
+  return [...clusters, ...standalone]
+    .sort((a, b) => Math.min(...a.map((m) => m.price)) - Math.min(...b.map((m) => m.price)) || a[0].id.localeCompare(b[0].id))
     .map(toBand)
 }

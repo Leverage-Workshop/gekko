@@ -281,17 +281,19 @@ describe('confluence bands (R1 / R1b)', () => {
     expect(band.destinationOnly).toBe(true)
   })
 
-  it("feat-153: a band of an hvn and a prior session's pivot is destination-only; with an armable member it is not, and the armable member anchors it", () => {
+  it("feat-153: an hvn and a prior session's pivot NEVER stack — each is its own destination-only band, and a level beside them stays lone", () => {
     const hvn = ref('hvn', 'profile-balance', 100, { node: { profile: 'balance', kind: 'hvn', prominence: 1, primary: true, position: 'mid', edgeBelow: 'ledge', edgeAbove: 'flat', agreement: 3, samples: 3, distributionEdges: [] } })
     const prior = ref('prior', 'daily-job-pivot', 104, { subRank: 1, pivot: { role: 'historical', sessionDate: '2026-08-20', testedStatus: 'untested' } })
     expect(hvn.destinationOnly).toBe(true)
     expect(prior.destinationOnly).toBe(true)
-    const [lone] = buildConfluenceBands([hvn, prior], NQ)
-    expect(lone).toMatchObject({ destinationOnly: true, anchorId: 'prior', memberCount: 2 })
-    // a lower-tier mgi-other level in the same band takes the anchor over the prior pivot (R2 rank 2) and the primary hvn
-    const [armable] = buildConfluenceBands([hvn, prior, ref('ibh', 'mgi-other', 108)], NQ)
-    expect(armable).toMatchObject({ destinationOnly: false, anchorId: 'ibh', anchorSource: 'mgi-other', confluence: true })
-    expect(armable.members.map((m) => m.id)).toEqual(['ibh', 'prior', 'hvn'])
+    // within one merge tolerance of each other, still two bands
+    expect(buildConfluenceBands([hvn, prior], NQ).map((b) => [b.anchorId, b.destinationOnly, b.memberCount])).toEqual([['hvn', true, 1], ['prior', true, 1]])
+    // a lone mgi-other level 4 pts from the prior pivot is NOT promoted by it: three bands, the IBH lone and unstacked
+    const bands = buildConfluenceBands([hvn, prior, ref('ibh', 'mgi-other', 108)], NQ)
+    expect(bands.map((b) => [b.id, b.anchorId, b.confluence, b.destinationOnly])).toEqual([['band-01', 'hvn', false, true], ['band-02', 'prior', false, true], ['band-03', 'ibh', false, false]])
+    // …and two armable levels are never bridged through one: 100 and 130 are 30 apart, an hvn at 115 does not chain them
+    const bridged = buildConfluenceBands([ref('a', 'rip', 100), { ...hvn, id: 'mid', price: 115, priceLow: 115, priceHigh: 115 }, ref('b', 'rip', 130)], NQ)
+    expect(bridged.map((b) => [b.anchorId, b.low, b.high])).toEqual([['a', 100, 100], ['mid', 115, 115], ['b', 130, 130]])
   })
 
   it('resolves ES tolerances (5 / 10) from the instrument', () => {

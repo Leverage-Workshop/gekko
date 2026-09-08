@@ -21,7 +21,7 @@ import type { NodeKind } from './profile-vision/schema'
  * it is part of every persisted plan's reproducibility fingerprint.
  */
 
-export const PLANNER_REVISION = 'job-planner/2026-09-07.1'
+export const PLANNER_REVISION = 'job-planner/2026-09-07.2'
 
 export type RuleId =
   | 'R1'
@@ -57,7 +57,7 @@ export type RuleEntry = {
 export const RULE_TABLE: readonly RuleEntry[] = [
   { id: 'R1', title: 'Confluence band — merge tolerance / chain cap (ES)', owner: 'feat-126', ratified: true, predicate: 'r1SameBand / r1WithinCap' },
   { id: 'R1b', title: 'Confluence band — same, NQ', owner: 'feat-126', ratified: true, predicate: 'resolveBandTolerance' },
-  { id: 'R2', title: 'Source significance (band anchor + tie-break)', owner: 'feat-126', ratified: true, predicate: 'r2Significance / r2DestinationOnly / r2DestinationOnlyReference' },
+  { id: 'R2', title: 'Source significance (band anchor + tie-break)', owner: 'feat-126', ratified: true, predicate: 'r2Significance / r2DestinationOnly / r2NeverStacks / r2DestinationOnlyReference' },
   { id: 'R3', title: '"At" a band', owner: 'feat-126', ratified: true, predicate: 'r3AtBand' },
   { id: 'R4', title: 'Within reach (actionable-if-reached vs destination)', owner: 'feat-126', ratified: true, predicate: 'r4WithinReach' },
   { id: 'R5', title: 'Failed look', owner: 'feat-126', ratified: true, predicate: 'r5FailedLook / r5Grade' },
@@ -156,17 +156,27 @@ export type DestinationOnlyFacts = {
 }
 
 /**
- * R2 (feat-153, operator 2026-09-07): a reference is destination-only — a
- * target price never armed as an entry area — when it is a ladder rung, a
- * PRIOR session's daily Job Pivot ("I don't want them used as entry level
- * candidates"), or a profile HVN ("they can be used as targets, but that's
- * it"). A band is destination-only when EVERY member is (confluenceBands);
- * these members never anchor a band that has an armable member.
+ * R2 (feat-153, operator 2026-09-07): a PRIOR session's daily Job Pivot ("I
+ * don't want them used as entry level candidates") and a profile HVN ("they
+ * can be used as targets, but that's it" — "I don't want them stacking at
+ * all") NEVER STACK: they never join a confluence band, never widen one,
+ * never count toward one. Each is its own single-member destination-only
+ * band (confluenceBands). Rungs are different: destination-only, but they
+ * ride in a band as confluence-only members (ratified 2026-09-07).
+ */
+export function r2NeverStacks(facts: Pick<DestinationOnlyFacts, 'pivotRole' | 'nodeKind'>): boolean {
+  return facts.pivotRole === 'historical' || facts.nodeKind === 'hvn'
+}
+
+/**
+ * R2 (feat-153): a reference is destination-only — a target price never
+ * armed as an entry area — when it is a ladder rung or a never-stacking
+ * reference (prior-day pivot, hvn). A band is destination-only when EVERY
+ * member is; a destination-only member never anchors a band that has an
+ * armable member.
  */
 export function r2DestinationOnlyReference(facts: DestinationOnlyFacts): boolean {
-  if (r2DestinationOnly(facts.source)) return true
-  if (facts.pivotRole === 'historical') return true
-  return facts.nodeKind === 'hvn'
+  return r2DestinationOnly(facts.source) || r2NeverStacks(facts)
 }
 
 // ---------------------------------------------------------------------------
@@ -435,7 +445,7 @@ export function r13TradingDayMatches(studyTradingDay: string, bundleTradingDay: 
 export const IMPLEMENTED_RULES = {
   R1: [r1SameBand, r1WithinCap],
   R1b: [resolveBandTolerance],
-  R2: [r2Significance, r2DestinationOnly, r2DestinationOnlyReference],
+  R2: [r2Significance, r2DestinationOnly, r2NeverStacks, r2DestinationOnlyReference],
   R3: [r3AtBand],
   R4: [r4WithinReach],
   R5: [r5FailedLook, r5Grade],

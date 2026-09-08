@@ -101,7 +101,7 @@ export type ConfluenceBand = {
   readonly memberCount: number
   /** More than one member — a promoter, not the ranking. */
   readonly confluence: boolean
-  /** Every member is destination-only (a rung, a prior-day pivot, an hvn). */
+  /** Every member is destination-only (rungs; a prior-day pivot or an hvn always stands alone — feat-153). */
   readonly destinationOnly: boolean
   /** Best profile prominence among members (1 = primary), null without a node. */
   readonly prominence: number | null
