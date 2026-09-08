@@ -33,10 +33,12 @@ export function tierOf(draft: PlayDraft): number {
   return draft.activation.demoted ? TIER_DEMOTED : TIER_FRESH
 }
 
-/** Within one side of one tier: zone edges, then nearest, then R2 significance. */
+/** Within one side of one tier: zone edges, then with-the-trend before the counter-trend fail ("generally you don't want to go against trend"), then the fade on arrival before the hold-after-break (feat-149), then nearest, then R2 significance. */
 function withinSide(a: PlayDraft, b: PlayDraft): number {
   return (
     Number(b.precedence.enclosingEdge) - Number(a.precedence.enclosingEdge) ||
+    Number(b.precedence.primary) - Number(a.precedence.primary) ||
+    Number(a.precedence.continuation) - Number(b.precedence.continuation) ||
     a.precedence.distancePts - b.precedence.distancePts ||
     a.precedence.significance - b.precedence.significance ||
     a.precedence.bandKey.localeCompare(b.precedence.bandKey)
@@ -58,9 +60,17 @@ export function rankDrafts(drafts: readonly PlayDraft[], frame: PlanFrame | null
   const tiers = [...new Set(keyed.map((d) => d.precedence.tier))].sort((a, b) => a - b)
   return tiers.flatMap((tier) => {
     const group = keyed.filter((d) => d.precedence.tier === tier).sort(withinSide)
+    // feat-149: with a directional frame the SIDES OF THE FRAME alternate, bias
+    // side first — a counter-trend fail at an unreached level is still a
+    // bias-side scenario, so alternating on direction alone could let it crowd
+    // out the fork scenario under the cap (Codex P2).
+    if (dir !== null) {
+      const leads = group.filter((d) => d.precedence.frameSide !== 'fork')
+      return interleave(leads, group.filter((d) => d.precedence.frameSide === 'fork'))
+    }
     // With no frame direction ('at' the line) the structurally-first play's side
     // leads — both sides still alternate so the cap never one-sides the plan.
-    const lead = dir ?? group.find((d) => d.direction !== 'two-way')?.direction ?? null
+    const lead = group.find((d) => d.direction !== 'two-way')?.direction ?? null
     if (lead === null) return group
     const leads = group.filter((d) => d.direction === lead || d.direction === 'two-way')
     return interleave(leads, group.filter((d) => !leads.includes(d)))

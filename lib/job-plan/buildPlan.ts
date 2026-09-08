@@ -4,7 +4,7 @@ import { planFrame } from './planFrame'
 import { rankPlays } from './planPrecedence'
 import type { PlayDraft } from './planTypes'
 import { selectCandidates } from './playCandidates'
-import { buildBandPlay } from './playGrammar'
+import { buildBandPlays } from './playGrammar'
 import { fmtPrice, fmtRange, membersAtPrice, referenceProvenance } from './playText'
 import { PLANNER_REVISION } from './rules'
 
@@ -19,10 +19,12 @@ import { PLANNER_REVISION } from './rules'
  *      → `status: 'insufficient'`, zero plays, reasons spelled out.
  *   2. The FRAME (planFrame.ts / frameCandidates.ts): the BIAS LINE — feat-148 — price vs the
  *      weekly Job Pivot names the productive side.
- *   3. R12 actionable set (playCandidates.ts).
- *   4. One forward-conditional play per candidate — the expected response on
- *      arrival with both outcomes stated (playGrammar.ts); a mid-zone
- *      context (R10) adds the two-way stand-down play.
+ *   3. R12 actionable set (playCandidates.ts), walked against the FRAME since
+ *      feat-149: the bias side, the line, beyond price, the far side.
+ *   4. Forward-conditional plays per candidate — the fade on arrival, or the
+ *      hold after a break (feat-149), both outcomes stated (playGrammar.ts);
+ *      the frame band carries both directions; a mid-zone context (R10)
+ *      adds the two-way stand-down play.
  *   5. The precedence table ranks by frame alignment + structure, caps at
  *      four and names the primary look (planPrecedence.ts). Whatever is
  *      pruned says why.
@@ -188,17 +190,17 @@ function zoneDraft(zone: EnclosingZone, context: JobContext): PlayDraft {
     dont: "Don't trade full size in the middle — nobody wants to be full size in the middle; wait for the edges",
     uncertaintyBand: null,
     summary: `Stay inside ${fmtRange(zone.lowerEdge.price, zone.upperEdge.price)} (${zone.lowerEdge.label} – ${zone.upperEdge.label}) → balance; play the edges, stand down in the middle`,
-    precedence: { tier: 0, aligned: true, enclosingEdge: false, significance: -1, distancePts: 0, bandKey: 'zone' },
+    precedence: { tier: 0, aligned: true, primary: true, continuation: false, frameSide: null, enclosingEdge: false, significance: -1, distancePts: 0, bandKey: 'zone' },
   }
 }
 
 function draftPlays(context: JobContext, frame: PlanFrame | null): { drafts: PlayDraft[]; pruned: PrunedBranch[] } {
-  const selection = selectCandidates(context)
+  const selection = selectCandidates(context, frame)
   const drafts: PlayDraft[] = []
   const pruned: PrunedBranch[] = [...selection.pruned]
   for (const candidate of selection.candidates) {
-    const result = buildBandPlay(candidate, context, frame)
-    if ('draft' in result) drafts.push(result.draft)
+    const result = buildBandPlays(candidate, context, frame)
+    if ('drafts' in result) drafts.push(...result.drafts)
     else pruned.push({ bandId: candidate.band.id, label: `${candidate.band.members[0].label} ${fmtRange(candidate.band.low, candidate.band.high)}`, reason: result.pruned })
   }
   const zone = context.location.enclosingZone

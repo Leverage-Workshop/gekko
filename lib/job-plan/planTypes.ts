@@ -26,6 +26,12 @@ export type PrecedenceKey = {
   readonly tier: number
   /** The play's direction agrees with the frame (or there is no frame direction). */
   readonly aligned: boolean
+  /** feat-149: the play is in its relation's PRIMARY direction (with the trend on the bias side, the fork direction beyond the line); a counter-trend fail is not. Ranks first within a side. */
+  readonly primary: boolean
+  /** feat-149: the fade on arrival ranks ahead of the hold-after-break within a side. */
+  readonly continuation: boolean
+  /** feat-149: which side of the FRAME the play addresses — sides alternate on this, not on direction; null with no frame direction (or the zone play). */
+  readonly frameSide: 'bias' | 'fork' | null
   readonly enclosingEdge: boolean
   /** The band anchor's R2 rank (lower = more significant structure). */
   readonly significance: number

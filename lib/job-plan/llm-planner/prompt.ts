@@ -43,7 +43,16 @@ import { MAX_PLAYS } from '../rules'
  * lone line; beyond the gates the model keeps its latitude. "At" the band is
  * a legal state (the fork), never a reason to reach for a farther line.
  */
-export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-07.1'
+/**
+ * 2026-09-07 eve (feat-149): plays are read against the FRAME, not price.
+ * The first bias-line plan wrote a counter-bias short above price and nothing
+ * below the line, because direction came from geometry and "both sides" meant
+ * both sides of price. Now: bias side → bias direction (rebid on arrival, or
+ * break-and-hold beyond price — "price has to break it and hold to get in");
+ * the line carries both directions; the far side → fork direction, each level
+ * conditional on the last; "both sides" = both sides of the LINE.
+ */
+export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-07.2'
 
 export const ROLE =
   'You are writing the trading-day plan for a futures session the way a professional prepares one before the session does anything: a frame, then a short list of forward conditionals — what to expect IF price reaches the few areas that matter. You are given everything already measured: the level inventory with importance ranks, the confluence bands, distances, the day’s volatility scale, and each area’s freshness. None of the measuring is your job. Your job is the judgment: which band is the day’s bias line, which areas deserve a play, and what to expect at each one.'
@@ -59,8 +68,8 @@ export const RULES: readonly Rule[] = [
     text: 'The frame answers one question — at what level do you look for longs above it and shorts below it? Positions never have to start at the line: above it every play is a long at an area that offers a rebid, below it every play is a short at an area that offers a reoffer. Choose from frameCandidates. Each is a band holding an eligible anchor, with its ladder tier: the current daily Job Pivot first (the session built it, and you run after the open); then the weekly Job Pivot and the G line at equal rank, when they are near; then the borders of the JBA price is inside, or the nearest border each side; then the boundary LVNs of the distribution price is inside, balance-area profile before rotation. Weekly rungs and the overnight and prior-day extremes never anchor, but they strengthen a band they sit in — a stacked band outranks a lone line. Reach is a wall for every tier but the daily pivot: a line a session away fixes the bias all day, which is no filter. Within those gates the choice is yours; say why in one sentence. When price sits at the band there is no bias yet — holding above it, longs at the areas above; losing it, shorts at the areas below — never reach for a farther line to manufacture a side.',
   },
   {
-    title: 'BOTH SIDES, ALWAYS',
-    text: 'Outline what to expect if price goes UP to the most significant area above, and if it goes DOWN to the most significant area below. Lead with the frame side. A side with nothing worth writing gets a one-line reason instead of a filler play.',
+    title: 'BOTH SIDES OF THE LINE, ALWAYS',
+    text: 'The two sides of the plan are the two sides of the FRAME, not of price. The BIAS side: with price above the line, the areas between the line and price are longs where a pullback will rebid, and so is the line itself. An area above price that has not been reached yet is a long where the trade is the hold after the break, never the break itself (price has to break it and hold to get in); when that area is a real important level — a JBA border, a pivot, the G line, a prior-day or overnight extreme, or a stacked band — it is also a short on a fail there (a JBA border overhead can also be a short). Generally you do not go against the trend unless it is a level of that nature. Trades at levels price has not reached are always one of those two — a fail against the line’s direction, or a breach-and-hold with it. The FORK side: what to do once price loses the line — the line itself becomes a reoffer on the pullback into it, then each significant level beyond it in turn, each conditional on the last (if price breaks the line, then another important level, the pullback into that level is the play); at a real important level out there the bounce against the new bias is worth a line too, as a fail only. Mirror all of it with price below the line. Lead with the bias side. A side with nothing worth writing gets a one-line reason instead of a filler play.',
   },
   {
     title: 'PICK AREAS BY WEIGHT, NOT DISTANCE ALONE',
@@ -68,7 +77,7 @@ export const RULES: readonly Rule[] = [
   },
   {
     title: 'EVERY PLAY IS A FORWARD CONDITIONAL, WRITTEN IN FUTURE TENSE',
-    text: 'State the approach and the expected turn: price reaches the area from above or below, the area holds, and the traverse back runs toward the destinations beyond it. Do not prescribe the entry price action at the level — no trigger patterns, no confirmation recipes; the operator trades the level, the plan names it. Direction comes from geometry: an area above price is watched for offer, below for bid; inside an area, lean with the frame. If the session has already interacted with an area without producing a fail or a defense, say so — it ranks behind fresh areas but KEEPS its play when it is still where price would turn; freshness is the only thing session history changes, and it never deletes an area from the plan.',
+    text: 'State the approach and the expected turn: price reaches the area, the area holds, and the traverse runs toward the destinations beyond it — or, for a level not yet reached, price breaks it, holds, and the pullback that respects it is the entry. Do not prescribe the entry price action at the level — no trigger patterns, no confirmation recipes; the operator trades the level, the plan names it. Direction comes from the FRAME, never from geometry alone: between the line and price every play is in the bias direction; the line carries both — the bias direction while it holds, the fork direction once it is lost; an unreached level beyond price carries the bias direction as a breach-and-hold and, only when it is a real important level, the other direction as a fail; on the far side every play is the fork direction, conditional on the line being lost, plus the fail against it at a real important level. A plain counter-trend fade never exists anywhere. If the session has already interacted with an area without producing a fail or a defense, say so — it ranks behind fresh areas but KEEPS its play when it is still where price would turn; freshness is the only thing session history changes, and it never deletes an area from the plan.',
   },
   {
     title: 'STATE THE FORK',
@@ -101,8 +110,8 @@ function rulesText(): string {
 
 const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - frame.bandId: the bandId of the frameCandidates entry that is the day’s bias line; frame.rationale: one sentence on why this band.
-- plays: at most ${MAX_PLAYS}, ordered by precedence — the first play is the primary look, and sides alternate starting from the frame side. Each play names its area by bandId (choose from bands); direction is 'long' for an area below price, 'short' for an area above (inside an area, lean with the frame). text: the play in the register of the rules — the approach, the expected turn, the traverse toward the structure beyond, and the fork if price builds through instead — naming levels by their labels (a numeric price you write must be one the payload carries — never invent one). rationale: why this area won its side, including the breach test whenever you reached past a nearer level.
-- sidesWithoutPlay: one entry per side (above / below) that carries no play, with the one-line reason.
+- plays: at most ${MAX_PLAYS}, ordered by precedence — the first play is the primary look, and the bias side and the fork side alternate starting from the bias side. Each play names its area by bandId (choose from bands); direction follows rule 4 — the bias direction between the line and price, the fork direction only beyond the line, and the frame band, or an unreached important level, may appear TWICE, once per direction. text: the play in the register of the rules — the approach (or the break and hold), the expected turn, the traverse toward the structure beyond, and what happens if price builds through instead — naming levels by their labels (a numeric price you write must be one the payload carries — never invent one). rationale: why this area won its side, including the breach test whenever you reached past a nearer level.
+- sidesWithoutPlay: one entry per side that carries no play, with the one-line reason — the sides are 'bias' and 'fork' (when the frame is at its band and has no direction yet, 'above' and 'below' price instead).
 - lean: one line naming the primary look and the side to lean with.
 - Every bandId and referenceId must come from the payload — never invent an id, a level, or a price. Do not restate session history as justification for any play.`
 

@@ -79,14 +79,9 @@ export function assembleLlmPlan(input: AssembleLlmPlanInput): JobPlan {
   const frame = { ...frameFor(context, candidate), llmRationale: judgment.frame.rationale }
 
   const ordered = judgment.plays.map((play): PlayDraft => {
-    const result = buildBandPlay(candidateFor(context, play.bandId), context, frame)
+    const result = buildBandPlay(candidateFor(context, play.bandId), context, frame, play.direction)
     if (!('draft' in result)) {
-      throw new LlmPlanAssemblyError(`band ${play.bandId} has no directional read: ${result.pruned}`)
-    }
-    if (result.draft.direction !== play.direction) {
-      throw new LlmPlanAssemblyError(
-        `band ${play.bandId}: judged ${play.direction} but geometry composes ${result.draft.direction}`,
-      )
+      throw new LlmPlanAssemblyError(`band ${play.bandId} ${play.direction}: ${result.pruned}`)
     }
     // The model's forward conditional is the visible one-liner; the code
     // grammar keeps owning trigger, invalidation, destinations, provenance.

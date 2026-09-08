@@ -134,12 +134,17 @@ describe('invariants over the corpus', () => {
     expect(p.plays.some((x) => x.stance === 'stand-down')).toBe(true)
   })
 
-  it.each(CORPUS)('%s: confirmed initiative and a fade at the same band never coexist; one play per band', (_, p) => {
-    const bands = p.plays.map((x) => x.band.bandId).filter((id): id is string => id !== null)
-    expect(new Set(bands).size).toBe(bands.length)
-    for (const play of p.plays.filter((x) => x.condition === 'build-beyond-continuation')) {
-      expect(p.plays.filter((x) => x.band.bandId === play.band.bandId && x.stance !== 'continuation')).toEqual([])
+  it.each(CORPUS)('%s: at most one play per band per direction — a band carrying two carries one of each (the line, or an unreached level beyond price)', (_, p) => {
+    const keys = p.plays.filter((x) => x.band.bandId !== null).map((x) => `${x.band.bandId}:${x.direction}`)
+    expect(new Set(keys).size).toBe(keys.length)
+    const byBand = new Map<string, string[]>()
+    for (const x of p.plays) if (x.band.bandId) byBand.set(x.band.bandId, [...(byBand.get(x.band.bandId) ?? []), x.direction])
+    for (const dirs of byBand.values()) {
+      expect(dirs.length).toBeLessThanOrEqual(2)
+      if (dirs.length === 2) expect(new Set(dirs).size).toBe(2)
     }
+    // a continuation is always a forward conditional — never armed off a fact
+    for (const play of p.plays.filter((x) => x.condition === 'build-beyond-continuation')) expect(play.activation.grounding).toBe('none')
   })
 
   it.each(CORPUS)('%s: no quoted price outside the supplied geometry unless derived and labeled', (_, p) => {
