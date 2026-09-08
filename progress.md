@@ -4,6 +4,32 @@
 
 **Last Updated:** 2026-09-07
 
+**Latest change (branch `feat-149-plays-vs-frame`): plays are read against the FRAME, not price.**
+The first feat-148 plan (23:39Z, price 73 pts above the daily pivot band) wrote a counter-bias short
+above price and nothing below the line — geometry-vs-price direction plus rule 2's both-sides-of-PRICE
+made the far side inexpressible. Operator (same evening, with a drawing): both sides of the trend
+line need options; the same band may be a long AND a short (purple); a JBA border overhead can be a
+short; trades at unreached levels are either a fail against the line's direction or a breach-and-hold
+with it ("price has to break it and hold to get in"); generally don't go against trend unless it's a
+real important level. New `lib/job-plan/frameRelation.ts` reads each band against a directional
+frame — bias (pullback fade), line (fade while it holds + break-and-hold once lost, both directions),
+beyond (break-and-hold with the bias + the counter fail at an important level only), far (fork hold
+conditional on losing the line + the bounce at an important level). `playGrammar.ts` gains the
+continuation shape (`stance: continuation`, `condition: build-beyond-continuation`, "Only once price
+has lost the <line>" prefix on fork plays; `buildBandPlays` + `buildBandPlay(direction)`);
+`playCandidates.ts` walks nearest-first per relation (line always, when in reach); precedence
+alternates the SIDES OF THE FRAME and ranks with-trend → arrival → nearest. LLM planner
+`llm-planner/2026-09-07.2`: rules 2 and 4 rewritten, `sidesWithoutPlay` sides `bias`/`fork`, gates
+`play_direction_frame` + per-direction duplicates, shadow diff by direction sets. Invariant relaxed to
+one play per band PER DIRECTION. The `job_plan_bands` view already emits `both` for a two-way band and
+the Sierra study's Two-Sided colour already defaults to purple — no DB or Sierra change.
+
+Codex gate: PASS x2. Round 1 P2 — precedence interleaved on direction, so a counter-trend fail could
+crowd the fork scenario out under the cap — FIXED (alternate on frame side; landed together with the
+operator's important-level rule). Round 2 no findings.
+
+---
+
 **Latest change (branch `feat-148-frame-bias-line`): the Job plan frame is a BIAS LINE — part 2
 of the 2026-09-07 frame rewrite.** The frame answers "at what level do I look for longs above and
 shorts below"; positions never have to initiate at it. New `lib/job-plan/frameCandidates.ts`:

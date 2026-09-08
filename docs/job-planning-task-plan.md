@@ -919,10 +919,17 @@ the line (mirror below):
 - **line** (the frame band): the rebid while it holds AND, once lost, the break-and-hold below with
   the pullback into it as the short — both directions on one band (`job_plan_bands` kind `both`,
   the Sierra study's Two-Sided colour is already purple).
-- **beyond** (bias side past price, not yet reached): the break-and-hold long AND the counter-bias
-  short as a FAIL only (look-and-fail, never the arrival alone).
-- **far** (beyond the line): fork-direction break-and-hold only, each level conditional on losing
-  the line — "Only once price has lost the <line>: …".
+- **beyond** (bias side past price, not yet reached): the break-and-hold long AND — only at a REAL
+  important level (a JBA edge, a pivot, the G line, a prior-day / overnight extreme, or a stacked
+  band; `IMPORTANT_LEVEL_SOURCES`) — the counter-bias short as a FAIL only (look-and-fail, never the
+  arrival alone). Operator's drawing: "generally you don't want to go against trend, unless it's a
+  real important level… like the edge of a JBA".
+- **far** (beyond the line): fork-direction break-and-hold, each level conditional on losing the
+  line — "Only once price has lost the <line>: …" — plus, at an important level, the bounce against
+  the new bias (the drawing's green V at the lower pink), as a fail only.
+- Precedence alternates the SIDES OF THE FRAME (bias / fork), never long / short, and within a side
+  ranks the with-trend play ahead of the counter-trend fail, then the fade on arrival ahead of the
+  hold-after-break.
 Two play SHAPES in the grammar: `arrival` (rebid/reoffer, hold-traverse or look-and-fail) and
 `continuation` (stance `continuation`, condition `build-beyond-continuation` — the hold after the
 break, never the break). The deterministic walk (`playCandidates.ts`) arms nearest-first per
