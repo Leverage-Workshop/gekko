@@ -65,6 +65,8 @@ function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
     frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Nearest stacked structure within reach.' },
     plays: [
       { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer and a turn back toward the Daily Pivot.', rationale: 'The line; confluent with the overnight high.' },
+      { bandId: bandOf(ctx, 'dp'), direction: 'short', text: 'If price breaks the Daily Pivot and holds below, the pullback into it is the short.', rationale: 'Unreached level on the bias side: the hold.' },
+      // feat-150: an unreached important level carries both reads
       { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'A fail at the Daily Pivot turns price back toward the Weekly Pivot.', rationale: 'Unreached level on the bias side: the fail.' },
     ],
     sidesWithoutPlay: [{ side: 'fork', reason: 'above the Weekly Pivot only the rung and the far G line' }],
@@ -81,15 +83,16 @@ describe('assembleLlmPlan', () => {
     expect(JobPlanSchema.safeParse(plan).success).toBe(true)
     expect(plan.status).toBe('ready')
     expect(plan.plays.map((p) => p.band.bandId)).toEqual(judgment.plays.map((p) => p.bandId))
-    expect(plan.plays.map((p) => p.direction)).toEqual(['short', 'long'])
+    expect(plan.plays.map((p) => p.direction)).toEqual(['short', 'short', 'long'])
     expect(plan.plays[0]).toMatchObject({ rank: 1, primary: true, summary: judgment.plays[0].text, llmRationale: judgment.plays[0].rationale })
 
     // The geometry-heavy parts came from the deterministic grammar.
     for (const play of plan.plays) {
       expect(play.trigger.length).toBeGreaterThan(0)
       expect(play.invalidation.provenance.referenceIds.length).toBeGreaterThan(0)
-      expect(play.destinations.length).toBeGreaterThan(0)
     }
+    // the arrivals chain destinations; the daily-pivot hold has only the historical pivot below it in this inventory
+    expect(plan.plays.filter((p) => p.stance !== 'continuation').every((p) => p.destinations.length > 0)).toBe(true)
 
     expect(plan.frame).toMatchObject({ referenceId: 'wp', side: 'below', llmRationale: judgment.frame.rationale })
     expect(plan.lean).toMatchObject({ playId: 'play-1', basis: 'frame', text: judgment.lean })
@@ -144,6 +147,7 @@ describe('assembleLlmPlan', () => {
     const plan = assembleLlmPlan({ judgment: both, context: ctx, modelId: 'm' })
     expect(plan.plays.map((p) => [p.band.bandId, p.direction, p.stance])).toEqual([
       [bandOf(ctx, 'wp'), 'short', 'reoffer'],
+      [bandOf(ctx, 'dp'), 'short', 'continuation'],
       [bandOf(ctx, 'dp'), 'long', 'rebid'],
       [bandOf(ctx, 'wp'), 'long', 'continuation'],
     ])
@@ -181,12 +185,19 @@ function judgmentFor(payload: LlmContextPayload): LlmPlanJudgment {
       .sort((a, b) => a.distancePts - b.distancePts)[0]
   const above = nearest('above')
   const below = nearest('below')
+  // feat-150: an unreached important level beyond price carries both reads or neither
+  // (the frame side is where the bias points: with price above the line the areas ABOVE price are the unreached bias-side levels)
+  const beyondPrice = (band: LlmContextPayload['bands'][number]) => (frame.side === 'above' ? band.side === 'above' : frame.side === 'below' ? band.side === 'below' : false)
+  const pair = (band: LlmContextPayload['bands'][number], first: 'long' | 'short') =>
+    band.important && band.bandId !== frame.bandId && beyondPrice(band)
+      ? [
+          { bandId: band.bandId, direction: first, text: `If price reaches ${band.label}, expect the turn.`, rationale: 'Important level: the fail.' },
+          { bandId: band.bandId, direction: first === 'long' ? ('short' as const) : ('long' as const), text: `If price breaks ${band.label} and holds, the pullback into it is the trade.`, rationale: 'Important level: the hold.' },
+        ]
+      : [{ bandId: band.bandId, direction: first, text: `If price reaches ${band.label}, expect the turn back.`, rationale: 'Nearest significant area.' }]
   return {
     frame: { bandId: frame.bandId, rationale: 'The strongest candidate band within reach.' },
-    plays: [
-      ...(above ? [{ bandId: above.bandId, direction: 'short' as const, text: `If price reaches ${above.label}, expect the offer and a turn back down.`, rationale: 'Nearest significant area above.' }] : []),
-      ...(below ? [{ bandId: below.bandId, direction: 'long' as const, text: `If price reaches ${below.label}, expect the bid and a turn back up.`, rationale: 'Nearest significant area below.' }] : []),
-    ],
+    plays: [...(above ? pair(above, 'short') : []), ...(below ? pair(below, 'long') : [])],
     // feat-149: excuse whichever sides the two nearest-area plays leave unaddressed (extra reasons are harmless)
     sidesWithoutPlay: [
       { side: 'fork' as const, reason: 'nothing beyond the line worth holding on the pullback' },

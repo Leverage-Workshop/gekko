@@ -4,6 +4,36 @@
 
 **Last Updated:** 2026-09-07
 
+**Latest change (branch `feat-150-important-levels-two-way`): important levels are anything that can
+frame the day, and an unreached important level carries BOTH reads.** The first feat-149 plan
+(b7e34e2f, price 29299 above the daily pivot) wrote band-19 29348–29377 — the balance-area lvn that is
+the LOWER EDGE of the rank-2 distribution 29380–29722, with VRange High, IBH, a rotation hvn and Daily
+1A stacked into it — as a long break-and-hold only. Operator: "prime example of where it should be a
+fade… at the very least a level that could be a long or short"; "if they are allowed as trendline
+candidates, they are definitely important enough to cause a countertrend trade"; "confluence of 5…
+more likely to trigger a countertrend trade". Root causes (all feat-149 play side; the feat-148 ladder
+already listed band-19 as the tier-3 frame candidate): `IMPORTANT_LEVEL_SOURCES` omitted distribution
+boundary LVNs; the LLM payload stripped `distributionEdges` (only prominence survived) and the play
+rules never mentioned distributions; the counter fail was optional and always subordinate. Now
+`importantReasons(band)` (distribution-edge node / important source / confluence, one reason each),
+`fadeFirst(band)` = important AND stacked → `FrameRead.fadeFirst` makes the fail the FIRST read beyond
+price (bias side only; far side unchanged); payload bands carry `important` / `importantBecause` /
+`fadeFirst` / `distributionEdges` in words; new hard gate `play_important_level_one_sided` (both reads
+or neither at an unreached important level beyond price, the retry names the missing play); prompt
+`llm-planner/2026-09-07.3` rules 2/4 + output rules rewritten. MAX_PLAYS stays 4 (a pair spends two
+slots). Replaying tonight's judgment through the new validator trips the gate on band-19, as intended.
+Left alone: the deterministic rollback path's precedence quirk (the line's reoffer ranks non-primary
+behind a far-side continuation) and a label collision (two different balance lvns both labelled
+"balance-area lvn #2" in this bundle) — both noted, neither in production.
+
+Codex gate: PASS, one P2 DISMISSED — "keep important-level play pairs atomic under the cap": the
+deterministic `rankPlays` slice can keep one direction of a pair and drop the other. True, and it is
+the rollback path only (the LLM planner has been production since feat-145; its gate enforces
+both-or-neither before assembly). Pairing atomically inside the side-alternating interleave is a
+precedence redesign that belongs with the other deterministic-path quirk above, not in this fix.
+
+---
+
 **Latest change (branch `feat-149-plays-vs-frame`): plays are read against the FRAME, not price.**
 The first feat-148 plan (23:39Z, price 73 pts above the daily pivot band) wrote a counter-bias short
 above price and nothing below the line — geometry-vs-price direction plus rule 2's both-sides-of-PRICE

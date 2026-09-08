@@ -938,6 +938,38 @@ LLM: rules 2 and 4 rewritten (`llm-planner/2026-09-07.2`), `sidesWithoutPlay` si
 `fork` (price-sides only when the frame is at its band), gates `play_direction_frame` +
 per-direction duplicates. With the frame AT its band the read falls back to geometry against price.
 
+**Same night (feat-150) — important levels are anything that can frame the day; they carry BOTH reads.**
+The first plan under feat-149 (price 29299, frame above the daily pivot) wrote band-19 29348–29377 —
+the balance-area lvn that is the LOWER EDGE of the rank-2 distribution 29380–29722 (ledge above), with
+VRange High, IBH, a rotation hvn and the Daily 1A rung stacked into it, 49 pts overhead — as a long
+break-and-hold ONLY. Operator: "prime example of where it should be a fade… at the very least it
+should be a level that could be a long or short"; "if they are allowed as trendline candidates, they
+are definitely important enough to cause a countertrend trade"; "confluence of 5 different makes it a
+strong level, and more likely to trigger a countertrend trade". Three defects, all in feat-149's
+play side (the frame ladder from feat-148 already knew band-19 could frame the day — it was the
+tier-3 candidate "nearest distribution edge above price"):
+1. `IMPORTANT_LEVEL_SOURCES` was a hand list (JBA edge, pivots, G line, PDH/PDL, ONH/ONL) that left
+   the distribution boundary LVNs out. Now `importantReasons(band)` in `frameRelation.ts`: a member
+   whose node bounds a consensus distribution (`distributionEdges`), a member of an important source,
+   or confluence — one reason per fact, so the payload and the gate can say WHY.
+2. The LLM payload stripped the vision facts (only `profileProminence` survived) and the play rules
+   never mentioned distributions. `LlmBandPayload` now carries `important`, `importantBecause[]`,
+   `fadeFirst`, `distributionEdges[]` (in words: "lower edge of the rank-2 balance-area distribution
+   29380–29722").
+3. The counter-trend fail was OPTIONAL ("is also a short") and always subordinate. Now: an unreached
+   important level beyond price carries BOTH reads or neither — hard gate
+   `play_important_level_one_sided` (retry spells out the missing play); and at a STACKED important
+   level the fail is the FIRST read (`FrameRead.fadeFirst`, `isPrimaryDirection`, so the deterministic
+   precedence ranks it ahead of the hold; the prompt tells the model the same). A lone important level
+   keeps the hold first. The far side is unchanged (fork hold first, bounce legal at an important
+   level, not gated) — the operator's rule was about the bias side overhead.
+Prompt `llm-planner/2026-09-07.3`: rule 2 rewritten (importance = could frame the day + extremes +
+any stack; both reads written or neither; stack strength → fade first), rule 4 and the output rules
+say "both, never one". Cap unchanged at 4 lines: a pair spends two slots, which is the operator's
+stated preference over a one-sided read. Known deterministic-path quirk left alone (not production):
+the line's own reoffer ranks non-primary behind a far-side continuation, so the rollback plan on
+this bundle listed the 29143 rotation hvn twice and the daily pivot not at all.
+
 ## Claude / Codex review notes
 
 - **LLM in the loop**: Claude initially proposed a thin LLM step (narrative + judgment

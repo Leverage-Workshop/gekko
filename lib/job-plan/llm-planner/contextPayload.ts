@@ -1,5 +1,6 @@
 import type { JobContext } from '../contextTypes'
 import { frameCandidates, type FrameCandidate } from '../frameCandidates'
+import { distributionEdgeText, fadeFirst, importantReasons, isImportantLevel } from '../frameRelation'
 import { bandLabel } from '../playText'
 
 /**
@@ -66,6 +67,14 @@ export type LlmBandPayload = {
   readonly confluence: boolean
   /** Best profile-node prominence among members (1 = primary LVN), null without a node. */
   readonly profileProminence: number | null
+  /** feat-150: a real important level — a distribution boundary LVN, a JBA border, a pivot, the G line, a prior-day / overnight extreme, or a stacked band. */
+  readonly important: boolean
+  /** One line per qualifying fact (empty when not important). */
+  readonly importantBecause: readonly string[]
+  /** feat-150: important AND stacked — the counter-trend fail is the first read here. */
+  readonly fadeFirst: boolean
+  /** Distributions a member LVN bounds (from the vision read), in words. */
+  readonly distributionEdges: readonly string[]
   readonly side: 'above' | 'below' | 'inside'
   readonly distancePts: number
   /** |distance| / session sigma, null without a scale. */
@@ -182,6 +191,10 @@ export function llmContextPayload(context: JobContext): LlmContextPayload {
           memberLabels: band.members.map((m) => m.label),
           confluence: band.confluence,
           profileProminence: band.prominence,
+          important: isImportantLevel(band),
+          importantBecause: importantReasons(band),
+          fadeFirst: fadeFirst(band),
+          distributionEdges: band.members.flatMap((m) => (m.node?.distributionEdges ?? []).map((e) => `${m.label}: ${distributionEdgeText(m, e)}`)),
           side: role.side,
           distancePts: round2(role.distancePts),
           distanceSigma: role.distanceSigma === null ? null : round2(role.distanceSigma),
