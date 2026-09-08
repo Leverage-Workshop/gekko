@@ -1,6 +1,6 @@
 import type { JobContext } from '../contextTypes'
 import { eligibleFrameCandidates, frameCandidates, type FrameCandidate } from '../frameCandidates'
-import { importantReasons, legalDirections, readAgainstFrame, requiredSides, sideOfPlay } from '../frameRelation'
+import { legalDirections, requiredSides, sideOfPlay } from '../frameRelation'
 import { frameFor } from '../planFrame'
 import type { LlmPlanJudgment } from './schema'
 
@@ -24,7 +24,6 @@ export type JudgmentViolationCode =
   | 'play_duplicate_band'
   | 'play_destination_only'
   | 'play_direction_frame'
-  | 'play_important_level_one_sided'
   | 'play_inside_without_frame_direction'
   | 'side_unaddressed'
   | 'invented_price'
@@ -137,23 +136,6 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
     }
     const addressedSide = sideOfPlay(band, role.side, play.direction, planFrame)
     if (addressedSide) addressed.add(addressedSide)
-  }
-
-  // feat-150: an unreached important level on the bias side carries BOTH
-  // reads or neither — the breach-and-hold with the line and the fail
-  // against it. A one-sided play there is the 2026-09-07 band-19 bug (a
-  // 5-reference stack on a distribution edge written long-only).
-  for (const bandId of new Set(judgment.plays.map((p) => p.bandId))) {
-    const band = bandById.get(bandId)
-    const role = roleByBand.get(bandId)
-    if (!band || !role) continue
-    const read = readAgainstFrame(band, role.side, planFrame)
-    if (read === null || read.relation !== 'beyond' || read.directions.length < 2) continue
-    const directions = new Set(judgment.plays.filter((p) => p.bandId === bandId).map((p) => p.direction))
-    if (directions.size === 1) {
-      const missing = read.directions.find((d) => !directions.has(d)) as string
-      add('play_important_level_one_sided', `band ${bandId} is a real important level beyond price (${importantReasons(band).join('; ')}) — it carries both reads or neither: add the ${missing} play (${missing === read.directions[0] ? 'the breach-and-hold with the line' : 'the fail against the line'})`)
-    }
   }
 
   // Both sides of the FRAME, always (rule 2, feat-149): the bias side and the

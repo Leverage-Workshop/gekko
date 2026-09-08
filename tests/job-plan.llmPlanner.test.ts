@@ -147,24 +147,13 @@ describe('llm-planner context payload — importance (feat-150)', () => {
 })
 
 describe('llm-planner hard gates', () => {
-  it('feat-150: an unreached important level beyond price carries both reads or neither', () => {
+  it('feat-150: an unreached important level may carry one read or both — never gated (operator: "it has to be a two-way or no trade… is unnecessary")', () => {
     const ctx = context()
     const base = cleanJudgment(ctx)
-    // drop the fail at the unreached daily pivot: one-sided
-    const oneSided = { ...base, plays: base.plays.filter((p) => !(p.bandId === bandOf(ctx, 'dp') && p.direction === 'long')) }
-    const v = validateJudgment(oneSided, ctx)
-    expect(v.map((x) => x.code)).toEqual(['play_important_level_one_sided'])
-    expect(v[0].message).toContain('add the long play (the fail against the line)')
-    expect(v[0].message).toContain('Daily Pivot is a daily Job Pivot')
-    // drop the hold instead: still one-sided, the other way round
     const failOnly = { ...base, plays: base.plays.filter((p) => !(p.bandId === bandOf(ctx, 'dp') && p.direction === 'short')) }
-    expect(validateJudgment(failOnly, ctx).map((x) => x.code)).toEqual(['play_important_level_one_sided'])
-    expect(validateJudgment(failOnly, ctx)[0].message).toContain('add the short play (the breach-and-hold with the line)')
-    // neither is fine (the bias side is still addressed by the line's short)
-    const neither = { ...base, plays: base.plays.filter((p) => p.bandId !== bandOf(ctx, 'dp')) }
-    expect(validateJudgment(neither, ctx)).toEqual([])
-    // the line itself is never gated this way
-    expect(validateJudgment({ ...base, plays: base.plays.filter((p) => p.bandId !== bandOf(ctx, 'dp')) }, ctx)).toEqual([])
+    expect(validateJudgment(failOnly, ctx)).toEqual([])
+    const holdOnly = { ...base, plays: base.plays.filter((p) => !(p.bandId === bandOf(ctx, 'dp') && p.direction === 'long')) }
+    expect(validateJudgment(holdOnly, ctx)).toEqual([])
   })
 
   it('accepts a clean judgment', () => {
@@ -179,8 +168,8 @@ describe('llm-planner hard gates', () => {
     expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'rung') } }, ctx).map((v) => v.code)).toContain('frame_unknown_candidate')
     expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: 'nope' } }, ctx).map((v) => v.code)).toContain('frame_unknown_candidate')
     expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'g') } }, ctx).map((v) => v.code)).toContain('frame_out_of_reach')
-    // the daily pivot band is always eligible (framing there turns the weekly band into an unreached important level, so its lone short trips feat-150's two-read gate — not a frame violation)
-    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'dp') } }, ctx).map((v) => v.code)).toEqual(['play_important_level_one_sided'])
+    // the daily pivot band is always eligible
+    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'dp') } }, ctx)).toEqual([])
   })
 
   it('rejects directions the frame does not read (feat-149) and destination-only bands; the line and an unreached level may carry both', () => {

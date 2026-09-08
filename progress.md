@@ -4,6 +4,17 @@
 
 **Last Updated:** 2026-09-07
 
+**Follow-up (branch `fix-150-no-both-or-neither-gate`): the both-or-neither gate is REMOVED.** The
+first plan under `llm-planner/2026-09-07.3` (03:12Z) did not write band-19 at all — the model chose
+to drop the level rather than spend two of four slots on it. Operator: "I didn't even make that level
+a play now. I don't think it has to be a two-way or no trade. That is unnecessary."
+`play_important_level_one_sided` deleted from `validate.ts`; prompt `llm-planner/2026-09-07.4`
+says: at an important level write the fail, the hold, or both — the model's call — and an important
+level with no play needs a better reason than the cap. Importance facts in the payload, the
+distribution-edge definition, and fade-first precedence at a stacked level all stay.
+
+---
+
 **Latest change (branch `feat-150-important-levels-two-way`): important levels are anything that can
 frame the day, and an unreached important level carries BOTH reads.** The first feat-149 plan
 (b7e34e2f, price 29299 above the daily pivot) wrote band-19 29348–29377 — the balance-area lvn that is

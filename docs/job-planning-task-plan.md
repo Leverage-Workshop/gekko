@@ -956,17 +956,16 @@ tier-3 candidate "nearest distribution edge above price"):
    never mentioned distributions. `LlmBandPayload` now carries `important`, `importantBecause[]`,
    `fadeFirst`, `distributionEdges[]` (in words: "lower edge of the rank-2 balance-area distribution
    29380–29722").
-3. The counter-trend fail was OPTIONAL ("is also a short") and always subordinate. Now: an unreached
-   important level beyond price carries BOTH reads or neither — hard gate
-   `play_important_level_one_sided` (retry spells out the missing play); and at a STACKED important
-   level the fail is the FIRST read (`FrameRead.fadeFirst`, `isPrimaryDirection`, so the deterministic
-   precedence ranks it ahead of the hold; the prompt tells the model the same). A lone important level
-   keeps the hold first. The far side is unchanged (fork hold first, bounce legal at an important
-   level, not gated) — the operator's rule was about the bias side overhead.
-Prompt `llm-planner/2026-09-07.3`: rule 2 rewritten (importance = could frame the day + extremes +
-any stack; both reads written or neither; stack strength → fade first), rule 4 and the output rules
-say "both, never one". Cap unchanged at 4 lines: a pair spends two slots, which is the operator's
-stated preference over a one-sided read. Known deterministic-path quirk left alone (not production):
+3. The counter-trend fail was always subordinate. Now at a STACKED important level the fail is the
+   FIRST read (`FrameRead.fadeFirst`, `isPrimaryDirection`, so the deterministic precedence ranks it
+   ahead of the hold; the prompt tells the model the same). A lone important level keeps the hold
+   first. The far side is unchanged (fork hold first, bounce legal at an important level).
+Prompt `llm-planner/2026-09-07.3` also GATED both reads or neither at an unreached important level
+(`play_important_level_one_sided`). The next plan (03:12Z) dropped band-19 altogether rather than
+spend two of four slots on it. Operator: "I don't think it has to be a two-way or no trade. That is
+unnecessary." `llm-planner/2026-09-07.4` removes the gate: at an important level the model writes
+the fail, the hold, or both — its call — and the prompt says an important level with no play needs a
+better reason than the cap. Cap unchanged at 4. Known deterministic-path quirk left alone (not production):
 the line's own reoffer ranks non-primary behind a far-side continuation, so the rollback plan on
 this bundle listed the 29143 rotation hvn twice and the daily pivot not at all.
 
