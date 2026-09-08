@@ -26,6 +26,8 @@ export type PrecedenceKey = {
   readonly tier: number
   /** The play's direction agrees with the frame (or there is no frame direction). */
   readonly aligned: boolean
+  /** feat-149: the fade on arrival ranks ahead of the hold-after-break within a side. */
+  readonly continuation: boolean
   readonly enclosingEdge: boolean
   /** The band anchor's R2 rank (lower = more significant structure). */
   readonly significance: number

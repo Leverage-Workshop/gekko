@@ -904,6 +904,33 @@ pivot > weekly rungs > daily pivot, most important in reach wins) in BOTH planne
   Sierra study labels it.
 - The vision read's ranked `distributions` (feat-147) are what make tier 3/4 expressible.
 
+**Same evening (feat-149) — plays are read against the FRAME, not price.** The first bias-line plan
+(price 73 pts above the daily pivot band) wrote a counter-bias short above price and nothing below
+the line, because direction came from geometry against price and "both sides" meant both sides of
+price. Operator: "both sides of the trend line need options"; "if price is above the trend line and
+a JBA border is overhead, that could also be a short"; "trades at levels price hasn't reached yet are
+either a fail and opposite direction of trend line, or a breach hold and in the direction of the
+trend line"; "if he is proposing a trade in the direction of the trend filter that price has not
+reached, price has to break it and hold to get in the trade"; the same band carrying a long AND a
+short "is fine, but the color should be purple". `lib/job-plan/frameRelation.ts`, with price above
+the line (mirror below):
+- **bias** (between the line and price, price inside included): the pullback is bought on arrival
+  (rebid) — a plain counter-bias fade never exists here.
+- **line** (the frame band): the rebid while it holds AND, once lost, the break-and-hold below with
+  the pullback into it as the short — both directions on one band (`job_plan_bands` kind `both`,
+  the Sierra study's Two-Sided colour is already purple).
+- **beyond** (bias side past price, not yet reached): the break-and-hold long AND the counter-bias
+  short as a FAIL only (look-and-fail, never the arrival alone).
+- **far** (beyond the line): fork-direction break-and-hold only, each level conditional on losing
+  the line — "Only once price has lost the <line>: …".
+Two play SHAPES in the grammar: `arrival` (rebid/reoffer, hold-traverse or look-and-fail) and
+`continuation` (stance `continuation`, condition `build-beyond-continuation` — the hold after the
+break, never the break). The deterministic walk (`playCandidates.ts`) arms nearest-first per
+relation (line always, when in reach); precedence puts arrival before continuation within a side.
+LLM: rules 2 and 4 rewritten (`llm-planner/2026-09-07.2`), `sidesWithoutPlay` sides are `bias` /
+`fork` (price-sides only when the frame is at its band), gates `play_direction_frame` +
+per-direction duplicates. With the frame AT its band the read falls back to geometry against price.
+
 ## Claude / Codex review notes
 
 - **LLM in the loop**: Claude initially proposed a thin LLM step (narrative + judgment

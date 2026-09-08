@@ -1,5 +1,6 @@
-import type { PrunedBranch } from '@/knowledge/schema/job-plan.schema'
+import type { PlanFrame, PrunedBranch } from '@/knowledge/schema/job-plan.schema'
 import type { BandOriginFacts, BandRole, BandSide, ConfluenceBand, JobContext } from './contextTypes'
+import { biasDirection, readAgainstFrame, type FrameRelation } from './frameRelation'
 import type { Candidate } from './planTypes'
 import { bandName } from './playText'
 import { MAX_ARMED_BANDS_PER_SIDE, r12SkipBand } from './rules'
@@ -7,6 +8,11 @@ import { MAX_ARMED_BANDS_PER_SIDE, r12SkipBand } from './rules'
 /**
  * R12's actionable set (feat-127, plan step 2): walking outward from price,
  * arm at most {@link MAX_ARMED_BANDS_PER_SIDE} bands per side nearest-first —
+ * where "side" is read against the FRAME since feat-149 when it has a
+ * direction: the bias side (between the line and price), beyond price on the
+ * bias side, and the far side beyond the line, each walked nearest-first
+ * from price; the line itself is always in. With no frame direction the
+ * sides are the two sides of price, as before —
  * skipping a band with no confluence AND a lowest-tier source — plus the
  * enclosing zone's edges. Bands price is AT (inside) are decision points now
  * and always in. Rungs never arm (R2); beyond-reach bands are destinations
@@ -41,10 +47,10 @@ function candidate(role: BandRole, idx: Indexed, why: string): Candidate | null 
 
 const byDistance = (a: BandRole, b: BandRole): number => a.distancePts - b.distancePts || a.bandId.localeCompare(b.bandId)
 
-function walkSide(context: JobContext, idx: Indexed, side: BandSide): CandidateSelection {
+function walkRoles(context: JobContext, idx: Indexed, side: string, roles: readonly BandRole[]): CandidateSelection {
   const candidates: Candidate[] = []
   const pruned: PrunedBranch[] = []
-  const reachable = context.roles.filter((r) => r.side === side && !r.destinationOnly && r.withinReach).sort(byDistance)
+  const reachable = [...roles].filter((r) => !r.destinationOnly && r.withinReach).sort(byDistance)
   for (const role of reachable) {
     const band = idx.bands.get(role.bandId)
     if (!band) continue
@@ -60,6 +66,19 @@ function walkSide(context: JobContext, idx: Indexed, side: BandSide): CandidateS
     if (c) candidates.push(c)
   }
   return { candidates, pruned }
+}
+
+function walkSide(context: JobContext, idx: Indexed, side: BandSide): CandidateSelection {
+  return walkRoles(context, idx, side, context.roles.filter((r) => r.side === side))
+}
+
+/** feat-149: the roles on one frame relation, the line excluded (it is always in). */
+function walkRelation(context: JobContext, idx: Indexed, frame: PlanFrame, relation: FrameRelation): CandidateSelection {
+  const roles = context.roles.filter((r) => {
+    const band = idx.bands.get(r.bandId)
+    return band !== undefined && readAgainstFrame(band, r.side, frame)?.relation === relation
+  })
+  return walkRoles(context, idx, relation === 'far' ? 'on the far side of the line' : relation === 'beyond' ? 'beyond price on the bias side' : 'on the bias side', roles)
 }
 
 /** The enclosing zone's edges, within reach (R4) and never a band R12 skips (a lone lowest-tier band stays skipped). */
@@ -78,21 +97,30 @@ function enclosingEdges(context: JobContext, idx: Indexed): Candidate[] {
     .filter((c): c is Candidate => c !== null)
 }
 
-export function selectCandidates(context: JobContext): CandidateSelection {
+export function selectCandidates(context: JobContext, frame: PlanFrame | null = null): CandidateSelection {
   const idx = index(context)
   const inside = context.roles
     .filter((r) => r.side === 'inside' && !r.destinationOnly)
     .sort(byDistance)
     .map((role) => candidate(role, idx, 'price inside the band'))
     .filter((c): c is Candidate => c !== null)
-  const below = walkSide(context, idx, 'below')
-  const above = walkSide(context, idx, 'above')
   const edges = enclosingEdges(context, idx)
 
+  const walks =
+    frame !== null && biasDirection(frame) !== null
+      ? [
+          // the line itself is always a candidate (a rebid while it holds, a reoffer once it is lost)
+          { candidates: (frame.bandId ? [context.roles.find((r) => r.bandId === frame.bandId)] : []).flatMap((r) => (r && (r.withinReach || r.at) ? [candidate(r, idx, 'the frame line')] : [])).filter((c): c is Candidate => c !== null), pruned: [] as PrunedBranch[] },
+          walkRelation(context, idx, frame, 'bias'),
+          walkRelation(context, idx, frame, 'beyond'),
+          walkRelation(context, idx, frame, 'far'),
+        ]
+      : [walkSide(context, idx, 'below'), walkSide(context, idx, 'above')]
+
   const chosen = new Map<string, Candidate>()
-  for (const c of [...inside, ...below.candidates, ...above.candidates, ...edges]) {
+  for (const c of [...inside, ...walks.flatMap((w) => w.candidates), ...edges]) {
     if (!chosen.has(c.band.id)) chosen.set(c.band.id, c)
   }
-  const pruned = [...below.pruned, ...above.pruned].filter((p) => p.bandId === null || !chosen.has(p.bandId))
+  const pruned = walks.flatMap((w) => w.pruned).filter((p) => p.bandId === null || !chosen.has(p.bandId))
   return { candidates: [...chosen.values()], pruned }
 }

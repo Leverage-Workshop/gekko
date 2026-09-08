@@ -64,10 +64,10 @@ function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
   return {
     frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Nearest stacked structure within reach.' },
     plays: [
-      { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer and a turn back toward the Daily Pivot.', rationale: 'Confluent with the overnight high; frame side.' },
-      { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'If price reaches the Daily Pivot, expect the bid and a turn back toward the Weekly Pivot.', rationale: 'Nearest significant level below.' },
+      { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer and a turn back toward the Daily Pivot.', rationale: 'The line; confluent with the overnight high.' },
+      { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'A fail at the Daily Pivot turns price back toward the Weekly Pivot.', rationale: 'Unreached level on the bias side: the fail.' },
     ],
-    sidesWithoutPlay: [],
+    sidesWithoutPlay: [{ side: 'fork', reason: 'above the Weekly Pivot only the rung and the far G line' }],
     lean: 'Short into the Weekly Pivot — below the frame line, downside is productive.',
   }
 }
@@ -107,10 +107,10 @@ describe('assembleLlmPlan', () => {
     const judgment: LlmPlanJudgment = {
       ...cleanJudgment(ctx),
       plays: [cleanJudgment(ctx).plays[0]],
-      sidesWithoutPlay: [{ side: 'below', reason: 'nothing significant within realistic reach below' }],
+      sidesWithoutPlay: [{ side: 'fork', reason: 'nothing significant to hold on the pullback beyond the line' }],
     }
     const plan = assembleLlmPlan({ judgment, context: ctx, modelId: 'm' })
-    expect(plan.pruned.some((p) => p.label === 'below side' && p.reason.includes('nothing significant'))).toBe(true)
+    expect(plan.pruned.some((p) => p.label === 'fork side' && p.reason.includes('nothing significant'))).toBe(true)
   })
 
   it('a mid-zone context gets scenario plays only — no stand-down play exists (feat-146)', () => {
@@ -133,11 +133,20 @@ describe('assembleLlmPlan', () => {
     expect(plan.lean).toMatchObject({ playId: 'play-1', basis: 'frame', text: judgment.lean })
   })
 
-  it('a judged direction the geometry contradicts is an assembly error (broken invariant, never persisted)', () => {
+  it('a judged direction the frame contradicts is an assembly error (broken invariant, never persisted)', () => {
     const ctx = context()
     const judgment = cleanJudgment(ctx)
-    const flipped: LlmPlanJudgment = { ...judgment, plays: [{ ...judgment.plays[0], direction: 'long' }, judgment.plays[1]] }
-    expect(() => assembleLlmPlan({ judgment: flipped, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
+    // the G line is on the far side of the line: long only — a short there passed no gate and must not assemble
+    const farShort: LlmPlanJudgment = { ...judgment, plays: [{ bandId: bandOf(ctx, 'g'), direction: 'short', text: 't', rationale: 'r' }, judgment.plays[1]] }
+    expect(() => assembleLlmPlan({ judgment: farShort, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
+    // the line's own long (the fork) assembles as a continuation on the same band
+    const both: LlmPlanJudgment = { ...judgment, plays: [...judgment.plays, { ...judgment.plays[0], direction: 'long', text: 'Once the Weekly Pivot is taken and held, the pullback is the long.' }] }
+    const plan = assembleLlmPlan({ judgment: both, context: ctx, modelId: 'm' })
+    expect(plan.plays.map((p) => [p.band.bandId, p.direction, p.stance])).toEqual([
+      [bandOf(ctx, 'wp'), 'short', 'reoffer'],
+      [bandOf(ctx, 'dp'), 'long', 'rebid'],
+      [bandOf(ctx, 'wp'), 'long', 'continuation'],
+    ])
   })
 
   it('a mid-zone judgment with no plays still needs both sides answered — no stand-down escape hatch', () => {
@@ -178,9 +187,10 @@ function judgmentFor(payload: LlmContextPayload): LlmPlanJudgment {
       ...(above ? [{ bandId: above.bandId, direction: 'short' as const, text: `If price reaches ${above.label}, expect the offer and a turn back down.`, rationale: 'Nearest significant area above.' }] : []),
       ...(below ? [{ bandId: below.bandId, direction: 'long' as const, text: `If price reaches ${below.label}, expect the bid and a turn back up.`, rationale: 'Nearest significant area below.' }] : []),
     ],
+    // feat-149: excuse whichever sides the two nearest-area plays leave unaddressed (extra reasons are harmless)
     sidesWithoutPlay: [
-      ...(above ? [] : [{ side: 'above' as const, reason: 'nothing playable above within reach' }]),
-      ...(below ? [] : [{ side: 'below' as const, reason: 'nothing playable below within reach' }]),
+      { side: 'fork' as const, reason: 'nothing beyond the line worth holding on the pullback' },
+      ...(above && below ? [] : [{ side: 'bias' as const, reason: 'nothing playable on the bias side within reach' }]),
     ],
     lean: 'Primary look at the nearest key area.',
   }

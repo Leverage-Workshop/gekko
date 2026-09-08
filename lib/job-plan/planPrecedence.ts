@@ -33,10 +33,11 @@ export function tierOf(draft: PlayDraft): number {
   return draft.activation.demoted ? TIER_DEMOTED : TIER_FRESH
 }
 
-/** Within one side of one tier: zone edges, then nearest, then R2 significance. */
+/** Within one side of one tier: zone edges, then the fade on arrival before the hold-after-break (feat-149), then nearest, then R2 significance. */
 function withinSide(a: PlayDraft, b: PlayDraft): number {
   return (
     Number(b.precedence.enclosingEdge) - Number(a.precedence.enclosingEdge) ||
+    Number(a.precedence.continuation) - Number(b.precedence.continuation) ||
     a.precedence.distancePts - b.precedence.distancePts ||
     a.precedence.significance - b.precedence.significance ||
     a.precedence.bandKey.localeCompare(b.precedence.bandKey)

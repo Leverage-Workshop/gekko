@@ -3,6 +3,8 @@ import type { JobPlan } from '@/knowledge/schema/job-plan.schema'
 import { buildPlan, insufficiencyReasons } from '@/lib/job-plan/buildPlan'
 import type { BandOriginFacts, Excursion } from '@/lib/job-plan/contextTypes'
 import { MAX_STAGES } from '@/lib/job-plan/destinationChain'
+import { planFrame } from '@/lib/job-plan/planFrame'
+import { buildBandPlays } from '@/lib/job-plan/playGrammar'
 import { MAX_PLAYS, PLANNER_REVISION } from '@/lib/job-plan/rules'
 import { synthContext, type SynthRef, type SynthSpec } from './helpers/jobPlanContext'
 
@@ -52,8 +54,28 @@ const BOXED: SynthSpec = {
 const plan = (spec: Partial<SynthSpec> = {}): JobPlan => buildPlan({ context: synthContext({ ...BASE, ...spec }) })
 const boxed = (spec: Partial<SynthSpec> = {}): JobPlan => buildPlan({ context: synthContext({ ...BOXED, ...spec }) })
 const withFacts = (facts: SynthSpec['facts'], spec: Partial<SynthSpec> = {}) => plan({ ...spec, facts })
-/** The directional play at a band (the stand-down names both zone edges and is excluded). */
-const playAt = (p: JobPlan, memberLabel: string) => p.plays.find((x) => x.stance !== 'stand-down' && x.band.memberLabels.includes(memberLabel))
+/** The directional play at a band (the stand-down names both zone edges and is excluded); a band may carry both directions since feat-149. */
+const playAt = (p: JobPlan, memberLabel: string, direction?: 'long' | 'short') =>
+  p.plays.find((x) => x.stance !== 'stand-down' && x.band.memberLabels.includes(memberLabel) && (direction === undefined || x.direction === direction))
+
+/**
+ * feat-149 grammar fixture: price 29360 ABOVE the daily pivot 29330 (the bias
+ * line, longs), Rip 29420 unreached overhead, PDH 29650 and the weekly pivot
+ * 29800 far above, ONL 29260 below the line. Small enough that nothing falls
+ * off the cap.
+ */
+const LINE: SynthSpec = {
+  price: 29360,
+  refs: [
+    { id: 'onl', source: 'overnight-extreme', price: 29260, label: 'ONL' },
+    { id: 'daily-pivot', source: 'daily-job-pivot', price: 29330, label: 'Daily Job Pivot' },
+    { id: 'rip', source: 'rip', price: 29420, label: 'Rip' },
+    { id: 'pdh', source: 'previous-day-extreme', price: 29650, label: 'PDH' },
+    { id: 'weekly-pivot', source: 'weekly-job-pivot', price: 29800, label: 'Weekly Job Pivot' },
+  ],
+  reachPts: 120,
+}
+const line = (spec: Partial<SynthSpec> = {}): JobPlan => buildPlan({ context: synthContext({ ...LINE, ...spec }) })
 
 const failedLook = (direction: 'above' | 'below', grade: 'EARLY' | 'LATE' = 'EARLY', endedAt = '2026-08-24T09:05:00'): Excursion => ({
   direction,
@@ -122,47 +144,104 @@ describe('the frame: the BIAS LINE (feat-148) — current daily pivot first, the
   })
 })
 
-describe('the forward-conditional grammar: expected response on arrival, both outcomes stated', () => {
-  it('a band below price watches for bid: rebid on arrival, R11 deadline, build-below flip with acceleration past the G line', () => {
-    const p = plan()
-    const g = playAt(p, 'G line (week open)')!
-    expect(g).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse' })
-    expect(g.activation).toMatchObject({ state: 'conditional', grounding: 'none', factAt: null, demoted: false })
-    expect(g.activation.evidence).toContain('Expect the bid at G line (week open) 29300')
-    expect(g.trigger).toContain('Rebid G line (week open) 29300 on the arrival from above')
-    expect(g.trigger).toContain('a look below and fail is the stronger green light')
-    expect(g.responseDeadline).toMatchObject({ minutes: 30, evaluatedByPlanner: false })
-    expect(g.invalidation).toMatchObject({ low: 29300, high: 29300, side: 'below' })
-    expect(g.invalidation.condition).toContain('Build below 29300')
-    expect(g.invalidation.condition).toContain('the rubber meets the road')
-    expect(g.invalidation.thenSeek).toMatchObject({ label: 'ONL', low: 29260 })
-    expect(g.destinations.map((s) => [s.label, s.low, s.expect])).toEqual([
-      ['Daily Job Pivot', 29393.5, 'gate-continuation'],
+describe('the forward-conditional grammar (feat-149: plays read against the frame): the fade on arrival, or the hold after the break', () => {
+  it('the line itself, price above it: the pullback is bought on arrival — rebid, R11 deadline, build-below flip', () => {
+    const p = line()
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'above' })
+    const dp = playAt(p, 'Daily Job Pivot', 'long')!
+    expect(dp).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse', rank: 1, primary: true })
+    expect(dp.activation).toMatchObject({ state: 'conditional', grounding: 'none', factAt: null, demoted: false })
+    expect(dp.activation.evidence).toContain('Expect the bid at Daily Job Pivot 29330')
+    expect(dp.trigger).toContain('Rebid Daily Job Pivot 29330 on the arrival from above')
+    expect(dp.responseDeadline).toMatchObject({ minutes: 30, evaluatedByPlanner: false })
+    expect(dp.invalidation).toMatchObject({ low: 29330, high: 29330, side: 'below' })
+    expect(dp.invalidation.condition).toContain('Build below 29330')
+    expect(dp.invalidation.thenSeek).toMatchObject({ label: 'ONL', low: 29260 })
+    expect(dp.destinations.map((s) => [s.label, s.low, s.expect])).toEqual([
       ['Rip', 29420, 'gate-continuation'],
-      ['ONH', 29460, 'reoffer'],
+      ['PDH', 29650, 'gate-continuation'],
+      ['Weekly Job Pivot', 29800, 'reoffer'],
     ])
-    expect(g.destinations[0].beeline).toEqual({ dontCounter: true, destinationLabel: 'Rip', destinationLow: 29420, destinationHigh: 29420 })
-    expect(g.dont).toContain("Don't buy ahead of")
+    expect(dp.dont).toContain("Don't buy ahead of")
   })
 
-  it('a band above price watches for offer: reoffer on arrival targeting back across', () => {
-    const pivot = playAt(plan(), 'Daily Job Pivot')!
-    expect(pivot).toMatchObject({ stance: 'reoffer', direction: 'short', condition: 'hold-traverse' })
-    expect(pivot.activation.evidence).toContain('Expect the offer at Daily Job Pivot 29393.5 (33.5 pts above)')
-    expect(pivot.invalidation).toMatchObject({ low: 29393.5, side: 'above' })
-    expect(pivot.destinations.map((s) => s.low)).toEqual([29300, 29260])
+  it('the line itself, the fork: once price loses it, the break-and-hold below and the pullback into it is the short — same band, both directions', () => {
+    const p = line()
+    const fork = playAt(p, 'Daily Job Pivot', 'short')!
+    expect(fork).toMatchObject({ stance: 'continuation', direction: 'short', condition: 'build-beyond-continuation' })
+    expect(fork.trigger).toContain('Only once price has lost the Daily Job Pivot: Break below Daily Job Pivot 29330 and HOLD')
+    expect(fork.trigger).toContain('the trade is the hold after the break, never the break itself')
+    expect(fork.summary).toContain('Lose the Daily Job Pivot → Break-and-hold below Daily Job Pivot 29330, sell the pullback → ONL 29260')
+    expect(fork.invalidation).toMatchObject({ low: 29330, side: 'above' })
+    expect(fork.invalidation.condition).toContain('Fail back above 29330')
+    expect(fork.invalidation.thenSeek).toMatchObject({ label: 'Rip', low: 29420 })
+    expect(fork.destinations.map((s) => s.low)).toEqual([29260])
+    expect(fork.responseDeadline).toBeNull()
+    expect(fork.dont).toContain("Don't sell the break itself")
+    expect(p.plays.filter((x) => x.band.memberLabels.includes('Daily Job Pivot')).map((x) => x.direction).sort()).toEqual(['long', 'short'])
   })
 
-  it('overnight / prior-day / JBA edges wait for the look-and-fail, not the arrival alone', () => {
-    const onl = playAt(plan(), 'ONL')!
-    expect(onl).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'look-and-fail' })
-    expect(onl.trigger).toContain('Look below ONL 29260 and fail')
-    expect(onl.activation.evidence).toContain('a sweep beyond that fails is the trigger, not the arrival alone')
-    expect(onl.responseDeadline).toBeNull()
-    expect(onl.dont).toContain("Don't fade the break itself")
+  it('an unreached level beyond price on the bias side: the break-and-hold WITH the line, and the FAIL against it — never a plain fade', () => {
+    const p = line()
+    const hold = playAt(p, 'Rip', 'long')!
+    expect(hold).toMatchObject({ stance: 'continuation', direction: 'long', condition: 'build-beyond-continuation' })
+    expect(hold.trigger).toContain('Break above Rip 29420 and HOLD')
+    expect(hold.trigger).not.toContain('Only once')
+    expect(hold.summary).toContain('Break-and-hold above Rip 29420, buy the pullback')
+    expect(hold.invalidation).toMatchObject({ low: 29420, side: 'below' })
+    const fail = playAt(p, 'Rip', 'short')!
+    // Rip is not an edge source, yet the counter-bias play is the look-and-fail, never the arrival alone
+    expect(fail).toMatchObject({ stance: 'reoffer', direction: 'short', condition: 'look-and-fail' })
+    expect(fail.trigger).toContain('Look above Rip 29420 and fail')
+    expect(fail.activation.evidence).toContain('a sweep beyond that fails is the trigger, not the arrival alone')
+    expect(fail.dont).toContain("Don't fade the break itself")
+  })
+
+  it('the far side of the line: fork-direction break-and-hold only, each level conditional on losing the line — no counter play there', () => {
+    const p = line({ reachPts: 300, refs: LINE.refs.filter((r) => ['onl', 'daily-pivot', 'weekly-pivot'].includes(r.id)) })
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction])).toEqual([['Daily Job Pivot', 'long'], ['Daily Job Pivot', 'short'], ['ONL', 'short']])
+    const onl = p.plays.filter((x) => x.band.memberLabels.includes('ONL'))
+    expect(onl.map((x) => x.direction)).toEqual(['short'])
+    expect(onl[0]).toMatchObject({ stance: 'continuation', condition: 'build-beyond-continuation' })
+    expect(onl[0].trigger).toContain('Only once price has lost the Daily Job Pivot: Break below ONL 29260 and HOLD')
+  })
+
+  it('a band price sits inside on the bias side leans with the frame; with no frame direction it is pruned, not guessed', () => {
+    const p = line({ price: 29420 })
+    const rip = playAt(p, 'Rip', 'long')!
+    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'above' })
+    expect(rip).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse' })
+    expect(rip.band.side).toBe('inside')
+    expect(rip.trigger).toContain('Lean on Rip 29420 from here')
+    expect(p.plays.filter((x) => x.band.memberLabels.includes('Rip')).map((x) => x.direction)).toEqual(['long'])
+    const at = plan({ price: 29393.5 })
+    expect(at.frame?.side).toBe('at')
+    expect(playAt(at, 'Daily Job Pivot')).toBeUndefined()
+    expect(at.pruned.find((x) => x.label.startsWith('Daily Job Pivot'))?.reason).toContain('no directional read')
+  })
+
+  it('with the frame AT its band the read falls back to geometry against price — fades both sides, no continuation', () => {
+    const p = plan({ price: 29390 })
+    expect(p.frame?.side).toBe('at')
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
+      ['Daily Job Pivot', 'short', 'hold-traverse'],
+      ['G line (week open)', 'long', 'hold-traverse'],
+      ['Rip', 'short', 'hold-traverse'],
+      ['ONL', 'long', 'look-and-fail'],
+    ])
+  })
+
+  it('JBA edges on the far side: the fork continuation; on the bias side beyond price: the hold and the fail', () => {
     const big = boxed({ reachPts: 500 })
-    expect(playAt(big, 'JBA 1 high')).toMatchObject({ condition: 'look-and-fail', direction: 'short' })
-    expect(playAt(big, 'JBA 1 low')).toMatchObject({ condition: 'look-and-fail', direction: 'long' })
+    expect(big.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below' })
+    // JBA 1 low is beyond price on the bias side → the short hold AND the long fail
+    expect(big.plays.filter((x) => x.band.memberLabels.includes('JBA 1 low') && x.stance !== 'stand-down').map((x) => [x.direction, x.condition])).toEqual([
+      ['short', 'build-beyond-continuation'],
+      ['long', 'look-and-fail'],
+    ])
+    // price below the line: JBA 1 high is far (above the line) → never a short there
+    expect(big.plays.filter((x) => x.stance !== 'stand-down' && x.band.memberLabels.includes('JBA 1 high')).every((x) => x.direction === 'long')).toBe(true)
+    expect(big.pruned.some((x) => x.label.startsWith('JBA 1 low') && x.reason.includes('beyond the 2 nearest'))).toBe(false)
   })
 
   it('origin facts NEVER arm a play — a completed failed look or acceptance leaves every play conditional (the 2026-08-25 OR Low regression)', () => {
@@ -180,40 +259,24 @@ describe('the forward-conditional grammar: expected response on arrival, both ou
       expect(play.activation.rulesFired).not.toContain('R7')
       expect(play.activation.rulesFired).not.toContain('R8')
     }
-    expect(p.plays.map((x) => x.condition)).not.toContain('build-beyond-continuation')
-  })
-
-  it('a band price sits inside leans with the frame', () => {
-    const p = plan({ price: 29420 })
-    const rip = playAt(p, 'Rip')!
-    expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'above' })
-    expect(rip).toMatchObject({ stance: 'rebid', direction: 'long' })
-    expect(rip.band.side).toBe('inside')
-    expect(rip.trigger).toContain('Lean on Rip 29420 from here')
-    // the daily pivot moved above price: the frame flips and so does the inside read
-    const below = plan({ price: 29420, refs: BASE_REFS.map((r) => (r.source === 'daily-job-pivot' ? { ...r, price: 29450 } : r)) })
-    expect(below.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below' })
-    expect(playAt(below, 'Rip')).toMatchObject({ stance: 'reoffer', direction: 'short' })
-  })
-
-  it('a band price sits inside with no frame direction is pruned, not guessed', () => {
-    const p = plan({ price: 29393.5 })
-    expect(p.frame?.side).toBe('at')
-    expect(playAt(p, 'Daily Job Pivot')).toBeUndefined()
-    expect(p.pruned.find((x) => x.label.startsWith('Daily Job Pivot'))?.reason).toContain('no directional read')
+    // continuation plays exist since feat-149, but only as FORWARD conditionals (break, hold, pullback) — never armed off a fact
+    for (const play of p.plays.filter((x) => x.condition === 'build-beyond-continuation')) expect(play.activation.state).toBe('conditional')
   })
 
   it('R9 freshness: a touched band is demoted as a fresh trigger and ranks last', () => {
     const touched: BandOriginFacts['interaction'] = { interacted: true, prints: 2, firstAt: '2026-08-24T08:40:00', lastAt: '2026-08-24T08:41:00', defenses: { session: 0, overnight: 0 }, failedLookThisSession: false, triggerStatus: 'demoted' }
-    const p = withFacts({ 'g-line': { interaction: touched } })
-    const g = playAt(p, 'G line (week open)')!
-    expect(g.activation.demoted).toBe(true)
-    expect(g.activation.state).toBe('conditional')
-    expect(g.activation.rulesFired).toContain('R9')
-    expect(g.activation.evidence).toContain('demoted as a fresh trigger (R9)')
-    expect(g.rank).toBe(p.plays.length)
-    const kept = withFacts({ 'g-line': { interaction: { ...touched, failedLookThisSession: true, triggerStatus: 'full' } } })
-    expect(playAt(kept, 'G line (week open)')).toMatchObject({ rank: 2, activation: { demoted: false } })
+    const p = line({ facts: { rip: { interaction: touched } } })
+    const rips = p.plays.filter((x) => x.band.memberLabels.includes('Rip'))
+    expect(rips.length).toBeGreaterThan(0)
+    for (const r of rips) {
+      expect(r.activation.demoted).toBe(true)
+      expect(r.activation.state).toBe('conditional')
+      expect(r.activation.rulesFired).toContain('R9')
+      expect(r.activation.evidence).toContain('demoted as a fresh trigger (R9)')
+      expect(r.rank).toBe(p.plays.length)
+    }
+    const kept = line({ facts: { rip: { interaction: { ...touched, failedLookThisSession: true, triggerStatus: 'full' } } } })
+    expect(playAt(kept, 'Rip', 'long')).toMatchObject({ rank: 3, activation: { demoted: false } })
   })
 
   it('mid-zone two-way (R10): price in the middle of the JBA box declares the two-way trade between the named edges and stands down', () => {
@@ -243,11 +306,12 @@ describe('the forward-conditional grammar: expected response on arrival, both ou
 describe('the precedence table: frame side leads, sides alternate, structure ranks', () => {
   it('below the daily pivot the shorts lead and the sides alternate; the frame-aligned play is the primary look', () => {
     const p = plan()
-    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction])).toEqual([
-      ['Daily Job Pivot', 'short'],
-      ['G line (week open)', 'long'],
-      ['Rip', 'short'],
-      ['ONL', 'long'],
+    // bias side leads (the reoffer at the line), then the sides alternate: the fail at the unreached G line, its short hold, the line's own long once taken
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
+      ['Daily Job Pivot', 'short', 'hold-traverse'],
+      ['G line (week open)', 'long', 'look-and-fail'],
+      ['G line (week open)', 'short', 'build-beyond-continuation'],
+      ['Daily Job Pivot', 'long', 'build-beyond-continuation'],
     ])
     expect(p.plays[0].primary).toBe(true)
     expect(p.lean).toMatchObject({ playId: p.plays[0].id, basis: 'frame' })
@@ -262,7 +326,12 @@ describe('the precedence table: frame side leads, sides alternate, structure ran
 
   it('the enclosing zone\'s edges rank first within a side ("play the edges")', () => {
     const p = boxed({ reachPts: 500 })
-    expect(p.plays.map((x) => x.band.memberLabels[0])).toEqual(['JBA 1 low', 'JBA 1 high', 'JBA 1 low', 'Daily Job Pivot'])
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction])).toEqual([
+      ['JBA 1 low', 'two-way'],
+      ['JBA 1 low', 'short'],
+      ['JBA 1 low', 'long'],
+      ['Daily Job Pivot', 'short'],
+    ])
     expect(p.plays[0].stance).toBe('stand-down')
   })
 
@@ -284,7 +353,7 @@ describe('R12 cardinality and pruning', () => {
     const p = boxed({ reachPts: 500 })
     expect(p.plays).toHaveLength(MAX_PLAYS)
     const labels = p.pruned.map((x) => `${x.label} :: ${x.reason}`)
-    expect(labels).toEqual(expect.arrayContaining([expect.stringMatching(/^ONH 29460 :: R12: beyond the 2 nearest armed bands above/)]))
+    expect(labels).toEqual(expect.arrayContaining([expect.stringMatching(/^Weekly Job Pivot 29500 :: R12: beyond the 2 nearest armed bands on the far side of the line/)]))
     expect(labels).toEqual(expect.arrayContaining([expect.stringMatching(/^PW High 29750 :: R12: skipped — no confluence and a lowest-tier source \(mgi-other\)/)]))
     expect(labels).toEqual(expect.arrayContaining([expect.stringMatching(/R12: max 4 branches/)]))
     expect(p.pruned.some((x) => x.label.startsWith('JBA 1 low') && x.reason.includes('beyond the 2 nearest'))).toBe(false)
@@ -320,9 +389,9 @@ describe('R12 cardinality and pruning', () => {
     const rung = BASE_REFS.find((r) => r.source === 'weekly-rung')!
     const pivot = BASE_REFS.find((r) => r.source === 'daily-job-pivot')!
     const withPivot = plan({ refs: [...below, weeklyBelow, pivot, rung] })
-    expect(playAt(withPivot, 'G line (week open)')!.destinations.map((s) => [s.label, s.expect])).toEqual([['Daily Job Pivot', 'reoffer']])
+    expect(playAt(withPivot, 'G line (week open)', 'long')!.destinations.map((s) => [s.label, s.expect])).toEqual([['Daily Job Pivot', 'reoffer']])
     const rungOnly = plan({ refs: [...below, weeklyBelow, { ...pivot, price: 29150 }, rung] })
-    expect(playAt(rungOnly, 'G line (week open)')!.destinations.map((s) => [s.label, s.expect, s.beeline])).toEqual([['Weekly Job Pivot 1A', 'hold', null]])
+    expect(playAt(rungOnly, 'G line (week open)', 'long')!.destinations.map((s) => [s.label, s.expect, s.beeline])).toEqual([['Weekly Job Pivot 1A', 'hold', null]])
   })
 })
 
@@ -406,24 +475,36 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     expect(p.lean.basis).toBe('mid-zone')
   })
 
-  it('both edges are watched with look-and-fail forks and the near LVN rebid rides the frame side', () => {
+  it('price above the pivot band: the unreached upper edge gets the hold and the fail, the near LVN rebid rides the bias side', () => {
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.condition, x.direction])).toEqual([
       ['JBA 1 low', 'mid-zone-two-way', 'two-way'],
-      ['JBA 1 low', 'look-and-fail', 'long'],
+      ['JBA 1 high', 'build-beyond-continuation', 'long'],
       ['JBA 1 high', 'look-and-fail', 'short'],
       ['Rip', 'hold-traverse', 'long'],
     ])
   })
 
-  it('"look-below-and-fail → rotate back across" at yesterday\'s low, and "below yesterday\'s low → seek the 7720s" as its flip clause', () => {
-    const pdl = playAt(p, 'PDL')!
-    expect(pdl).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'look-and-fail', activation: { state: 'conditional', grounding: 'none' } })
+  it('yesterday\'s low is on the far side of the line: the fork short — "lose the pivot → build below 7955, sell the pullback → the 7720s"', () => {
+    // the cap keeps the upper edge's two plays and the LVN rebid ahead of it, so read the band's plays straight from the grammar
+    const ctx = synthContext(GOAL)
+    const frame = planFrame(ctx)
+    const band = ctx.bands.find((b) => b.members.some((m) => m.id === 'pdl'))!
+    const candidate = { band, role: ctx.roles.find((r) => r.bandId === band.id)!, facts: ctx.origin.bands.find((f) => f.bandId === band.id)!, why: 'test' }
+    const result = buildBandPlays(candidate, ctx, frame)
+    expect('drafts' in result).toBe(true)
+    const drafts = 'drafts' in result ? result.drafts : []
+    expect(drafts.map((d) => d.direction)).toEqual(['short'])
+    const pdl = drafts[0]
+    expect(pdl).toMatchObject({ stance: 'continuation', direction: 'short', condition: 'build-beyond-continuation', activation: { state: 'conditional', grounding: 'none' } })
     expect(pdl.band).toMatchObject({ low: 7955, high: 7955, memberLabels: ['JBA 1 low', 'PDL'] })
-    expect(pdl.destinations[0]).toMatchObject({ label: 'Weekly Job Pivot (+1)', low: 7970 })
-    expect(pdl.invalidation).toMatchObject({ low: 7955, side: 'below' })
+    expect(pdl.summary).toContain('Lose the Daily Job Pivot → Break-and-hold below JBA 1 low (+1) 7955, sell the pullback → Weekly Job Pivot 1B 7722')
+    expect(pdl.destinations.map((s) => [s.label, s.expect])).toEqual([['Weekly Job Pivot 1B', 'hold']])
+    expect(pdl.invalidation).toMatchObject({ low: 7955, side: 'above' })
     expect(pdl.invalidation.condition).toContain('the rubber meets the road')
-    expect(pdl.invalidation.thenSeek).toMatchObject({ label: 'Weekly Job Pivot 1B', low: 7722, high: 7722, expect: 'hold' })
-    expect(pdl.invalidation.thenSeek?.text).toBe('below 7955 (JBA 1 low (+1)) → seek Weekly Job Pivot 1B 7722')
+    expect(pdl.invalidation.thenSeek).toMatchObject({ label: 'Weekly Job Pivot (+1)', low: 7970 })
+    expect(pdl.invalidation.thenSeek?.text).toBe('above 7955 (JBA 1 low (+1)) → seek Weekly Job Pivot (+1) 7970')
+    // no counter play on the far side: yesterday's low is never a long while price is above the line
+    expect(p.plays.some((x) => x.band.memberLabels.includes('PDL') && x.direction === 'long')).toBe(false)
   })
 
   it('"rebid 7980–82 into the LVN → press the 8004s; build above → attack prior week high"', () => {

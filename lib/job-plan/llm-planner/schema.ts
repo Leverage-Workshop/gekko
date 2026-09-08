@@ -24,9 +24,9 @@ export const LlmFrameChoice = z.object({
 export type LlmFrameChoice = z.infer<typeof LlmFrameChoice>
 
 export const LlmPlayJudgment = z.object({
-  /** Id of a confluence band from the payload's `bands`. */
+  /** Id of a confluence band from the payload's `bands`. The frame band may appear twice, once per direction (feat-149). */
   bandId: z.string().min(1),
-  /** Geometry names it: long for an area below price, short for above. */
+  /** The frame names it (feat-149): the bias direction on the bias side and beyond price, the fork direction on the far side; the line carries both. */
   direction: z.enum(['long', 'short']),
   /** The forward conditional, future tense: approach → expected turn → traverse → fork. */
   text: z.string().min(1),
@@ -36,7 +36,8 @@ export const LlmPlayJudgment = z.object({
 export type LlmPlayJudgment = z.infer<typeof LlmPlayJudgment>
 
 export const LlmSideNote = z.object({
-  side: z.enum(['above', 'below']),
+  /** feat-149: 'bias' | 'fork' when the frame has a direction; 'above' | 'below' (of price) when the frame is at its band. */
+  side: z.enum(['bias', 'fork', 'above', 'below']),
   /** The one-line reason this side carries no play. */
   reason: z.string().min(1),
 })

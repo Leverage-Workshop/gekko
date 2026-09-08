@@ -50,10 +50,11 @@ function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
   return {
     frame: { bandId: bandOf(ctx, 'wp'), rationale: 'The weekly pivot band (with the overnight high) is the nearest stacked structure within reach.' },
     plays: [
-      { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot band, expect the offer and a turn back down toward the Daily Pivot.', rationale: 'Confluent with the overnight high; frame side.' },
-      { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'If price reaches the Daily Pivot, expect the bid and a turn back up toward the Weekly Pivot.', rationale: 'Nearest significant level below; no nearer level to breach.' },
+      { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot band, expect the offer and a turn back down toward the Daily Pivot.', rationale: 'The line itself; confluent with the overnight high.' },
+      { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'A fail at the Daily Pivot, unreached below, turns price back up toward the Weekly Pivot.', rationale: 'Unreached level on the bias side: the fail against the line.' },
     ],
-    sidesWithoutPlay: [],
+    // feat-149: the fork side (what to do once the line is taken) needs a play or a reason
+    sidesWithoutPlay: [{ side: 'fork', reason: 'above the Weekly Pivot only the 1A rung and the far G line — destinations, nothing to hold on the pullback' }],
     lean: 'Short into the Weekly Pivot — below the frame line, downside is productive.',
   }
 }
@@ -133,11 +134,18 @@ describe('llm-planner hard gates', () => {
     expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'dp') } }, ctx)).toEqual([])
   })
 
-  it('rejects geometry-inverted directions and destination-only bands', () => {
+  it('rejects directions the frame does not read (feat-149) and destination-only bands; the line and an unreached level may carry both', () => {
     const ctx = context()
     const base = cleanJudgment(ctx)
-    const inverted = { ...base, plays: [{ ...base.plays[0], direction: 'long' as const }, base.plays[1]] }
-    expect(validateJudgment(inverted, ctx).map((v) => v.code)).toContain('play_direction_geometry')
+    // the G line is on the far side of the line (above it, price below): fork direction only — long
+    const farShort = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'g'), direction: 'short' as const, text: 't', rationale: 'r' }] }
+    expect(validateJudgment(farShort, ctx).map((v) => v.code)).toContain('play_direction_frame')
+    // the line carries both directions; the unreached daily pivot carries both (long as the fail, short as the hold)
+    const both = { ...base, plays: [...base.plays, { ...base.plays[0], direction: 'long' as const }, { ...base.plays[1], direction: 'short' as const }] }
+    expect(validateJudgment(both, ctx)).toEqual([])
+    // the same band twice in the same direction is still a duplicate
+    const dup = { ...base, plays: [...base.plays, base.plays[0]] }
+    expect(validateJudgment(dup, ctx).map((v) => v.code)).toContain('play_duplicate_band')
     const rung = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'rung'), direction: 'short' as const, text: 't', rationale: 'r' }] }
     expect(validateJudgment(rung, ctx).map((v) => v.code)).toContain('play_destination_only')
   })
@@ -175,13 +183,18 @@ describe('llm-planner hard gates', () => {
     expect(validateJudgment(legitimate, ctx)).toEqual([])
   })
 
-  it('requires every playable side to carry a play or a reason — unconditionally (no stand-down escape since feat-146)', () => {
+  it('requires BOTH sides of the line — bias and fork — to carry a play or a reason, unconditionally (feat-146/149)', () => {
     const ctx = context()
     const base = cleanJudgment(ctx)
-    const oneSided = { ...base, plays: [base.plays[0]] }
-    expect(validateJudgment(oneSided, ctx).map((v) => v.code)).toContain('side_unaddressed')
-    const excused = { ...oneSided, sidesWithoutPlay: [{ side: 'below' as const, reason: 'nothing significant within realistic reach below' }] }
-    expect(validateJudgment(excused, ctx)).toEqual([])
+    const noFork = { ...base, sidesWithoutPlay: [] }
+    expect(validateJudgment(noFork, ctx).map((v) => v.code)).toContain('side_unaddressed')
+    expect(validateJudgment(noFork, ctx).find((v) => v.code === 'side_unaddressed')?.message).toContain('fork')
+    // a fork play (the line's own long once it is taken) answers the fork side
+    const forkPlay = { ...noFork, plays: [...noFork.plays, { ...base.plays[0], direction: 'long' as const, text: 'Once price takes the Weekly Pivot and holds, the pullback into it is the long toward the 1A.' }] }
+    expect(validateJudgment(forkPlay, ctx)).toEqual([])
+    // no bias play at all is a violation too
+    const noBias = { ...base, plays: [], sidesWithoutPlay: base.sidesWithoutPlay }
+    expect(validateJudgment(noBias, ctx).map((v) => v.code)).toEqual(['side_unaddressed'])
   })
 
   it('a side with only destination-only structure still needs its one-line reason', () => {
@@ -195,12 +208,12 @@ describe('llm-planner hard gates', () => {
     })
     const judgment: LlmPlanJudgment = {
       frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Most important line in reach.' },
-      plays: [{ bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer.', rationale: 'Frame side.' }],
+      plays: [{ bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer.', rationale: 'The line.' }],
       sidesWithoutPlay: [],
       lean: 'Short into the Weekly Pivot.',
     }
     expect(validateJudgment(judgment, ctx).map((v) => v.code)).toContain('side_unaddressed')
-    const excused = { ...judgment, sidesWithoutPlay: [{ side: 'below' as const, reason: 'only the 1B rung below — destinations, nothing to play' }] }
+    const excused = { ...judgment, sidesWithoutPlay: [{ side: 'fork' as const, reason: 'nothing above the Weekly Pivot to hold on the pullback' }] }
     expect(validateJudgment(excused, ctx)).toEqual([])
   })
 })
@@ -284,8 +297,8 @@ describe('shadow diff', () => {
     expect(diff.deterministicStandDown).toBe(false)
     expect([...diff.plays.sharedBandIds].sort()).toEqual([bandOf(ctx, 'dp'), bandOf(ctx, 'wp')].sort())
     expect(diff.plays.directionMismatches).toEqual([])
-    // The deterministic planner also armed the historical daily pivot band.
-    expect(diff.plays.onlyDeterministic.map((p) => p.bandId)).toEqual([bandOf(ctx, 'dph')])
+    // The deterministic planner carries both directions at the line and the pivot; picking one of them is agreement.
+    expect(diff.plays.onlyDeterministic).toEqual([])
 
     const reframed = { ...judgment, frame: { bandId: bandOf(ctx, 'dp'), rationale: 'x' } }
     expect(diffJudgment(det, reframed, ctx).frame.agree).toBe(false)

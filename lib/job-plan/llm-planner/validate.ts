@@ -1,5 +1,7 @@
 import type { JobContext } from '../contextTypes'
 import { eligibleFrameCandidates, frameCandidates, type FrameCandidate } from '../frameCandidates'
+import { legalDirections, requiredSides, sideOfPlay } from '../frameRelation'
+import { frameFor } from '../planFrame'
 import type { LlmPlanJudgment } from './schema'
 
 /**
@@ -21,7 +23,7 @@ export type JudgmentViolationCode =
   | 'play_unknown_band'
   | 'play_duplicate_band'
   | 'play_destination_only'
-  | 'play_direction_geometry'
+  | 'play_direction_frame'
   | 'play_inside_without_frame_direction'
   | 'side_unaddressed'
   | 'invented_price'
@@ -102,12 +104,14 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
     add('frame_out_of_reach', `frame candidate ${frame.anchorLabel} is ${frame.distancePts} pts away — beyond reach while other candidates are within it; a bias line a session away is no filter`)
   }
 
-  const frameSide = frame ? frame.side : null
-  const frameDirection = frameSide === 'above' ? 'long' : frameSide === 'below' ? 'short' : null
+  // feat-149: plays are read against the frame. The PlanFrame the judged
+  // candidate would compose is what the grammar reads from.
+  const planFrame = frame ? frameFor(context, frame) : null
 
   const roleByBand = new Map(context.roles.map((r) => [r.bandId, r]))
   const bandById = new Map(context.bands.map((b) => [b.id, b]))
   const seen = new Set<string>()
+  const addressed = new Set<string>()
   for (const play of judgment.plays) {
     const band = bandById.get(play.bandId)
     const role = roleByBand.get(play.bandId)
@@ -115,36 +119,31 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
       add('play_unknown_band', `play bandId "${play.bandId}" is not in the inventory`)
       continue
     }
-    if (seen.has(play.bandId)) {
-      add('play_duplicate_band', `band ${play.bandId} carries more than one play`)
+    // One play per band, except the frame band, which carries one per direction.
+    const key = `${play.bandId}:${play.direction}`
+    const legal = legalDirections(band, role.side, planFrame)
+    if (seen.has(key) || ([...seen].some((k) => k.startsWith(`${play.bandId}:`)) && legal.length < 2)) {
+      add('play_duplicate_band', `band ${play.bandId} carries more than one play${legal.length < 2 ? ' (only the line and an unreached level beyond price may carry both directions)' : ' in the same direction'}`)
     }
-    seen.add(play.bandId)
+    seen.add(key)
     if (band.destinationOnly) {
       add('play_destination_only', `band ${play.bandId} is destination-only (ladder rungs never anchor a play)`)
     }
-    if (role.side === 'above' && play.direction !== 'short') {
-      add('play_direction_geometry', `band ${play.bandId} is above price — geometry says short, not ${play.direction}`)
+    if (legal.length === 0) {
+      add('play_inside_without_frame_direction', `band ${play.bandId} contains price and the frame is 'at' its line — no directional read exists`)
+    } else if (!legal.includes(play.direction)) {
+      add('play_direction_frame', `band ${play.bandId}: the frame reads ${legal.join(' or ')} here, not ${play.direction} — between the line and price only the bias direction; at the line and at an unreached level beyond price both (the counter-bias one as a fail); beyond the line only the fork direction`)
     }
-    if (role.side === 'below' && play.direction !== 'long') {
-      add('play_direction_geometry', `band ${play.bandId} is below price — geometry says long, not ${play.direction}`)
-    }
-    if (role.side === 'inside') {
-      if (frameDirection === null) {
-        add('play_inside_without_frame_direction', `band ${play.bandId} contains price and the frame is 'at' its line — no directional read exists`)
-      } else if (play.direction !== frameDirection) {
-        add('play_direction_geometry', `band ${play.bandId} contains price — inside a band the play leans with the frame (${frameDirection}), not ${play.direction}`)
-      }
-    }
+    const addressedSide = sideOfPlay(band, role.side, play.direction, planFrame)
+    if (addressedSide) addressed.add(addressedSide)
   }
 
-  // Both sides, always (rule 2): every side gets a play or a one-line reason —
-  // including a side holding only destination-only structure or nothing at all
-  // ("nothing significant within reach below" is a valid answer; silence is
-  // not). Unconditional since feat-146 — there is no stand-down escape hatch.
-  for (const side of ['above', 'below'] as const) {
-    const hasPlay = judgment.plays.some((p) => roleByBand.get(p.bandId)?.side === side)
+  // Both sides of the FRAME, always (rule 2, feat-149): the bias side and the
+  // fork side each get a play or a one-line reason (the two sides of price
+  // when the frame is at its band). Silence is never an answer.
+  for (const side of requiredSides(planFrame)) {
     const hasReason = judgment.sidesWithoutPlay.some((s) => s.side === side)
-    if (!hasPlay && !hasReason) {
+    if (!addressed.has(side) && !hasReason) {
       add('side_unaddressed', `the ${side} side carries no play and no stated reason`)
     }
   }

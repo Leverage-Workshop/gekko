@@ -66,8 +66,14 @@ export function diffJudgment(plan: JobPlan, judgment: LlmPlanJudgment, context: 
   const llmIds = new Set(judgment.plays.map((p) => p.bandId))
   const shared = [...detIds].filter((id) => llmIds.has(id))
 
-  const detDir = new Map(det.map((p) => [p.bandId, p.direction]))
-  const llmDir = new Map(judgment.plays.map((p) => [p.bandId, p.direction as string]))
+  // A band may carry both directions (the frame band, feat-149): compare direction SETS.
+  const dirs = (list: readonly { bandId: string; direction: string }[]) => {
+    const m = new Map<string, string>()
+    for (const p of list) m.set(p.bandId, [...new Set([...(m.get(p.bandId)?.split('+') ?? []), p.direction])].sort().join('+'))
+    return m
+  }
+  const detDir = dirs(det)
+  const llmDir = dirs(judgment.plays)
 
   const detPrimary = plan.plays.find((p) => p.primary && p.stance !== 'stand-down')?.band.bandId ?? null
   const llmPrimary = judgment.plays[0]?.bandId ?? null
@@ -89,8 +95,11 @@ export function diffJudgment(plan: JobPlan, judgment: LlmPlanJudgment, context: 
       onlyLlm: judgment.plays
         .filter((p) => !detIds.has(p.bandId))
         .map((p) => ({ bandId: p.bandId, label: bandLabelById(context, p.bandId), direction: p.direction })),
+      // A mismatch is a judged direction the deterministic plan does NOT carry at
+      // that band (the line and an unreached level may carry both — picking one
+      // of them is agreement).
       directionMismatches: shared
-        .filter((id) => detDir.get(id) !== llmDir.get(id))
+        .filter((id) => !(llmDir.get(id) as string).split('+').every((d) => (detDir.get(id) as string).split('+').includes(d)))
         .map((id) => ({ bandId: id, deterministic: detDir.get(id) as string, llm: llmDir.get(id) as string })),
     },
     primary: {
@@ -117,13 +126,15 @@ export function stabilityAcross(judgments: readonly LlmPlanJudgment[]): Stabilit
 
 /** Two runs of the LLM planner on the same context: any flip is a stability failure. */
 export function stabilityDiff(a: LlmPlanJudgment, b: LlmPlanJudgment): StabilityDiff {
-  const aIds = a.plays.map((p) => p.bandId)
-  const bIds = b.plays.map((p) => p.bandId)
+  const key = (p: { bandId: string; direction: string }) => `${p.bandId}:${p.direction}`
+  const aIds = a.plays.map(key)
+  const bIds = b.plays.map(key)
   const frameAgree = a.frame.bandId === b.frame.bandId
   const playSetAgree = aIds.length === bIds.length && new Set(aIds).size === new Set([...aIds, ...bIds]).size
-  const primaryAgree = (a.plays[0]?.bandId ?? null) === (b.plays[0]?.bandId ?? null)
-  const bDir = new Map(b.plays.map((p) => [p.bandId, p.direction]))
-  const directionsAgree = a.plays.every((p) => !bDir.has(p.bandId) || bDir.get(p.bandId) === p.direction)
+  const primaryAgree = (a.plays[0] ? key(a.plays[0]) : null) === (b.plays[0] ? key(b.plays[0]) : null)
+  const bBands = new Set(b.plays.map((p) => p.bandId))
+  const bKeys = new Set(bIds)
+  const directionsAgree = a.plays.every((p) => !bBands.has(p.bandId) || bKeys.has(key(p)))
   return {
     frameAgree,
     playSetAgree,
