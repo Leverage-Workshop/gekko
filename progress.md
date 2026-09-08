@@ -4,7 +4,22 @@
 
 **Last Updated:** 2026-09-07
 
-**Latest change (branch `feat-152-two-way-play`): the TWO-WAY play — one slot, both reads, purple.**
+**Latest change (branch `feat-153-hvn-historical-pivot-destination-only`): prior-day daily pivots
+and HVNs are TARGETS, never entry candidates.** Operator, after the first plans under the frame
+doctrine: "previous days' Daily Pivots are being used as entry level candidates. I don't want them
+used as entry level candidates" / "HVNs are being used as entry level candidates … They can be used
+as targets, but that's it." R2's destination-only set is now a reference-level predicate
+(`r2DestinationOnlyReference`): a ladder rung, a historical daily pivot, or a profile `hvn` node. The
+inventory keeps them (an untested prior pivot stays a relevant destination), a band of nothing but
+such members is destination-only — never armed by the deterministic walk, `play_destination_only`
+for the LLM — and in a mixed band they sort LAST so the armable member anchors and names it. A lone
+prior pivot no longer counts as an important level (the current pivot does). `exhaustive-node` and
+every lvn stay armable. Prompt `llm-planner/2026-09-07.7`, `PLANNER_REVISION job-planner/2026-09-07.1`.
+Tests added in rules / classifyContext / llmPlanner / buildPlan (785 planner tests green).
+
+---
+
+**Previous change (branch `feat-152-two-way-play`): the TWO-WAY play — one slot, both reads, purple.**
 Operator: "Rather than take up two slots with a two way trade, there should be a third trade type of
 two way. It would render as purple in the Gekko Dashboard and in the Sierra Chart study" — "only if
 the model thinks that's the correct call". New play type `direction 'two-way' / stance 'two-way' /

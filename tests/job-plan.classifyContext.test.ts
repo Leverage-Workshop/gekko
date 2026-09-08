@@ -7,7 +7,7 @@ import type { ConfluenceBand, Reference } from '@/lib/job-plan/contextTypes'
 import { enclosingZone, readBox, readValueZone } from '@/lib/job-plan/locationDimensions'
 import { htfBarsAsOf } from '@/lib/job-plan/observedBars'
 import { assignBandRoles } from '@/lib/job-plan/referenceRoles'
-import { PLANNER_REVISION, r2Significance, type ReferenceSource } from '@/lib/job-plan/rules'
+import { PLANNER_REVISION, r2DestinationOnlyReference, r2Significance, type ReferenceSource } from '@/lib/job-plan/rules'
 import {
   AS_OF,
   classify,
@@ -31,7 +31,7 @@ const ref = (id: string, source: ReferenceSource, price: number, extra: Partial<
   price,
   priceLow: price,
   priceHigh: price,
-  destinationOnly: source === 'weekly-rung' || source === 'daily-rung',
+  destinationOnly: r2DestinationOnlyReference({ source, pivotRole: extra.pivot?.role ?? null, nodeKind: extra.node?.kind ?? null }),
   origin: 'mgi',
   boxIndex: null,
   node: null,
@@ -168,6 +168,11 @@ describe('reference inventory (R2)', () => {
       expect(ctx.references.filter((r) => r.pivot?.role === 'historical')).toHaveLength(4)
     })
 
+    it("feat-153: a prior session's pivot is destination-only — a target, never an entry candidate; the current pivot is not", () => {
+      for (const h of ctx.references.filter((r) => r.pivot?.role === 'historical')) expect(h.destinationOnly, h.id).toBe(true)
+      expect(byId(ctx, 'daily-pivot')?.destinationOnly).toBe(false)
+    })
+
     it('drops a pivot the bars traded through since its session and keeps one they never reached', () => {
       const covered = [...flatBars('2026-08-21T08:30:00', 10, 30, 29300), ['2026-08-21T14:00:00', 29500, 29480, 29490] as const]
       const input = defaultInput()
@@ -203,6 +208,10 @@ describe('reference inventory (R2)', () => {
       })
       expect(byId(withNodes, 'node:balance:0')?.label).toBe('balance-area lvn (primary) #1')
       expect(byId(withNodes, 'node:balance:1')).toMatchObject({ source: 'profile-balance', node: { kind: 'hvn', edgeBelow: 'ledge', edgeAbove: 'flat' } })
+      // feat-153: an hvn is a target, never an entry candidate; lvns stay armable
+      expect(byId(withNodes, 'node:balance:1')?.destinationOnly).toBe(true)
+      expect(byId(withNodes, 'node:balance:0')?.destinationOnly).toBe(false)
+      expect(byId(withNodes, 'node:rotation:0')?.destinationOnly).toBe(false)
       expect(byId(withNodes, 'node:rotation:0')).toMatchObject({ source: 'profile-rotation', price: 29525, node: { prominence: 4, agreement: 2 } })
       expect(r2Significance('profile-balance')).toBe(7)
       expect(r2Significance('profile-rotation')).toBe(8)
@@ -270,6 +279,19 @@ describe('confluence bands (R1 / R1b)', () => {
   it('a band of nothing but rungs is destination-only', () => {
     const [band] = buildConfluenceBands([ref('r1', 'weekly-rung', 100), ref('r2', 'daily-rung', 105)], NQ)
     expect(band.destinationOnly).toBe(true)
+  })
+
+  it("feat-153: a band of an hvn and a prior session's pivot is destination-only; with an armable member it is not, and the armable member anchors it", () => {
+    const hvn = ref('hvn', 'profile-balance', 100, { node: { profile: 'balance', kind: 'hvn', prominence: 1, primary: true, position: 'mid', edgeBelow: 'ledge', edgeAbove: 'flat', agreement: 3, samples: 3, distributionEdges: [] } })
+    const prior = ref('prior', 'daily-job-pivot', 104, { subRank: 1, pivot: { role: 'historical', sessionDate: '2026-08-20', testedStatus: 'untested' } })
+    expect(hvn.destinationOnly).toBe(true)
+    expect(prior.destinationOnly).toBe(true)
+    const [lone] = buildConfluenceBands([hvn, prior], NQ)
+    expect(lone).toMatchObject({ destinationOnly: true, anchorId: 'prior', memberCount: 2 })
+    // a lower-tier mgi-other level in the same band takes the anchor over the prior pivot (R2 rank 2) and the primary hvn
+    const [armable] = buildConfluenceBands([hvn, prior, ref('ibh', 'mgi-other', 108)], NQ)
+    expect(armable).toMatchObject({ destinationOnly: false, anchorId: 'ibh', anchorSource: 'mgi-other', confluence: true })
+    expect(armable.members.map((m) => m.id)).toEqual(['ibh', 'prior', 'hvn'])
   })
 
   it('resolves ES tolerances (5 / 10) from the instrument', () => {

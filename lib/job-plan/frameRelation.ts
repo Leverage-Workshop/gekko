@@ -63,7 +63,7 @@ const SOURCE_IMPORTANCE: Readonly<Record<string, string>> = {
   'jba-edge': 'a JBA border',
   'g-line': 'the G line',
   'weekly-job-pivot': 'the weekly Job Pivot',
-  'daily-job-pivot': 'a daily Job Pivot',
+  'daily-job-pivot': 'the current daily Job Pivot',
   'previous-day-extreme': 'a prior-day extreme',
   'overnight-extreme': 'an overnight extreme',
 }
@@ -85,7 +85,10 @@ export function distributionEdgeText(member: Reference, edge: DistributionEdge):
  */
 export function importantReasons(band: FrameBand): string[] {
   const edges = band.members.flatMap((m) => (m.node?.distributionEdges ?? []).map((e) => `${m.label} is the ${distributionEdgeText(m, e)}`))
-  const sources = band.members.filter((m) => IMPORTANT_LEVEL_SOURCES.includes(m.source)).map((m) => `${m.label} is ${SOURCE_IMPORTANCE[m.source] ?? m.source}`)
+  // A destination-only member (a prior-day pivot, feat-153) is a target, never the level that makes a band a play.
+  const sources = band.members
+    .filter((m) => !m.destinationOnly && IMPORTANT_LEVEL_SOURCES.includes(m.source))
+    .map((m) => `${m.label} is ${SOURCE_IMPORTANCE[m.source] ?? m.source}`)
   const stack = band.confluence ? [`${band.members.length} references stack into this band`] : []
   return [...edges, ...sources, ...stack]
 }

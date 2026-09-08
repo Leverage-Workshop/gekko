@@ -6,7 +6,8 @@ import { r1SameBand, r1WithinCap, type BandTolerance } from './rules'
  * tolerance chain TRANSITIVELY into a band; a chain wider than the cap splits
  * at its largest internal gap (recursively) until every piece fits; each band
  * is quoted as [lowest member, highest member] and anchored on its
- * highest-significance member (R2, then within-tier order, then profile
+ * highest-significance ARMABLE member (destination-only members last, then
+ * R2, then within-tier order, then profile
  * prominence, then closeness to the band's midpoint, then id — fully
  * deterministic). Plain points, per instrument.
  */
@@ -47,10 +48,16 @@ function prominenceOf(reference: Reference): number {
   return reference.node?.prominence ?? Number.POSITIVE_INFINITY
 }
 
-/** Significance order inside a band: the first element is the anchor. */
+/**
+ * Significance order inside a band: the first element is the anchor. A
+ * destination-only member (rung, prior-day pivot, hvn — R2, feat-153) never
+ * anchors a band that has an armable member: the band is named and ranked by
+ * the level that can actually take the entry.
+ */
 export function orderBySignificance(members: readonly Reference[], midpoint: number): Reference[] {
   return [...members].sort(
     (a, b) =>
+      Number(a.destinationOnly) - Number(b.destinationOnly) ||
       a.significance - b.significance ||
       a.subRank - b.subRank ||
       prominenceOf(a) - prominenceOf(b) ||

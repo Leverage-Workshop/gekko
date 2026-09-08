@@ -27,6 +27,7 @@ import {
   r1SameBand,
   r1WithinCap,
   r2DestinationOnly,
+  r2DestinationOnlyReference,
   r2Significance,
   r3AtBand,
   r4WithinReach,
@@ -139,6 +140,17 @@ describe('R2 — source significance', () => {
     for (const source of SOURCE_SIGNIFICANCE) {
       expect(r2DestinationOnly(source), source).toBe(source === 'weekly-rung' || source === 'daily-rung')
     }
+  })
+
+  it("feat-153: a reference is destination-only when it is a rung, a PRIOR session's daily pivot, or a profile hvn — never the current pivot, an lvn, or an exhaustive node", () => {
+    expect(r2DestinationOnlyReference({ source: 'daily-rung', pivotRole: null, nodeKind: null })).toBe(true)
+    expect(r2DestinationOnlyReference({ source: 'daily-job-pivot', pivotRole: 'historical', nodeKind: null })).toBe(true)
+    expect(r2DestinationOnlyReference({ source: 'daily-job-pivot', pivotRole: 'current', nodeKind: null })).toBe(false)
+    expect(r2DestinationOnlyReference({ source: 'profile-balance', pivotRole: null, nodeKind: 'hvn' })).toBe(true)
+    expect(r2DestinationOnlyReference({ source: 'profile-rotation', pivotRole: null, nodeKind: 'hvn' })).toBe(true)
+    expect(r2DestinationOnlyReference({ source: 'profile-balance', pivotRole: null, nodeKind: 'lvn' })).toBe(false)
+    expect(r2DestinationOnlyReference({ source: 'profile-balance', pivotRole: null, nodeKind: 'exhaustive-node' })).toBe(false)
+    expect(r2DestinationOnlyReference({ source: 'jba-edge', pivotRole: null, nodeKind: null })).toBe(false)
   })
 })
 

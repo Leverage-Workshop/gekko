@@ -68,7 +68,7 @@ export type Reference = {
   readonly price: number
   readonly priceLow: number
   readonly priceHigh: number
-  /** R2: ladder rungs — shown, never armed. */
+  /** R2: ladder rungs, prior-day daily pivots, profile hvns — shown as targets, never armed (feat-153). */
   readonly destinationOnly: boolean
   readonly origin: ReferenceOrigin
   readonly boxIndex: number | null
@@ -101,7 +101,7 @@ export type ConfluenceBand = {
   readonly memberCount: number
   /** More than one member — a promoter, not the ranking. */
   readonly confluence: boolean
-  /** Every member is a ladder rung. */
+  /** Every member is destination-only (a rung, a prior-day pivot, an hvn). */
   readonly destinationOnly: boolean
   /** Best profile prominence among members (1 = primary), null without a node. */
   readonly prominence: number | null

@@ -133,7 +133,7 @@ describe('llm-planner context payload — importance (feat-150)', () => {
     })
     const payload = llmContextPayload(ctx)
     const at = (id: string) => payload.bands.find((b) => b.bandId === bandOf(ctx, id))!
-    expect(at('dp')).toMatchObject({ important: true, fadeFirst: false, importantBecause: ['Daily Pivot is a daily Job Pivot'], distributionEdges: [] })
+    expect(at('dp')).toMatchObject({ important: true, fadeFirst: false, importantBecause: ['Daily Pivot is the current daily Job Pivot'], distributionEdges: [] })
     expect(at('edge')).toMatchObject({ important: true, fadeFirst: true, confluence: true })
     expect(at('edge').importantBecause).toEqual([
       'balance-area lvn #2 is the lower edge of the rank-2 balance-area distribution 20055–20300',
@@ -142,6 +142,39 @@ describe('llm-planner context payload — importance (feat-150)', () => {
     expect(at('edge').distributionEdges).toEqual(['balance-area lvn #2: lower edge of the rank-2 balance-area distribution 20055–20300'])
     expect(at('hvn')).toMatchObject({ important: false, fadeFirst: false, importantBecause: [] })
     expect(at('rip')).toMatchObject({ important: false })
+  })
+
+  it("feat-153: a prior session's daily pivot and an hvn are destination-only in the payload — never important on their own, never a play", () => {
+    const ctx = synthContext({
+      price: 19930,
+      refs: [
+        { id: 'wp', source: 'weekly-job-pivot', price: 20150, label: 'Weekly Pivot' },
+        { id: 'dp', source: 'daily-job-pivot', price: 19900, label: 'Daily Pivot' },
+        { id: 'dph', source: 'daily-job-pivot', price: 19850, label: 'Prior Daily Pivot', pivotRole: 'historical' },
+        { id: 'hvn', source: 'profile-balance', price: 20050, label: 'balance-area hvn (primary) #1', node: { kind: 'hvn', prominence: 1, primary: true } },
+        { id: 'lvn', source: 'profile-balance', price: 19800, label: 'balance-area lvn #2', node: { kind: 'lvn', prominence: 2 } },
+      ],
+    })
+    const payload = llmContextPayload(ctx)
+    const at = (id: string) => payload.bands.find((b) => b.bandId === bandOf(ctx, id))!
+    expect(at('dph')).toMatchObject({ destinationOnly: true, important: false, importantBecause: [] })
+    expect(at('hvn')).toMatchObject({ destinationOnly: true, important: false })
+    expect(at('dp')).toMatchObject({ destinationOnly: false, important: true })
+    expect(at('lvn')).toMatchObject({ destinationOnly: false })
+    expect(payload.references.find((r) => r.id === 'dph')?.destinationOnly).toBe(true)
+    expect(payload.references.find((r) => r.id === 'hvn')?.destinationOnly).toBe(true)
+
+    const judgment: LlmPlanJudgment = {
+      frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Weekly Pivot frames.' },
+      plays: [
+        { bandId: bandOf(ctx, 'hvn'), direction: 'short', text: 't', rationale: 'r' },
+        { bandId: bandOf(ctx, 'dph'), direction: 'two-way', text: 't', rationale: 'r' },
+      ],
+      sidesWithoutPlay: [{ side: 'fork', reason: 'nothing above the line' }],
+      lean: 'Short into the Weekly Pivot.',
+    }
+    const codes = validateJudgment(judgment, ctx).map((v) => v.code)
+    expect(codes.filter((c) => c === 'play_destination_only')).toHaveLength(2)
   })
 })
 

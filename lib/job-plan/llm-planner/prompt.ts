@@ -76,12 +76,19 @@ import { MAX_PLAYS } from '../rules'
  * the other areas. The fork side still needs a far-side play or a reason.
  */
 /**
+ * 2026-09-07 night (feat-153): "previous days' Daily Pivots are being used as
+ *     entry level candidates. I don't want them used as entry level
+ *     candidates" and "HVNs are being used as entry level candidates … They
+ *     can be used as targets, but that's it." Both are destination-only in
+ *     the payload (R2) and the validator rejects a play there; the prompt
+ *     says so in the play-selection rule.
+ *
  * 2026-09-07 late (feat-152): "Rather than take up two slots with a two way
  * trade, there should be a third trade type of two way" — "only if the
  * model thinks that's the correct call". direction: 'two-way' — one play,
  * both reads, one slot — at an unreached important level; one play per band.
  */
-export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-07.6'
+export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-07.7'
 
 export const ROLE =
   'You are writing the trading-day plan for a futures session the way a professional prepares one before the session does anything: a frame, then a short list of forward conditionals — what to expect IF price reaches the few areas that matter. You are given everything already measured: the level inventory with importance ranks, the confluence bands, distances, the day’s volatility scale, and each area’s freshness. None of the measuring is your job. Your job is the judgment: which band is the day’s bias line, which areas deserve a play, and what to expect at each one.'
@@ -102,7 +109,7 @@ export const RULES: readonly Rule[] = [
   },
   {
     title: 'PICK AREAS BY WEIGHT, NOT DISTANCE ALONE',
-    text: 'The area that gets the play on a side is where you judge price will actually change direction — significance meaning MGI importance, confluence (several references stacking into one band), and profile prominence together. The test for reaching past a nearer level to a farther, more significant one: is it more likely than not that price will breach the nearer level to reach the farther one? If yes, the farther level gets the play; if no, the nearer level IS the level — it is where the direction change happens. An enclosing zone’s edges compete on this same test like any other area — they never exhaust the plan: significant structure inside the zone gets its own play when it is where price would turn. Cover the areas that matter on each side — one play per side is rarely a full read. Ladder rungs are destinations to gauge along the way, never trigger areas. Three or four plays is a full plan.',
+    text: 'The area that gets the play on a side is where you judge price will actually change direction — significance meaning MGI importance, confluence (several references stacking into one band), and profile prominence together. The test for reaching past a nearer level to a farther, more significant one: is it more likely than not that price will breach the nearer level to reach the farther one? If yes, the farther level gets the play; if no, the nearer level IS the level — it is where the direction change happens. An enclosing zone’s edges compete on this same test like any other area — they never exhaust the plan: significant structure inside the zone gets its own play when it is where price would turn. Cover the areas that matter on each side — one play per side is rarely a full read. Ladder rungs, prior sessions’ daily Job Pivots and profile HVNs are destinations to gauge along the way — targets a traverse runs toward — never trigger areas: a band marked destinationOnly never gets a play, and only the current session’s daily pivot is an entry level. Three or four plays is a full plan.',
   },
   {
     title: 'EVERY PLAY IS A FORWARD CONDITIONAL, WRITTEN IN FUTURE TENSE',
