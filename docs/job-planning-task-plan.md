@@ -969,6 +969,17 @@ better reason than the cap. Cap unchanged at 4. Known deterministic-path quirk l
 the line's own reoffer ranks non-primary behind a far-side continuation, so the rollback plan on
 this bundle listed the 29143 rotation hvn twice and the daily pivot not at all.
 
+**Same night (feat-151) — the line itself is never a play.** Operator: "I don't think dedicating a play
+to the trend line is necessary. It can just be assumed that is a two-way play." The frame band is
+two-way by assumption (the rebid while price holds above it, the reoffer once it loses it), drawn as
+the frame (`job_plan_bands` kind `frame`), and its text now says so; every play slot goes to another
+area. `readAgainstFrame` returns no directions at the line; `playCandidates` no longer arms it; the
+grammar prunes it with the reason; the LLM validator gates `play_at_frame_line`; prompt
+`llm-planner/2026-09-07.5` (rules 2 and 4, output rules). The fork side still needs a far-side play or
+a one-line reason. Deterministic precedence follows: with the line's two slots freed, the bias-side
+level beyond price and the far side fill the plan (BASE now G-line short hold, Rip long hold, G-line
+fail, ONH long hold).
+
 ## Claude / Codex review notes
 
 - **LLM in the loop**: Claude initially proposed a thin LLM step (narrative + judgment

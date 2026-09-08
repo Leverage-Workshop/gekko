@@ -20,8 +20,11 @@ import type { ReferenceSource } from './rules'
  *            with it; the fail is the only counter-bias play, never a plain
  *            fade, and "generally you don't want to go against trend unless
  *            it's a real important level, like the edge of a JBA")
- *   line     the frame band itself — a rebid while price holds above it AND
- *            a reoffer once price loses it (both directions, drawn purple)
+ *   line     the frame band itself — two-way BY ASSUMPTION (a rebid while
+ *            price holds above it, a reoffer once it loses it) and never a
+ *            play of its own (feat-151: "I don't think dedicating a play to
+ *            the trend line is necessary. It can just be assumed that is a
+ *            two-way play.") — the slots go to the other areas
  *   far      beyond the line — the fork side: what to do once the line is
  *            lost, in the far side's direction, each level conditional on
  *            the last ("if price breaks the filter line, then another
@@ -136,7 +139,10 @@ export function readAgainstFrame(
   const bias = biasDirection(frame)
   if (bias === null || frame === null) return null
   const fork = opposite(bias)
-  if (frame.bandId === band.id) return { relation: 'line', directions: [bias, fork], fadeFirst: false }
+  // feat-151 (operator 2026-09-07 late): the line itself is never a play —
+  // it is two-way by assumption (the rebid while it holds, the reoffer once
+  // it is lost) and drawn as the frame; the plays go to the other areas.
+  if (frame.bandId === band.id) return { relation: 'line', directions: [], fadeFirst: false }
   const frameLow = frame.low ?? frame.price
   const frameHigh = frame.high ?? frame.price
   // Beyond the line (the far side): entirely below a line price is above, or above a line price is below.

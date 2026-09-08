@@ -1497,6 +1497,16 @@
       ],
       "status": "done",
       "evidence": "lib/job-plan/frameRelation.ts (importantReasons / fadeFirst / distributionEdgeText), llm-planner/{contextPayload,validate,prompt}.ts, docs/job-planning-task-plan.md. Tests: buildPlan (distribution-edge lvn important on its own, interior node not; stacked important level ranks the fail first; GOAL order updated), llmPlanner (payload importance fields; a one-sided play at an important level is never a violation; fixtures carry both reads), llmCutover (judgmentFor pairs important beyond-price bands). PR #202 + the gate-removal follow-up PR."
+    },
+    {
+      "id": "feat-151",
+      "name": "The frame line is two-way by assumption — never a play of its own",
+      "description": "Operator, 2026-09-07 late: 'I don't think dedicating a play to the trend line is necessary. It can just be assumed that is a two-way play.' The frame band (the bias line) is drawn as the frame and understood as the rebid while it holds / the reoffer once lost; no play slot is spent on it. lib/job-plan/frameRelation.ts: readAgainstFrame returns relation 'line' with NO directions; playCandidates.ts no longer arms the line; playGrammar.ts prunes it with the reason ('two-way by assumption'); planFrame.ts frame text states the line is two-way; llm-planner/validate.ts gate play_at_frame_line (a play at the frame band, either direction, when the frame has a direction); prompt llm-planner/2026-09-07.5 rules 2/4 + output rules ('never the frame band'). The fork side still needs a far-side play or a one-line reason (sidesWithoutPlay).",
+      "dependencies": [
+        "feat-150"
+      ],
+      "status": "done",
+      "evidence": "lib/job-plan/{frameRelation,playCandidates,playGrammar,planFrame}.ts, llm-planner/{validate,prompt,schema}.ts, docs/job-planning-task-plan.md. Tests: buildPlan (the line is never a play; far-side, R9, precedence and GOAL expectations rewritten), invariants (no play at the frame band when the frame has a direction), llmPlanner (play_at_frame_line both directions; fixtures moved off the line), llmCutover (the line never assembles; a far-side hold does), frameCandidates (frame text). ./init.sh green (2292 tests)."
     }
   ]
 }

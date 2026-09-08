@@ -4,6 +4,18 @@
 
 **Last Updated:** 2026-09-07
 
+**Latest change (branch `feat-151-line-never-a-play`): the frame line is two-way by assumption and
+never a play.** Operator: "I don't think dedicating a play to the trend line is necessary. It can just
+be assumed that is a two-way play." `readAgainstFrame` returns no directions at the frame band;
+`playCandidates` no longer arms it; the grammar prunes it with the reason; `planFrame` text says "The
+line itself is two-way: rebid while it holds, reoffer once lost"; validator gate `play_at_frame_line`;
+prompt `llm-planner/2026-09-07.5`. The fork side still needs a far-side play or a reason. Tests moved
+off the line (planner / cutover fixtures now judge the unreached daily pivot beyond price; BASE
+precedence is G-line short hold → Rip long hold → G-line fail → ONH long hold; a demoted Rip now keeps
+its play and ranks last instead of falling to the cap). ./init.sh green (2292 tests).
+
+---
+
 **Follow-up (branch `fix-150-no-both-or-neither-gate`): the both-or-neither gate is REMOVED.** The
 first plan under `llm-planner/2026-09-07.3` (03:12Z) did not write band-19 at all — the model chose
 to drop the level rather than spend two of four slots on it. Operator: "I didn't even make that level

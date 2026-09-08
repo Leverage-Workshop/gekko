@@ -72,7 +72,7 @@ function walkSide(context: JobContext, idx: Indexed, side: BandSide): CandidateS
   return walkRoles(context, idx, side, context.roles.filter((r) => r.side === side))
 }
 
-/** feat-149: the roles on one frame relation, the line excluded (it is always in). */
+/** feat-149: the roles on one frame relation (the line never walks — feat-151). */
 function walkRelation(context: JobContext, idx: Indexed, frame: PlanFrame, relation: FrameRelation): CandidateSelection {
   const roles = context.roles.filter((r) => {
     const band = idx.bands.get(r.bandId)
@@ -109,8 +109,7 @@ export function selectCandidates(context: JobContext, frame: PlanFrame | null = 
   const walks =
     frame !== null && biasDirection(frame) !== null
       ? [
-          // the line itself is always a candidate (a rebid while it holds, a reoffer once it is lost)
-          { candidates: (frame.bandId ? [context.roles.find((r) => r.bandId === frame.bandId)] : []).flatMap((r) => (r && (r.withinReach || r.at) ? [candidate(r, idx, 'the frame line')] : [])).filter((c): c is Candidate => c !== null), pruned: [] as PrunedBranch[] },
+          // the line itself is never a candidate (feat-151): two-way by assumption, drawn as the frame
           walkRelation(context, idx, frame, 'bias'),
           walkRelation(context, idx, frame, 'beyond'),
           walkRelation(context, idx, frame, 'far'),

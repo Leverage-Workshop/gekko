@@ -235,12 +235,13 @@ function composePlay(candidate: Candidate, context: JobContext, frame: PlanFrame
 }
 
 const NO_READ = 'price inside the band with no frame direction — no directional read'
+const LINE_ASSUMED = 'the frame line is two-way by assumption (rebid while it holds, reoffer once lost) — never a play of its own (feat-151)'
 
-/** Every legal play for one candidate band under the frame (the frame band yields two), or the reason there is none. */
+/** Every legal play for one candidate band under the frame (an important level beyond price yields two; the line yields none), or the reason there is none. */
 export function buildBandPlays(candidate: Candidate, context: JobContext, frame: PlanFrameInput): { drafts: PlayDraft[] } | { pruned: string } {
   const read = readAgainstFrame(candidate.band, candidate.role.side, frame)
   const directions = legalDirections(candidate.band, candidate.role.side, frame)
-  if (directions.length === 0) return { pruned: NO_READ }
+  if (directions.length === 0) return { pruned: read?.relation === 'line' ? LINE_ASSUMED : NO_READ }
   return { drafts: directions.map((direction) => composePlay(candidate, context, frame, read, direction)) }
 }
 
@@ -248,7 +249,7 @@ export function buildBandPlays(candidate: Candidate, context: JobContext, frame:
 export function buildBandPlay(candidate: Candidate, context: JobContext, frame: PlanFrameInput, direction: PlayDirectional): { draft: PlayDraft } | { pruned: string } {
   const read = readAgainstFrame(candidate.band, candidate.role.side, frame)
   const directions = legalDirections(candidate.band, candidate.role.side, frame)
-  if (directions.length === 0) return { pruned: NO_READ }
+  if (directions.length === 0) return { pruned: read?.relation === 'line' ? LINE_ASSUMED : NO_READ }
   if (!directions.includes(direction)) {
     return { pruned: `${direction} is not a legal read at this band (${read?.relation ?? 'geometry'} — ${directions.join('/')})` }
   }

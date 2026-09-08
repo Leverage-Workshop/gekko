@@ -34,9 +34,9 @@ function frameText(c: FrameCandidate): string {
     return `At the ${name} — no bias yet: holding above it, longs at the areas above; losing it, shorts at the areas below`
   }
   if (c.side === 'above') {
-    return `Above the ${name} (${fmtPrice(c.distancePts)} pts) — longs only: look for rebids at the areas above the line; shorts come back only below it`
+    return `Above the ${name} (${fmtPrice(c.distancePts)} pts) — longs only: look for rebids at the areas above the line; shorts come back only below it. The line itself is two-way: rebid while it holds, reoffer once lost`
   }
-  return `Below the ${name} (${fmtPrice(c.distancePts)} pts) — shorts only: look for reoffers at the areas below the line; longs come back only above it`
+  return `Below the ${name} (${fmtPrice(c.distancePts)} pts) — shorts only: look for reoffers at the areas below the line; longs come back only above it. The line itself is two-way: reoffer while it holds, rebid once lost`
 }
 
 /** The frame composed around one chosen candidate (the deterministic pick, or the LLM's — feat-145). */

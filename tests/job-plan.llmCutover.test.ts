@@ -63,8 +63,8 @@ function bandOf(ctx: JobContext, memberId: string): string {
 function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
   return {
     frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Nearest stacked structure within reach.' },
+    // feat-151: the line itself (wp) is never a play
     plays: [
-      { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot, expect the offer and a turn back toward the Daily Pivot.', rationale: 'The line; confluent with the overnight high.' },
       { bandId: bandOf(ctx, 'dp'), direction: 'short', text: 'If price breaks the Daily Pivot and holds below, the pullback into it is the short.', rationale: 'Unreached level on the bias side: the hold.' },
       // feat-150: an unreached important level carries both reads
       { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'A fail at the Daily Pivot turns price back toward the Weekly Pivot.', rationale: 'Unreached level on the bias side: the fail.' },
@@ -83,7 +83,7 @@ describe('assembleLlmPlan', () => {
     expect(JobPlanSchema.safeParse(plan).success).toBe(true)
     expect(plan.status).toBe('ready')
     expect(plan.plays.map((p) => p.band.bandId)).toEqual(judgment.plays.map((p) => p.bandId))
-    expect(plan.plays.map((p) => p.direction)).toEqual(['short', 'short', 'long'])
+    expect(plan.plays.map((p) => p.direction)).toEqual(['short', 'long'])
     expect(plan.plays[0]).toMatchObject({ rank: 1, primary: true, summary: judgment.plays[0].text, llmRationale: judgment.plays[0].rationale })
 
     // The geometry-heavy parts came from the deterministic grammar.
@@ -142,14 +142,16 @@ describe('assembleLlmPlan', () => {
     // the 1A rung is on the far side of the line and not an important level: long only — a short there passed no gate and must not assemble
     const farShort: LlmPlanJudgment = { ...judgment, plays: [{ bandId: bandOf(ctx, 'rung'), direction: 'short', text: 't', rationale: 'r' }, judgment.plays[1]] }
     expect(() => assembleLlmPlan({ judgment: farShort, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
-    // the line's own long (the fork) assembles as a continuation on the same band
-    const both: LlmPlanJudgment = { ...judgment, plays: [...judgment.plays, { ...judgment.plays[0], direction: 'long', text: 'Once the Weekly Pivot is taken and held, the pullback is the long.' }] }
-    const plan = assembleLlmPlan({ judgment: both, context: ctx, modelId: 'm' })
+    // the line itself never assembles (feat-151: two-way by assumption)
+    const atLine: LlmPlanJudgment = { ...judgment, plays: [...judgment.plays, { bandId: bandOf(ctx, 'wp'), direction: 'long', text: 'Once the Weekly Pivot is taken and held, the pullback is the long.', rationale: 'r' }] }
+    expect(() => assembleLlmPlan({ judgment: atLine, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
+    // a far-side hold (the G line once the line is taken) assembles as a fork continuation
+    const far: LlmPlanJudgment = { ...judgment, plays: [...judgment.plays, { bandId: bandOf(ctx, 'g'), direction: 'long', text: 'Once the Weekly Pivot is taken and held, the pullback into the G line is the long.', rationale: 'r' }] }
+    const plan = assembleLlmPlan({ judgment: far, context: ctx, modelId: 'm' })
     expect(plan.plays.map((p) => [p.band.bandId, p.direction, p.stance])).toEqual([
-      [bandOf(ctx, 'wp'), 'short', 'reoffer'],
       [bandOf(ctx, 'dp'), 'short', 'continuation'],
       [bandOf(ctx, 'dp'), 'long', 'rebid'],
-      [bandOf(ctx, 'wp'), 'long', 'continuation'],
+      [bandOf(ctx, 'g'), 'long', 'continuation'],
     ])
   })
 
@@ -181,7 +183,7 @@ function judgmentFor(payload: LlmContextPayload): LlmPlanJudgment {
   const frame = payload.frameCandidates.find((f) => f.withinReach) ?? payload.frameCandidates[0]
   const nearest = (side: 'above' | 'below') =>
     payload.bands
-      .filter((b) => b.side === side && !b.destinationOnly)
+      .filter((b) => b.side === side && !b.destinationOnly && b.bandId !== frame.bandId)
       .sort((a, b) => a.distancePts - b.distancePts)[0]
   const above = nearest('above')
   const below = nearest('below')

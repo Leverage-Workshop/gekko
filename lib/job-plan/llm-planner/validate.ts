@@ -24,6 +24,7 @@ export type JudgmentViolationCode =
   | 'play_duplicate_band'
   | 'play_destination_only'
   | 'play_direction_frame'
+  | 'play_at_frame_line'
   | 'play_inside_without_frame_direction'
   | 'side_unaddressed'
   | 'invented_price'
@@ -119,11 +120,16 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
       add('play_unknown_band', `play bandId "${play.bandId}" is not in the inventory`)
       continue
     }
-    // One play per band, except the frame band, which carries one per direction.
+    // feat-151: the line itself is never a play — two-way by assumption, drawn as the frame.
+    if (planFrame !== null && planFrame.side !== 'at' && planFrame.bandId === play.bandId) {
+      add('play_at_frame_line', `band ${play.bandId} is the frame line — it is two-way by assumption (the rebid while it holds, the reoffer once it is lost) and never a play of its own; spend the slot on another area`)
+      continue
+    }
+    // One play per band, except an unreached important level beyond price, which may carry one per direction.
     const key = `${play.bandId}:${play.direction}`
     const legal = legalDirections(band, role.side, planFrame)
     if (seen.has(key) || ([...seen].some((k) => k.startsWith(`${play.bandId}:`)) && legal.length < 2)) {
-      add('play_duplicate_band', `band ${play.bandId} carries more than one play${legal.length < 2 ? ' (only the line and an unreached level beyond price may carry both directions)' : ' in the same direction'}`)
+      add('play_duplicate_band', `band ${play.bandId} carries more than one play${legal.length < 2 ? ' (only an unreached important level beyond price may carry both directions)' : ' in the same direction'}`)
     }
     seen.add(key)
     if (band.destinationOnly) {
@@ -132,7 +138,7 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
     if (legal.length === 0) {
       add('play_inside_without_frame_direction', `band ${play.bandId} contains price and the frame is 'at' its line — no directional read exists`)
     } else if (!legal.includes(play.direction)) {
-      add('play_direction_frame', `band ${play.bandId}: the frame reads ${legal.join(' or ')} here, not ${play.direction} — between the line and price only the bias direction; at the line and at an unreached level beyond price both (the counter-bias one as a fail); beyond the line only the fork direction`)
+      add('play_direction_frame', `band ${play.bandId}: the frame reads ${legal.join(' or ')} here, not ${play.direction} — between the line and price only the bias direction; at an unreached important level beyond price both (the counter-bias one as a fail); beyond the line only the fork direction; never at the line itself`)
     }
     const addressedSide = sideOfPlay(band, role.side, play.direction, planFrame)
     if (addressedSide) addressed.add(addressedSide)

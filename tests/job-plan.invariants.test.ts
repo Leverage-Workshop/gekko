@@ -134,7 +134,12 @@ describe('invariants over the corpus', () => {
     expect(p.plays.some((x) => x.stance === 'stand-down')).toBe(true)
   })
 
-  it.each(CORPUS)('%s: at most one play per band per direction — a band carrying two carries one of each (the line, or an unreached level beyond price)', (_, p) => {
+  it.each(CORPUS)('%s: the frame line itself is never a play when the frame has a direction (feat-151: two-way by assumption)', (_, p) => {
+    if (!p.frame || p.frame.side === 'at' || !p.frame.bandId) return
+    expect(p.plays.filter((x) => x.band.bandId === p.frame!.bandId)).toEqual([])
+  })
+
+  it.each(CORPUS)('%s: at most one play per band per direction — a band carrying two carries one of each (an unreached important level beyond price)', (_, p) => {
     const keys = p.plays.filter((x) => x.band.bandId !== null).map((x) => `${x.band.bandId}:${x.direction}`)
     expect(new Set(keys).size).toBe(keys.length)
     const byBand = new Map<string, string[]>()

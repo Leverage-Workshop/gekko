@@ -24,9 +24,9 @@ export const LlmFrameChoice = z.object({
 export type LlmFrameChoice = z.infer<typeof LlmFrameChoice>
 
 export const LlmPlayJudgment = z.object({
-  /** Id of a confluence band from the payload's `bands`. The frame band may appear twice, once per direction (feat-149). */
+  /** Id of a confluence band from the payload's `bands` — never the frame band (feat-151); an unreached important level beyond price may appear twice, once per direction. */
   bandId: z.string().min(1),
-  /** The frame names it (feat-149): the bias direction on the bias side and beyond price, the fork direction on the far side; the line carries both. */
+  /** The frame names it (feat-149): the bias direction on the bias side and beyond price (plus the fail at an important level), the fork direction on the far side. */
   direction: z.enum(['long', 'short']),
   /** The forward conditional, future tense: approach → expected turn → traverse → fork. */
   text: z.string().min(1),
