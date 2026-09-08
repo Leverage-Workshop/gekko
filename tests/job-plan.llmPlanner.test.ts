@@ -51,9 +51,8 @@ function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
     frame: { bandId: bandOf(ctx, 'wp'), rationale: 'The weekly pivot band (with the overnight high) is the nearest stacked structure within reach.' },
     // feat-151: the line itself (wp) is never a play — two-way by assumption
     plays: [
-      { bandId: bandOf(ctx, 'dp'), direction: 'short', text: 'If price breaks the Daily Pivot and holds below it, the pullback into it is the short toward the Prior Daily Pivot.', rationale: 'Unreached level on the bias side: the breach-and-hold with the line.' },
-      // feat-150: an unreached important level carries BOTH reads — the fail against the line as well
-      { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'A fail at the Daily Pivot, unreached below, turns price back up toward the Weekly Pivot.', rationale: 'Unreached level on the bias side: the fail against the line.' },
+      // feat-152: the unreached daily pivot carries both reads in ONE two-way play
+      { bandId: bandOf(ctx, 'dp'), direction: 'two-way', text: 'At the Daily Pivot, unreached below: a fail there turns price back up toward the Weekly Pivot; a break that holds makes the pullback into it the short toward the Prior Daily Pivot.', rationale: 'Unreached important level on the bias side: both reads, one slot.' },
     ],
     // feat-149: the fork side (what to do once the line is taken) needs a play or a reason
     sidesWithoutPlay: [{ side: 'fork', reason: 'above the Weekly Pivot only the 1A rung and the far G line — destinations, nothing to hold on the pullback' }],
@@ -147,13 +146,33 @@ describe('llm-planner context payload — importance (feat-150)', () => {
 })
 
 describe('llm-planner hard gates', () => {
-  it('feat-150: an unreached important level may carry one read or both — never gated (operator: "it has to be a two-way or no trade… is unnecessary")', () => {
+  it('feat-150/152: an unreached important level is ONE play — the fail, the hold, or two-way (the model\'s call); two-way is illegal where only one read exists; a band never appears twice', () => {
     const ctx = context()
     const base = cleanJudgment(ctx)
-    const failOnly = { ...base, plays: base.plays.filter((p) => !(p.bandId === bandOf(ctx, 'dp') && p.direction === 'short')) }
-    expect(validateJudgment(failOnly, ctx)).toEqual([])
-    const holdOnly = { ...base, plays: base.plays.filter((p) => !(p.bandId === bandOf(ctx, 'dp') && p.direction === 'long')) }
-    expect(validateJudgment(holdOnly, ctx)).toEqual([])
+    const at = (direction: 'long' | 'short' | 'two-way') => ({ ...base, plays: [{ ...base.plays[0], direction }] })
+    expect(validateJudgment(at('long'), ctx)).toEqual([])
+    expect(validateJudgment(at('short'), ctx)).toEqual([])
+    expect(validateJudgment(at('two-way'), ctx)).toEqual([])
+    // the fail and the hold as two plays on one band is a duplicate — that is what the two-way play is for
+    const twoSlots = { ...base, plays: [{ ...base.plays[0], direction: 'short' as const }, { ...base.plays[0], direction: 'long' as const }] }
+    expect(validateJudgment(twoSlots, ctx).map((v) => v.code)).toEqual(['play_duplicate_band'])
+    // two-way at a level that reads one way only (a Rip beyond price is not important) is a direction violation
+    const withRip = synthContext({
+      price: 19930,
+      refs: [
+        { id: 'wp', source: 'weekly-job-pivot', price: 20150, label: 'Weekly Pivot' },
+        { id: 'rip', source: 'rip', price: 19880, label: 'Rip' },
+      ],
+    })
+    const ripTwoWay: LlmPlanJudgment = {
+      frame: { bandId: bandOf(withRip, 'wp'), rationale: 'The line.' },
+      plays: [{ bandId: bandOf(withRip, 'rip'), direction: 'two-way', text: 'Two-way at the Rip.', rationale: 'r' }],
+      sidesWithoutPlay: [{ side: 'fork', reason: 'nothing above the line' }],
+      lean: 'Short below the line.',
+    }
+    const v = validateJudgment(ripTwoWay, withRip)
+    expect(v.map((x) => x.code)).toEqual(['play_direction_frame'])
+    expect(v[0].message).toContain('two-way is a read only at an unreached important level')
   })
 
   it('accepts a clean judgment', () => {
@@ -178,10 +197,12 @@ describe('llm-planner hard gates', () => {
     // the 1A rung is on the far side of the line (above it, price below) and not an important level: fork direction only — long
     const farShort = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'rung'), direction: 'short' as const, text: 't', rationale: 'r' }] }
     expect(validateJudgment(farShort, ctx).map((v) => v.code)).toContain('play_direction_frame')
-    // the G line out there IS important: the fork long and the bounce short are both legal
-    const gBoth = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'g'), direction: 'short' as const, text: 't', rationale: 'r' }, { bandId: bandOf(ctx, 'g'), direction: 'long' as const, text: 't', rationale: 'r' }] }
-    expect(validateJudgment(gBoth, ctx).filter((v) => v.code === 'play_direction_frame')).toEqual([])
-    // the unreached daily pivot carries both (short as the hold, long as the fail) — already in the clean judgment
+    // the G line out there IS important: the fork long, the bounce short, or the two-way are each legal
+    for (const direction of ['long', 'short', 'two-way'] as const) {
+      const g = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'g'), direction, text: 't', rationale: 'r' }] }
+      expect(validateJudgment(g, ctx).filter((v) => v.code === 'play_direction_frame')).toEqual([])
+    }
+    // the unreached daily pivot's two-way play is in the clean judgment
     expect(validateJudgment(base, ctx)).toEqual([])
     // feat-151: the line itself is never a play, in either direction
     for (const direction of ['short', 'long'] as const) {
@@ -200,7 +221,7 @@ describe('llm-planner hard gates', () => {
     const base = cleanJudgment(ctx)
     const invented = {
       ...base,
-      plays: [{ ...base.plays[0], text: 'If price reaches 20050, expect the offer back down.' }, base.plays[1]],
+      plays: [{ ...base.plays[0], text: 'If price reaches 20050, expect the offer back down.' }],
     }
     const codes = validateJudgment(invented, ctx)
     expect(codes.map((v) => v.code)).toContain('invented_price')
@@ -209,12 +230,12 @@ describe('llm-planner hard gates', () => {
     // Either side of the inventory span is still a price claim.
     const above = {
       ...base,
-      plays: [{ ...base.plays[0], text: 'Through the Weekly Pivot the traverse runs toward 21000.' }, base.plays[1]],
+      plays: [{ ...base.plays[0], text: 'Through the Weekly Pivot the traverse runs toward 21000.' }],
     }
     expect(validateJudgment(above, ctx).map((v) => v.code)).toContain('invented_price')
     const below = {
       ...base,
-      plays: [base.plays[0], { ...base.plays[1], text: 'Losing the Daily Pivot opens the traverse toward 19200.' }],
+      plays: [{ ...base.plays[0], text: 'Losing the Daily Pivot opens the traverse toward 19200.' }],
     }
     expect(validateJudgment(below, ctx).map((v) => v.code)).toContain('invented_price')
 

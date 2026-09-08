@@ -1507,6 +1507,16 @@
       ],
       "status": "done",
       "evidence": "lib/job-plan/{frameRelation,playCandidates,playGrammar,planFrame}.ts, llm-planner/{validate,prompt,schema}.ts, docs/job-planning-task-plan.md. Tests: buildPlan (the line is never a play; far-side, R9, precedence and GOAL expectations rewritten), invariants (no play at the frame band when the frame has a direction), llmPlanner (play_at_frame_line both directions; fixtures moved off the line), llmCutover (the line never assembles; a far-side hold does), frameCandidates (frame text). ./init.sh green (2292 tests)."
+    },
+    {
+      "id": "feat-152",
+      "name": "The two-way play: one slot, both reads, purple on the dashboard and in Sierra",
+      "description": "Operator, 2026-09-07 late: 'Rather than take up two slots with a two way trade, there should be a third trade type of two way. It would render as purple in the Gekko Dashboard and in the Sierra Chart study' — 'only if the model thinks that's the correct call'. New play type direction 'two-way' / stance 'two-way' / condition 'fail-or-hold' (knowledge/schema/job-plan.schema.ts): ONE play at an unreached important level (beyond price on the bias side, or an important level on the far side) carrying the fail against the line AND the break-and-hold with it. lib/job-plan/playGrammar.ts composeTwoWay (legs ordered by fadeFirst, destinations = first stop of each leg ascending, invalidation 'either', no R11); frameRelation.ts twoWayLegal; the deterministic path reads every such level two-way; buildBandPlay accepts 'two-way'. LLM: schema direction enum + validate (two-way only where two reads exist; one play per band — the pair is now a duplicate) + assemble + diff (two-way = both directions) + prompt llm-planner/2026-09-07.6 (the model chooses the fail, the hold, or the two-way). Dashboard: purple accent (--color-two-way #a855f7, DESIGN.md semantic colour), headline for fail-or-hold. Sierra: job_plan_bands emits kind 'both' for a two-way play (20260908010000_job_plan_bands_two_way.sql, applied via the Supabase MCP; gekko-db skill updated).",
+      "dependencies": [
+        "feat-151"
+      ],
+      "status": "done",
+      "evidence": "knowledge/schema/job-plan.schema.ts, lib/job-plan/{frameRelation,playGrammar,planPrecedence}.ts, llm-planner/{schema,validate,assemblePlan,diff,prompt}.ts, app/components/job-plan-play.tsx, app/globals.css, DESIGN.md, supabase/migrations/20260908010000_job_plan_bands_two_way.sql, .claude/skills/gekko-db/SKILL.md, docs/job-planning-task-plan.md. Tests: buildPlan (two-way draft at every important level, leg order, destinations/invalidation shape, LLM-path legs via draftAt, two-way illegal at a Rip; BASE/BOXED/GOAL orders), llmPlanner (two-way accepted at important levels, rejected at a non-important band, the pair is a duplicate), llmCutover (assembles a two-way; judgmentFor emits one). ./init.sh green."
     }
   ]
 }

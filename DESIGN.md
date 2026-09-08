@@ -293,6 +293,7 @@ Type voice runs **Inter** (variable) in two weights: 700 for display + nav label
 ### Semantic
 - **Warning** (`{colors.warning}` — #f4b400): Used very sparingly on technical-warning callouts.
 - **Success** (`{colors.success}` — #0fa336): Order-confirmation states (rare on marketing surfaces).
+- **Two-way** (`{colors.two-way}` — #a855f7): Data-semantic direction colour for a Job plan **two-way play** (one play carrying both the fail and the hold at an important level, feat-152), alongside long = bmw-blue and short = m-red. It matches the purple the Sierra Job Plan Bands study draws a two-sided level in. A data colour like warning/success, never a brand accent and never a CTA.
 
 ## Typography
 

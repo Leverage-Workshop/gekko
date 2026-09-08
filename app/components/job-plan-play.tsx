@@ -15,8 +15,17 @@ import { HighlightedText } from './highlighted-text'
  * invalidation price flips to the counter accent.
  */
 
-function directionAccent(direction: Play['direction']) {
-  switch (direction) {
+/** Direction colors: long bmw-blue, short m-red, the two-way play (feat-152) purple — the same colour the Sierra study draws a two-sided level in; the R10 stand-down stays neutral. */
+function directionAccent(play: Pick<Play, 'direction' | 'stance'>) {
+  if (play.stance === 'two-way') {
+    return {
+      top: 'border-t-two-way',
+      text: 'text-two-way',
+      counterText: 'text-body-strong',
+      badge: 'border-two-way text-two-way',
+    }
+  }
+  switch (play.direction) {
     case 'long':
       return {
         top: 'border-t-bmw-blue',
@@ -69,6 +78,10 @@ export function playHeadline(play: Play): string {
       return `Stall short of ${name} → ${isLong ? 'long' : 'short'} the stall, target ${final ?? 'back across'}`
     case 'mid-zone-two-way':
       return `${name} — two-way, wait for the edges`
+    case 'fail-or-hold': {
+      const legs = play.destinations.map((stage) => stage.label)
+      return `Two-way at ${name} — fail back across or build through${legs.length > 0 ? ` → ${legs.join(' / ')}` : ''}`
+    }
   }
 }
 
@@ -103,7 +116,8 @@ function actionRows(play: Play): ActionRow[] {
       counter: true,
     },
     ...play.destinations.map((stage) => ({
-      point: `Target ${stage.order} (T${stage.order})`,
+      // feat-152: a two-way play's stages are the first stop of EACH leg — alternatives, never a sequence
+      point: play.stance === 'two-way' ? legLabel(stage.text) : `Target ${stage.order} (T${stage.order})`,
       price: formatBand(stage.low, stage.high),
       description: stage.text,
       counter: false,
@@ -111,11 +125,18 @@ function actionRows(play: Play): ActionRow[] {
   ]
 }
 
+/** "Fail leg (short): …" → "Fail leg (short)". */
+function legLabel(text: string): string {
+  const colon = text.indexOf(':')
+  return colon > 0 ? text.slice(0, colon) : 'Leg'
+}
+
 export function JobPlayCard({ play }: { play: Play }) {
-  const accent = directionAccent(play.direction)
+  const accent = directionAccent(play)
   const band = play.band
   const terms = playTerms(play)
-  const sequence = play.destinations.map((stage) => stage.label).join(' → ')
+  const twoWay = play.stance === 'two-way'
+  const sequence = play.destinations.map((stage) => stage.label).join(twoWay ? ' / ' : ' → ')
   return (
     <article
       data-play={play.id}
@@ -171,7 +192,8 @@ export function JobPlayCard({ play }: { play: Play }) {
       </p>
       {sequence && (
         <p className="mt-3 text-xs font-light uppercase tracking-wide text-muted">
-          Target sequence: <span className="text-body-strong">{sequence}</span>
+          {twoWay ? 'Legs (either, not a sequence): ' : 'Target sequence: '}
+          <span className="text-body-strong">{sequence}</span>
         </p>
       )}
 

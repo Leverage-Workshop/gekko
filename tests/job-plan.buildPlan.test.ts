@@ -4,7 +4,7 @@ import { buildPlan, insufficiencyReasons } from '@/lib/job-plan/buildPlan'
 import type { BandOriginFacts, Excursion } from '@/lib/job-plan/contextTypes'
 import { MAX_STAGES } from '@/lib/job-plan/destinationChain'
 import { planFrame } from '@/lib/job-plan/planFrame'
-import { buildBandPlays } from '@/lib/job-plan/playGrammar'
+import { buildBandPlay, buildBandPlays } from '@/lib/job-plan/playGrammar'
 import { MAX_PLAYS, PLANNER_REVISION } from '@/lib/job-plan/rules'
 import { synthContext, type SynthRef, type SynthSpec } from './helpers/jobPlanContext'
 
@@ -85,6 +85,17 @@ function draftsAt(spec: SynthSpec, memberId: string) {
   const candidate = { band, role: ctx.roles.find((r) => r.bandId === band.id)!, facts: ctx.origin.bands.find((f) => f.bandId === band.id)!, why: 'test' }
   const result = buildBandPlays(candidate, ctx, frame)
   return 'drafts' in result ? result.drafts : []
+}
+
+/** The directional draft the LLM path would compose at the band in a REQUESTED direction (feat-152: the deterministic read there may be the two-way). */
+function draftAt(spec: SynthSpec, memberId: string, direction: 'long' | 'short' | 'two-way') {
+  const ctx = synthContext(spec)
+  const frame = planFrame(ctx)
+  const band = ctx.bands.find((b) => b.members.some((m) => m.id === memberId))!
+  const candidate = { band, role: ctx.roles.find((r) => r.bandId === band.id)!, facts: ctx.origin.bands.find((f) => f.bandId === band.id)!, why: 'test' }
+  const result = buildBandPlay(candidate, ctx, frame, direction)
+  if (!('draft' in result)) throw new Error(result.pruned)
+  return result.draft
 }
 
 const failedLook = (direction: 'above' | 'below', grade: 'EARLY' | 'LATE' = 'EARLY', endedAt = '2026-08-24T09:05:00'): Excursion => ({
@@ -168,7 +179,7 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
     expect(buildBandPlays(candidate, ctx, planFrame(ctx))).toEqual({ pruned: expect.stringContaining('two-way by assumption') })
     // the bias-side pullback and the far side still read against the line
     expect(playAt(p, 'Rip', 'long')).toMatchObject({ stance: 'continuation', condition: 'build-beyond-continuation' })
-    expect(playAt(p, 'ONL', 'short')!.trigger).toContain('Only once price has lost the Daily Job Pivot')
+    expect(playAt(p, 'ONL')!.trigger).toContain('Only once price has lost the Daily Job Pivot')
   })
 
   it('an unreached level beyond price on the bias side: the break-and-hold WITH the line; the FAIL against it only at a real important level', () => {
@@ -180,32 +191,39 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
     expect(rip[0].trigger).not.toContain('Only once')
     expect(rip[0].summary).toContain('Break-and-hold above Rip 29420, buy the pullback')
     expect(rip[0].invalidation).toMatchObject({ low: 29420, side: 'below' })
-    // an overnight high at the same price IS a real important level: the hold AND the fail against the trend
-    const onh = draftsAt({ ...LINE, refs: LINE.refs.map((r) => (r.id === 'rip' ? { ...r, id: 'onh', source: 'overnight-extreme' as const, label: 'ONH' } : r)) }, 'onh')
-    expect(onh.map((d) => [d.direction, d.stance, d.condition])).toEqual([
-      ['long', 'continuation', 'build-beyond-continuation'],
-      ['short', 'reoffer', 'look-and-fail'],
+    // an overnight high at the same price IS a real important level: the deterministic read is ONE two-way play (feat-152) — the hold AND the fail in one slot
+    const spec = { ...LINE, refs: LINE.refs.map((r) => (r.id === 'rip' ? { ...r, id: 'onh', source: 'overnight-extreme' as const, label: 'ONH' } : r)) }
+    const onh = draftsAt(spec, 'onh')
+    expect(onh.map((d) => [d.direction, d.stance, d.condition])).toEqual([['two-way', 'two-way', 'fail-or-hold']])
+    // a lone important level leads with the hold; the fail is the second leg
+    expect(onh[0].trigger).toBe('Two-way at ONH 29420: break above ONH 29420 and HOLD — completed exec-bar closes above 29420 for 20 min (R6) — then the pullback into it that holds is the long toward PDH; or a look above ONH 29420 that fails back → short back across toward Daily Job Pivot')
+    expect(onh[0].summary).toContain('break-and-hold first')
+    expect(onh[0].invalidation).toMatchObject({ low: 29420, high: 29420, side: 'either', thenSeek: null })
+    // each leg's first stage keeps its own expectation and beeline (the fail leg gates at the line toward ONL; the hold leg's PDH gates on toward the weekly pivot)
+    expect(onh[0].destinations.map((d) => [d.label, d.text.split(':')[0], d.expect, d.beeline?.destinationLabel ?? null])).toEqual([
+      ['Daily Job Pivot', 'Fail leg (short)', 'gate-continuation', 'ONL'],
+      ['PDH', 'Hold leg (long)', 'gate-continuation', 'Weekly Job Pivot'],
     ])
-    expect(onh[1].trigger).toContain('Look above ONH 29420 and fail')
-    expect(onh[1].activation.evidence).toContain('a sweep beyond that fails is the trigger, not the arrival alone')
-    expect(onh[1].dont).toContain("Don't fade the break itself")
-    // and in the plan the with-trend hold ranks ahead of the counter-trend fail
-    const p = line({ refs: LINE.refs.map((r) => (r.id === 'rip' ? { ...r, id: 'onh', source: 'overnight-extreme' as const, label: 'ONH' } : r)) })
-    const fail = playAt(p, 'ONH', 'short')
-    if (fail) expect(playAt(p, 'ONH', 'long')!.rank).toBeLessThan(fail.rank)
-    else expect(p.pruned.some((x) => x.label.startsWith('ONH') && x.reason.includes('max 4'))).toBe(true)
-    expect(playAt(p, 'ONH', 'long')).toBeDefined()
+    expect(onh[0].dont).toContain("Don't pick a side ahead of the response")
+    expect(onh[0].responseDeadline).toBeNull()
+    // the LLM path may still ask for either leg alone
+    expect(draftAt(spec, 'onh', 'long')).toMatchObject({ stance: 'continuation', condition: 'build-beyond-continuation' })
+    const fail = draftAt(spec, 'onh', 'short')
+    expect(fail).toMatchObject({ stance: 'reoffer', condition: 'look-and-fail' })
+    expect(fail.trigger).toContain('Look above ONH 29420 and fail')
+    expect(fail.dont).toContain("Don't fade the break itself")
+    // and two-way is never a read where only one exists
+    expect(() => draftAt(LINE, 'rip', 'two-way')).toThrow('two-way is a read only at an unreached important level')
+    const p = line(spec)
+    expect(playAt(p, 'ONH')).toMatchObject({ stance: 'two-way', direction: 'two-way' })
   })
 
   it('feat-150: a distribution boundary LVN is a real important level on its own (it could frame the day) — the hold AND the fail', () => {
     const edge = { id: 'node:balance:2', source: 'profile-balance' as const, price: 29420, label: 'balance-area lvn #2', node: { kind: 'lvn' as const, prominence: 2, edgeAbove: 'ledge' as const, distributionEdges: [{ edge: 'lower' as const, rank: 2, low: 29425, high: 29700, peak: 29560 }] } }
     const drafts = draftsAt({ ...LINE, refs: LINE.refs.map((r) => (r.id === 'rip' ? edge : r)) }, 'node:balance:2')
-    expect(drafts.map((d) => [d.direction, d.condition])).toEqual([
-      ['long', 'build-beyond-continuation'],
-      ['short', 'look-and-fail'],
-    ])
+    expect(drafts.map((d) => [d.direction, d.condition, d.precedence.primary])).toEqual([['two-way', 'fail-or-hold', true]])
     // a lone important level keeps the with-trend hold first
-    expect(drafts.map((d) => d.precedence.primary)).toEqual([true, false])
+    expect(drafts[0].summary).toContain('break-and-hold first')
     // an interior profile node (no distribution edge) is NOT important: the hold only
     const interior = draftsAt({ ...LINE, refs: LINE.refs.map((r) => (r.id === 'rip' ? { ...edge, node: { ...edge.node, distributionEdges: [] } } : r)) }, 'node:balance:2')
     expect(interior.map((d) => d.direction)).toEqual(['long'])
@@ -220,31 +238,31 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
       { id: 'mgi:daily.ibh', source: 'mgi-other' as const, price: 29422, label: 'IBH' },
     ]
     const drafts = draftsAt({ ...LINE, refs }, 'node:balance:2')
-    expect(drafts.map((d) => [d.direction, d.condition, d.precedence.primary])).toEqual([
-      ['long', 'build-beyond-continuation', false],
-      ['short', 'look-and-fail', true],
-    ])
-    const p = line({ refs })
-    const fail = playAt(p, 'balance-area lvn #2', 'short')
-    const hold = playAt(p, 'balance-area lvn #2', 'long')
-    expect(fail).toBeDefined()
-    if (hold) expect(fail!.rank).toBeLessThan(hold.rank)
-    // a stacked band that is NOT important (two mgi-other lines) still gets no counter play... unless stacked: confluence alone is important by the operator's rule
+    expect(drafts.map((d) => [d.direction, d.condition])).toEqual([['two-way', 'fail-or-hold']])
+    // the stacked level leads with the fail leg
+    expect(drafts[0].summary).toContain('fail first')
+    expect(drafts[0].trigger.indexOf('fails back')).toBeLessThan(drafts[0].trigger.indexOf('HOLD'))
+    expect(drafts[0].activation.evidence).toContain('the fail first at a level this stacked')
+    // the LLM path's separate legs keep the same ranking: the fail is the primary read here
+    expect(draftAt({ ...LINE, refs }, 'node:balance:2', 'short').precedence.primary).toBe(true)
+    expect(draftAt({ ...LINE, refs }, 'node:balance:2', 'long').precedence.primary).toBe(false)
+    // confluence alone is important by the operator's rule (two mgi-other lines stacked)
     const stackedOnly = draftsAt({ ...LINE, refs: [...LINE.refs.filter((r) => r.id !== 'rip'), { id: 'mgi:vRange.high', source: 'mgi-other' as const, price: 29418, label: 'VRange Upper' }, { id: 'mgi:daily.ibh', source: 'mgi-other' as const, price: 29422, label: 'IBH' }] }, 'mgi:daily.ibh')
-    expect(stackedOnly.map((d) => [d.direction, d.precedence.primary])).toEqual([['long', false], ['short', true]])
+    expect(stackedOnly.map((d) => [d.direction, d.condition])).toEqual([['two-way', 'fail-or-hold']])
+    expect(stackedOnly[0].summary).toContain('fail first')
   })
 
   it('the far side of the line: fork-direction break-and-hold, each level conditional on losing the line; the bounce against it only at a real important level, ranked after', () => {
     const p = line({ reachPts: 300, refs: LINE.refs.filter((r) => ['onl', 'daily-pivot', 'weekly-pivot'].includes(r.id)) })
-    // feat-151: the line itself is never a play — the far side's two reads are the whole plan here
-    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
-      ['ONL', 'short', 'build-beyond-continuation'],
-      ['ONL', 'long', 'look-and-fail'],
-    ])
-    const hold = playAt(p, 'ONL', 'short')!
-    expect(hold.trigger).toContain('Only once price has lost the Daily Job Pivot: Break below ONL 29260 and HOLD')
-    const bounce = playAt(p, 'ONL', 'long')!
-    expect(bounce.trigger).toContain('Only once price has lost the Daily Job Pivot: Look below ONL 29260 and fail')
+    // feat-151/152: the line itself is never a play — the far side's important level is ONE two-way play, conditional on losing the line
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([['ONL', 'two-way', 'fail-or-hold']])
+    const twoWay = playAt(p, 'ONL')!
+    expect(twoWay.trigger).toContain('Only once price has lost the Daily Job Pivot: Two-way at ONL 29260: break below ONL 29260 and HOLD')
+    expect(twoWay.trigger).toContain('a look below ONL 29260 that fails back → long back across')
+    // the LLM path's legs, each conditional on losing the line
+    const farSpec = { ...LINE, reachPts: 300, refs: LINE.refs.filter((r) => ['onl', 'daily-pivot', 'weekly-pivot'].includes(r.id)) }
+    expect(draftAt(farSpec, 'onl', 'short').trigger).toContain('Only once price has lost the Daily Job Pivot: Break below ONL 29260 and HOLD')
+    expect(draftAt(farSpec, 'onl', 'long').trigger).toContain('Only once price has lost the Daily Job Pivot: Look below ONL 29260 and fail')
     // a far level that is NOT important gets the fork continuation only
     const rip = draftsAt({ ...LINE, reachPts: 300, refs: [{ id: 'rip', source: 'rip', price: 29260, label: 'Rip' }, ...LINE.refs.filter((r) => ['daily-pivot', 'weekly-pivot'].includes(r.id))] }, 'rip')
     expect(rip.map((d) => [d.direction, d.condition])).toEqual([['short', 'build-beyond-continuation']])
@@ -278,13 +296,14 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
   it('JBA edges on the far side: the fork continuation; on the bias side beyond price: the hold and the fail', () => {
     const big = boxed({ reachPts: 500 })
     expect(big.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'below' })
-    // JBA 1 low is beyond price on the bias side → the short hold AND the long fail
-    expect(big.plays.filter((x) => x.band.memberLabels.includes('JBA 1 low') && x.stance !== 'stand-down').map((x) => [x.direction, x.condition])).toEqual([
-      ['short', 'build-beyond-continuation'],
-      ['long', 'look-and-fail'],
-    ])
-    // price below the line: JBA 1 high is far (above the line) → never a short there
-    expect(big.plays.filter((x) => x.stance !== 'stand-down' && x.band.memberLabels.includes('JBA 1 high')).every((x) => x.direction === 'long')).toBe(true)
+    // JBA 1 low is beyond price on the bias side → ONE two-way play (the short hold AND the long fail)
+    expect(big.plays.filter((x) => x.band.memberLabels.includes('JBA 1 low') && x.stance !== 'stand-down').map((x) => [x.direction, x.condition])).toEqual([['two-way', 'fail-or-hold']])
+    // price below the line: JBA 1 high is far (above the line) → its two-way is conditional on losing the line, the long hold leading
+    const high = big.plays.find((x) => x.stance !== 'stand-down' && x.band.memberLabels.includes('JBA 1 high'))!
+    expect(high).toMatchObject({ direction: 'two-way', stance: 'two-way' })
+    expect(high.trigger).toContain('Only once price has lost the Daily Job Pivot: Two-way at JBA 1 high')
+    expect(draftAt({ ...BOXED, reachPts: 500 }, 'jba:0:high', 'long')).toMatchObject({ stance: 'continuation' })
+    expect(draftAt({ ...BOXED, reachPts: 500 }, 'jba:0:high', 'short')).toMatchObject({ stance: 'reoffer', condition: 'look-and-fail' })
     expect(big.pruned.some((x) => x.label.startsWith('JBA 1 low') && x.reason.includes('beyond the 2 nearest'))).toBe(false)
   })
 
@@ -353,13 +372,13 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
 describe('the precedence table: frame side leads, sides alternate, structure ranks', () => {
   it('below the daily pivot the shorts lead and the sides alternate; the frame-aligned play is the primary look', () => {
     const p = plan()
-    // the bias side leads (the G line's short hold beyond price — the line itself is never a play, feat-151), then the SIDES OF THE FRAME alternate:
-    // Rip's long hold on the far side, the G line's fail (an important level), ONH's long hold on the far side
+    // the bias side leads (the G line's two-way beyond price — the line itself is never a play, feat-151; an important level is ONE two-way play, feat-152),
+    // then the SIDES OF THE FRAME alternate: ONH's two-way on the far side, ONL's two-way on the bias side, Rip's long hold on the far side
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
-      ['G line (week open)', 'short', 'build-beyond-continuation'],
+      ['G line (week open)', 'two-way', 'fail-or-hold'],
+      ['ONH', 'two-way', 'fail-or-hold'],
+      ['ONL', 'two-way', 'fail-or-hold'],
       ['Rip', 'long', 'build-beyond-continuation'],
-      ['G line (week open)', 'long', 'look-and-fail'],
-      ['ONH', 'long', 'build-beyond-continuation'],
     ])
     expect(p.plays.some((x) => x.band.memberLabels.includes('Daily Job Pivot'))).toBe(false)
     expect(p.plays[0].primary).toBe(true)
@@ -370,16 +389,19 @@ describe('the precedence table: frame side leads, sides alternate, structure ran
   it('above the line the longs lead (mirrored frame)', () => {
     const p = plan({ price: 29450 })
     expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'above' })
-    expect(p.plays[0].direction).toBe('long')
+    // the nearest bias-side level (ONH, an important level) is a two-way whose hold leg is the long
+    expect(p.plays[0]).toMatchObject({ direction: 'two-way', stance: 'two-way' })
+    expect(p.plays[0].trigger).toContain('the pullback into it that holds is the long')
+    expect(p.lean.text).toContain('frame-aligned look (above the Daily Job Pivot)')
   })
 
   it('the enclosing zone\'s edges rank first within a side ("play the edges")', () => {
     const p = boxed({ reachPts: 500 })
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
       ['JBA 1 low', 'two-way', 'mid-zone-two-way'],
-      ['JBA 1 low', 'short', 'build-beyond-continuation'],
-      ['JBA 1 high', 'long', 'build-beyond-continuation'],
-      ['JBA 1 low', 'long', 'look-and-fail'],
+      ['JBA 1 low', 'two-way', 'fail-or-hold'],
+      ['JBA 1 high', 'two-way', 'fail-or-hold'],
+      ['G line (week open)', 'two-way', 'fail-or-hold'],
     ])
     expect(p.plays[0].stance).toBe('stand-down')
   })
@@ -437,10 +459,9 @@ describe('R12 cardinality and pruning', () => {
     const weeklyBelow = { id: 'weekly-pivot', source: 'weekly-job-pivot' as const, price: 29100, label: 'Weekly Job Pivot' }
     const rung = BASE_REFS.find((r) => r.source === 'weekly-rung')!
     const pivot = BASE_REFS.find((r) => r.source === 'daily-job-pivot')!
-    const withPivot = plan({ refs: [...below, weeklyBelow, pivot, rung] })
-    expect(playAt(withPivot, 'G line (week open)', 'long')!.destinations.map((s) => [s.label, s.expect])).toEqual([['Daily Job Pivot', 'reoffer']])
-    const rungOnly = plan({ refs: [...below, weeklyBelow, { ...pivot, price: 29150 }, rung] })
-    expect(playAt(rungOnly, 'G line (week open)', 'long')!.destinations.map((s) => [s.label, s.expect, s.beeline])).toEqual([['Weekly Job Pivot 1A', 'hold', null]])
+    // (the G line is an important level, so the plan reads it two-way — the directional chain is the LLM path's long leg)
+    expect(draftAt({ ...BASE, refs: [...below, weeklyBelow, pivot, rung] }, 'g-line', 'long').destinations.map((s) => [s.label, s.expect])).toEqual([['Daily Job Pivot', 'reoffer']])
+    expect(draftAt({ ...BASE, refs: [...below, weeklyBelow, { ...pivot, price: 29150 }, rung] }, 'g-line', 'long').destinations.map((s) => [s.label, s.expect, s.beeline])).toEqual([['Weekly Job Pivot 1A', 'hold', null]])
   })
 })
 
@@ -524,22 +545,25 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     expect(p.lean.basis).toBe('mid-zone')
   })
 
-  it('price above the pivot band: the edges lead — the upper edge\'s FAIL first (a stacked important level, feat-150), the lower edge\'s fork hold, then the upper edge\'s hold; the LVN rebid falls to the cap', () => {
+  it('price above the pivot band: the edges lead as ONE two-way each (feat-152) — the upper edge (bias side), the lower edge (fork side) — and the LVN rebid now fits under the cap', () => {
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.condition, x.direction])).toEqual([
       ['JBA 1 low', 'mid-zone-two-way', 'two-way'],
-      ['JBA 1 high', 'look-and-fail', 'short'],
-      ['JBA 1 low', 'build-beyond-continuation', 'short'],
-      ['JBA 1 high', 'build-beyond-continuation', 'long'],
+      ['JBA 1 high', 'fail-or-hold', 'two-way'],
+      ['JBA 1 low', 'fail-or-hold', 'two-way'],
+      ['Rip', 'hold-traverse', 'long'],
     ])
-    expect(p.pruned.find((x) => x.label.startsWith('Rip'))?.reason).toContain('max 4')
+    // the stacked upper edge leads with the fail leg
+    expect(p.plays[1].summary).toContain('fail first')
+    expect(p.pruned.some((x) => x.label.startsWith('Rip'))).toBe(false)
   })
 
   it('yesterday\'s low is on the far side of the line: the fork short — "lose the pivot → build below 7955, sell the pullback → the 7720s"', () => {
-    const drafts = draftsAt(GOAL, 'pdl')
-    // a JBA edge is a real important level: the fork hold first, then the bounce against it as a fail
-    expect(drafts.map((d) => [d.direction, d.condition])).toEqual([['short', 'build-beyond-continuation'], ['long', 'look-and-fail']])
-    expect(drafts[1].trigger).toContain('Only once price has lost the Daily Job Pivot: Look below JBA 1 low (+1) 7955 and fail')
-    const pdl = drafts[0]
+    // a JBA edge is a real important level: the deterministic read is ONE two-way play (feat-152), conditional on losing the line
+    expect(draftsAt(GOAL, 'pdl').map((d) => [d.direction, d.condition])).toEqual([['two-way', 'fail-or-hold']])
+    expect(draftsAt(GOAL, 'pdl')[0].trigger).toContain('Only once price has lost the Daily Job Pivot: Two-way at JBA 1 low (+1) 7955')
+    // the LLM path's legs: the fork hold, and the bounce against it as a fail
+    expect(draftAt(GOAL, 'pdl', 'long').trigger).toContain('Only once price has lost the Daily Job Pivot: Look below JBA 1 low (+1) 7955 and fail')
+    const pdl = draftAt(GOAL, 'pdl', 'short')
     expect(pdl).toMatchObject({ stance: 'continuation', direction: 'short', condition: 'build-beyond-continuation', activation: { state: 'conditional', grounding: 'none' } })
     expect(pdl.band).toMatchObject({ low: 7955, high: 7955, memberLabels: ['JBA 1 low', 'PDL'] })
     expect(pdl.summary).toContain('Lose the Daily Job Pivot → Break-and-hold below JBA 1 low (+1) 7955, sell the pullback → Weekly Job Pivot 1B 7722')
@@ -548,8 +572,8 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     expect(pdl.invalidation.condition).toContain('the rubber meets the road')
     expect(pdl.invalidation.thenSeek).toMatchObject({ label: 'Weekly Job Pivot (+1)', low: 7970 })
     expect(pdl.invalidation.thenSeek?.text).toBe('above 7955 (JBA 1 low (+1)) → seek Weekly Job Pivot (+1) 7970')
-    // in the plan, the with-trend hold ranks and the counter-trend bounce falls to the cap
-    expect(p.plays.some((x) => x.band.memberLabels.includes('PDL') && x.direction === 'long')).toBe(false)
+    // in the plan the level is one two-way play
+    expect(p.plays.filter((x) => x.band.memberLabels.includes('PDL') && x.stance !== 'stand-down').map((x) => x.direction)).toEqual(['two-way'])
   })
 
   it('"rebid 7980–82 into the LVN → press the 8004s; build above → attack prior week high" (the grammar\'s draft; the plan\'s cap keeps the edges ahead of it)', () => {

@@ -65,9 +65,8 @@ function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
     frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Nearest stacked structure within reach.' },
     // feat-151: the line itself (wp) is never a play
     plays: [
-      { bandId: bandOf(ctx, 'dp'), direction: 'short', text: 'If price breaks the Daily Pivot and holds below, the pullback into it is the short.', rationale: 'Unreached level on the bias side: the hold.' },
-      // feat-150: an unreached important level carries both reads
-      { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'A fail at the Daily Pivot turns price back toward the Weekly Pivot.', rationale: 'Unreached level on the bias side: the fail.' },
+      // feat-152: the unreached daily pivot carries both reads in ONE two-way play
+      { bandId: bandOf(ctx, 'dp'), direction: 'two-way', text: 'At the Daily Pivot: a fail turns price back toward the Weekly Pivot; a break that holds makes the pullback the short.', rationale: 'Unreached important level: both reads, one slot.' },
     ],
     sidesWithoutPlay: [{ side: 'fork', reason: 'above the Weekly Pivot only the rung and the far G line' }],
     lean: 'Short into the Weekly Pivot — below the frame line, downside is productive.',
@@ -83,7 +82,7 @@ describe('assembleLlmPlan', () => {
     expect(JobPlanSchema.safeParse(plan).success).toBe(true)
     expect(plan.status).toBe('ready')
     expect(plan.plays.map((p) => p.band.bandId)).toEqual(judgment.plays.map((p) => p.bandId))
-    expect(plan.plays.map((p) => p.direction)).toEqual(['short', 'long'])
+    expect(plan.plays.map((p) => [p.direction, p.stance, p.condition])).toEqual([['two-way', 'two-way', 'fail-or-hold']])
     expect(plan.plays[0]).toMatchObject({ rank: 1, primary: true, summary: judgment.plays[0].text, llmRationale: judgment.plays[0].rationale })
 
     // The geometry-heavy parts came from the deterministic grammar.
@@ -91,8 +90,10 @@ describe('assembleLlmPlan', () => {
       expect(play.trigger.length).toBeGreaterThan(0)
       expect(play.invalidation.provenance.referenceIds.length).toBeGreaterThan(0)
     }
-    // the arrivals chain destinations; the daily-pivot hold has only the historical pivot below it in this inventory
-    expect(plan.plays.filter((p) => p.stance !== 'continuation').every((p) => p.destinations.length > 0)).toBe(true)
+    // the two-way play carries the first stage of each leg: the fail leg up toward the Weekly Pivot, the hold leg down toward the Prior Daily Pivot
+    // (the hold leg has no destination chain in this inventory — only the historical pivot sits below — so the fail leg's first stop is the only stage)
+    expect(plan.plays[0].destinations.map((d) => [d.label, d.text.split(':')[0]])).toEqual([['Weekly Pivot (+1)', 'Fail leg (long)']])
+    expect(plan.plays[0].invalidation).toMatchObject({ side: 'either', thenSeek: null })
 
     expect(plan.frame).toMatchObject({ referenceId: 'wp', side: 'below', llmRationale: judgment.frame.rationale })
     expect(plan.lean).toMatchObject({ playId: 'play-1', basis: 'frame', text: judgment.lean })
@@ -140,7 +141,7 @@ describe('assembleLlmPlan', () => {
     const ctx = context()
     const judgment = cleanJudgment(ctx)
     // the 1A rung is on the far side of the line and not an important level: long only — a short there passed no gate and must not assemble
-    const farShort: LlmPlanJudgment = { ...judgment, plays: [{ bandId: bandOf(ctx, 'rung'), direction: 'short', text: 't', rationale: 'r' }, judgment.plays[1]] }
+    const farShort: LlmPlanJudgment = { ...judgment, plays: [{ bandId: bandOf(ctx, 'rung'), direction: 'short', text: 't', rationale: 'r' }, judgment.plays[0]] }
     expect(() => assembleLlmPlan({ judgment: farShort, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
     // the line itself never assembles (feat-151: two-way by assumption)
     const atLine: LlmPlanJudgment = { ...judgment, plays: [...judgment.plays, { bandId: bandOf(ctx, 'wp'), direction: 'long', text: 'Once the Weekly Pivot is taken and held, the pullback is the long.', rationale: 'r' }] }
@@ -149,8 +150,7 @@ describe('assembleLlmPlan', () => {
     const far: LlmPlanJudgment = { ...judgment, plays: [...judgment.plays, { bandId: bandOf(ctx, 'g'), direction: 'long', text: 'Once the Weekly Pivot is taken and held, the pullback into the G line is the long.', rationale: 'r' }] }
     const plan = assembleLlmPlan({ judgment: far, context: ctx, modelId: 'm' })
     expect(plan.plays.map((p) => [p.band.bandId, p.direction, p.stance])).toEqual([
-      [bandOf(ctx, 'dp'), 'short', 'continuation'],
-      [bandOf(ctx, 'dp'), 'long', 'rebid'],
+      [bandOf(ctx, 'dp'), 'two-way', 'two-way'],
       [bandOf(ctx, 'g'), 'long', 'continuation'],
     ])
   })
@@ -187,15 +187,12 @@ function judgmentFor(payload: LlmContextPayload): LlmPlanJudgment {
       .sort((a, b) => a.distancePts - b.distancePts)[0]
   const above = nearest('above')
   const below = nearest('below')
-  // feat-150: an unreached important level beyond price carries both reads or neither
+  // feat-152: an unreached important level beyond price is ONE two-way play
   // (the frame side is where the bias points: with price above the line the areas ABOVE price are the unreached bias-side levels)
   const beyondPrice = (band: LlmContextPayload['bands'][number]) => (frame.side === 'above' ? band.side === 'above' : frame.side === 'below' ? band.side === 'below' : false)
   const pair = (band: LlmContextPayload['bands'][number], first: 'long' | 'short') =>
     band.important && band.bandId !== frame.bandId && beyondPrice(band)
-      ? [
-          { bandId: band.bandId, direction: first, text: `If price reaches ${band.label}, expect the turn.`, rationale: 'Important level: the fail.' },
-          { bandId: band.bandId, direction: first === 'long' ? ('short' as const) : ('long' as const), text: `If price breaks ${band.label} and holds, the pullback into it is the trade.`, rationale: 'Important level: the hold.' },
-        ]
+      ? [{ bandId: band.bandId, direction: 'two-way' as const, text: `At ${band.label}: a fail turns price back; a break that holds makes the pullback the trade.`, rationale: 'Important level: both reads, one slot.' }]
       : [{ bandId: band.bandId, direction: first, text: `If price reaches ${band.label}, expect the turn back.`, rationale: 'Nearest significant area.' }]
   return {
     frame: { bandId: frame.bandId, rationale: 'The strongest candidate band within reach.' },

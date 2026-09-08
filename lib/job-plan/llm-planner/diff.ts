@@ -66,10 +66,14 @@ export function diffJudgment(plan: JobPlan, judgment: LlmPlanJudgment, context: 
   const llmIds = new Set(judgment.plays.map((p) => p.bandId))
   const shared = [...detIds].filter((id) => llmIds.has(id))
 
-  // A band may carry both directions (the frame band, feat-149): compare direction SETS.
+  // A band's reads as a SET: a two-way play (feat-152) counts as both directions, so a judged
+  // long or short at a band the deterministic plan reads two-way is agreement.
   const dirs = (list: readonly { bandId: string; direction: string }[]) => {
     const m = new Map<string, string>()
-    for (const p of list) m.set(p.bandId, [...new Set([...(m.get(p.bandId)?.split('+') ?? []), p.direction])].sort().join('+'))
+    for (const p of list) {
+      const own = p.direction === 'two-way' ? ['long', 'short'] : [p.direction]
+      m.set(p.bandId, [...new Set([...(m.get(p.bandId)?.split('+') ?? []), ...own])].sort().join('+'))
+    }
     return m
   }
   const detDir = dirs(det)
@@ -96,8 +100,7 @@ export function diffJudgment(plan: JobPlan, judgment: LlmPlanJudgment, context: 
         .filter((p) => !detIds.has(p.bandId))
         .map((p) => ({ bandId: p.bandId, label: bandLabelById(context, p.bandId), direction: p.direction })),
       // A mismatch is a judged direction the deterministic plan does NOT carry at
-      // that band (the line and an unreached level may carry both — picking one
-      // of them is agreement).
+      // that band (a two-way carries both — picking one of them is agreement).
       directionMismatches: shared
         .filter((id) => !(llmDir.get(id) as string).split('+').every((d) => (detDir.get(id) as string).split('+').includes(d)))
         .map((id) => ({ bandId: id, deterministic: detDir.get(id) as string, llm: llmDir.get(id) as string })),
