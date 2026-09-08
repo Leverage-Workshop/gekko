@@ -51,6 +51,8 @@ function cleanJudgment(ctx: JobContext): LlmPlanJudgment {
     frame: { bandId: bandOf(ctx, 'wp'), rationale: 'The weekly pivot band (with the overnight high) is the nearest stacked structure within reach.' },
     plays: [
       { bandId: bandOf(ctx, 'wp'), direction: 'short', text: 'If price reaches the Weekly Pivot band, expect the offer and a turn back down toward the Daily Pivot.', rationale: 'The line itself; confluent with the overnight high.' },
+      { bandId: bandOf(ctx, 'dp'), direction: 'short', text: 'If price breaks the Daily Pivot and holds below it, the pullback into it is the short toward the Prior Daily Pivot.', rationale: 'Unreached level on the bias side: the breach-and-hold with the line.' },
+      // feat-150: an unreached important level carries BOTH reads — the fail against the line as well
       { bandId: bandOf(ctx, 'dp'), direction: 'long', text: 'A fail at the Daily Pivot, unreached below, turns price back up toward the Weekly Pivot.', rationale: 'Unreached level on the bias side: the fail against the line.' },
     ],
     // feat-149: the fork side (what to do once the line is taken) needs a play or a reason
@@ -117,7 +119,54 @@ describe('llm-planner context payload', () => {
   })
 })
 
+describe('llm-planner context payload — importance (feat-150)', () => {
+  it('marks every band the frame ladder could anchor on, the extremes, and any stack as important, with reasons; distribution edges are spelled out', () => {
+    const ctx = synthContext({
+      price: 19930,
+      refs: [
+        { id: 'wp', source: 'weekly-job-pivot', price: 20150, label: 'Weekly Pivot' },
+        { id: 'dp', source: 'daily-job-pivot', price: 19900, label: 'Daily Pivot' },
+        { id: 'edge', source: 'profile-balance', price: 20050, label: 'balance-area lvn #2', node: { kind: 'lvn', prominence: 2, distributionEdges: [{ edge: 'lower', rank: 2, low: 20055, high: 20300, peak: 20180 }] } },
+        { id: 'ibh', source: 'mgi-other', price: 20052, label: 'IBH' },
+        { id: 'hvn', source: 'profile-rotation', price: 19800, label: '400-pt rotation hvn #1', node: { kind: 'hvn', profile: 'rotation', prominence: 3 } },
+        { id: 'rip', source: 'rip', price: 19700, label: 'Rip' },
+      ],
+    })
+    const payload = llmContextPayload(ctx)
+    const at = (id: string) => payload.bands.find((b) => b.bandId === bandOf(ctx, id))!
+    expect(at('dp')).toMatchObject({ important: true, fadeFirst: false, importantBecause: ['Daily Pivot is a daily Job Pivot'], distributionEdges: [] })
+    expect(at('edge')).toMatchObject({ important: true, fadeFirst: true, confluence: true })
+    expect(at('edge').importantBecause).toEqual([
+      'balance-area lvn #2 is the lower edge of the rank-2 balance-area distribution 20055–20300',
+      '2 references stack into this band',
+    ])
+    expect(at('edge').distributionEdges).toEqual(['balance-area lvn #2: lower edge of the rank-2 balance-area distribution 20055–20300'])
+    expect(at('hvn')).toMatchObject({ important: false, fadeFirst: false, importantBecause: [] })
+    expect(at('rip')).toMatchObject({ important: false })
+  })
+})
+
 describe('llm-planner hard gates', () => {
+  it('feat-150: an unreached important level beyond price carries both reads or neither', () => {
+    const ctx = context()
+    const base = cleanJudgment(ctx)
+    // drop the fail at the unreached daily pivot: one-sided
+    const oneSided = { ...base, plays: base.plays.filter((p) => !(p.bandId === bandOf(ctx, 'dp') && p.direction === 'long')) }
+    const v = validateJudgment(oneSided, ctx)
+    expect(v.map((x) => x.code)).toEqual(['play_important_level_one_sided'])
+    expect(v[0].message).toContain('add the long play (the fail against the line)')
+    expect(v[0].message).toContain('Daily Pivot is a daily Job Pivot')
+    // drop the hold instead: still one-sided, the other way round
+    const failOnly = { ...base, plays: base.plays.filter((p) => !(p.bandId === bandOf(ctx, 'dp') && p.direction === 'short')) }
+    expect(validateJudgment(failOnly, ctx).map((x) => x.code)).toEqual(['play_important_level_one_sided'])
+    expect(validateJudgment(failOnly, ctx)[0].message).toContain('add the short play (the breach-and-hold with the line)')
+    // neither is fine (the bias side is still addressed by the line's short)
+    const neither = { ...base, plays: base.plays.filter((p) => p.bandId !== bandOf(ctx, 'dp')) }
+    expect(validateJudgment(neither, ctx)).toEqual([])
+    // the line itself is never gated this way
+    expect(validateJudgment({ ...base, plays: base.plays.filter((p) => p.bandId !== bandOf(ctx, 'dp')) }, ctx)).toEqual([])
+  })
+
   it('accepts a clean judgment', () => {
     const ctx = context()
     expect(validateJudgment(cleanJudgment(ctx), ctx)).toEqual([])
@@ -130,8 +179,8 @@ describe('llm-planner hard gates', () => {
     expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'rung') } }, ctx).map((v) => v.code)).toContain('frame_unknown_candidate')
     expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: 'nope' } }, ctx).map((v) => v.code)).toContain('frame_unknown_candidate')
     expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'g') } }, ctx).map((v) => v.code)).toContain('frame_out_of_reach')
-    // the daily pivot band is always eligible
-    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'dp') } }, ctx)).toEqual([])
+    // the daily pivot band is always eligible (framing there turns the weekly band into an unreached important level, so its lone short trips feat-150's two-read gate — not a frame violation)
+    expect(validateJudgment({ ...base, frame: { ...base.frame, bandId: bandOf(ctx, 'dp') } }, ctx).map((v) => v.code)).toEqual(['play_important_level_one_sided'])
   })
 
   it('rejects directions the frame does not read (feat-149) and destination-only bands; the line and an unreached level may carry both', () => {
@@ -143,8 +192,8 @@ describe('llm-planner hard gates', () => {
     // the G line out there IS important: the fork long and the bounce short are both legal
     const gBoth = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'g'), direction: 'short' as const, text: 't', rationale: 'r' }, { bandId: bandOf(ctx, 'g'), direction: 'long' as const, text: 't', rationale: 'r' }] }
     expect(validateJudgment(gBoth, ctx).filter((v) => v.code === 'play_direction_frame')).toEqual([])
-    // the line carries both directions; the unreached daily pivot carries both (long as the fail, short as the hold)
-    const both = { ...base, plays: [...base.plays, { ...base.plays[0], direction: 'long' as const }, { ...base.plays[1], direction: 'short' as const }] }
+    // the line carries both directions; the unreached daily pivot already carries both (short as the hold, long as the fail)
+    const both = { ...base, plays: [...base.plays, { ...base.plays[0], direction: 'long' as const }] }
     expect(validateJudgment(both, ctx)).toEqual([])
     // the same band twice in the same direction is still a duplicate
     const dup = { ...base, plays: [...base.plays, base.plays[0]] }
@@ -180,7 +229,7 @@ describe('llm-planner hard gates', () => {
       ...base,
       plays: [
         { ...base.plays[0], text: 'Reoffer 20150 on arrival, 220 pts above — the 1A stays a destination; expect the response within 30 min.' },
-        base.plays[1],
+        ...base.plays.slice(1),
       ],
     }
     expect(validateJudgment(legitimate, ctx)).toEqual([])

@@ -1,5 +1,5 @@
 import type { PlanFrame } from '@/knowledge/schema/job-plan.schema'
-import type { BandSide, ConfluenceBand } from './contextTypes'
+import type { BandSide, ConfluenceBand, DistributionEdge, Reference } from './contextTypes'
 import type { PlayDirectional } from './planTypes'
 import type { ReferenceSource } from './rules'
 
@@ -33,7 +33,17 @@ import type { ReferenceSource } from './rules'
  * bias yet) the read falls back to geometry against price, as before.
  */
 
-/** Sources whose lone band is "a real important level" — where a counter-trend fail is worth writing. */
+/**
+ * Sources whose lone member makes a band "a real important level" — where a
+ * counter-trend play is worth writing (feat-150, operator 2026-09-07 late:
+ * "if they are allowed as trendline candidates, they are definitely
+ * important enough to cause a countertrend trade"). Everything that can
+ * ANCHOR the frame (`FRAME_ANCHOR_SOURCES`: pivots, the G line, JBA borders,
+ * distribution boundary LVNs) plus the prior-day / overnight extremes.
+ * Distribution edges are recognised on the member's NODE (an lvn bounding a
+ * consensus distribution), not by source — a profile hvn or an interior lvn
+ * is not important on its own.
+ */
 export const IMPORTANT_LEVEL_SOURCES: readonly ReferenceSource[] = [
   'jba-edge',
   'g-line',
@@ -43,11 +53,53 @@ export const IMPORTANT_LEVEL_SOURCES: readonly ReferenceSource[] = [
   'overnight-extreme',
 ]
 
-export type FrameBand = Pick<ConfluenceBand, 'id' | 'low' | 'high' | 'confluence' | 'anchorSource'>
+export type FrameBand = Pick<ConfluenceBand, 'id' | 'low' | 'high' | 'confluence' | 'anchorSource' | 'members'>
 
-/** A JBA edge, a pivot, the G line, a prior-day / overnight extreme, or any stacked band. */
+const SOURCE_IMPORTANCE: Readonly<Record<string, string>> = {
+  'jba-edge': 'a JBA border',
+  'g-line': 'the G line',
+  'weekly-job-pivot': 'the weekly Job Pivot',
+  'daily-job-pivot': 'a daily Job Pivot',
+  'previous-day-extreme': 'a prior-day extreme',
+  'overnight-extreme': 'an overnight extreme',
+}
+
+const fmt = (n: number): string => String(Math.round(n * 100) / 100)
+
+/** A distribution edge a member bounds, in words: "lower edge of the rank-2 balance-area distribution 29380–29722". */
+export function distributionEdgeText(member: Reference, edge: DistributionEdge): string {
+  const profile = member.node?.profile === 'rotation' ? '400-pt rotation' : 'balance-area'
+  return `${edge.edge} edge of the rank-${edge.rank} ${profile} distribution ${fmt(edge.low)}–${fmt(edge.high)}`
+}
+
+/**
+ * Why a band is a real important level, one reason per qualifying fact —
+ * empty when it is not. Distribution edges come first (the operator's
+ * 2026-09-07 example: a 5-reference stack on the lower edge of the day's
+ * second distribution wrote a long-only plan), then the important sources,
+ * then confluence.
+ */
+export function importantReasons(band: FrameBand): string[] {
+  const edges = band.members.flatMap((m) => (m.node?.distributionEdges ?? []).map((e) => `${m.label} is the ${distributionEdgeText(m, e)}`))
+  const sources = band.members.filter((m) => IMPORTANT_LEVEL_SOURCES.includes(m.source)).map((m) => `${m.label} is ${SOURCE_IMPORTANCE[m.source] ?? m.source}`)
+  const stack = band.confluence ? [`${band.members.length} references stack into this band`] : []
+  return [...edges, ...sources, ...stack]
+}
+
+/** A distribution boundary LVN, a JBA edge, a pivot, the G line, a prior-day / overnight extreme, or any stacked band. */
 export function isImportantLevel(band: FrameBand): boolean {
-  return band.confluence || IMPORTANT_LEVEL_SOURCES.includes(band.anchorSource)
+  return importantReasons(band).length > 0
+}
+
+/**
+ * At an important level that is also STACKED, beyond price on the bias side,
+ * the counter-trend fail is the FIRST read, not the afterthought (operator:
+ * "confluence of 5 different makes it a strong level, and more likely to
+ * trigger a countertrend trade"). A lone important level keeps the
+ * with-trend hold first.
+ */
+export function fadeFirst(band: FrameBand): boolean {
+  return band.confluence && isImportantLevel(band)
 }
 
 export type FrameRelation = 'bias' | 'beyond' | 'line' | 'far'
@@ -57,8 +109,10 @@ export type PlayShape = 'arrival' | 'continuation'
 
 export type FrameRead = {
   readonly relation: FrameRelation
-  /** Legal directions for a play at this band, in precedence order (the bias direction first). */
+  /** Legal directions for a play at this band: the relation's PRIMARY direction first (the bias direction beyond price, the fork direction on the far side). */
   readonly directions: readonly PlayDirectional[]
+  /** feat-150: at a stacked important level beyond price (bias side) the counter-trend fail ranks FIRST. */
+  readonly fadeFirst: boolean
 }
 
 /** The bias direction a directional frame names, or null when the frame is absent or at its band. */
@@ -82,17 +136,19 @@ export function readAgainstFrame(
   const bias = biasDirection(frame)
   if (bias === null || frame === null) return null
   const fork = opposite(bias)
-  if (frame.bandId === band.id) return { relation: 'line', directions: [bias, fork] }
+  if (frame.bandId === band.id) return { relation: 'line', directions: [bias, fork], fadeFirst: false }
   const frameLow = frame.low ?? frame.price
   const frameHigh = frame.high ?? frame.price
   // Beyond the line (the far side): entirely below a line price is above, or above a line price is below.
   const counter = isImportantLevel(band)
+  const first = counter && fadeFirst(band)
   const far = bias === 'long' ? band.high < frameLow : band.low > frameHigh
-  if (far) return { relation: 'far', directions: counter ? [fork, bias] : [fork] }
+  // The far side keeps the fork hold first: the bounce there is a fail against a bias that does not exist yet.
+  if (far) return { relation: 'far', directions: counter ? [fork, bias] : [fork], fadeFirst: false }
   // Past price on the bias side: above price when the bias is long, below when short.
   const beyond = bias === 'long' ? side === 'above' : side === 'below'
-  if (beyond) return { relation: 'beyond', directions: counter ? [bias, fork] : [bias] }
-  return { relation: 'bias', directions: [bias] }
+  if (beyond) return { relation: 'beyond', directions: counter ? [bias, fork] : [bias], fadeFirst: first }
+  return { relation: 'bias', directions: [bias], fadeFirst: false }
 }
 
 /** Geometry against price (the pre-frame read, still used when the frame is at its band): below → long, above → short, inside → none. */
@@ -125,9 +181,15 @@ export function playShape(read: FrameRead | null, direction: PlayDirectional): P
   return direction === read.directions[0] ? 'continuation' : 'arrival'
 }
 
-/** True when the play is in its relation's primary direction — with the trend on the bias side, the fork direction beyond the line. Geometry reads are always primary. */
+/**
+ * True when the play is the FIRST read at its band — with the trend on the
+ * bias side, the fork direction beyond the line; at a stacked important level
+ * the counter-trend fail instead (feat-150). Geometry reads are always primary.
+ */
 export function isPrimaryDirection(read: FrameRead | null, direction: PlayDirectional): boolean {
-  return read === null || direction === read.directions[0]
+  if (read === null) return true
+  const first = read.fadeFirst && read.directions.length > 1 ? read.directions[1] : read.directions[0]
+  return direction === first
 }
 
 /** True for the counter-trend play at an unreached level (beyond price, or on the far side) — legal only as a look-and-fail, never a plain fade. */

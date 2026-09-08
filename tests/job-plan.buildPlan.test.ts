@@ -217,6 +217,43 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
     expect(playAt(p, 'ONH', 'long')).toBeDefined()
   })
 
+  it('feat-150: a distribution boundary LVN is a real important level on its own (it could frame the day) — the hold AND the fail', () => {
+    const edge = { id: 'node:balance:2', source: 'profile-balance' as const, price: 29420, label: 'balance-area lvn #2', node: { kind: 'lvn' as const, prominence: 2, edgeAbove: 'ledge' as const, distributionEdges: [{ edge: 'lower' as const, rank: 2, low: 29425, high: 29700, peak: 29560 }] } }
+    const drafts = draftsAt({ ...LINE, refs: LINE.refs.map((r) => (r.id === 'rip' ? edge : r)) }, 'node:balance:2')
+    expect(drafts.map((d) => [d.direction, d.condition])).toEqual([
+      ['long', 'build-beyond-continuation'],
+      ['short', 'look-and-fail'],
+    ])
+    // a lone important level keeps the with-trend hold first
+    expect(drafts.map((d) => d.precedence.primary)).toEqual([true, false])
+    // an interior profile node (no distribution edge) is NOT important: the hold only
+    const interior = draftsAt({ ...LINE, refs: LINE.refs.map((r) => (r.id === 'rip' ? { ...edge, node: { ...edge.node, distributionEdges: [] } } : r)) }, 'node:balance:2')
+    expect(interior.map((d) => d.direction)).toEqual(['long'])
+  })
+
+  it('feat-150: a STACKED important level beyond price ranks the counter-trend fail FIRST ("confluence of 5… more likely to trigger a countertrend trade")', () => {
+    // the 2026-09-07 band: a distribution-edge lvn with VRange High and IBH stacked into it, 49 pts overhead
+    const refs = [
+      ...LINE.refs.filter((r) => r.id !== 'rip'),
+      { id: 'node:balance:2', source: 'profile-balance' as const, price: 29420, label: 'balance-area lvn #2', node: { kind: 'lvn' as const, prominence: 2, distributionEdges: [{ edge: 'lower' as const, rank: 2, low: 29425, high: 29700, peak: 29560 }] } },
+      { id: 'mgi:vRange.high', source: 'mgi-other' as const, price: 29418, label: 'VRange Upper' },
+      { id: 'mgi:daily.ibh', source: 'mgi-other' as const, price: 29422, label: 'IBH' },
+    ]
+    const drafts = draftsAt({ ...LINE, refs }, 'node:balance:2')
+    expect(drafts.map((d) => [d.direction, d.condition, d.precedence.primary])).toEqual([
+      ['long', 'build-beyond-continuation', false],
+      ['short', 'look-and-fail', true],
+    ])
+    const p = line({ refs })
+    const fail = playAt(p, 'balance-area lvn #2', 'short')
+    const hold = playAt(p, 'balance-area lvn #2', 'long')
+    expect(fail).toBeDefined()
+    if (hold) expect(fail!.rank).toBeLessThan(hold.rank)
+    // a stacked band that is NOT important (two mgi-other lines) still gets no counter play... unless stacked: confluence alone is important by the operator's rule
+    const stackedOnly = draftsAt({ ...LINE, refs: [...LINE.refs.filter((r) => r.id !== 'rip'), { id: 'mgi:vRange.high', source: 'mgi-other' as const, price: 29418, label: 'VRange Upper' }, { id: 'mgi:daily.ibh', source: 'mgi-other' as const, price: 29422, label: 'IBH' }] }, 'mgi:daily.ibh')
+    expect(stackedOnly.map((d) => [d.direction, d.precedence.primary])).toEqual([['long', false], ['short', true]])
+  })
+
   it('the far side of the line: fork-direction break-and-hold, each level conditional on losing the line; the bounce against it only at a real important level, ranked after', () => {
     const p = line({ reachPts: 300, refs: LINE.refs.filter((r) => ['onl', 'daily-pivot', 'weekly-pivot'].includes(r.id)) })
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
@@ -503,12 +540,12 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     expect(p.lean.basis).toBe('mid-zone')
   })
 
-  it('price above the pivot band: the edges lead — the upper edge\'s hold, the lower edge\'s fork hold, then the upper edge\'s fail; the LVN rebid falls to the cap', () => {
+  it('price above the pivot band: the edges lead — the upper edge\'s FAIL first (a stacked important level, feat-150), the lower edge\'s fork hold, then the upper edge\'s hold; the LVN rebid falls to the cap', () => {
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.condition, x.direction])).toEqual([
       ['JBA 1 low', 'mid-zone-two-way', 'two-way'],
-      ['JBA 1 high', 'build-beyond-continuation', 'long'],
-      ['JBA 1 low', 'build-beyond-continuation', 'short'],
       ['JBA 1 high', 'look-and-fail', 'short'],
+      ['JBA 1 low', 'build-beyond-continuation', 'short'],
+      ['JBA 1 high', 'build-beyond-continuation', 'long'],
     ])
     expect(p.pruned.find((x) => x.label.startsWith('Rip'))?.reason).toContain('max 4')
   })
