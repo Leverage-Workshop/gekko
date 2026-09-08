@@ -9,7 +9,7 @@ import type {
 } from '@/lib/job-plan/contextTypes'
 import { crossRead, enclosingZone, readBox, readValueZone } from '@/lib/job-plan/locationDimensions'
 import { assignBandRoles } from '@/lib/job-plan/referenceRoles'
-import { PLANNER_REVISION, r2DestinationOnly, r2Significance, resolveBandTolerance, type ReferenceSource } from '@/lib/job-plan/rules'
+import { PLANNER_REVISION, r2DestinationOnlyReference, r2Significance, resolveBandTolerance, type ReferenceSource } from '@/lib/job-plan/rules'
 import type { BalanceArea } from '@/lib/job-plan/types'
 import type { Instrument } from '@/lib/job-plan/profile-vision/instrument'
 
@@ -65,7 +65,7 @@ export function synthRef(spec: SynthRef): Reference {
     price: spec.price,
     priceLow: spec.price,
     priceHigh: spec.price,
-    destinationOnly: r2DestinationOnly(spec.source),
+    destinationOnly: r2DestinationOnlyReference({ source: spec.source, pivotRole: spec.source === 'daily-job-pivot' ? spec.pivotRole ?? 'current' : null, nodeKind: node?.kind ?? null }),
     origin: node ? 'profile-nodes' : spec.source === 'weekly-job-pivot' || spec.source === 'daily-job-pivot' || spec.source === 'jba-edge' ? 'job-study' : 'mgi',
     boxIndex: spec.boxIndex ?? null,
     node,

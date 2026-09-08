@@ -819,7 +819,7 @@ timestamps and the in-progress bar never counts.
 | --- | --- | --- |
 | R1 | Confluence band — merge tolerance / chain cap (ES) | Merge references within **5 pts**; chain transitively, cap band width at **10 pts**, split wider clusters at the largest internal gap. Band quoted as [lowest member, highest member]; anchored on its highest-significance member |
 | R1b | Same, NQ (~4× ES, matching the sigma ratio) | Merge **20 pts**, cap **40 pts** |
-| R2 | Source significance (band anchor + tie-break) | G line > weekly Job Pivot > daily Job Pivot > JBA box edge > Rip > overnight H/L > previous day H/L > 5-day rolling LVN/HVN edge > 4-hour rolling LVN > Autoplot H/L > other MGI > weekly ladder rung > daily ladder rung. **Ladder rungs are destination-only, never trigger anchors** |
+| R2 | Source significance (band anchor + tie-break) | G line > weekly Job Pivot > daily Job Pivot > JBA box edge > Rip > overnight H/L > previous day H/L > 5-day rolling LVN/HVN edge > 4-hour rolling LVN > Autoplot H/L > other MGI > weekly ladder rung > daily ladder rung. **Ladder rungs are destination-only, never trigger anchors**; since feat-153 (2026-09-07 night) so are PRIOR sessions' daily Job Pivots and profile HVNs — targets a traverse runs toward, never entry candidates; a destination-only member never anchors a band that has an armable member |
 | R3 | "At" a band | Within one merge tolerance of its edge (ES 5 / NQ 20); otherwise approaching/away |
 | R4 | Within reach (`actionable-if-reached` vs `destination`) | ≤ **1.0 session sigma** from price; further = destination-only, shown, never armed |
 | R5 | Failed look | First exec-bar close back on the original side within **30 min** of the first print beyond the band edge; longer excursions hand off to R6. Qualifier **EARLY** if the excursion began within the first **90 min** of RTH (primary-lean grade), else **LATE** (emitted, lower weight) |
@@ -998,6 +998,20 @@ and short = m-red, recorded in DESIGN.md), headline "Two-way at X — fail back 
 through". Sierra: `job_plan_bands` emits kind `both` for a two-way play
 (`20260908010000_job_plan_bands_two_way.sql`, applied the same night), which the study already draws
 purple. Prompt `llm-planner/2026-09-07.6`; shadow diff counts a two-way as both directions.
+
+**Same night (feat-153) — prior-day pivots and HVNs are targets, never entry candidates.** Operator,
+after the first plans under the frame doctrine: "It looks like previous days' Daily Pivots are being
+used as entry level candidates. I don't want them used as entry level candidates" and "HVNs are being
+used as entry level candidates. I don't want them used as entry level candidates. They can be used as
+targets, but that's it." R2's destination-only set widens from ladder rungs to a reference-level
+predicate (`r2DestinationOnlyReference`): a rung, a historical daily pivot (`pivot.role ===
+'historical'`), or a profile node of kind `hvn`. Both stay in the inventory (the deep-dive rule still
+keeps an untested prior pivot relevant — as a destination), a band of nothing but such members is
+destination-only (never armed by the deterministic walk, `play_destination_only` for the LLM), and
+inside a mixed band the destination-only members sort LAST so the armable member anchors, names and
+ranks the band. A lone prior pivot no longer makes a band "important" (only the current pivot does);
+`exhaustive-node` and every lvn stay armable. Prompt `llm-planner/2026-09-07.7` says so in the
+play-selection rule; `PLANNER_REVISION job-planner/2026-09-07.1`.
 
 ## Claude / Codex review notes
 

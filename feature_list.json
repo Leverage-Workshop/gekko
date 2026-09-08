@@ -1517,6 +1517,16 @@
       ],
       "status": "done",
       "evidence": "knowledge/schema/job-plan.schema.ts, lib/job-plan/{frameRelation,playGrammar,planPrecedence}.ts, llm-planner/{schema,validate,assemblePlan,diff,prompt}.ts, app/components/job-plan-play.tsx, app/globals.css, DESIGN.md, supabase/migrations/20260908010000_job_plan_bands_two_way.sql, .claude/skills/gekko-db/SKILL.md, docs/job-planning-task-plan.md. Tests: buildPlan (two-way draft at every important level, leg order, destinations/invalidation shape, LLM-path legs via draftAt, two-way illegal at a Rip; BASE/BOXED/GOAL orders), llmPlanner (two-way accepted at important levels, rejected at a non-important band, the pair is a duplicate), llmCutover (assembles a two-way; judgmentFor emits one). ./init.sh green."
+    },
+    {
+      "id": "feat-153",
+      "name": "Prior-day daily pivots and HVNs are destinations only, never entry candidates",
+      "description": "Operator, 2026-09-07 night, after the first plans under the frame doctrine: 'It looks like previous days' Daily Pivots are being used as entry level candidates. I don't want them used as entry level candidates.' and 'HVNs are being used as entry level candidates. I don't want them used as entry level candidates. They can be used as targets, but that's it.' R2's destination-only set widens from ladder rungs to a reference-level predicate lib/job-plan/rules.ts r2DestinationOnlyReference: a rung, a historical daily Job Pivot (pivot.role 'historical'), or a profile node of kind 'hvn'. referenceInventory derives every reference's destinationOnly from it; confluenceBands sorts destination-only members LAST so an armable member anchors, names and ranks a mixed band, and a band of nothing but such members is destinationOnly (never armed by playCandidates; play_destination_only for the LLM, message widened). frameRelation.importantReasons ignores destination-only members (a lone prior pivot is no longer an important level; the current pivot still is). Payload/type comments, prompt llm-planner/2026-09-07.7 (play-selection rule names rungs, prior pivots and HVNs as destinations), PLANNER_REVISION job-planner/2026-09-07.1, docs/job-planning-task-plan.md R2 row + correction entry. exhaustive-node and every lvn stay armable.",
+      "dependencies": [
+        "feat-152"
+      ],
+      "status": "done",
+      "evidence": "lib/job-plan/{rules,referenceInventory,confluenceBands,contextTypes,frameRelation}.ts, llm-planner/{contextPayload,validate,prompt}.ts, tests/helpers/jobPlanContext.ts, docs/job-planning-task-plan.md. Tests: rules (r2DestinationOnlyReference matrix), classifyContext (historical pivots + hvn nodes destinationOnly on the real geometry; hvn+prior band destination-only, an mgi-other member anchors the mixed band), llmPlanner (payload marks them destinationOnly and not important; two plays there = two play_destination_only), buildPlan (deterministic walk never arms a prior pivot AT price or an hvn in reach while the lvn beside them is armed). ./init.sh green."
     }
   ]
 }

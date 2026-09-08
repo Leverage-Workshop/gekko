@@ -12,15 +12,15 @@ import type {
 } from './contextTypes'
 import type { ObservedBar } from './observedBars'
 import { PROFILE_KEYS, type ConsensusDistribution, type ProfileKey, type ProfileNodes } from './profile-vision/types'
-import { r2DestinationOnly, r2Significance, type ReferenceSource } from './rules'
+import { r2DestinationOnlyReference, r2Significance, type ReferenceSource } from './rules'
 import type { DailyPivot, JobStudy, PivotLadder } from './types'
 
 /**
  * Step 1 of the level-production procedure (feat-126): the REFERENCE INVENTORY
  * with R2 source significance. Every price the plan may quote comes from here —
  * the MGI export, the Job-study geometry, or the vision read's `ProfileNodes`
- * taken AS-IS (prominence / primary never recomputed). Ladder rungs are
- * destination-only (R2). Sierra's `0.00` placeholders are excluded, not
+ * taken AS-IS (prominence / primary never recomputed). Ladder rungs, prior
+ * sessions' daily pivots and profile HVNs are destination-only (R2, feat-153). Sierra's `0.00` placeholders are excluded, not
  * levels; a missing overnight extreme falls back to the HTF bars' own
  * overnight session (the engine fact the plan's inventory table names) — over
  * the observation day's bars at/before `asOf` only, never a later day's — and
@@ -75,7 +75,11 @@ function ref(seed: RefSeed): Reference {
     subRank: 0,
     priceLow: seed.price,
     priceHigh: seed.price,
-    destinationOnly: r2DestinationOnly(seed.source),
+    destinationOnly: r2DestinationOnlyReference({
+      source: seed.source,
+      pivotRole: seed.pivot?.role ?? null,
+      nodeKind: seed.node?.kind ?? null,
+    }),
     origin: 'job-study',
     boxIndex: null,
     node: null,

@@ -132,7 +132,7 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
     }
     seen.add(play.bandId)
     if (band.destinationOnly) {
-      add('play_destination_only', `band ${play.bandId} is destination-only (ladder rungs never anchor a play)`)
+      add('play_destination_only', `band ${play.bandId} is destination-only (ladder rungs, prior sessions' daily pivots and profile hvns are targets, never play areas)`)
     }
     const read = readAgainstFrame(band, role.side, planFrame)
     if (legal.length === 0) {

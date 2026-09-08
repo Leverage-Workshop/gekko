@@ -50,7 +50,7 @@ export type LlmReferencePayload = {
   /** R2 rank, 0 = most significant (the G line). */
   readonly significanceRank: number
   readonly price: number
-  /** Ladder rungs: shown as destinations, never play areas. */
+  /** Ladder rungs, prior-day daily pivots, profile hvns: shown as destinations, never play areas. */
   readonly destinationOnly: boolean
 }
 
@@ -83,7 +83,7 @@ export type LlmBandPayload = {
   readonly withinReach: boolean
   /** R3 — price is at the band now. */
   readonly atBand: boolean
-  /** Every member is a ladder rung — destination only, never a play area. */
+  /** Every member is a rung, a prior-day pivot or an hvn — destination only, never a play area. */
   readonly destinationOnly: boolean
   /** R9 freshness: fresh | full | demoted (touched this session without a fail or a defense). */
   readonly triggerStatus: 'fresh' | 'full' | 'demoted'

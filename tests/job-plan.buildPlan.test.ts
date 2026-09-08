@@ -152,6 +152,26 @@ describe('the frame: the BIAS LINE (feat-148) — current daily pivot first, the
     expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', price: 29393.5 })
   })
 
+  it("feat-153: a prior session's pivot and an hvn in reach are never armed — targets only — while the lvn beside them is", () => {
+    // the prior pivot sits AT price (20 pts, the merge tolerance), the hvn and the lvn beyond the Rip — all in reach
+    const p = line({
+      reachPts: 200,
+      refs: [
+        ...LINE.refs,
+        { id: 'daily-pivot:2026-08-20', source: 'daily-job-pivot', price: 29380, label: 'Daily Job Pivot 2026-08-20', pivotRole: 'historical' },
+        { id: 'lvn', source: 'profile-balance', price: 29460, label: 'balance-area lvn #2', node: { kind: 'lvn', prominence: 2 } },
+        { id: 'hvn', source: 'profile-balance', price: 29500, label: 'balance-area hvn (primary) #1', node: { kind: 'hvn', prominence: 1, primary: true } },
+      ],
+    })
+    const armed = p.plays.filter((x) => x.stance !== 'stand-down').flatMap((x) => x.band.memberLabels)
+    expect(armed).not.toContain('Daily Job Pivot 2026-08-20')
+    expect(armed).not.toContain('balance-area hvn (primary) #1')
+    expect(playAt(p, 'balance-area lvn #2')).toBeDefined()
+    // still in the inventory, as destinations
+    expect(p.geometryRefs.references.find((r) => r.id === 'hvn')).toMatchObject({ destinationOnly: true })
+    expect(p.geometryRefs.references.find((r) => r.id === 'daily-pivot:2026-08-20')).toMatchObject({ destinationOnly: true })
+  })
+
   it("within one merge tolerance of the band the frame is AT it — no bias yet, the fork stated", () => {
     const p = plan({ price: 29390 })
     expect(p.frame).toMatchObject({ referenceId: 'daily-pivot', side: 'at' })

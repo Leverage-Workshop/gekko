@@ -1,4 +1,5 @@
 import { R1_MERGE_TOLERANCE, type Instrument } from './profile-vision/instrument'
+import type { NodeKind } from './profile-vision/schema'
 
 /**
  * The Job planner's ratified rules (docs/job-planning-task-plan.md, "Ratified
@@ -20,7 +21,7 @@ import { R1_MERGE_TOLERANCE, type Instrument } from './profile-vision/instrument
  * it is part of every persisted plan's reproducibility fingerprint.
  */
 
-export const PLANNER_REVISION = 'job-planner/2026-08-31.6'
+export const PLANNER_REVISION = 'job-planner/2026-09-07.1'
 
 export type RuleId =
   | 'R1'
@@ -56,7 +57,7 @@ export type RuleEntry = {
 export const RULE_TABLE: readonly RuleEntry[] = [
   { id: 'R1', title: 'Confluence band — merge tolerance / chain cap (ES)', owner: 'feat-126', ratified: true, predicate: 'r1SameBand / r1WithinCap' },
   { id: 'R1b', title: 'Confluence band — same, NQ', owner: 'feat-126', ratified: true, predicate: 'resolveBandTolerance' },
-  { id: 'R2', title: 'Source significance (band anchor + tie-break)', owner: 'feat-126', ratified: true, predicate: 'r2Significance / r2DestinationOnly' },
+  { id: 'R2', title: 'Source significance (band anchor + tie-break)', owner: 'feat-126', ratified: true, predicate: 'r2Significance / r2DestinationOnly / r2DestinationOnlyReference' },
   { id: 'R3', title: '"At" a band', owner: 'feat-126', ratified: true, predicate: 'r3AtBand' },
   { id: 'R4', title: 'Within reach (actionable-if-reached vs destination)', owner: 'feat-126', ratified: true, predicate: 'r4WithinReach' },
   { id: 'R5', title: 'Failed look', owner: 'feat-126', ratified: true, predicate: 'r5FailedLook / r5Grade' },
@@ -143,6 +144,29 @@ export function r2Significance(source: ReferenceSource): number {
 /** R2: ladder rungs are destination-only — never trigger anchors. */
 export function r2DestinationOnly(source: ReferenceSource): boolean {
   return source === 'weekly-rung' || source === 'daily-rung'
+}
+
+/** The facts a reference carries that decide destination-only beyond its source. */
+export type DestinationOnlyFacts = {
+  readonly source: ReferenceSource
+  /** Daily Job Pivot references only: which session's pivot this is. */
+  readonly pivotRole: 'current' | 'historical' | null
+  /** Profile-node references only: the vision read's node kind. */
+  readonly nodeKind: NodeKind | null
+}
+
+/**
+ * R2 (feat-153, operator 2026-09-07): a reference is destination-only — a
+ * target price never armed as an entry area — when it is a ladder rung, a
+ * PRIOR session's daily Job Pivot ("I don't want them used as entry level
+ * candidates"), or a profile HVN ("they can be used as targets, but that's
+ * it"). A band is destination-only when EVERY member is (confluenceBands);
+ * these members never anchor a band that has an armable member.
+ */
+export function r2DestinationOnlyReference(facts: DestinationOnlyFacts): boolean {
+  if (r2DestinationOnly(facts.source)) return true
+  if (facts.pivotRole === 'historical') return true
+  return facts.nodeKind === 'hvn'
 }
 
 // ---------------------------------------------------------------------------
@@ -411,7 +435,7 @@ export function r13TradingDayMatches(studyTradingDay: string, bundleTradingDay: 
 export const IMPLEMENTED_RULES = {
   R1: [r1SameBand, r1WithinCap],
   R1b: [resolveBandTolerance],
-  R2: [r2Significance, r2DestinationOnly],
+  R2: [r2Significance, r2DestinationOnly, r2DestinationOnlyReference],
   R3: [r3AtBand],
   R4: [r4WithinReach],
   R5: [r5FailedLook, r5Grade],
