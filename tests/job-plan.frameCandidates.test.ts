@@ -191,7 +191,7 @@ describe('planFrame — the persisted bias line', () => {
     const f = planFrame(synthContext(BASE))!
     expect(f).toMatchObject({ referenceId: 'daily-pivot', label: 'Daily Job Pivot', price: 29393.5, side: 'below', distancePts: 33.5, low: 29393.5, high: 29393.5, tier: 0, memberLabels: ['Daily Job Pivot'] })
     expect(f.bandId).toMatch(/^band-\d+$/)
-    expect(f.text).toBe('Below the Daily Job Pivot 29393.5 (33.5 pts) — shorts only: look for reoffers at the areas below the line; longs come back only above it')
+    expect(f.text).toBe('Below the Daily Job Pivot 29393.5 (33.5 pts) — shorts only: look for reoffers at the areas below the line; longs come back only above it. The line itself is two-way: reoffer while it holds, rebid once lost')
     expect(f.provenance).toEqual({ kind: 'reference', referenceIds: ['daily-pivot'], derivation: null })
     expect(frameDirection(f)).toBe('short')
   })
