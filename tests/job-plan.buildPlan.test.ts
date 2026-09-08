@@ -601,12 +601,13 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     expect(rebid).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse', activation: { state: 'conditional', grounding: 'none' } })
     expect(rebid.band).toMatchObject({ low: 7980, high: 7982, memberLabels: ['Rip', 'balance-area lvn (primary) #1'] })
     expect(rebid.destinations.map((s) => [s.label, s.low, s.high, s.expect])).toEqual([
-      ['JBA 1 high (+2)', 8004, 8005, 'gate-continuation'],
+      // feat-153: the hvn edge at 8004 never stacks — JBA 1 high + PDH only, the hvn its own destination band beside it
+      ['JBA 1 high (+1)', 8005, 8005, 'gate-continuation'],
       ['PW High', 8040, 8040, 'reoffer'],
     ])
     expect(rebid.destinations[0].beeline).toEqual({ dontCounter: true, destinationLabel: 'PW High', destinationLow: 8040, destinationHigh: 8040 })
     expect(rebid.responseDeadline?.minutes).toBe(30)
-    expect(rebid.summary).toBe('Rebid 7980–7982 into Rip (+1) → press JBA 1 high (+2) 8004–8005; build above → PW High 8040; below 7980 (Rip (+1)) → seek Weekly Job Pivot (+1) 7970')
+    expect(rebid.summary).toBe('Rebid 7980–7982 into Rip (+1) → press JBA 1 high (+1) 8005; build above → PW High 8040; below 7980 (Rip (+1)) → seek Weekly Job Pivot (+1) 7970')
   })
 
   it('the lone prior-week high is skipped as a trigger (R12) but kept as a destination; the pivot band (the line) is never a play', () => {

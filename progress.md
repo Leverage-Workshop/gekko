@@ -10,12 +10,16 @@ doctrine: "previous days' Daily Pivots are being used as entry level candidates.
 used as entry level candidates" / "HVNs are being used as entry level candidates … They can be used
 as targets, but that's it." R2's destination-only set is now a reference-level predicate
 (`r2DestinationOnlyReference`): a ladder rung, a historical daily pivot, or a profile `hvn` node. The
-inventory keeps them (an untested prior pivot stays a relevant destination), a band of nothing but
-such members is destination-only — never armed by the deterministic walk, `play_destination_only`
-for the LLM — and in a mixed band they sort LAST so the armable member anchors and names it. A lone
-prior pivot no longer counts as an important level (the current pivot does). `exhaustive-node` and
-every lvn stay armable. Prompt `llm-planner/2026-09-07.7`, `PLANNER_REVISION job-planner/2026-09-07.1`.
-Tests added in rules / classifyContext / llmPlanner / buildPlan (785 planner tests green).
+inventory keeps them (an untested prior pivot stays a relevant destination) but — follow-up the same
+night, operator: "I don't want them stacking at all" — they NEVER STACK (`r2NeverStacks`):
+`buildConfluenceBands` keeps them out of the chaining, each its own single-member destination-only
+band, never widening, anchoring or strengthening a neighbouring level, never bridging two armable
+levels. Never armed by the deterministic walk, `play_destination_only` for the LLM. Rungs unchanged
+(destination-only, confluence-only band members, ratified). A lone prior pivot no longer counts as
+an important level (the current pivot does). `exhaustive-node` and every lvn stay armable. Prompt
+`llm-planner/2026-09-07.8`, `PLANNER_REVISION job-planner/2026-09-07.2`. Tests in rules /
+classifyContext / llmPlanner / buildPlan (785 planner tests green; the ES Goal example's 8004 hvn edge
+no longer stacks into the JBA 1 high band). PR #206 + the never-stack follow-up PR.
 
 ---
 

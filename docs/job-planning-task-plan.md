@@ -819,7 +819,7 @@ timestamps and the in-progress bar never counts.
 | --- | --- | --- |
 | R1 | Confluence band — merge tolerance / chain cap (ES) | Merge references within **5 pts**; chain transitively, cap band width at **10 pts**, split wider clusters at the largest internal gap. Band quoted as [lowest member, highest member]; anchored on its highest-significance member |
 | R1b | Same, NQ (~4× ES, matching the sigma ratio) | Merge **20 pts**, cap **40 pts** |
-| R2 | Source significance (band anchor + tie-break) | G line > weekly Job Pivot > daily Job Pivot > JBA box edge > Rip > overnight H/L > previous day H/L > 5-day rolling LVN/HVN edge > 4-hour rolling LVN > Autoplot H/L > other MGI > weekly ladder rung > daily ladder rung. **Ladder rungs are destination-only, never trigger anchors**; since feat-153 (2026-09-07 night) so are PRIOR sessions' daily Job Pivots and profile HVNs — targets a traverse runs toward, never entry candidates; a destination-only member never anchors a band that has an armable member |
+| R2 | Source significance (band anchor + tie-break) | G line > weekly Job Pivot > daily Job Pivot > JBA box edge > Rip > overnight H/L > previous day H/L > 5-day rolling LVN/HVN edge > 4-hour rolling LVN > Autoplot H/L > other MGI > weekly ladder rung > daily ladder rung. **Ladder rungs are destination-only, never trigger anchors**; since feat-153 (2026-09-07 night) so are PRIOR sessions' daily Job Pivots and profile HVNs — targets a traverse runs toward, never entry candidates; they NEVER STACK — each is its own single-member band, never joining, widening or strengthening a neighbouring level (rungs still ride in a band as confluence-only members) |
 | R3 | "At" a band | Within one merge tolerance of its edge (ES 5 / NQ 20); otherwise approaching/away |
 | R4 | Within reach (`actionable-if-reached` vs `destination`) | ≤ **1.0 session sigma** from price; further = destination-only, shown, never armed |
 | R5 | Failed look | First exec-bar close back on the original side within **30 min** of the first print beyond the band edge; longer excursions hand off to R6. Qualifier **EARLY** if the excursion began within the first **90 min** of RTH (primary-lean grade), else **LATE** (emitted, lower weight) |
@@ -1006,12 +1006,16 @@ used as entry level candidates. I don't want them used as entry level candidates
 targets, but that's it." R2's destination-only set widens from ladder rungs to a reference-level
 predicate (`r2DestinationOnlyReference`): a rung, a historical daily pivot (`pivot.role ===
 'historical'`), or a profile node of kind `hvn`. Both stay in the inventory (the deep-dive rule still
-keeps an untested prior pivot relevant — as a destination), a band of nothing but such members is
-destination-only (never armed by the deterministic walk, `play_destination_only` for the LLM), and
-inside a mixed band the destination-only members sort LAST so the armable member anchors, names and
-ranks the band. A lone prior pivot no longer makes a band "important" (only the current pivot does);
-`exhaustive-node` and every lvn stay armable. Prompt `llm-planner/2026-09-07.7` says so in the
-play-selection rule; `PLANNER_REVISION job-planner/2026-09-07.1`.
+keeps an untested prior pivot relevant — as a destination), and — operator, same night: "I don't want
+them stacking at all" — they NEVER STACK (`r2NeverStacks`): `buildConfluenceBands` keeps them out of
+the chaining, each its own single-member destination-only band, so they never widen, anchor or
+strengthen a neighbouring level and two armable levels are never bridged through one (the ES Goal
+example's 8004 hvn edge no longer stacks into the JBA 1 high + PDH band). Never armed by the
+deterministic walk, `play_destination_only` for the LLM. Rungs are unchanged: destination-only but
+confluence-only members of a band (ratified). A lone prior pivot no longer makes a band "important"
+(only the current pivot does); `exhaustive-node` and every lvn stay armable. Prompt
+`llm-planner/2026-09-07.8` says so in the play-selection rule; `PLANNER_REVISION
+job-planner/2026-09-07.2`.
 
 ## Claude / Codex review notes
 
