@@ -77,6 +77,16 @@ const LINE: SynthSpec = {
 }
 const line = (spec: Partial<SynthSpec> = {}): JobPlan => buildPlan({ context: synthContext({ ...LINE, ...spec }) })
 
+/** Every legal draft the grammar composes at the band holding `memberId` — read straight from the grammar, so the cap hides nothing. */
+function draftsAt(spec: SynthSpec, memberId: string) {
+  const ctx = synthContext(spec)
+  const frame = planFrame(ctx)
+  const band = ctx.bands.find((b) => b.members.some((m) => m.id === memberId))!
+  const candidate = { band, role: ctx.roles.find((r) => r.bandId === band.id)!, facts: ctx.origin.bands.find((f) => f.bandId === band.id)!, why: 'test' }
+  const result = buildBandPlays(candidate, ctx, frame)
+  return 'drafts' in result ? result.drafts : []
+}
+
 const failedLook = (direction: 'above' | 'below', grade: 'EARLY' | 'LATE' = 'EARLY', endedAt = '2026-08-24T09:05:00'): Excursion => ({
   direction,
   startedAt: '2026-08-24T08:45:00',
@@ -181,29 +191,47 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
     expect(p.plays.filter((x) => x.band.memberLabels.includes('Daily Job Pivot')).map((x) => x.direction).sort()).toEqual(['long', 'short'])
   })
 
-  it('an unreached level beyond price on the bias side: the break-and-hold WITH the line, and the FAIL against it — never a plain fade', () => {
-    const p = line()
-    const hold = playAt(p, 'Rip', 'long')!
-    expect(hold).toMatchObject({ stance: 'continuation', direction: 'long', condition: 'build-beyond-continuation' })
-    expect(hold.trigger).toContain('Break above Rip 29420 and HOLD')
-    expect(hold.trigger).not.toContain('Only once')
-    expect(hold.summary).toContain('Break-and-hold above Rip 29420, buy the pullback')
-    expect(hold.invalidation).toMatchObject({ low: 29420, side: 'below' })
-    const fail = playAt(p, 'Rip', 'short')!
-    // Rip is not an edge source, yet the counter-bias play is the look-and-fail, never the arrival alone
-    expect(fail).toMatchObject({ stance: 'reoffer', direction: 'short', condition: 'look-and-fail' })
-    expect(fail.trigger).toContain('Look above Rip 29420 and fail')
-    expect(fail.activation.evidence).toContain('a sweep beyond that fails is the trigger, not the arrival alone')
-    expect(fail.dont).toContain("Don't fade the break itself")
+  it('an unreached level beyond price on the bias side: the break-and-hold WITH the line; the FAIL against it only at a real important level', () => {
+    // Rip is not an important level: the hold only, no counter play
+    const rip = draftsAt(LINE, 'rip')
+    expect(rip.map((d) => d.direction)).toEqual(['long'])
+    expect(rip[0]).toMatchObject({ stance: 'continuation', direction: 'long', condition: 'build-beyond-continuation' })
+    expect(rip[0].trigger).toContain('Break above Rip 29420 and HOLD')
+    expect(rip[0].trigger).not.toContain('Only once')
+    expect(rip[0].summary).toContain('Break-and-hold above Rip 29420, buy the pullback')
+    expect(rip[0].invalidation).toMatchObject({ low: 29420, side: 'below' })
+    // an overnight high at the same price IS a real important level: the hold AND the fail against the trend
+    const onh = draftsAt({ ...LINE, refs: LINE.refs.map((r) => (r.id === 'rip' ? { ...r, id: 'onh', source: 'overnight-extreme' as const, label: 'ONH' } : r)) }, 'onh')
+    expect(onh.map((d) => [d.direction, d.stance, d.condition])).toEqual([
+      ['long', 'continuation', 'build-beyond-continuation'],
+      ['short', 'reoffer', 'look-and-fail'],
+    ])
+    expect(onh[1].trigger).toContain('Look above ONH 29420 and fail')
+    expect(onh[1].activation.evidence).toContain('a sweep beyond that fails is the trigger, not the arrival alone')
+    expect(onh[1].dont).toContain("Don't fade the break itself")
+    // and in the plan the with-trend hold ranks ahead of the counter-trend fail
+    const p = line({ refs: LINE.refs.map((r) => (r.id === 'rip' ? { ...r, id: 'onh', source: 'overnight-extreme' as const, label: 'ONH' } : r)) })
+    const fail = playAt(p, 'ONH', 'short')
+    if (fail) expect(playAt(p, 'ONH', 'long')!.rank).toBeLessThan(fail.rank)
+    else expect(p.pruned.some((x) => x.label.startsWith('ONH') && x.reason.includes('max 4'))).toBe(true)
+    expect(playAt(p, 'ONH', 'long')).toBeDefined()
   })
 
-  it('the far side of the line: fork-direction break-and-hold only, each level conditional on losing the line — no counter play there', () => {
+  it('the far side of the line: fork-direction break-and-hold, each level conditional on losing the line; the bounce against it only at a real important level, ranked after', () => {
     const p = line({ reachPts: 300, refs: LINE.refs.filter((r) => ['onl', 'daily-pivot', 'weekly-pivot'].includes(r.id)) })
-    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction])).toEqual([['Daily Job Pivot', 'long'], ['Daily Job Pivot', 'short'], ['ONL', 'short']])
-    const onl = p.plays.filter((x) => x.band.memberLabels.includes('ONL'))
-    expect(onl.map((x) => x.direction)).toEqual(['short'])
-    expect(onl[0]).toMatchObject({ stance: 'continuation', condition: 'build-beyond-continuation' })
-    expect(onl[0].trigger).toContain('Only once price has lost the Daily Job Pivot: Break below ONL 29260 and HOLD')
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
+      ['Daily Job Pivot', 'long', 'hold-traverse'],
+      ['Daily Job Pivot', 'short', 'build-beyond-continuation'],
+      ['ONL', 'short', 'build-beyond-continuation'],
+      ['ONL', 'long', 'look-and-fail'],
+    ])
+    const hold = playAt(p, 'ONL', 'short')!
+    expect(hold.trigger).toContain('Only once price has lost the Daily Job Pivot: Break below ONL 29260 and HOLD')
+    const bounce = playAt(p, 'ONL', 'long')!
+    expect(bounce.trigger).toContain('Only once price has lost the Daily Job Pivot: Look below ONL 29260 and fail')
+    // a far level that is NOT important gets the fork continuation only
+    const rip = draftsAt({ ...LINE, reachPts: 300, refs: [{ id: 'rip', source: 'rip', price: 29260, label: 'Rip' }, ...LINE.refs.filter((r) => ['daily-pivot', 'weekly-pivot'].includes(r.id))] }, 'rip')
+    expect(rip.map((d) => [d.direction, d.condition])).toEqual([['short', 'build-beyond-continuation']])
   })
 
   it('a band price sits inside on the bias side leans with the frame; with no frame direction it is pruned, not guessed', () => {
@@ -265,17 +293,17 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
 
   it('R9 freshness: a touched band is demoted as a fresh trigger and ranks last', () => {
     const touched: BandOriginFacts['interaction'] = { interacted: true, prints: 2, firstAt: '2026-08-24T08:40:00', lastAt: '2026-08-24T08:41:00', defenses: { session: 0, overnight: 0 }, failedLookThisSession: false, triggerStatus: 'demoted' }
-    const p = line({ facts: { rip: { interaction: touched } } })
-    const rips = p.plays.filter((x) => x.band.memberLabels.includes('Rip'))
-    expect(rips.length).toBeGreaterThan(0)
-    for (const r of rips) {
-      expect(r.activation.demoted).toBe(true)
-      expect(r.activation.state).toBe('conditional')
-      expect(r.activation.rulesFired).toContain('R9')
-      expect(r.activation.evidence).toContain('demoted as a fresh trigger (R9)')
-      expect(r.rank).toBe(p.plays.length)
-    }
-    const kept = line({ facts: { rip: { interaction: { ...touched, failedLookThisSession: true, triggerStatus: 'full' } } } })
+    // daily pivot (the line), Rip and PDH unreached overhead, the weekly pivot far above: PDH's two plays outrank a demoted Rip
+    const spec: SynthSpec = { ...LINE, reachPts: 300, refs: LINE.refs.filter((r) => r.id !== 'onl') }
+    const demotedRip = draftsAt({ ...spec, facts: { rip: { interaction: touched } } }, 'rip')
+    expect(demotedRip).toHaveLength(1)
+    expect(demotedRip[0].activation).toMatchObject({ demoted: true, state: 'conditional' })
+    expect(demotedRip[0].activation.rulesFired).toContain('R9')
+    expect(demotedRip[0].activation.evidence).toContain('demoted as a fresh trigger (R9)')
+    const p = buildPlan({ context: synthContext({ ...spec, facts: { rip: { interaction: touched } } }) })
+    expect(p.plays.some((x) => x.band.memberLabels.includes('Rip'))).toBe(false)
+    expect(p.pruned.find((x) => x.label.startsWith('Rip'))?.reason).toContain('max 4')
+    const kept = buildPlan({ context: synthContext({ ...spec, facts: { rip: { interaction: { ...touched, failedLookThisSession: true, triggerStatus: 'full' } } } }) })
     expect(playAt(kept, 'Rip', 'long')).toMatchObject({ rank: 3, activation: { demoted: false } })
   })
 
@@ -306,12 +334,12 @@ describe('the forward-conditional grammar (feat-149: plays read against the fram
 describe('the precedence table: frame side leads, sides alternate, structure ranks', () => {
   it('below the daily pivot the shorts lead and the sides alternate; the frame-aligned play is the primary look', () => {
     const p = plan()
-    // bias side leads (the reoffer at the line), then the sides alternate: the fail at the unreached G line, its short hold, the line's own long once taken
+    // the bias side leads (the reoffer at the line), then the SIDES OF THE FRAME alternate: the line's own long once taken, the G line's short hold, Rip's long hold on the far side
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
       ['Daily Job Pivot', 'short', 'hold-traverse'],
-      ['G line (week open)', 'long', 'look-and-fail'],
-      ['G line (week open)', 'short', 'build-beyond-continuation'],
       ['Daily Job Pivot', 'long', 'build-beyond-continuation'],
+      ['G line (week open)', 'short', 'build-beyond-continuation'],
+      ['Rip', 'long', 'build-beyond-continuation'],
     ])
     expect(p.plays[0].primary).toBe(true)
     expect(p.lean).toMatchObject({ playId: p.plays[0].id, basis: 'frame' })
@@ -326,11 +354,11 @@ describe('the precedence table: frame side leads, sides alternate, structure ran
 
   it('the enclosing zone\'s edges rank first within a side ("play the edges")', () => {
     const p = boxed({ reachPts: 500 })
-    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction])).toEqual([
-      ['JBA 1 low', 'two-way'],
-      ['JBA 1 low', 'short'],
-      ['JBA 1 low', 'long'],
-      ['Daily Job Pivot', 'short'],
+    expect(p.plays.map((x) => [x.band.memberLabels[0], x.direction, x.condition])).toEqual([
+      ['JBA 1 low', 'two-way', 'mid-zone-two-way'],
+      ['JBA 1 low', 'short', 'build-beyond-continuation'],
+      ['JBA 1 high', 'long', 'build-beyond-continuation'],
+      ['JBA 1 low', 'long', 'look-and-fail'],
     ])
     expect(p.plays[0].stance).toBe('stand-down')
   })
@@ -475,25 +503,21 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     expect(p.lean.basis).toBe('mid-zone')
   })
 
-  it('price above the pivot band: the unreached upper edge gets the hold and the fail, the near LVN rebid rides the bias side', () => {
+  it('price above the pivot band: the edges lead — the upper edge\'s hold, the lower edge\'s fork hold, then the upper edge\'s fail; the LVN rebid falls to the cap', () => {
     expect(p.plays.map((x) => [x.band.memberLabels[0], x.condition, x.direction])).toEqual([
       ['JBA 1 low', 'mid-zone-two-way', 'two-way'],
       ['JBA 1 high', 'build-beyond-continuation', 'long'],
+      ['JBA 1 low', 'build-beyond-continuation', 'short'],
       ['JBA 1 high', 'look-and-fail', 'short'],
-      ['Rip', 'hold-traverse', 'long'],
     ])
+    expect(p.pruned.find((x) => x.label.startsWith('Rip'))?.reason).toContain('max 4')
   })
 
   it('yesterday\'s low is on the far side of the line: the fork short — "lose the pivot → build below 7955, sell the pullback → the 7720s"', () => {
-    // the cap keeps the upper edge's two plays and the LVN rebid ahead of it, so read the band's plays straight from the grammar
-    const ctx = synthContext(GOAL)
-    const frame = planFrame(ctx)
-    const band = ctx.bands.find((b) => b.members.some((m) => m.id === 'pdl'))!
-    const candidate = { band, role: ctx.roles.find((r) => r.bandId === band.id)!, facts: ctx.origin.bands.find((f) => f.bandId === band.id)!, why: 'test' }
-    const result = buildBandPlays(candidate, ctx, frame)
-    expect('drafts' in result).toBe(true)
-    const drafts = 'drafts' in result ? result.drafts : []
-    expect(drafts.map((d) => d.direction)).toEqual(['short'])
+    const drafts = draftsAt(GOAL, 'pdl')
+    // a JBA edge is a real important level: the fork hold first, then the bounce against it as a fail
+    expect(drafts.map((d) => [d.direction, d.condition])).toEqual([['short', 'build-beyond-continuation'], ['long', 'look-and-fail']])
+    expect(drafts[1].trigger).toContain('Only once price has lost the Daily Job Pivot: Look below JBA 1 low (+1) 7955 and fail')
     const pdl = drafts[0]
     expect(pdl).toMatchObject({ stance: 'continuation', direction: 'short', condition: 'build-beyond-continuation', activation: { state: 'conditional', grounding: 'none' } })
     expect(pdl.band).toMatchObject({ low: 7955, high: 7955, memberLabels: ['JBA 1 low', 'PDL'] })
@@ -503,12 +527,12 @@ describe('the 08-11-style example from the plan\'s Goal, reproduced from a fixtu
     expect(pdl.invalidation.condition).toContain('the rubber meets the road')
     expect(pdl.invalidation.thenSeek).toMatchObject({ label: 'Weekly Job Pivot (+1)', low: 7970 })
     expect(pdl.invalidation.thenSeek?.text).toBe('above 7955 (JBA 1 low (+1)) → seek Weekly Job Pivot (+1) 7970')
-    // no counter play on the far side: yesterday's low is never a long while price is above the line
+    // in the plan, the with-trend hold ranks and the counter-trend bounce falls to the cap
     expect(p.plays.some((x) => x.band.memberLabels.includes('PDL') && x.direction === 'long')).toBe(false)
   })
 
-  it('"rebid 7980–82 into the LVN → press the 8004s; build above → attack prior week high"', () => {
-    const rebid = playAt(p, 'Rip')!
+  it('"rebid 7980–82 into the LVN → press the 8004s; build above → attack prior week high" (the grammar\'s draft; the plan\'s cap keeps the edges ahead of it)', () => {
+    const rebid = draftsAt(GOAL, 'rip')[0]
     expect(rebid).toMatchObject({ stance: 'rebid', direction: 'long', condition: 'hold-traverse', activation: { state: 'conditional', grounding: 'none' } })
     expect(rebid.band).toMatchObject({ low: 7980, high: 7982, memberLabels: ['Rip', 'balance-area lvn (primary) #1'] })
     expect(rebid.destinations.map((s) => [s.label, s.low, s.high, s.expect])).toEqual([

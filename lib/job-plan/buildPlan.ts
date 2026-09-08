@@ -190,7 +190,7 @@ function zoneDraft(zone: EnclosingZone, context: JobContext): PlayDraft {
     dont: "Don't trade full size in the middle — nobody wants to be full size in the middle; wait for the edges",
     uncertaintyBand: null,
     summary: `Stay inside ${fmtRange(zone.lowerEdge.price, zone.upperEdge.price)} (${zone.lowerEdge.label} – ${zone.upperEdge.label}) → balance; play the edges, stand down in the middle`,
-    precedence: { tier: 0, aligned: true, continuation: false, enclosingEdge: false, significance: -1, distancePts: 0, bandKey: 'zone' },
+    precedence: { tier: 0, aligned: true, primary: true, continuation: false, frameSide: null, enclosingEdge: false, significance: -1, distancePts: 0, bandKey: 'zone' },
   }
 }
 

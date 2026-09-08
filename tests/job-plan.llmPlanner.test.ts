@@ -137,9 +137,12 @@ describe('llm-planner hard gates', () => {
   it('rejects directions the frame does not read (feat-149) and destination-only bands; the line and an unreached level may carry both', () => {
     const ctx = context()
     const base = cleanJudgment(ctx)
-    // the G line is on the far side of the line (above it, price below): fork direction only — long
-    const farShort = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'g'), direction: 'short' as const, text: 't', rationale: 'r' }] }
+    // the 1A rung is on the far side of the line (above it, price below) and not an important level: fork direction only — long
+    const farShort = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'rung'), direction: 'short' as const, text: 't', rationale: 'r' }] }
     expect(validateJudgment(farShort, ctx).map((v) => v.code)).toContain('play_direction_frame')
+    // the G line out there IS important: the fork long and the bounce short are both legal
+    const gBoth = { ...base, plays: [...base.plays, { bandId: bandOf(ctx, 'g'), direction: 'short' as const, text: 't', rationale: 'r' }, { bandId: bandOf(ctx, 'g'), direction: 'long' as const, text: 't', rationale: 'r' }] }
+    expect(validateJudgment(gBoth, ctx).filter((v) => v.code === 'play_direction_frame')).toEqual([])
     // the line carries both directions; the unreached daily pivot carries both (long as the fail, short as the hold)
     const both = { ...base, plays: [...base.plays, { ...base.plays[0], direction: 'long' as const }, { ...base.plays[1], direction: 'short' as const }] }
     expect(validateJudgment(both, ctx)).toEqual([])

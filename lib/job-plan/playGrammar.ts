@@ -1,7 +1,7 @@
 import type { PlayBand, PlayInvalidation, PlayStance, UncertaintyBand } from '@/knowledge/schema/job-plan.schema'
 import type { ConfluenceBand, JobContext } from './contextTypes'
 import { destinationChain, flipDestination } from './destinationChain'
-import { biasDirection, isCounterBiasFail, isForkPlay, legalDirections, playShape, readAgainstFrame, type FrameRead, type PlayShape } from './frameRelation'
+import { biasDirection, frameSideOf, isCounterBiasFail, isForkPlay, isPrimaryDirection, legalDirections, playShape, readAgainstFrame, type FrameRead, type PlayShape } from './frameRelation'
 import type { Candidate, PlayDirectional, PlayDraft, PlanFrameInput } from './planTypes'
 import { bandLabel, bandName, derivedProvenance, fmtPrice, fmtRange, priceEq, referenceProvenance } from './playText'
 import { ACCEPTANCE_MINUTES, r2Significance, r11ResponseDeadline, type PlayCondition } from './rules'
@@ -75,7 +75,7 @@ function triggerText(condition: PlayCondition, s: Shaped, band: ConfluenceBand, 
     return `${forkPrefix(s)}Break ${beyond} ${name} and HOLD — completed exec-bar closes ${beyond} ${edge} for ${ACCEPTANCE_MINUTES} min (R6) — then the pullback into it that holds is the ${isLong ? 'long' : 'short'}; the trade is the hold after the break, never the break itself`
   }
   if (condition === 'look-and-fail') {
-    return `Look ${isLong ? 'below' : 'above'} ${name} and fail — the first close back ${isLong ? 'above' : 'below'} ${fmtPrice(isLong ? band.low : band.high)} → join the rotation back across`
+    return `${forkPrefix(s)}Look ${isLong ? 'below' : 'above'} ${name} and fail — the first close back ${isLong ? 'above' : 'below'} ${fmtPrice(isLong ? band.low : band.high)} → join the rotation back across`
   }
   if (inside) {
     return `Lean ${isLong ? 'on' : 'against'} ${name} from here — the ${isLong ? 'bid holds' : 'offer steps in'} → traverse; a look ${isLong ? 'below' : 'above'} and fail is the stronger green light`
@@ -223,7 +223,9 @@ function composePlay(candidate: Candidate, context: JobContext, frame: PlanFrame
     precedence: {
       tier: 0,
       aligned: bias === null || direction === bias,
+      primary: isPrimaryDirection(read, direction),
       continuation: shape === 'continuation',
+      frameSide: frameSideOf(read, direction),
       enclosingEdge: isEnclosingEdge(context, band),
       significance: r2Significance(band.anchorSource),
       distancePts: role.distancePts,

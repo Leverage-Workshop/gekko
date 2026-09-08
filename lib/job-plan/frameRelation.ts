@@ -1,6 +1,7 @@
 import type { PlanFrame } from '@/knowledge/schema/job-plan.schema'
 import type { BandSide, ConfluenceBand } from './contextTypes'
 import type { PlayDirectional } from './planTypes'
+import type { ReferenceSource } from './rules'
 
 /**
  * Where a band sits RELATIVE TO THE FRAME (feat-149, operator 2026-09-07 eve,
@@ -10,23 +11,44 @@ import type { PlayDirectional } from './planTypes'
  *
  *   bias     between the line and price, price inside included — the
  *            pullback is bought on arrival (rebid)
- *   beyond   on the bias side but past price, not yet reached — two plays:
- *            the break-and-hold long ("price has to break it and hold to get
- *            in the trade") AND the counter-bias short on a FAIL there ("a
- *            JBA border overhead could also be a short" — trades at levels
- *            price hasn't reached are either a fail against the line's
- *            direction or a breach-and-hold with it; the fail is the only
- *            counter-bias play that exists, never a plain fade)
+ *   beyond   on the bias side but past price, not yet reached — the
+ *            break-and-hold long ("price has to break it and hold to get in
+ *            the trade") AND, at a REAL important level only, the
+ *            counter-bias short on a FAIL there ("a JBA border overhead could
+ *            also be a short" — trades at levels price hasn't reached are
+ *            either a fail against the line's direction or a breach-and-hold
+ *            with it; the fail is the only counter-bias play, never a plain
+ *            fade, and "generally you don't want to go against trend unless
+ *            it's a real important level, like the edge of a JBA")
  *   line     the frame band itself — a rebid while price holds above it AND
  *            a reoffer once price loses it (both directions, drawn purple)
  *   far      beyond the line — the fork side: what to do once the line is
  *            lost, in the far side's direction, each level conditional on
  *            the last ("if price breaks the filter line, then another
- *            important level, a pullback to that level could be a play")
+ *            important level, a pullback to that level could be a play");
+ *            at a real important level the operator's drawing also shows the
+ *            bounce there (a fail against the new bias) — legal, fail only
  *
  * Mirror image with price below the line. With the frame AT its band (no
  * bias yet) the read falls back to geometry against price, as before.
  */
+
+/** Sources whose lone band is "a real important level" — where a counter-trend fail is worth writing. */
+export const IMPORTANT_LEVEL_SOURCES: readonly ReferenceSource[] = [
+  'jba-edge',
+  'g-line',
+  'weekly-job-pivot',
+  'daily-job-pivot',
+  'previous-day-extreme',
+  'overnight-extreme',
+]
+
+export type FrameBand = Pick<ConfluenceBand, 'id' | 'low' | 'high' | 'confluence' | 'anchorSource'>
+
+/** A JBA edge, a pivot, the G line, a prior-day / overnight extreme, or any stacked band. */
+export function isImportantLevel(band: FrameBand): boolean {
+  return band.confluence || IMPORTANT_LEVEL_SOURCES.includes(band.anchorSource)
+}
 
 export type FrameRelation = 'bias' | 'beyond' | 'line' | 'far'
 
@@ -53,7 +75,7 @@ const opposite = (d: PlayDirectional): PlayDirectional => (d === 'long' ? 'short
  * caller reads geometry against price instead.
  */
 export function readAgainstFrame(
-  band: Pick<ConfluenceBand, 'id' | 'low' | 'high'>,
+  band: FrameBand,
   side: BandSide,
   frame: PlanFrame | null,
 ): FrameRead | null {
@@ -64,11 +86,12 @@ export function readAgainstFrame(
   const frameLow = frame.low ?? frame.price
   const frameHigh = frame.high ?? frame.price
   // Beyond the line (the far side): entirely below a line price is above, or above a line price is below.
+  const counter = isImportantLevel(band)
   const far = bias === 'long' ? band.high < frameLow : band.low > frameHigh
-  if (far) return { relation: 'far', directions: [fork] }
+  if (far) return { relation: 'far', directions: counter ? [fork, bias] : [fork] }
   // Past price on the bias side: above price when the bias is long, below when short.
   const beyond = bias === 'long' ? side === 'above' : side === 'below'
-  if (beyond) return { relation: 'beyond', directions: [bias, fork] }
+  if (beyond) return { relation: 'beyond', directions: counter ? [bias, fork] : [bias] }
   return { relation: 'bias', directions: [bias] }
 }
 
@@ -81,7 +104,7 @@ export function readAgainstPrice(side: BandSide): readonly PlayDirectional[] {
 
 /** Legal directions for a band under a frame: the frame read when it has a direction, geometry otherwise. */
 export function legalDirections(
-  band: Pick<ConfluenceBand, 'id' | 'low' | 'high'>,
+  band: FrameBand,
   side: BandSide,
   frame: PlanFrame | null,
 ): readonly PlayDirectional[] {
@@ -98,13 +121,18 @@ export function legalDirections(
 export function playShape(read: FrameRead | null, direction: PlayDirectional): PlayShape {
   if (read === null || read.relation === 'bias') return 'arrival'
   if (read.relation === 'line') return direction === read.directions[0] ? 'arrival' : 'continuation'
-  if (read.relation === 'beyond') return direction === read.directions[0] ? 'continuation' : 'arrival'
-  return 'continuation'
+  // beyond and far: the primary direction is the hold after the break; the other is the fail
+  return direction === read.directions[0] ? 'continuation' : 'arrival'
 }
 
-/** True for the counter-bias play at an unreached level beyond price — legal only as a look-and-fail, never a plain fade. */
+/** True when the play is in its relation's primary direction — with the trend on the bias side, the fork direction beyond the line. Geometry reads are always primary. */
+export function isPrimaryDirection(read: FrameRead | null, direction: PlayDirectional): boolean {
+  return read === null || direction === read.directions[0]
+}
+
+/** True for the counter-trend play at an unreached level (beyond price, or on the far side) — legal only as a look-and-fail, never a plain fade. */
 export function isCounterBiasFail(read: FrameRead | null, direction: PlayDirectional): boolean {
-  return read !== null && read.relation === 'beyond' && direction !== read.directions[0]
+  return read !== null && (read.relation === 'beyond' || read.relation === 'far') && direction !== read.directions[0]
 }
 
 /** True when the play only comes alive once the line is lost (the line's fork direction, or the far side). */
@@ -112,6 +140,12 @@ export function isForkPlay(read: FrameRead | null, direction: PlayDirectional): 
   if (read === null) return false
   if (read.relation === 'far') return true
   return read.relation === 'line' && direction !== read.directions[0]
+}
+
+/** The side of the frame a play addresses: 'bias' while the line holds, 'fork' once it is lost; null with no frame direction. */
+export function frameSideOf(read: FrameRead | null, direction: PlayDirectional): 'bias' | 'fork' | null {
+  if (read === null) return null
+  return isForkPlay(read, direction) ? 'fork' : 'bias'
 }
 
 /** The two sides of a directional frame the plan must address; both sides of price when the frame has no direction. */
@@ -123,12 +157,12 @@ export function requiredSides(frame: PlanFrame | null): readonly FrameSideName[]
 
 /** Which required side a play at `band` in `direction` addresses. */
 export function sideOfPlay(
-  band: Pick<ConfluenceBand, 'id' | 'low' | 'high'>,
+  band: FrameBand,
   side: BandSide,
   direction: PlayDirectional,
   frame: PlanFrame | null,
 ): FrameSideName | null {
   const read = readAgainstFrame(band, side, frame)
   if (read === null) return side === 'inside' ? null : side
-  return isForkPlay(read, direction) ? 'fork' : 'bias'
+  return frameSideOf(read, direction)
 }

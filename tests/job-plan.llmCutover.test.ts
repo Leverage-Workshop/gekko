@@ -136,8 +136,8 @@ describe('assembleLlmPlan', () => {
   it('a judged direction the frame contradicts is an assembly error (broken invariant, never persisted)', () => {
     const ctx = context()
     const judgment = cleanJudgment(ctx)
-    // the G line is on the far side of the line: long only — a short there passed no gate and must not assemble
-    const farShort: LlmPlanJudgment = { ...judgment, plays: [{ bandId: bandOf(ctx, 'g'), direction: 'short', text: 't', rationale: 'r' }, judgment.plays[1]] }
+    // the 1A rung is on the far side of the line and not an important level: long only — a short there passed no gate and must not assemble
+    const farShort: LlmPlanJudgment = { ...judgment, plays: [{ bandId: bandOf(ctx, 'rung'), direction: 'short', text: 't', rationale: 'r' }, judgment.plays[1]] }
     expect(() => assembleLlmPlan({ judgment: farShort, context: ctx, modelId: 'm' })).toThrow(LlmPlanAssemblyError)
     // the line's own long (the fork) assembles as a continuation on the same band
     const both: LlmPlanJudgment = { ...judgment, plays: [...judgment.plays, { ...judgment.plays[0], direction: 'long', text: 'Once the Weekly Pivot is taken and held, the pullback is the long.' }] }
