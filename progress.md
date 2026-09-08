@@ -4,6 +4,31 @@
 
 **Last Updated:** 2026-09-07
 
+**Latest change (branch `feat-152-two-way-play`): the TWO-WAY play — one slot, both reads, purple.**
+Operator: "Rather than take up two slots with a two way trade, there should be a third trade type of
+two way. It would render as purple in the Gekko Dashboard and in the Sierra Chart study" — "only if
+the model thinks that's the correct call". New play type `direction 'two-way' / stance 'two-way' /
+condition 'fail-or-hold'` at an unreached important level: the fail against the line AND the
+break-and-hold with it in one play (`composeTwoWay`: legs ordered by `fadeFirst`, destinations = the
+first stop of each leg, invalidation `either`, no R11). The model chooses the fail, the hold, or the
+two-way; a band appears at most once (the fail+hold pair is now `play_duplicate_band`). The
+deterministic rollback path reads every such level two-way. Dashboard accent purple
+(`--color-two-way`, DESIGN.md semantic colour); `job_plan_bands` emits `both` for it
+(`20260908010000_job_plan_bands_two_way.sql`, applied via the Supabase MCP the same night; Sierra
+already draws `both` purple). Prompt `llm-planner/2026-09-07.6`.
+
+Codex gate: PASS x3. Round 1 P2 (card rendered the two legs as "Target sequence: A → B" with T1/T2) —
+FIXED: the card labels rows by leg and says "Legs (either, not a sequence)". Round 2 two P2s — FIXED:
+each leg's first stage keeps its own `expect` / beeline; the lean calls a two-way "frame-aligned"
+only on the bias side (`frameSide` passed to `leanOf`). Round 3 P2 DISMISSED: the shadow diff counts a
+two-way as both directions, so a judged one-way at a two-way level reads as agreement — deliberate:
+the diff (feat-144 shadow experiment, not production) measures agreement on the AREA; the read is
+the model's call by doctrine ("only if the model thinks that's the correct call"), and the diff's
+`directionMismatches` is for a direction the deterministic read does not carry at all. Three rounds
+with a new P2 each is where iteration stops (2026-08-23 rule).
+
+---
+
 **Latest change (branch `feat-151-line-never-a-play`): the frame line is two-way by assumption and
 never a play.** Operator: "I don't think dedicating a play to the trend line is necessary. It can just
 be assumed that is a two-way play." `readAgainstFrame` returns no directions at the frame band;

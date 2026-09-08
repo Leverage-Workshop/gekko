@@ -203,11 +203,13 @@ Flat band rows of the LATEST ready plan (`security_invoker = off`, SELECT grante
 `anon`) for the Sierra "Gekko Job Plan Bands" study (`D:\SierraChart\ACS_Source\GekkoJobPlan.cpp`),
 mirroring how `entry_levels` feeds the Entry A Bands study. Columns:
 `kind` ('frame' = the bias line (trend filter) | 'long' | 'short' | 'both' = a band carrying a
-long AND a short play, grouped by `band.bandId`), `label`, `low`, `high` (float8), `trading_day`.
+long AND a short play OR a `two-way` play (feat-152, stance 'two-way' — one play carrying both
+reads; the Sierra study's purple), grouped by `band.bandId`), `label`, `low`, `high` (float8),
+`trading_day`.
 Since feat-148 the frame is a BAND: `low`/`high` come from `plan.frame.low`/`.high` (a lone
 line has low = high; pre-feat-148 plans fall back to `plan.frame.price`). Stand-down
 (two-way) plays are excluded.
-Migrations: `20260831210000_job_plan_bands_view.sql`, `20260907200000_job_plan_bands_frame_range.sql`.
+Migrations: `20260831210000_job_plan_bands_view.sql`, `20260907200000_job_plan_bands_frame_range.sql`, `20260908010000_job_plan_bands_two_way.sql`.
 
 ```bash
 curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,run_id,created_at&order=created_at.desc&limit=5" "${AUTH[@]}"
@@ -243,9 +245,12 @@ curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,ru
 
 ## Migrations & DDL
 
+- **2026-09-08:** `20260908010000_job_plan_bands_two_way.sql` (the `job_plan_bands` view
+  emits kind 'both' for a feat-152 two-way play, stance 'two-way'; the R10 stand-down stays
+  excluded) — applied the same night via the claude.ai Supabase MCP `apply_migration`.
 - **2026-09-07:** `20260907200000_job_plan_bands_frame_range.sql` (the `job_plan_bands`
   frame row emits the feat-148 frame band's low/high, falling back to the anchor price)
-  — see progress.md for whether it was applied via the claude.ai Supabase MCP the same day.
+  — applied the same day via the claude.ai Supabase MCP `apply_migration`.
 - Before that, nothing was pending as of 2026-08-31. `20260831210000_job_plan_bands_view.sql`
   (the `job_plan_bands` view + anon grant for the Sierra Job Plan Bands study) was applied
   the same day via the claude.ai Supabase MCP `apply_migration` tool and verified with an

@@ -1,7 +1,7 @@
-import type { PlayBand, PlayInvalidation, PlayStance, UncertaintyBand } from '@/knowledge/schema/job-plan.schema'
+import type { DestinationStage, PlayBand, PlayDirection, PlayInvalidation, PlayStance, UncertaintyBand } from '@/knowledge/schema/job-plan.schema'
 import type { ConfluenceBand, JobContext } from './contextTypes'
 import { destinationChain, flipDestination } from './destinationChain'
-import { biasDirection, frameSideOf, isCounterBiasFail, isForkPlay, isPrimaryDirection, legalDirections, playShape, readAgainstFrame, type FrameRead, type PlayShape } from './frameRelation'
+import { biasDirection, frameSideOf, isCounterBiasFail, isForkPlay, isPrimaryDirection, legalDirections, playShape, readAgainstFrame, twoWayLegal, type FrameRead, type PlayShape } from './frameRelation'
 import type { Candidate, PlayDirectional, PlayDraft, PlanFrameInput } from './planTypes'
 import { bandLabel, bandName, derivedProvenance, fmtPrice, fmtRange, priceEq, referenceProvenance } from './playText'
 import { ACCEPTANCE_MINUTES, r2Significance, r11ResponseDeadline, type PlayCondition } from './rules'
@@ -234,22 +234,116 @@ function composePlay(candidate: Candidate, context: JobContext, frame: PlanFrame
   }
 }
 
+/**
+ * feat-152: the TWO-WAY play — one slot, both reads, at an unreached
+ * important level (beyond price on the bias side, or an important level on
+ * the far side): the fail against the line's direction AND the break-and-hold
+ * with it. Destinations carry the first stage of each leg (ascending, the
+ * schema's two-way order); the invalidation is 'either' — acceptance one way
+ * resolves the two-way into that leg. The fail leg leads the text at a
+ * stacked level (`fadeFirst`), the hold leg at a lone one.
+ */
+function composeTwoWay(candidate: Candidate, context: JobContext, frame: PlanFrameInput, read: FrameRead): PlayDraft {
+  const { band, role, facts } = candidate
+  const holdDir = read.directions[0]
+  const failDir = read.directions[1]
+  const holdLong = long(holdDir)
+  const fork = read.relation === 'far'
+  const prefix = fork && frame?.label ? `Only once price has lost the ${frame.label}: ` : ''
+  const name = bandName(band)
+  const beyond = holdLong ? 'above' : 'below'
+  const back = holdLong ? 'below' : 'above'
+  const failFirst = read.fadeFirst
+  const failStage = destinationChain(context, band, failDir)[0] ?? null
+  const holdStage = destinationChain(context, band, holdDir)[0] ?? null
+  const leg = (stage: DestinationStage | null, kind: 'fail' | 'hold'): DestinationStage | null =>
+    stage === null
+      ? null
+      : {
+          // the leg's own first stage, its expectation and beeline intact — only the text names the leg
+          ...stage,
+          text: `${kind === 'fail' ? `Fail leg (${failDir})` : `Hold leg (${holdDir})`}: ${stage.text}`,
+        }
+  const destinations = [leg(failStage, 'fail'), leg(holdStage, 'hold')]
+    .filter((d): d is DestinationStage => d !== null)
+    .sort((a, b) => a.low - b.low)
+    .map((d, i) => ({ ...d, order: i + 1 }))
+  const failText = `a look ${beyond} ${name} that fails back → ${failDir} back across${failStage ? ` toward ${failStage.label}` : ''}`
+  const holdText = `break ${beyond} ${name} and HOLD — completed exec-bar closes ${beyond} ${fmtPrice(holdLong ? band.high : band.low)} for ${ACCEPTANCE_MINUTES} min (R6) — then the pullback into it that holds is the ${holdDir}${holdStage ? ` toward ${holdStage.label}` : ''}`
+  const legs = failFirst ? [failText, holdText] : [holdText, failText]
+  const where = role.side === 'inside' ? 'price is at it now' : `${fmtPrice(role.distancePts)} pts ${role.side}`
+  const demoted = facts.interaction.triggerStatus === 'demoted'
+  const evidenceBase = `${prefix}Expect a decision at ${name} (${where}) — the fail against the line or the hold beyond it, ${failFirst ? 'the fail first at a level this stacked' : 'the hold first at a lone level'}; both reads stay on the table until price decides`
+  const invalidation: PlayInvalidation = {
+    low: band.low,
+    high: band.high,
+    side: 'either',
+    condition: `Acceptance resolves it: closes ${beyond} ${name} for ${ACCEPTANCE_MINUTES} min (R6) → the hold leg is on and the fail leg is off; a sweep that fails back ${back} → the fail leg is on; a build ${back} without the look → neither, don't counter`,
+    thenSeek: null,
+    provenance: referenceProvenance(band.members),
+  }
+  const bias = biasDirection(frame)
+  return {
+    stance: 'two-way',
+    direction: 'two-way',
+    condition: 'fail-or-hold',
+    band: playBand(candidate),
+    trigger: `${prefix}Two-way at ${name}: ${legs[0]}; or ${legs[1]}`,
+    activation: {
+      state: 'conditional',
+      grounding: 'none',
+      evidence: demoted ? `${evidenceBase}; already interacted this session without producing a fail or a defense — demoted as a fresh trigger (R9)` : evidenceBase,
+      factAt: null,
+      asOf: facts.asOf,
+      rulesFired: demoted ? ['R12', 'R9'] : ['R12'],
+      demoted,
+    },
+    invalidation,
+    destinations,
+    responseDeadline: null,
+    dont: `Don't pick a side ahead of the response at ${name}: no ${holdDir} until closes ${beyond} have held, no ${failDir} until the look ${beyond} has failed back`,
+    uncertaintyBand: uncertaintyFor(band, context),
+    summary: `${prefix}Two-way at ${name} — ${failFirst ? 'fail' : 'break-and-hold'} first: ${failFirst ? `${failDir} on the fail back across${failStage ? ` toward ${failStage.label} ${fmtRange(failStage.low, failStage.high)}` : ''}; break-and-hold ${beyond} → ${holdDir}${holdStage ? ` toward ${holdStage.label} ${fmtRange(holdStage.low, holdStage.high)}` : ''}` : `${holdDir} on the hold ${beyond}${holdStage ? ` toward ${holdStage.label} ${fmtRange(holdStage.low, holdStage.high)}` : ''}; a fail back across → ${failDir}${failStage ? ` toward ${failStage.label} ${fmtRange(failStage.low, failStage.high)}` : ''}`}`,
+    precedence: {
+      tier: 0,
+      aligned: bias === null || holdDir === bias || fork,
+      primary: true,
+      continuation: false,
+      frameSide: fork ? 'fork' : 'bias',
+      enclosingEdge: isEnclosingEdge(context, band),
+      significance: r2Significance(band.anchorSource),
+      distancePts: role.distancePts,
+      bandKey: band.id,
+    },
+  }
+}
+
 const NO_READ = 'price inside the band with no frame direction — no directional read'
+const NOT_TWO_WAY = 'two-way is a read only at an unreached important level (beyond price on the bias side, or an important level on the far side)'
 const LINE_ASSUMED = 'the frame line is two-way by assumption (rebid while it holds, reoffer once lost) — never a play of its own (feat-151)'
 
-/** Every legal play for one candidate band under the frame (an important level beyond price yields two; the line yields none), or the reason there is none. */
+/**
+ * The deterministic read of one candidate band under the frame: ONE draft —
+ * a directional play, or (feat-152) the two-way play where both reads are
+ * legal (an unreached important level) — or the reason there is none. The
+ * line yields none (feat-151).
+ */
 export function buildBandPlays(candidate: Candidate, context: JobContext, frame: PlanFrameInput): { drafts: PlayDraft[] } | { pruned: string } {
   const read = readAgainstFrame(candidate.band, candidate.role.side, frame)
   const directions = legalDirections(candidate.band, candidate.role.side, frame)
   if (directions.length === 0) return { pruned: read?.relation === 'line' ? LINE_ASSUMED : NO_READ }
+  if (read !== null && twoWayLegal(read)) return { drafts: [composeTwoWay(candidate, context, frame, read)] }
   return { drafts: directions.map((direction) => composePlay(candidate, context, frame, read, direction)) }
 }
 
-/** One play for one candidate band in a REQUESTED direction (the LLM assembler), or the reason it is not legal. */
-export function buildBandPlay(candidate: Candidate, context: JobContext, frame: PlanFrameInput, direction: PlayDirectional): { draft: PlayDraft } | { pruned: string } {
+/** One play for one candidate band in a REQUESTED direction — long, short, or two-way (the LLM assembler) — or the reason it is not legal. */
+export function buildBandPlay(candidate: Candidate, context: JobContext, frame: PlanFrameInput, direction: PlayDirection): { draft: PlayDraft } | { pruned: string } {
   const read = readAgainstFrame(candidate.band, candidate.role.side, frame)
   const directions = legalDirections(candidate.band, candidate.role.side, frame)
   if (directions.length === 0) return { pruned: read?.relation === 'line' ? LINE_ASSUMED : NO_READ }
+  if (direction === 'two-way') {
+    return read !== null && twoWayLegal(read) ? { draft: composeTwoWay(candidate, context, frame, read) } : { pruned: NOT_TWO_WAY }
+  }
   if (!directions.includes(direction)) {
     return { pruned: `${direction} is not a legal read at this band (${read?.relation ?? 'geometry'} — ${directions.join('/')})` }
   }

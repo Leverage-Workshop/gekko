@@ -1,6 +1,6 @@
 import type { JobContext } from '../contextTypes'
 import { eligibleFrameCandidates, frameCandidates, type FrameCandidate } from '../frameCandidates'
-import { legalDirections, requiredSides, sideOfPlay } from '../frameRelation'
+import { legalDirections, readAgainstFrame, requiredSides, sideOfPlay, twoWayLegal } from '../frameRelation'
 import { frameFor } from '../planFrame'
 import type { LlmPlanJudgment } from './schema'
 
@@ -125,20 +125,24 @@ export function validateJudgment(judgment: LlmPlanJudgment, context: JobContext)
       add('play_at_frame_line', `band ${play.bandId} is the frame line — it is two-way by assumption (the rebid while it holds, the reoffer once it is lost) and never a play of its own; spend the slot on another area`)
       continue
     }
-    // One play per band, except an unreached important level beyond price, which may carry one per direction.
-    const key = `${play.bandId}:${play.direction}`
+    // One play per band (feat-152): a level that carries both reads is ONE two-way play, never two slots.
     const legal = legalDirections(band, role.side, planFrame)
-    if (seen.has(key) || ([...seen].some((k) => k.startsWith(`${play.bandId}:`)) && legal.length < 2)) {
-      add('play_duplicate_band', `band ${play.bandId} carries more than one play${legal.length < 2 ? ' (only an unreached important level beyond price may carry both directions)' : ' in the same direction'}`)
+    if (seen.has(play.bandId)) {
+      add('play_duplicate_band', `band ${play.bandId} carries more than one play — one play per band; a level worth both reads is a single two-way play`)
     }
-    seen.add(key)
+    seen.add(play.bandId)
     if (band.destinationOnly) {
       add('play_destination_only', `band ${play.bandId} is destination-only (ladder rungs never anchor a play)`)
     }
+    const read = readAgainstFrame(band, role.side, planFrame)
     if (legal.length === 0) {
       add('play_inside_without_frame_direction', `band ${play.bandId} contains price and the frame is 'at' its line — no directional read exists`)
+    } else if (play.direction === 'two-way') {
+      if (!twoWayLegal(read)) {
+        add('play_direction_frame', `band ${play.bandId}: two-way is a read only at an unreached important level (beyond price on the bias side, or an important level on the far side) — here the frame reads ${legal.join(' or ')} only`)
+      }
     } else if (!legal.includes(play.direction)) {
-      add('play_direction_frame', `band ${play.bandId}: the frame reads ${legal.join(' or ')} here, not ${play.direction} — between the line and price only the bias direction; at an unreached important level beyond price both (the counter-bias one as a fail); beyond the line only the fork direction; never at the line itself`)
+      add('play_direction_frame', `band ${play.bandId}: the frame reads ${legal.join(' or ')} here, not ${play.direction} — between the line and price only the bias direction; at an unreached important level beyond price the hold, the fail, or two-way; beyond the line only the fork direction (plus the fail at an important level); never at the line itself`)
     }
     const addressedSide = sideOfPlay(band, role.side, play.direction, planFrame)
     if (addressedSide) addressed.add(addressedSide)

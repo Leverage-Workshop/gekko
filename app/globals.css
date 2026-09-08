@@ -37,6 +37,9 @@
   --color-warning: #f4b400;
   --color-success: #0fa336;
 
+  /* Data-semantic direction colour: the two-way play (feat-152) — matches the Sierra study's two-sided level */
+  --color-two-way: #a855f7;
+
   /* Radius */
   --radius-xs: 2px;
   --radius-sm: 4px;

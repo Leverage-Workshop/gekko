@@ -83,7 +83,7 @@ export type RankedPlays = {
   readonly lean: PrimaryLean
 }
 
-function leanOf(first: Play | undefined, frame: PlanFrame | null): PrimaryLean {
+function leanOf(first: Play | undefined, frame: PlanFrame | null, frameSide: 'bias' | 'fork' | null = null): PrimaryLean {
   if (!first) {
     return { playId: null, basis: 'none', text: 'No playable structure in reach — destinations only; wait for arrival at the next key area' }
   }
@@ -94,7 +94,7 @@ function leanOf(first: Play | undefined, frame: PlanFrame | null): PrimaryLean {
   const suffix =
     frame === null
       ? 'the nearest key area'
-      : dir !== null && first.direction === dir
+      : dir !== null && (first.direction === dir || (first.stance === 'two-way' && frameSide === 'bias'))
         ? `the frame-aligned look (${frame.side} the ${frame.label})`
         : `the nearest key area (frame: ${frame.side} the ${frame.label})`
   return { playId: first.id, basis: 'frame', text: `${first.summary} — primary look at ${suffix}` }
@@ -114,5 +114,5 @@ export function rankPlays(drafts: readonly PlayDraft[], frame: PlanFrame | null)
     label: `${draft.band.label} ${draft.band.low === draft.band.high ? draft.band.low : `${draft.band.low}–${draft.band.high}`}`,
     reason: `R12: max ${MAX_PLAYS} branches — ranked below the kept set (tier ${draft.precedence.tier}, ${draft.condition})`,
   }))
-  return { plays, pruned, lean: leanOf(plays[0], frame) }
+  return { plays, pruned, lean: leanOf(plays[0], frame, kept[0]?.precedence.frameSide ?? null) }
 }

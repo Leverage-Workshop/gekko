@@ -23,7 +23,8 @@ import type { JobContext } from '@/lib/job-plan/contextTypes'
 
 // --- shared vocab -------------------------------------------------------------
 
-export const PlayStance = z.enum(['rebid', 'reoffer', 'continuation', 'stand-down'])
+/** `two-way` (feat-152): ONE play at an unreached important level carrying both reads — the fail against the line and the hold beyond it — in one slot. */
+export const PlayStance = z.enum(['rebid', 'reoffer', 'continuation', 'stand-down', 'two-way'])
 export type PlayStance = z.infer<typeof PlayStance>
 
 export const PlayDirection = z.enum(['long', 'short', 'two-way'])
@@ -36,6 +37,8 @@ export const PlayConditionSchema = z.enum([
   'build-beyond-continuation',
   'approach-failure',
   'mid-zone-two-way',
+  /** feat-152: the two-way play at an unreached important level — a fail against the line, or a break-and-hold beyond it. */
+  'fail-or-hold',
 ])
 
 export const ActivationState = z.enum(['armed', 'conditional'])
@@ -388,6 +391,8 @@ function stanceMatchesDirection(play: Play): boolean {
       return play.direction !== 'two-way'
     case 'stand-down':
       return play.direction === 'two-way'
+    case 'two-way':
+      return play.direction === 'two-way'
   }
 }
 
@@ -408,6 +413,9 @@ function refinePlay(play: Play, ctx: z.RefinementCtx, index: number): void {
   if (!stanceMatchesDirection(play)) at('stance', `${play.stance} does not match direction ${play.direction}`)
   if ((play.condition === 'mid-zone-two-way') !== (play.stance === 'stand-down')) {
     at('condition', 'mid-zone-two-way and stand-down go together')
+  }
+  if ((play.condition === 'fail-or-hold') !== (play.stance === 'two-way')) {
+    at('condition', 'fail-or-hold and two-way go together')
   }
   if (play.stance !== 'stand-down' && play.band.bandId === null) at('band', 'a directional play names its band')
   if ((play.condition === 'build-beyond-continuation') !== (play.stance === 'continuation')) {

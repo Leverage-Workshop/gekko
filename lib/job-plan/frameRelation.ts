@@ -1,5 +1,6 @@
 import type { PlanFrame } from '@/knowledge/schema/job-plan.schema'
 import type { BandSide, ConfluenceBand, DistributionEdge, Reference } from './contextTypes'
+import type { PlayDirection } from '@/knowledge/schema/job-plan.schema'
 import type { PlayDirectional } from './planTypes'
 import type { ReferenceSource } from './rules'
 
@@ -203,17 +204,29 @@ export function isCounterBiasFail(read: FrameRead | null, direction: PlayDirecti
   return read !== null && (read.relation === 'beyond' || read.relation === 'far') && direction !== read.directions[0]
 }
 
-/** True when the play only comes alive once the line is lost (the line's fork direction, or the far side). */
-export function isForkPlay(read: FrameRead | null, direction: PlayDirectional): boolean {
+/** True when the play only comes alive once the line is lost (the far side). */
+export function isForkPlay(read: FrameRead | null, direction: PlayDirection): boolean {
   if (read === null) return false
   if (read.relation === 'far') return true
   return read.relation === 'line' && direction !== read.directions[0]
 }
 
 /** The side of the frame a play addresses: 'bias' while the line holds, 'fork' once it is lost; null with no frame direction. */
-export function frameSideOf(read: FrameRead | null, direction: PlayDirectional): 'bias' | 'fork' | null {
+export function frameSideOf(read: FrameRead | null, direction: PlayDirection): 'bias' | 'fork' | null {
   if (read === null) return null
   return isForkPlay(read, direction) ? 'fork' : 'bias'
+}
+
+/**
+ * feat-152: a TWO-WAY play — both reads in one slot — is legal exactly where
+ * two directions are: an unreached important level beyond price, or an
+ * important level on the far side. The model chooses it, the fail, or the
+ * hold ("Rather than take up two slots with a two way trade, there should be
+ * a third trade type of two way"; "only if the model thinks that's the
+ * correct call").
+ */
+export function twoWayLegal(read: FrameRead | null): boolean {
+  return read !== null && (read.relation === 'beyond' || read.relation === 'far') && read.directions.length === 2
 }
 
 /** The two sides of a directional frame the plan must address; both sides of price when the frame has no direction. */
@@ -227,7 +240,7 @@ export function requiredSides(frame: PlanFrame | null): readonly FrameSideName[]
 export function sideOfPlay(
   band: FrameBand,
   side: BandSide,
-  direction: PlayDirectional,
+  direction: PlayDirection,
   frame: PlanFrame | null,
 ): FrameSideName | null {
   const read = readAgainstFrame(band, side, frame)

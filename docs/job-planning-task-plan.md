@@ -980,6 +980,25 @@ a one-line reason. Deterministic precedence follows: with the line's two slots f
 level beyond price and the far side fill the plan (BASE now G-line short hold, Rip long hold, G-line
 fail, ONH long hold).
 
+**Same night (feat-152) — the TWO-WAY play.** Operator: "Rather than take up two slots with a two way
+trade, there should be a third trade type of two way. It would render as purple in the Gekko Dashboard
+and in the Sierra Chart study" — "but that's only if the model thinks that's the correct call,
+obviously." A third play type: `direction: 'two-way'`, `stance: 'two-way'`, `condition:
+'fail-or-hold'` — ONE play at an unreached important level (beyond price on the bias side, or an
+important level on the far side) carrying both reads in one slot: the fail against the line and the
+break-and-hold with it. The model chooses among the fail, the hold, or the two-way; a band appears at
+most once (`play_duplicate_band` now means any second play on a band). Grammar (`composeTwoWay`):
+trigger lists both legs (the fail leg first at a stacked level — `fadeFirst` — the hold leg first at a
+lone one), destinations carry the first stop of each leg (ascending, `expect: 'hold'`, no beeline),
+invalidation is `either` (acceptance one way resolves the two-way into that leg), no R11 deadline.
+The deterministic rollback path reads every such level two-way. `buildBandPlay(candidate, …,
+'two-way')` composes it for the LLM path; `twoWayLegal(read)` gates it. Dashboard: the play card's
+accent is purple (`--color-two-way` #a855f7, a data-semantic direction colour beside long = bmw-blue
+and short = m-red, recorded in DESIGN.md), headline "Two-way at X — fail back across or build
+through". Sierra: `job_plan_bands` emits kind `both` for a two-way play
+(`20260908010000_job_plan_bands_two_way.sql`, applied the same night), which the study already draws
+purple. Prompt `llm-planner/2026-09-07.6`; shadow diff counts a two-way as both directions.
+
 ## Claude / Codex review notes
 
 - **LLM in the loop**: Claude initially proposed a thin LLM step (narrative + judgment
