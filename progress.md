@@ -22,7 +22,10 @@ one LOADS the form and never writes; Save Settings unchanged; bottom row gains S
 `ConfigUpdate` state (needed so a preset load can replace the hidden pass-through values too); the
 shared field chrome moved to `settings-field.tsx`. API `GET/POST /api/config/presets`,
 `PUT/DELETE /api/config/presets/[id]`: duplicate name → 409, missing table (42P01) → presets
-unavailable + apply-migration warning. gekko-db skill updated. ./init.sh green (2340 tests).
+unavailable + apply-migration warning. gekko-db skill updated. ./init.sh green (2340 tests). Codex gate
+PASS on 36f2d32 with one P2, accepted and fixed: a preset load now merges over the LIVE row, not the
+half-edited form, so a legacy preset missing a newer column can't carry an unrelated unsaved edit into
+the next save.
 
 ---
 

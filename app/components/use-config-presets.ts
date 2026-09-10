@@ -78,8 +78,10 @@ export function useConfigPresets({ initialPresets, live, readForm, onLoad }: Opt
     setSelectedId(id)
     const preset = presets.find((candidate) => candidate.id === id)
     if (preset) {
-      const base = readForm() ?? live
-      onLoad(applyPresetValues(base, preset.values))
+      // Merge over the LIVE row, never the half-edited form: a preset saved
+      // before a config column existed inherits that column's live value, so
+      // an unrelated unsaved edit can't ride along into the next save.
+      onLoad(applyPresetValues(live, preset.values))
     }
   }
 
