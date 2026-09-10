@@ -21,7 +21,7 @@ quote a bar price). Operator clarification recorded the same day: feat-127 was a
 Job's entry vocabulary ("look above and fail" encoded as a past event that earned a play), NOT a
 finding that the model must be kept from seeing the session — the doc addendum and memory say so.
 `LLM_PLANNER_REVISION llm-planner/2026-09-09.1`, `PLANNER_REVISION job-planner/2026-09-09.1`.
-./init.sh green (2301 tests). Codex gate: see below.
+./init.sh green (2301 tests). Codex gate PASS on 916968e, no findings.
 
 ---
 
