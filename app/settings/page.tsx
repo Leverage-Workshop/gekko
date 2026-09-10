@@ -44,9 +44,9 @@ export default async function SettingsPage() {
           </h1>
           <MStripe className="mt-4 w-24" />
           <p className="mt-4 max-w-2xl text-sm font-light leading-relaxed text-body">
-            Runtime configuration for the briefing engine — model routing and the
-            significant-move floor for objective entries. Edits write the
-            singleton config row and apply from the next briefing or eval run.
+            Runtime configuration for the briefing engine — the briefing model
+            and the Job planner&rsquo;s profile-vision read. Edits write the
+            singleton config row and apply from the next briefing or Job plan run.
           </p>
         </header>
 

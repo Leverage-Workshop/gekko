@@ -9,6 +9,12 @@ import { Button } from './button'
 // DESIGN.md text-input styling (surface-card, rounded-none, hairline border,
 // 48px tall), uppercase letterspaced labels, bmw-blue primary save button,
 // m-red reserved for error states, success color for the saved confirmation.
+//
+// Hidden fields (operator ask, 2026-09-10): the triage model + effort,
+// minimum R/R, significant move, execution bar volume and the whole
+// high-conviction block are no longer rendered. The config row still carries
+// them and the API still requires them, so the form passes the stored values
+// through unchanged on save — nothing is reset, the knobs are just off-screen.
 
 export interface SettingsInitialValues {
   model_id: string
@@ -139,15 +145,7 @@ export function SettingsForm({
   profileVisionColumnsMissing,
 }: SettingsFormProps) {
   const [modelId, setModelId] = useState(initial.model_id)
-  const [triageModelId, setTriageModelId] = useState(initial.triage_model_id)
-  const [rrMin, setRrMin] = useState(String(initial.rr_min))
-  const [barVolume, setBarVolume] = useState(String(initial.execution_bar_volume))
-  const [significantMove, setSignificantMove] = useState(String(initial.significant_move_sigma))
-  const [hcEnabled, setHcEnabled] = useState(initial.high_conviction_enabled)
-  const [hcModelId, setHcModelId] = useState(initial.high_conviction_model_id)
   const [modelEffort, setModelEffort] = useState(initial.model_effort)
-  const [triageEffort, setTriageEffort] = useState(initial.triage_model_effort)
-  const [hcEffort, setHcEffort] = useState(initial.high_conviction_model_effort)
   const [pvModelId, setPvModelId] = useState(initial.profile_vision_model_id ?? '')
   const [pvEffort, setPvEffort] = useState(initial.profile_vision_model_effort)
   const [pvSamples, setPvSamples] = useState(String(initial.profile_vision_samples))
@@ -160,24 +158,6 @@ export function SettingsForm({
     setState({ phase: 'saving' })
     setFieldErrors({})
 
-    const rr = Number(rrMin)
-    if (rrMin.trim() === '' || Number.isNaN(rr)) {
-      setFieldErrors({ rr_min: ['Must be a number'] })
-      setState({ phase: 'error', message: 'Validation failed' })
-      return
-    }
-    const barVol = Number(barVolume)
-    if (barVolume.trim() === '' || Number.isNaN(barVol)) {
-      setFieldErrors({ execution_bar_volume: ['Must be a number'] })
-      setState({ phase: 'error', message: 'Validation failed' })
-      return
-    }
-    const sigMove = Number(significantMove)
-    if (significantMove.trim() === '' || Number.isNaN(sigMove)) {
-      setFieldErrors({ significant_move_sigma: ['Must be a number'] })
-      setState({ phase: 'error', message: 'Validation failed' })
-      return
-    }
     const pvSampleCount = Number(pvSamples)
     if (pvSamples.trim() === '' || Number.isNaN(pvSampleCount)) {
       setFieldErrors({ profile_vision_samples: ['Must be a number'] })
@@ -191,15 +171,16 @@ export function SettingsForm({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           model_id: modelId.trim(),
-          triage_model_id: triageModelId.trim(),
-          rr_min: rr,
-          high_conviction_enabled: hcEnabled,
-          high_conviction_model_id: hcModelId.trim(),
           model_effort: modelEffort,
-          triage_model_effort: triageEffort,
-          high_conviction_model_effort: hcEffort,
-          execution_bar_volume: barVol,
-          significant_move_sigma: sigMove,
+          // Hidden fields: stored values pass through unchanged.
+          triage_model_id: initial.triage_model_id,
+          triage_model_effort: initial.triage_model_effort,
+          rr_min: initial.rr_min,
+          execution_bar_volume: initial.execution_bar_volume,
+          significant_move_sigma: initial.significant_move_sigma,
+          high_conviction_enabled: initial.high_conviction_enabled,
+          high_conviction_model_id: initial.high_conviction_model_id,
+          high_conviction_model_effort: initial.high_conviction_model_effort,
           profile_vision_model_id: pvModelId.trim() === '' ? null : pvModelId.trim(),
           profile_vision_model_effort: pvEffort,
           profile_vision_samples: pvSampleCount,
@@ -244,107 +225,6 @@ export function SettingsForm({
           onChange={setModelEffort}
           messages={fieldErrors.model_effort}
         />
-      </div>
-
-      <div>
-        <FieldLabel htmlFor="triage_model_id">Triage Model</FieldLabel>
-        <input
-          id="triage_model_id"
-          name="triage_model_id"
-          type="text"
-          value={triageModelId}
-          onChange={(e) => setTriageModelId(e.target.value)}
-          className={inputClass}
-          placeholder="provider/model"
-        />
-        <FieldError messages={fieldErrors.triage_model_id} />
-        <p className="mt-1 text-xs font-light text-muted">
-          Cheap tier for the Check Entry eval-task — never the full briefing model.
-        </p>
-        <EffortSelect
-          id="triage_model_effort"
-          value={triageEffort}
-          onChange={setTriageEffort}
-          messages={fieldErrors.triage_model_effort}
-        />
-      </div>
-
-      <div>
-        <FieldLabel htmlFor="rr_min">Minimum R/R</FieldLabel>
-        <input
-          id="rr_min"
-          name="rr_min"
-          type="number"
-          step="0.1"
-          min="0.5"
-          max="10"
-          value={rrMin}
-          onChange={(e) => setRrMin(e.target.value)}
-          className={inputClass}
-        />
-        <FieldError messages={fieldErrors.rr_min} />
-        <p className="mt-1 text-xs font-light text-muted">
-          Display-only R/R reference against the fixed 25-pt stop (0.5–10) —
-          objective selection is gated by Significant Move, not R/R (feat-086).
-        </p>
-      </div>
-
-      <div>
-        <FieldLabel htmlFor="significant_move_sigma">
-          Significant Move (× session σ)
-        </FieldLabel>
-        <input
-          id="significant_move_sigma"
-          name="significant_move_sigma"
-          type="number"
-          step="0.05"
-          min="0.05"
-          max="2"
-          value={significantMove}
-          onChange={(e) => setSignificantMove(e.target.value)}
-          className={inputClass}
-        />
-        <FieldError messages={fieldErrors.significant_move_sigma} />
-        <p className="mt-1 text-xs font-light text-muted">
-          NOT points — a MULTIPLIER (0.05–2.00) of the measured session
-          volatility. Minimum room a reversal must have to run before an entry
-          level qualifies for an objective, as a multiple of the engine&rsquo;s
-          Parkinson session sigma, resolved to points every run so the floor
-          tracks the regime. The default 0.40 is ~113 pts at a 283-pt sigma;
-          the fixed 50 pts it replaced was 0.18σ and filtered nothing.
-        </p>
-        {significantMoveColumnMissing && (
-          <p className="mt-2 text-xs font-light tracking-wide text-warning">
-            The significant_move_sigma column is not in the live database yet —
-            apply the volatility_scaled_gates migration before saving.
-          </p>
-        )}
-      </div>
-
-      <div>
-        <FieldLabel htmlFor="execution_bar_volume">Execution Bar Volume</FieldLabel>
-        <input
-          id="execution_bar_volume"
-          name="execution_bar_volume"
-          type="number"
-          step="1"
-          min="50"
-          max="50000"
-          value={barVolume}
-          onChange={(e) => setBarVolume(e.target.value)}
-          className={inputClass}
-        />
-        <FieldError messages={fieldErrors.execution_bar_volume} />
-        <p className="mt-1 text-xs font-light text-muted">
-          Per-bar volume of the Sierra execution-chart bars — must match the
-          exporter&apos;s chart setting; injected into every briefing prompt.
-        </p>
-        {barVolumeColumnMissing && (
-          <p className="mt-2 text-xs font-light tracking-wide text-warning">
-            The execution_bar_volume column is not in the live database yet — apply
-            the execution_bar_volume migration before saving.
-          </p>
-        )}
       </div>
 
       <div className="border-t border-hairline pt-8">
@@ -427,56 +307,19 @@ export function SettingsForm({
         )}
       </div>
 
-      <div className="border-t border-hairline pt-8">
-        <label htmlFor="high_conviction_enabled" className="flex cursor-pointer items-center gap-3">
-          <input
-            id="high_conviction_enabled"
-            name="high_conviction_enabled"
-            type="checkbox"
-            checked={hcEnabled}
-            onChange={(e) => setHcEnabled(e.target.checked)}
-            className="h-5 w-5 rounded-none accent-bmw-blue"
-          />
-          <span className="text-xs font-bold uppercase tracking-[1.5px] text-body">
-            High-Conviction Reviews
-          </span>
-        </label>
-        <p className="mt-2 text-xs font-light text-muted">
-          Route full briefings to the high-conviction model (Opus tier) for max
-          fidelity at higher cost. Eval triage is unaffected.
-        </p>
-        {highConvictionColumnsMissing && (
-          <p className="mt-2 text-xs font-light tracking-wide text-warning">
-            The high-conviction columns are not in the live database yet — apply the
-            high_conviction_flag migration before saving.
-          </p>
-        )}
-
-        <div className="mt-6">
-          <FieldLabel htmlFor="high_conviction_model_id">High-Conviction Model</FieldLabel>
-          <input
-            id="high_conviction_model_id"
-            name="high_conviction_model_id"
-            type="text"
-            value={hcModelId}
-            onChange={(e) => setHcModelId(e.target.value)}
-            className={inputClass}
-            placeholder="provider/model"
-          />
-          <FieldError messages={fieldErrors.high_conviction_model_id} />
-          <EffortSelect
-            id="high_conviction_model_effort"
-            value={hcEffort}
-            onChange={setHcEffort}
-            messages={fieldErrors.high_conviction_model_effort}
-          />
-        </div>
-      </div>
-
       {effortColumnsMissing && (
         <p className="text-xs font-light tracking-wide text-warning">
           The reasoning-effort columns are not in the live database yet — apply the
           model_reasoning_effort migration before saving.
+        </p>
+      )}
+      {(highConvictionColumnsMissing || barVolumeColumnMissing || significantMoveColumnMissing) && (
+        <p className="text-xs font-light tracking-wide text-warning">
+          Some config columns are not in the live database yet — apply the
+          {highConvictionColumnsMissing ? ' high_conviction_flag' : ''}
+          {barVolumeColumnMissing ? ' execution_bar_volume' : ''}
+          {significantMoveColumnMissing ? ' volatility_scaled_gates' : ''} migration(s)
+          before saving.
         </p>
       )}
 
