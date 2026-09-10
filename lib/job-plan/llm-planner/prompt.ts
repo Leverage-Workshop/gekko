@@ -92,13 +92,14 @@ import { MAX_PLAYS } from '../rules'
 /**
  * 2026-09-09 (feat-154): the payload now carries where price has been — each
  * band's measured `interaction` and the `sessionTape` of completed 30-min
- * bars since the Globex open. Operator: "just so the model can get a bit of
+ * bars since the Globex open, the in-progress bar included and flagged
+ * (operator: "the current in progress bar should be included"). Operator: "just so the model can get a bit of
  * context on where price has been and if it has interacted with any of the
  * levels being evaluated". Context for the judgment, never a reason for a
  * play and never a level source — the CONTEXT rule below says so, and a bar
  * price quoted as a level trips the invented-price gate.
  */
-export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-09.1'
+export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-09.2'
 
 export const ROLE =
   'You are writing the trading-day plan for a futures session the way a professional prepares one before the session does anything: a frame, then a short list of forward conditionals — what to expect IF price reaches the few areas that matter. You are given everything already measured: the level inventory with importance ranks, the confluence bands, distances, the day’s volatility scale, and each area’s freshness. None of the measuring is your job. Your job is the judgment: which band is the day’s bias line, which areas deserve a play, and what to expect at each one.'

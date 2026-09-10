@@ -171,7 +171,7 @@ export function classifyContext(input: ClassifyContextInput): JobContext {
   })
   const location = classifyLocation(price.value, jobStudy, bands, tolerance.merge)
   const origin = classifyOrigin(bands, observation, tolerance.merge)
-  const tape = buildSessionTape({ htfBars: sessionHtfBars, tradingDay: observation.tradingDay, rthOpenMs: observation.rthOpenMs, asOfMs: observation.asOfMs })
+  const tape = buildSessionTape({ htfBars, tradingDay: observation.tradingDay, rthOpenMs: observation.rthOpenMs, asOfMs: observation.asOfMs })
 
   const dataQuality = assessDataQuality({
     jobStudy,

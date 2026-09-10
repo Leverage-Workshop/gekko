@@ -148,14 +148,19 @@ describe('reference inventory (R2)', () => {
     expect(early.dataQuality.issues.map((i) => i.code)).toContain('overnight_levels_missing')
   })
 
-  it('feat-154: the session tape is this trading day\'s completed 30-min bars since the Globex open, scoped overnight / session, nothing after asOf', () => {
+  it('feat-154: the session tape is this trading day\'s 30-min bars since the Globex open, scoped overnight / session, the in-progress bar included and flagged, nothing stamped after asOf', () => {
     const rolling = htfSessions([...HTF_DATES, '2026-08-24', '2026-08-25'], 29400, 100)
     const ctx = classify({ htfBars: rolling })
-    expect(ctx.tape).toMatchObject({ source: 'htf-30m', tradingDay: '2026-08-24', globexOpenAt: '2026-08-23T17:00:00', rthOpenAt: '2026-08-24T08:30:00', overnightBars: 1, sessionBars: 2 })
-    // 03:00 overnight, then 08:30 / 09:00 — never 08-25, and the bar STAMPED 09:30 (= asOf) is still in progress at asOf, so it is out too.
-    expect(ctx.tape.bars.map((b) => `${b.wall.slice(11, 16)} ${b.scope}`)).toEqual(['03:00 overnight', '08:30 session', '09:00 session'])
+    expect(ctx.tape).toMatchObject({ source: 'htf-30m', tradingDay: '2026-08-24', globexOpenAt: '2026-08-23T17:00:00', rthOpenAt: '2026-08-24T08:30:00', overnightBars: 1, sessionBars: 3 })
+    // 03:00 overnight, then 08:30 / 09:00 / 09:30 — never 08-25; the bar STAMPED 09:30 (= asOf) is the one still open at asOf (operator: include it) and is flagged.
+    expect(ctx.tape.bars.map((b) => `${b.wall.slice(11, 16)} ${b.scope}${b.inProgress ? ' open' : ''}`)).toEqual(['03:00 overnight', '08:30 session', '09:00 session', '09:30 session open'])
     expect(ctx.tape.bars[0]).toMatchObject({ open: 29400, high: 29450, low: 29350, close: 29400 })
     expect(ctx.tape.bars.every((b) => b.wall.startsWith('2026-08-2') && b.wall <= AS_OF)).toBe(true)
+
+    // The export's last row (the live in-progress bar) is in when it is this day's and at/before asOf — htfBarsAsOf would drop it.
+    const live = classify({ htfBars: htfSessions([...HTF_DATES, '2026-08-24'], 29400, 100).filter((b) => b.dateTime.getHours() < 9 || b.dateTime.getDate() !== 24), asOf: '2026-08-24T08:45:00' })
+    expect(live.tape.bars.at(-1)).toMatchObject({ wall: '2026-08-24T08:30:00', scope: 'session', inProgress: true })
+    expect(live.tape.bars.filter((b) => b.inProgress)).toHaveLength(1)
 
     // Without HTF bars the tape is empty but still stamped with the day's clocks.
     const none = classify({ htfBars: [] })

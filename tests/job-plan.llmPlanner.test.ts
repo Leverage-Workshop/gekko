@@ -134,23 +134,26 @@ describe('llm-planner context payload — where price has been (feat-154)', () =
       },
       tape: {
         bars: [
-          { wall: '2026-08-23T17:00:00', scope: 'overnight', open: 19950, high: 19980.25, low: 19940, close: 19975.5 },
-          { wall: '2026-08-24T08:30:00', scope: 'session', open: 19960, high: 19965, low: 19895.75, close: 19931 },
+          { wall: '2026-08-23T17:00:00', scope: 'overnight', inProgress: false, open: 19950, high: 19980.25, low: 19940, close: 19975.5 },
+          { wall: '2026-08-24T08:30:00', scope: 'session', inProgress: false, open: 19960, high: 19965, low: 19895.75, close: 19931 },
+          { wall: '2026-08-24T09:00:00', scope: 'session', inProgress: true, open: 19931, high: 19940, low: 19920, close: 19930 },
         ],
         overnightBars: 1,
-        sessionBars: 1,
+        sessionBars: 2,
       },
     })
     const payload = llmContextPayload(ctx)
     const at = (id: string) => payload.bands.find((b) => b.bandId === bandOf(ctx, id))!
     expect(at('dp')).toMatchObject({ triggerStatus: 'full', interaction: { prints: 3, firstAt: '2026-08-24T08:41:00', lastAt: '2026-08-24T08:52:00', defenses: { session: 1, overnight: 2 }, failedLookThisSession: false, holdingSide: 'above' } })
     expect(at('wp').interaction).toEqual({ prints: 0, firstAt: null, lastAt: null, defenses: { session: 0, overnight: 0 }, failedLookThisSession: false, holdingSide: null })
-    expect(payload.sessionTape).toMatchObject({ tradingDay: '2026-08-24', globexOpenAt: '2026-08-23T17:00:00', rthOpenAt: '2026-08-24T08:30:00', overnightBars: 1, sessionBars: 1 })
+    expect(payload.sessionTape).toMatchObject({ tradingDay: '2026-08-24', globexOpenAt: '2026-08-23T17:00:00', rthOpenAt: '2026-08-24T08:30:00', overnightBars: 1, sessionBars: 2 })
     expect(payload.sessionTape.bars).toEqual([
       '2026-08-23T17:00 overnight O 19950 H 19980.25 L 19940 C 19975.5',
       '2026-08-24T08:30 session O 19960 H 19965 L 19895.75 C 19931',
+      '2026-08-24T09:00 session O 19931 H 19940 L 19920 C 19930 (in progress)',
     ])
     expect(payload.sessionTape.what).toContain('never a level')
+    expect(payload.sessionTape.what).toContain('in progress')
   })
 
   it('a bar price quoted as a level is an invented price — the tape never widens the known-price set', () => {
@@ -160,7 +163,7 @@ describe('llm-planner context payload — where price has been (feat-154)', () =
         { id: 'wp', source: 'weekly-job-pivot', price: 20150, label: 'Weekly Pivot' },
         { id: 'dp', source: 'daily-job-pivot', price: 19900, label: 'Daily Pivot' },
       ],
-      tape: { bars: [{ wall: '2026-08-24T08:30:00', scope: 'session', open: 19960, high: 19965, low: 19895.75, close: 19931 }], sessionBars: 1 },
+      tape: { bars: [{ wall: '2026-08-24T08:30:00', scope: 'session', inProgress: false, open: 19960, high: 19965, low: 19895.75, close: 19931 }], sessionBars: 1 },
     })
     const judgment: LlmPlanJudgment = {
       frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Weekly Pivot frames.' },

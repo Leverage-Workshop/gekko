@@ -21,7 +21,7 @@ import type { NodeKind } from './profile-vision/schema'
  * it is part of every persisted plan's reproducibility fingerprint.
  */
 
-export const PLANNER_REVISION = 'job-planner/2026-09-09.1'
+export const PLANNER_REVISION = 'job-planner/2026-09-09.2'
 
 export type RuleId =
   | 'R1'
