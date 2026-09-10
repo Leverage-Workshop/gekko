@@ -21,11 +21,14 @@ import type { ObservationScope, SessionTape, SessionTapeBar } from './contextTyp
  *
  * The tape takes the RAW export (not `htfBarsAsOf`, which drops the last
  * row): operator, 2026-09-09 — "the current in progress bar should be
- * included". Every bar of asOf's trading day stamped at/before asOf is in,
- * and the one still open at asOf (Sierra stamps a bar with its open time, so
- * open + 30 min > asOf) is flagged `inProgress` so the model knows its high,
- * low and close are still moving. Nothing stamped after asOf and nothing from
- * another session gets in.
+ * included". Every bar of asOf's trading day that has CLOSED by asOf is in
+ * (Sierra stamps a bar with its open time, so closed = open + 30 min <= asOf),
+ * plus the export's LAST ROW when it spans asOf — the genuinely live bar,
+ * flagged `inProgress` so the model knows its high, low and close are still
+ * moving. A bar that spans asOf but has later rows behind it is a replay
+ * export's finalized bar: its OHLC already holds trades through its close,
+ * so it stays out (Codex P1 on the first cut). Nothing stamped after asOf and
+ * nothing from another session gets in.
  */
 
 export const HTF_BAR_MINUTES = 30
@@ -62,10 +65,13 @@ export function buildSessionTape(input: {
   readonly asOfMs: number
 }): SessionTape {
   const { htfBars, tradingDay, rthOpenMs, asOfMs } = input
+  const lastRow = htfBars.length - 1
   const bars = htfBars
-    .filter((bar) => {
+    .filter((bar, i) => {
       const ms = wallMsOfDate(bar.dateTime)
-      return ms <= asOfMs && tradingDayOfMs(ms) === tradingDay
+      if (ms > asOfMs || tradingDayOfMs(ms) !== tradingDay) return false
+      const closedByAsOf = ms + HTF_BAR_MINUTES * MINUTE_MS <= asOfMs
+      return closedByAsOf || i === lastRow
     })
     .map((bar) => tapeBar(bar, rthOpenMs, asOfMs))
   return {

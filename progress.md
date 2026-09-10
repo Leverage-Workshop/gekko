@@ -15,8 +15,10 @@ holding side) now reach the model beside the R9 `triggerStatus`; (2) `JobContext
 scoped overnight/session, serialized as one line per bar in `LlmContextPayload.sessionTape`. The first cut (PR #208)
 excluded the bar still open at asOf; operator follow-up the same evening: "the current in progress
 bar should be included" — the tape now reads the RAW export (not `htfBarsAsOf`, which drops the last
-row), keeps every bar of asOf's day stamped at/before asOf, and flags the one still open
-(`inProgress`, line ends `(in progress)`) so the model knows its high/low/close are provisional. Guards: `knownPrices` unchanged — a bar high/low quoted as a level is `invented_price`
+row), keeps every bar of asOf's day closed by asOf PLUS the export's last row when it spans asOf — the
+genuinely live bar, flagged (`inProgress`, line ends `(in progress)`) so the model knows its
+high/low/close are provisional. Codex P1 on that cut, accepted: a bar spanning asOf with later rows
+behind it (replay export) is finalized — its OHLC holds trades through its close — so it stays out. Guards: `knownPrices` unchanged — a bar high/low quoted as a level is `invented_price`
 (tested); one output-rule bullet (context for shape and freshness, never the reason for a play, never
 quote a bar price). Operator clarification recorded the same day: feat-127 was a TENSE misread of
 Job's entry vocabulary ("look above and fail" encoded as a past event that earned a play), NOT a
