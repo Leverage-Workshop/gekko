@@ -300,10 +300,12 @@ export type OriginDimension = {
   readonly bands: readonly BandOriginFacts[]
 }
 
-/** One completed 30-min bar of the session tape (feat-154), exchange wall clock. */
+/** One 30-min bar of the session tape (feat-154), exchange wall clock; the last may still be open. */
 export type SessionTapeBar = {
   readonly wall: string
   readonly scope: ObservationScope
+  /** Still open at asOf — its high, low and close are provisional. */
+  readonly inProgress: boolean
   readonly open: number
   readonly high: number
   readonly low: number
@@ -311,9 +313,10 @@ export type SessionTapeBar = {
 }
 
 /**
- * Where price has been this trading day (feat-154): the completed 30-min HTF
- * bars since the Globex open, at/before asOf. Context for the LLM planner's
- * judgment — never a level source (bar prices are not inventory prices).
+ * Where price has been this trading day (feat-154): the 30-min HTF bars since
+ * the Globex open, stamped at/before asOf, the in-progress bar included and
+ * flagged. Context for the LLM planner's judgment — never a level source (bar
+ * prices are not inventory prices).
  */
 export type SessionTape = {
   readonly source: 'htf-30m'
@@ -382,7 +385,7 @@ export type JobContext = {
   readonly roles: readonly BandRole[]
   readonly location: LocationDimensions
   readonly origin: OriginDimension
-  /** feat-154: this trading day's completed 30-min bars since the Globex open. */
+  /** feat-154: this trading day's 30-min bars since the Globex open, the in-progress bar included. */
   readonly tape: SessionTape
   readonly dataQuality: DataQuality
   readonly warnings: readonly string[]

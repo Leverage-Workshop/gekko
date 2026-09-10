@@ -1,6 +1,6 @@
 import type { HtfBar } from '@/lib/engine/parseHtfBars'
 import { GLOBEX_OPEN_MINUTES } from '@/lib/engine/overnightSession'
-import { MINUTE_MS, wallMsOfDate, wallMsOfString, wallStringOfMs } from './chartClock'
+import { MINUTE_MS, tradingDayOfMs, wallMsOfDate, wallMsOfString, wallStringOfMs } from './chartClock'
 import type { ObservationScope, SessionTape, SessionTapeBar } from './contextTypes'
 
 /**
@@ -17,12 +17,18 @@ import type { ObservationScope, SessionTape, SessionTapeBar } from './contextTyp
  *
  * The bars are context, never levels: `validate.ts` keeps bar prices OUT of
  * the known-price set, so a bar high or low quoted as a level in the plan is
- * an invented price. The caller supplies bars already restricted to asOf and
- * the trading day (`htfBarsAsOf(htfBars, asOfMs, tradingDay)`); the tape
- * further requires each bar to have CLOSED by asOf (Sierra stamps a bar with
- * its open time, so a 30-min bar stamped at asOf is still in progress there —
- * on a replay export that runs past asOf it would otherwise leak half an hour
- * of future). Nothing after asOf and nothing from another session gets in.
+ * an invented price.
+ *
+ * The tape takes the RAW export (not `htfBarsAsOf`, which drops the last
+ * row): operator, 2026-09-09 — "the current in progress bar should be
+ * included". Every bar of asOf's trading day that has CLOSED by asOf is in
+ * (Sierra stamps a bar with its open time, so closed = open + 30 min <= asOf),
+ * plus the export's LAST ROW when it spans asOf — the genuinely live bar,
+ * flagged `inProgress` so the model knows its high, low and close are still
+ * moving. A bar that spans asOf but has later rows behind it is a replay
+ * export's finalized bar: its OHLC already holds trades through its close,
+ * so it stays out (Codex P1 on the first cut). Nothing stamped after asOf and
+ * nothing from another session gets in.
  */
 
 export const HTF_BAR_MINUTES = 30
@@ -38,11 +44,12 @@ export function globexOpenMsOf(tradingDay: string): number {
   return dayMs - 24 * 60 * MINUTE_MS + GLOBEX_OPEN_MINUTES * MINUTE_MS
 }
 
-function tapeBar(bar: HtfBar, rthOpenMs: number): SessionTapeBar {
+function tapeBar(bar: HtfBar, rthOpenMs: number, asOfMs: number): SessionTapeBar {
   const ms = wallMsOfDate(bar.dateTime)
   return {
     wall: wallStringOfMs(ms),
     scope: scopeOf(ms, rthOpenMs),
+    inProgress: ms + HTF_BAR_MINUTES * MINUTE_MS > asOfMs,
     open: bar.open,
     high: bar.high,
     low: bar.low,
@@ -51,16 +58,22 @@ function tapeBar(bar: HtfBar, rthOpenMs: number): SessionTapeBar {
 }
 
 export function buildSessionTape(input: {
-  /** This trading day's HTF bars stamped at/before asOf, chronological. */
+  /** The raw HTF export, chronological, in-progress bar last. */
   readonly htfBars: readonly HtfBar[]
   readonly tradingDay: string
   readonly rthOpenMs: number
   readonly asOfMs: number
 }): SessionTape {
   const { htfBars, tradingDay, rthOpenMs, asOfMs } = input
+  const lastRow = htfBars.length - 1
   const bars = htfBars
-    .filter((bar) => wallMsOfDate(bar.dateTime) + HTF_BAR_MINUTES * MINUTE_MS <= asOfMs)
-    .map((bar) => tapeBar(bar, rthOpenMs))
+    .filter((bar, i) => {
+      const ms = wallMsOfDate(bar.dateTime)
+      if (ms > asOfMs || tradingDayOfMs(ms) !== tradingDay) return false
+      const closedByAsOf = ms + HTF_BAR_MINUTES * MINUTE_MS <= asOfMs
+      return closedByAsOf || i === lastRow
+    })
+    .map((bar) => tapeBar(bar, rthOpenMs, asOfMs))
   return {
     source: 'htf-30m',
     tradingDay,
@@ -72,7 +85,8 @@ export function buildSessionTape(input: {
   }
 }
 
-/** One bar as the model reads it — one line, fixed order, no key noise. */
+/** One bar as the model reads it — one line, fixed order, no key noise; the open bar says so. */
 export function tapeBarLine(bar: SessionTapeBar): string {
-  return `${bar.wall.slice(0, 16)} ${bar.scope} O ${bar.open} H ${bar.high} L ${bar.low} C ${bar.close}`
+  const line = `${bar.wall.slice(0, 16)} ${bar.scope} O ${bar.open} H ${bar.high} L ${bar.low} C ${bar.close}`
+  return bar.inProgress ? `${line} (in progress)` : line
 }

@@ -1088,13 +1088,16 @@ both features?").** Both halves, with the 30-min HTF bars AS the tape instead of
 block:
 
 - `JobContext.tape` (`lib/job-plan/sessionTape.ts`, `buildSessionTape`): this trading day's 30-min
-  HTF bars since the Globex open, at/before asOf, each bar scoped `overnight` / `session` against
-  the 08:30 RTH open, with `globexOpenAt` / `rthOpenAt` and the bar counts. Built from the same
-  `htfBarsAsOf(htfBars, asOfMs, tradingDay)` slice the overnight fallback uses, PLUS a
-  closed-by-asOf rule (`open + 30 min <= asOf`): Sierra stamps a bar with its open time, so a bar
-  stamped at asOf is still in progress there — on a replay export that runs past asOf it would
-  otherwise leak half an hour of future. Persisted with the plan (the context schema is loose;
-  old rows parse without it).
+  HTF bars since the Globex open, stamped at/before asOf, each bar scoped `overnight` / `session`
+  against the 08:30 RTH open, with `globexOpenAt` / `rthOpenAt` and the bar counts. Built from the
+  RAW export, not `htfBarsAsOf` (which drops the last row): operator, same day — "the current in
+  progress bar should be included". Every bar CLOSED by asOf is in (Sierra stamps a bar with its
+  open time, so closed = `open + 30 min <= asOf`), plus the export's LAST ROW when it spans asOf —
+  the genuinely live bar, flagged `inProgress` with its tape line ending `(in progress)`, so the
+  model knows its high, low and close are provisional. A bar that spans asOf but has later rows
+  behind it is a replay export's finalized bar (its OHLC holds trades through its close) and
+  stays out — Codex P1 on the first follow-up cut. Persisted with the plan (the context schema is
+  loose; old rows parse without it).
 - `LlmBandPayload.interaction`: the measured facts beside `triggerStatus` — `prints`, `firstAt`,
   `lastAt`, `defenses { session, overnight }`, `failedLookThisSession`, `holdingSide`
   (`above` / `below` / `straddling` / null).
@@ -1105,8 +1108,9 @@ block:
   bar high or low quoted in prose is an `invented_price` violation (tested). The output rules
   gain one bullet: the tape and interaction show where price has been, they are never the
   reason an area gets a play, and a bar's open/high/low/close is never quoted as a price.
-- `LLM_PLANNER_REVISION llm-planner/2026-09-09.1`, `PLANNER_REVISION job-planner/2026-09-09.1`
-  (context shape changed). No summary-tape block and no narration canary — kept simple.
+- `LLM_PLANNER_REVISION llm-planner/2026-09-09.2`, `PLANNER_REVISION job-planner/2026-09-09.2`
+  (context shape changed; `.1` was the first cut that excluded the in-progress bar). No
+  summary-tape block and no narration canary — kept simple.
 
 ## Claude / Codex review notes
 

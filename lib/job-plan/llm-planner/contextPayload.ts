@@ -20,7 +20,8 @@ import { tapeBarLine } from '../sessionTape'
  * measured `interaction` (prints, first/last touch, defenses, holding side)
  * beside the R9 `triggerStatus`, and the payload carries the `sessionTape` —
  * this trading day's completed 30-min bars since the Globex open — so the
- * model can see where price has been. Both are context for the judgment,
+ * model can see where price has been (the in-progress bar included and
+ * flagged). Both are context for the judgment,
  * never a reason for a play (the output rules still forbid restating history
  * as justification) and never a level source (bar prices are not known prices
  * for the invented-price gate).
@@ -111,7 +112,7 @@ export type LlmBandInteractionPayload = {
   readonly holdingSide: 'above' | 'below' | 'straddling' | null
 }
 
-/** feat-154: this trading day's completed 30-min bars since the Globex open, one line per bar. */
+/** feat-154: this trading day's 30-min bars since the Globex open, one line per bar, the in-progress bar last and flagged. */
 export type LlmSessionTapePayload = {
   readonly what: string
   readonly tradingDay: string
@@ -205,7 +206,7 @@ function interactionPayload(facts: BandOriginFacts | undefined): LlmBandInteract
 export function sessionTapePayload(context: JobContext): LlmSessionTapePayload {
   const tape = context.tape
   return {
-    what: 'Completed 30-min bars this trading day since the Globex open, oldest first, exchange wall clock. Where price has been — context for shape and freshness only. A bar price is never a level: name levels by their labels and inventory prices.',
+    what: '30-min bars this trading day since the Globex open, oldest first, exchange wall clock; a bar marked (in progress) is still open at asOf — its high, low and close are provisional. Where price has been — context for shape and freshness only. A bar price is never a level: name levels by their labels and inventory prices.',
     tradingDay: tape.tradingDay,
     globexOpenAt: tape.globexOpenAt,
     rthOpenAt: tape.rthOpenAt,

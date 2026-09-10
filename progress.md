@@ -12,16 +12,19 @@ and implement both features". Two halves: (1) `LlmBandPayload.interaction` — t
 `originFacts.ts` already measured per band (prints, first/last touch, defenses by scope, failed look,
 holding side) now reach the model beside the R9 `triggerStatus`; (2) `JobContext.tape`
 (`lib/job-plan/sessionTape.ts`) — this trading day's completed 30-min HTF bars since the Globex open,
-scoped overnight/session, serialized as one line per bar in `LlmContextPayload.sessionTape`. The tape
-requires each bar CLOSED by asOf (open + 30 min <= asOf): Sierra stamps bars with their open time,
-so the bar stamped at asOf is in progress there and a replay export running past asOf would leak
-future. Guards: `knownPrices` unchanged — a bar high/low quoted as a level is `invented_price`
+scoped overnight/session, serialized as one line per bar in `LlmContextPayload.sessionTape`. The first cut (PR #208)
+excluded the bar still open at asOf; operator follow-up the same evening: "the current in progress
+bar should be included" — the tape now reads the RAW export (not `htfBarsAsOf`, which drops the last
+row), keeps every bar of asOf's day closed by asOf PLUS the export's last row when it spans asOf — the
+genuinely live bar, flagged (`inProgress`, line ends `(in progress)`) so the model knows its
+high/low/close are provisional. Codex P1 on that cut, accepted: a bar spanning asOf with later rows
+behind it (replay export) is finalized — its OHLC holds trades through its close — so it stays out. Guards: `knownPrices` unchanged — a bar high/low quoted as a level is `invented_price`
 (tested); one output-rule bullet (context for shape and freshness, never the reason for a play, never
 quote a bar price). Operator clarification recorded the same day: feat-127 was a TENSE misread of
 Job's entry vocabulary ("look above and fail" encoded as a past event that earned a play), NOT a
 finding that the model must be kept from seeing the session — the doc addendum and memory say so.
-`LLM_PLANNER_REVISION llm-planner/2026-09-09.1`, `PLANNER_REVISION job-planner/2026-09-09.1`.
-./init.sh green (2301 tests). Codex gate PASS on 916968e, no findings.
+`LLM_PLANNER_REVISION llm-planner/2026-09-09.2`, `PLANNER_REVISION job-planner/2026-09-09.2`.
+./init.sh green. Codex gate PASS on 916968e (PR #208, first cut); follow-up: P2 (conditional wording) + P1 (replay leak) fixed, PASS on 857e6bd.
 
 ---
 
