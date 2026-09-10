@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { fetchConfigRow } from '@/lib/config'
+import { fetchConfigPresets, fetchConfigRow, toConfigUpdate } from '@/lib/config'
 import { getServiceClient } from '@/lib/supabase/server'
 import { Footer } from '../components/footer'
 import { MStripe } from '../components/m-stripe'
@@ -11,6 +11,8 @@ import { TopNav } from '../components/top-nav'
  * config row via the service client (tolerating a live DB that predates the
  * high_conviction_flag migration, exactly like lib/analyze/deps.ts) and hands
  * the current values to the client-side form, which POSTs /api/config.
+ * Also loads the saved presets (feat-155), tolerating a live DB that predates
+ * the config_presets table the same way.
  */
 
 // Always render at request time: reads the live DB, never prerendered.
@@ -22,6 +24,7 @@ export const metadata: Metadata = {
 }
 
 export default async function SettingsPage() {
+  const supabase = getServiceClient()
   const {
     row,
     highConvictionColumnsMissing,
@@ -29,7 +32,8 @@ export default async function SettingsPage() {
     barVolumeColumnMissing,
     significantMoveColumnMissing,
     profileVisionColumnsMissing,
-  } = await fetchConfigRow(getServiceClient())
+  } = await fetchConfigRow(supabase)
+  const { presets, tableMissing: presetsTableMissing } = await fetchConfigPresets(supabase)
 
   return (
     <>
@@ -47,28 +51,18 @@ export default async function SettingsPage() {
             Runtime configuration for the briefing engine — the briefing model
             and the Job planner&rsquo;s profile-vision read. Edits write the
             singleton config row and apply from the next briefing or Job plan run.
+            Presets are named snapshots you can switch between: pick one, then Save
+            Settings to make it live.
           </p>
         </header>
 
         {row ? (
           <section className="mt-10 max-w-2xl border border-hairline bg-surface-card p-8">
             <SettingsForm
-              initial={{
-                model_id: row.model_id,
-                triage_model_id: row.triage_model_id,
-                rr_min: row.rr_min,
-                high_conviction_enabled: row.high_conviction_enabled,
-                high_conviction_model_id: row.high_conviction_model_id,
-                model_effort: row.model_effort,
-                triage_model_effort: row.triage_model_effort,
-                high_conviction_model_effort: row.high_conviction_model_effort,
-                execution_bar_volume: row.execution_bar_volume,
-                significant_move_sigma: row.significant_move_sigma,
-                profile_vision_model_id: row.profile_vision_model_id,
-                profile_vision_model_effort: row.profile_vision_model_effort,
-                profile_vision_samples: row.profile_vision_samples,
-              }}
+              initial={toConfigUpdate(row)}
               updatedAt={row.updated_at}
+              presets={presets}
+              presetsTableMissing={presetsTableMissing}
               highConvictionColumnsMissing={highConvictionColumnsMissing}
               effortColumnsMissing={effortColumnsMissing}
               barVolumeColumnMissing={barVolumeColumnMissing}

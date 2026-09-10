@@ -4,7 +4,29 @@
 
 **Last Updated:** 2026-09-10
 
-**Latest change (branch `feat-settings-hide-retired-fields`): the Settings page hides the retired
+**Latest change (branch `feat-155-config-presets`): named config presets on /settings.** Operator:
+"I would look to be able to have different Config Settings records that I could switch back and
+forth between... Maybe a dropdown list at the top of the settings page and a save as new settings
+button at the bottom." Design: presets are SNAPSHOTS — the config singleton (id=1) stays the one live
+row every pipeline reads (analyze/update/eval/Job planner untouched, no `fetchConfig` tier change).
+New table `config_presets` (uuid, unique name, jsonb `values` = the ConfigUpdate fields, RLS on), via
+`20260910200000_config_presets.sql`, applied live the same day (claude.ai Supabase MCP) and verified.
+jsonb so a new config column never needs a preset migration: `applyPresetValues` merges known keys
+over the live values and ignores unknown ones, and every write still goes through
+`ConfigUpdateSchema`. Presets snapshot the WHOLE row including the knobs hidden in PR #210, so a
+restore is complete. The active preset is DERIVED (values equal the live row) rather than tracked on
+row 1 — an edited-but-unapplied preset reads "not applied" instead of lying. UI: Preset select at the
+top of the form with a badge (Active / Not applied — Save Settings to make it live / Edited); picking
+one LOADS the form and never writes; Save Settings unchanged; bottom row gains Save as new preset
+(inline name input), Update "<name>" and a two-step Delete. The form was reworked onto a single
+`ConfigUpdate` state (needed so a preset load can replace the hidden pass-through values too); the
+shared field chrome moved to `settings-field.tsx`. API `GET/POST /api/config/presets`,
+`PUT/DELETE /api/config/presets/[id]`: duplicate name → 409, missing table (42P01) → presets
+unavailable + apply-migration warning. gekko-db skill updated. ./init.sh green (2340 tests).
+
+---
+
+**Previous change (branch `feat-settings-hide-retired-fields`): the Settings page hides the retired
 knobs.** Operator (screenshots with the fields X'd out): "hide the X'd out fields on the Settings
 page" — the triage model + its reasoning effort, minimum R/R, significant move (× session σ),
 execution bar volume, and the whole high-conviction block (checkbox, model, effort) are no longer

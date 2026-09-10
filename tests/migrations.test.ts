@@ -70,6 +70,15 @@ describe('supabase migrations', () => {
     expect(sql.combined).toContain('add column if not exists caution text')
   })
 
+  it('creates the config_presets table with a unique name, jsonb values and RLS (feat-155)', () => {
+    expect(sql.combined).toContain('create table if not exists public.config_presets')
+    expect(sql.combined).toMatch(/name text not null unique/)
+    expect(sql.combined).toMatch(/values jsonb not null/)
+    expect(sql.combined).toMatch(
+      /alter table public\.config_presets\s+enable row level security/,
+    )
+  })
+
   it('adds the eval runtime warnings column idempotently', () => {
     expect(sql.combined).toContain('add column if not exists warnings jsonb')
   })
