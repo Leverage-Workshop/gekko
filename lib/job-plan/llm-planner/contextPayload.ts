@@ -206,7 +206,7 @@ function interactionPayload(facts: BandOriginFacts | undefined): LlmBandInteract
 export function sessionTapePayload(context: JobContext): LlmSessionTapePayload {
   const tape = context.tape
   return {
-    what: '30-min bars this trading day since the Globex open, oldest first, exchange wall clock; the last bar is the one still in progress at asOf (its high, low and close are provisional) and says so. Where price has been — context for shape and freshness only. A bar price is never a level: name levels by their labels and inventory prices.',
+    what: '30-min bars this trading day since the Globex open, oldest first, exchange wall clock; a bar marked (in progress) is still open at asOf — its high, low and close are provisional. Where price has been — context for shape and freshness only. A bar price is never a level: name levels by their labels and inventory prices.',
     tradingDay: tape.tradingDay,
     globexOpenAt: tape.globexOpenAt,
     rthOpenAt: tape.rthOpenAt,
