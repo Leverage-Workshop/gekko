@@ -2,9 +2,22 @@
 
 ## Current State
 
-**Last Updated:** 2026-09-09
+**Last Updated:** 2026-09-10
 
-**Latest change (branch `feat-154-session-tape`): the LLM planner sees where price has been.**
+**Latest change (branch `feat-settings-hide-retired-fields`): the Settings page hides the retired
+knobs.** Operator (screenshots with the fields X'd out): "hide the X'd out fields on the Settings
+page" — the triage model + its reasoning effort, minimum R/R, significant move (× session σ),
+execution bar volume, and the whole high-conviction block (checkbox, model, effort) are no longer
+rendered in `app/components/settings-form.tsx`. Hidden, not removed: the config row keeps every
+column, `ConfigUpdateSchema` still requires every field, and the form passes the stored values
+through unchanged on save, so nothing is reset. What remains on the page: Briefing Model + effort and
+the Job Planner profile-vision block. The per-field migration warnings for the hidden columns
+collapse into one line above the save button (they still gate a save if the live DB is behind).
+Page intro text updated to match. UI-only, no engine change. ./init.sh green.
+
+---
+
+**Previous change (branch `feat-154-session-tape`): the LLM planner sees where price has been.**
 Operator: "what are thoughts on adding some simple candlestick data to the job plan prompt? Say the
 5 min since Globex open? just so the model can get a bit of context on where price has been and if
 it has interacted with any of the levels being evaluated?" → "let's just use the 30 min... go ahead
