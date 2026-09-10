@@ -9,6 +9,7 @@ import type { ContextScale, DataQualityIssue, JobContext } from './contextTypes'
 import { assessDataQuality } from './dataQuality'
 import { classifyLocation } from './locationDimensions'
 import { htfBarsAsOf, observeBars } from './observedBars'
+import { buildSessionTape } from './sessionTape'
 import { classifyOrigin } from './originFacts'
 import { crossCheckWithMgi } from './parseJobStudy'
 import { instrumentFromSymbol, type Instrument } from './profile-vision/instrument'
@@ -151,11 +152,12 @@ export function classifyContext(input: ClassifyContextInput): JobContext {
   // asOf, the overnight fallback only this trading day's bars.
   const scale = resolveScale(htfBarsAsOf(htfBars, observation.asOfMs), price.value, resolved.instrument)
 
+  const sessionHtfBars = htfBarsAsOf(htfBars, observation.asOfMs, observation.tradingDay)
   const inventory = buildReferenceInventory({
     jobStudy,
     mgi,
     profileNodes,
-    htfBars: htfBarsAsOf(htfBars, observation.asOfMs, observation.tradingDay),
+    htfBars: sessionHtfBars,
     completedBars: observation.allCompleted,
     price: price.value,
   })
@@ -169,6 +171,7 @@ export function classifyContext(input: ClassifyContextInput): JobContext {
   })
   const location = classifyLocation(price.value, jobStudy, bands, tolerance.merge)
   const origin = classifyOrigin(bands, observation, tolerance.merge)
+  const tape = buildSessionTape({ htfBars: sessionHtfBars, tradingDay: observation.tradingDay, rthOpenMs: observation.rthOpenMs, asOfMs: observation.asOfMs })
 
   const dataQuality = assessDataQuality({
     jobStudy,
@@ -197,6 +200,7 @@ export function classifyContext(input: ClassifyContextInput): JobContext {
     roles,
     location,
     origin,
+    tape,
     dataQuality,
     warnings: dataQuality.issues.map((issue) => `${issue.code}: ${issue.message}`),
   }

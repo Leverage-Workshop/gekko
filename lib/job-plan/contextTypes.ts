@@ -300,6 +300,31 @@ export type OriginDimension = {
   readonly bands: readonly BandOriginFacts[]
 }
 
+/** One completed 30-min bar of the session tape (feat-154), exchange wall clock. */
+export type SessionTapeBar = {
+  readonly wall: string
+  readonly scope: ObservationScope
+  readonly open: number
+  readonly high: number
+  readonly low: number
+  readonly close: number
+}
+
+/**
+ * Where price has been this trading day (feat-154): the completed 30-min HTF
+ * bars since the Globex open, at/before asOf. Context for the LLM planner's
+ * judgment — never a level source (bar prices are not inventory prices).
+ */
+export type SessionTape = {
+  readonly source: 'htf-30m'
+  readonly tradingDay: string
+  readonly globexOpenAt: string
+  readonly rthOpenAt: string
+  readonly bars: readonly SessionTapeBar[]
+  readonly overnightBars: number
+  readonly sessionBars: number
+}
+
 export type DataQualitySeverity = 'insufficient' | 'warning'
 
 export type DataQualityCode =
@@ -357,6 +382,8 @@ export type JobContext = {
   readonly roles: readonly BandRole[]
   readonly location: LocationDimensions
   readonly origin: OriginDimension
+  /** feat-154: this trading day's completed 30-min bars since the Globex open. */
+  readonly tape: SessionTape
   readonly dataQuality: DataQuality
   readonly warnings: readonly string[]
 }
