@@ -1,7 +1,8 @@
-import type { JobContext } from '../contextTypes'
+import type { BandOriginFacts, JobContext } from '../contextTypes'
 import { frameCandidates, type FrameCandidate } from '../frameCandidates'
 import { distributionEdgeText, fadeFirst, importantReasons, isImportantLevel } from '../frameRelation'
 import { bandLabel } from '../playText'
+import { tapeBarLine } from '../sessionTape'
 
 /**
  * Serialize the `JobContext` into the compact payload the LLM shadow planner
@@ -13,9 +14,16 @@ import { bandLabel } from '../playText'
  * The payload carries MORE than the deterministic candidate set on purpose:
  * all bands with their roles (reach is guidance for the model, a wall for
  * R12), so judgment like "the farther weekly pivot over the nearer minor
- * line" is expressible. What it never carries: raw session history — each
- * band's `triggerStatus` (R9) is the only session fact, because freshness is
- * the only thing history may change.
+ * line" is expressible.
+ *
+ * Session history (feat-154, operator 2026-09-09): each band carries its
+ * measured `interaction` (prints, first/last touch, defenses, holding side)
+ * beside the R9 `triggerStatus`, and the payload carries the `sessionTape` —
+ * this trading day's completed 30-min bars since the Globex open — so the
+ * model can see where price has been. Both are context for the judgment,
+ * never a reason for a play (the output rules still forbid restating history
+ * as justification) and never a level source (bar prices are not known prices
+ * for the invented-price gate).
  */
 
 /**
@@ -87,6 +95,31 @@ export type LlmBandPayload = {
   readonly destinationOnly: boolean
   /** R9 freshness: fresh | full | demoted (touched this session without a fail or a defense). */
   readonly triggerStatus: 'fresh' | 'full' | 'demoted'
+  /** feat-154: how this session has interacted with the band so far (measured by code from the exec bars). */
+  readonly interaction: LlmBandInteractionPayload
+}
+
+export type LlmBandInteractionPayload = {
+  /** Completed session bars that printed inside the band. */
+  readonly prints: number
+  readonly firstAt: string | null
+  readonly lastAt: string | null
+  /** Prints into the band that closed back out on the side they came from. */
+  readonly defenses: { readonly session: number; readonly overnight: number }
+  readonly failedLookThisSession: boolean
+  /** Which side of the band recent closes have held, or null without enough bars. */
+  readonly holdingSide: 'above' | 'below' | 'straddling' | null
+}
+
+/** feat-154: this trading day's completed 30-min bars since the Globex open, one line per bar. */
+export type LlmSessionTapePayload = {
+  readonly what: string
+  readonly tradingDay: string
+  readonly globexOpenAt: string
+  readonly rthOpenAt: string
+  readonly overnightBars: number
+  readonly sessionBars: number
+  readonly bars: readonly string[]
 }
 
 export type LlmLocationPayload = {
@@ -123,6 +156,7 @@ export type LlmContextPayload = {
   readonly references: readonly LlmReferencePayload[]
   readonly bands: readonly LlmBandPayload[]
   readonly location: LlmLocationPayload
+  readonly sessionTape: LlmSessionTapePayload
   readonly dataWarnings: readonly string[]
 }
 
@@ -152,6 +186,33 @@ export function frameCandidatesPayload(context: JobContext): LlmFrameCandidatePa
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100
+}
+
+const HOLDING_SIDE_WORD = { ABOVE: 'above', BELOW: 'below', STRADDLING: 'straddling' } as const
+
+function interactionPayload(facts: BandOriginFacts | undefined): LlmBandInteractionPayload {
+  const i = facts?.interaction
+  return {
+    prints: i?.prints ?? 0,
+    firstAt: i?.firstAt ?? null,
+    lastAt: i?.lastAt ?? null,
+    defenses: { session: i?.defenses.session ?? 0, overnight: i?.defenses.overnight ?? 0 },
+    failedLookThisSession: i?.failedLookThisSession ?? false,
+    holdingSide: facts?.holdingSide ? HOLDING_SIDE_WORD[facts.holdingSide.side] : null,
+  }
+}
+
+export function sessionTapePayload(context: JobContext): LlmSessionTapePayload {
+  const tape = context.tape
+  return {
+    what: 'Completed 30-min bars this trading day since the Globex open, oldest first, exchange wall clock. Where price has been — context for shape and freshness only. A bar price is never a level: name levels by their labels and inventory prices.',
+    tradingDay: tape.tradingDay,
+    globexOpenAt: tape.globexOpenAt,
+    rthOpenAt: tape.rthOpenAt,
+    overnightBars: tape.overnightBars,
+    sessionBars: tape.sessionBars,
+    bars: tape.bars.map(tapeBarLine),
+  }
 }
 
 export function llmContextPayload(context: JobContext): LlmContextPayload {
@@ -202,6 +263,7 @@ export function llmContextPayload(context: JobContext): LlmContextPayload {
           atBand: role.at,
           destinationOnly: band.destinationOnly,
           triggerStatus: factsByBand.get(band.id)?.interaction.triggerStatus ?? 'fresh',
+          interaction: interactionPayload(factsByBand.get(band.id)),
         },
       ]
     }),
@@ -227,6 +289,7 @@ export function llmContextPayload(context: JobContext): LlmContextPayload {
         disagreements: context.location.crossRead.disagreements,
       },
     },
+    sessionTape: sessionTapePayload(context),
     dataWarnings: context.warnings,
   }
 }

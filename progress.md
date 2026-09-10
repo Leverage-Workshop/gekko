@@ -2,9 +2,30 @@
 
 ## Current State
 
-**Last Updated:** 2026-09-07
+**Last Updated:** 2026-09-09
 
-**Latest change (branch `feat-153-hvn-historical-pivot-destination-only`): prior-day daily pivots
+**Latest change (branch `feat-154-session-tape`): the LLM planner sees where price has been.**
+Operator: "what are thoughts on adding some simple candlestick data to the job plan prompt? Say the
+5 min since Globex open? just so the model can get a bit of context on where price has been and if
+it has interacted with any of the levels being evaluated?" → "let's just use the 30 min... go ahead
+and implement both features". Two halves: (1) `LlmBandPayload.interaction` — the facts
+`originFacts.ts` already measured per band (prints, first/last touch, defenses by scope, failed look,
+holding side) now reach the model beside the R9 `triggerStatus`; (2) `JobContext.tape`
+(`lib/job-plan/sessionTape.ts`) — this trading day's completed 30-min HTF bars since the Globex open,
+scoped overnight/session, serialized as one line per bar in `LlmContextPayload.sessionTape`. The tape
+requires each bar CLOSED by asOf (open + 30 min <= asOf): Sierra stamps bars with their open time,
+so the bar stamped at asOf is in progress there and a replay export running past asOf would leak
+future. Guards: `knownPrices` unchanged — a bar high/low quoted as a level is `invented_price`
+(tested); one output-rule bullet (context for shape and freshness, never the reason for a play, never
+quote a bar price). Operator clarification recorded the same day: feat-127 was a TENSE misread of
+Job's entry vocabulary ("look above and fail" encoded as a past event that earned a play), NOT a
+finding that the model must be kept from seeing the session — the doc addendum and memory say so.
+`LLM_PLANNER_REVISION llm-planner/2026-09-09.1`, `PLANNER_REVISION job-planner/2026-09-09.1`.
+./init.sh green (2301 tests). Codex gate PASS on 916968e, no findings.
+
+---
+
+**Previous change (branch `feat-153-hvn-historical-pivot-destination-only`): prior-day daily pivots
 and HVNs are TARGETS, never entry candidates.** Operator, after the first plans under the frame
 doctrine: "previous days' Daily Pivots are being used as entry level candidates. I don't want them
 used as entry level candidates" / "HVNs are being used as entry level candidates … They can be used

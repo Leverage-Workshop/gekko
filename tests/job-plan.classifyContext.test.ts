@@ -148,6 +148,20 @@ describe('reference inventory (R2)', () => {
     expect(early.dataQuality.issues.map((i) => i.code)).toContain('overnight_levels_missing')
   })
 
+  it('feat-154: the session tape is this trading day\'s completed 30-min bars since the Globex open, scoped overnight / session, nothing after asOf', () => {
+    const rolling = htfSessions([...HTF_DATES, '2026-08-24', '2026-08-25'], 29400, 100)
+    const ctx = classify({ htfBars: rolling })
+    expect(ctx.tape).toMatchObject({ source: 'htf-30m', tradingDay: '2026-08-24', globexOpenAt: '2026-08-23T17:00:00', rthOpenAt: '2026-08-24T08:30:00', overnightBars: 1, sessionBars: 2 })
+    // 03:00 overnight, then 08:30 / 09:00 — never 08-25, and the bar STAMPED 09:30 (= asOf) is still in progress at asOf, so it is out too.
+    expect(ctx.tape.bars.map((b) => `${b.wall.slice(11, 16)} ${b.scope}`)).toEqual(['03:00 overnight', '08:30 session', '09:00 session'])
+    expect(ctx.tape.bars[0]).toMatchObject({ open: 29400, high: 29450, low: 29350, close: 29400 })
+    expect(ctx.tape.bars.every((b) => b.wall.startsWith('2026-08-2') && b.wall <= AS_OF)).toBe(true)
+
+    // Without HTF bars the tape is empty but still stamped with the day's clocks.
+    const none = classify({ htfBars: [] })
+    expect(none.tape).toMatchObject({ bars: [], overnightBars: 0, sessionBars: 0, globexOpenAt: '2026-08-23T17:00:00' })
+  })
+
   it('falls back to the HTF bars for ONH/ONL when the MGI carries 0.00, and says so', () => {
     const fromHtf = classify({ mgi: mgiAt('09:29:00', 29350, { daily: { onh: 0, onl: 0 } }) })
     expect(byId(fromHtf, 'onh')).toMatchObject({ price: 29450, origin: 'htf-bars', label: 'ONH (HTF bars)' })

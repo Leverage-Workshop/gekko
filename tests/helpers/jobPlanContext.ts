@@ -6,6 +6,7 @@ import type {
   ObservationCoverage,
   Reference,
   ReferenceNode,
+  SessionTape,
 } from '@/lib/job-plan/contextTypes'
 import { crossRead, enclosingZone, readBox, readValueZone } from '@/lib/job-plan/locationDimensions'
 import { assignBandRoles } from '@/lib/job-plan/referenceRoles'
@@ -46,6 +47,8 @@ export type SynthSpec = {
   /** Origin-fact overrides keyed by a MEMBER reference id (applied to that member's band). */
   readonly facts?: Readonly<Record<string, Partial<BandOriginFacts>>>
   readonly coverage?: Partial<ObservationCoverage>
+  /** feat-154: the session tape bars (default none). */
+  readonly tape?: Partial<SessionTape>
   readonly dataQuality?: Partial<DataQuality>
   readonly reachPts?: number
   readonly sessionSigmaPts?: number | null
@@ -107,6 +110,16 @@ const DEFAULT_COVERAGE: ObservationCoverage = {
   excludedBars: { inProgress: 1, afterAsOf: 0, priorTradingDays: 0 },
 }
 
+const DEFAULT_TAPE: SessionTape = {
+  source: 'htf-30m',
+  tradingDay: '2026-08-24',
+  globexOpenAt: '2026-08-23T17:00:00',
+  rthOpenAt: '2026-08-24T08:30:00',
+  bars: [],
+  overnightBars: 0,
+  sessionBars: 0,
+}
+
 const DEFAULT_QUALITY: DataQuality = {
   sufficient: true,
   issues: [],
@@ -164,6 +177,7 @@ export function synthContext(spec: SynthSpec): JobContext {
       coverage: { ...DEFAULT_COVERAGE, asOf, ...spec.coverage },
       bands: bands.map((b) => ({ ...emptyFacts(b.id, asOf), ...overrides.get(b.id) })),
     },
+    tape: { ...DEFAULT_TAPE, ...spec.tape },
     dataQuality,
     warnings: dataQuality.issues.map((i) => `${i.code}: ${i.message}`),
   }

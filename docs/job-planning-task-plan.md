@@ -1017,6 +1017,97 @@ confluence-only members of a band (ratified). A lone prior pivot no longer makes
 `llm-planner/2026-09-07.8` says so in the play-selection rule; `PLANNER_REVISION
 job-planner/2026-09-07.2`.
 
+## 2026-09-09 — session tape for the LLM planner (feat-154, SHIPPED)
+
+Operator question: "what are thoughts on adding some simple candlestick data to the job plan
+prompt? Say the 5 min since Globex open? just so the model can get a bit of context on where price
+has been and if it has interacted with any of the levels being evaluated?"
+
+**Where this sits against doctrine.** The LLM payload (`llm-planner/contextPayload.ts`) is
+history-free today: each band's `triggerStatus` (R9) is the only session fact it carries, and the
+MECHANISM text tells the model that what the session has already done never justifies a play.
+Operator clarification (2026-09-09) on what feat-127 actually was: Job describes the price action
+he wants at an entry — "look above and fail" — and the planner encoded that as a PAST event
+("that behaviour has already occurred at a level, choose it as one of the plays"). The lesson is
+about entry-pattern vocabulary being read in the wrong tense, hence the future-tense rules and
+`FORBIDDEN_PHRASES`; it is not a finding that the model must be kept from seeing the session. So
+giving the model a view of where price has been is not a doctrine departure — it just needs the
+ordinary guards below so it cannot turn into a new tense mistake (a bar sequence cited as the
+reason a level is a play) or a loophole in the invented-price check.
+
+**The two goals get two different answers.**
+
+1. **Level interaction — keep it in code.** `originFacts.ts` already measures, per band:
+   `prints`, `firstAt` / `lastAt`, `defenses { session, overnight }`, `failedLookThisSession`,
+   `holdingSide`, `acceptance`. Only the collapsed fresh / full / demoted flag reaches the model.
+   Pass the measured facts through as an `interaction` object on `LlmBandPayload`. Deterministic,
+   a few fields per band, no new export, and it stops the model from doing its own bar-reading
+   (which under-triggers and drifts — same lesson as the model-side pattern spotting).
+2. **Path context — the real gap.** Nothing tells the model whether price is grinding into a level
+   or already made a V off it, what the overnight built, or whether the RTH open gapped through
+   structure. That is legitimate input to the judgment the prompt leaves to the model (the breach
+   test, the `fadeFirst` call). Add a compact `sessionTape` block on `LlmContextPayload`:
+
+   | field | source |
+   |---|---|
+   | `overnightHigh` / `overnightLow` + wall time of each | completed exec bars, scope `overnight`, asOf's trading day (HTF 30-min bars as fallback when the exec export does not reach the Globex open — same fallback the overnight levels already use) |
+   | `rthOpen` (first session print) | first exec bar with scope `session` |
+   | `sessionHigh` / `sessionLow` + wall time of each | exec bars, scope `session` |
+   | `current` | `context.price.value` (already there) |
+   | `lastHour` | direction + net points over the trailing 60 wall-clock minutes of completed bars, or null before enough bars |
+   | `coverage` | `minutesSinceOpen`, `overnightBars`, `sessionBars` (already in `ObservationCoverage`) |
+
+   Ten lines, a few hundred tokens, computed once in `classifyContext` next to the origin facts.
+
+**Why not a 5-min series.** The bundle has no 5-min bars — it carries 750-volume exec bars and
+30-min HTF bars. Aggregating exec bars into 5-min buckets is approximate and overnight it is sparse
+(one 750-volume bar can span ten-plus minutes in the Asian session, so many buckets are empty). A
+real 5-min export is a new Sierra study plus an uploader change, with the usual Windows-checkout
+drift risk, for context the 30-min HTF file (rolling 90 days) already provides: "since Globex open"
+is ~31 rows at the RTH open, ~45 by midday. If a bar table is ever wanted it is the HTF bars, as a
+plain OHLC table, and only as step 3 once the tape proves insufficient.
+
+**Guards (required with any of the above).**
+
+- `validate.ts` `knownPrices`: the tape's labeled prices (overnight / session extremes, RTH open)
+  JOIN the known set, so the model may name them. Bar OHLC values, if a bar table is ever added,
+  are EXCLUDED from the known set — the model must never be able to quote a bar high or low as if
+  it were a level. Without this the invented-price guard either trips constantly or goes soft.
+- Prompt: one sentence in the MECHANISM or the play-conditional rule — the tape says where price
+  has been so the plan can judge freshness and shape; it is never a reason for a play. Add a
+  negative canary phrase alongside `FORBIDDEN_PHRASES` for the narration form ("sold off from",
+  "rallied from" and the like) or a validator check that `rationale` text does not cite tape times.
+- The existing output rule "Do not restate session history as justification for any play" stays.
+- `LLM_PLANNER_REVISION` bumps; the shadow diff against the deterministic planner will move for
+  the first few runs — expected noise, not a regression signal.
+
+**Order of value per effort:** interaction facts → session tape → (maybe never) HTF bar table.
+
+**What shipped (same day; operator: "let's just use the 30 min... can you go ahead and implement
+both features?").** Both halves, with the 30-min HTF bars AS the tape instead of the summary
+block:
+
+- `JobContext.tape` (`lib/job-plan/sessionTape.ts`, `buildSessionTape`): this trading day's 30-min
+  HTF bars since the Globex open, at/before asOf, each bar scoped `overnight` / `session` against
+  the 08:30 RTH open, with `globexOpenAt` / `rthOpenAt` and the bar counts. Built from the same
+  `htfBarsAsOf(htfBars, asOfMs, tradingDay)` slice the overnight fallback uses, PLUS a
+  closed-by-asOf rule (`open + 30 min <= asOf`): Sierra stamps a bar with its open time, so a bar
+  stamped at asOf is still in progress there — on a replay export that runs past asOf it would
+  otherwise leak half an hour of future. Persisted with the plan (the context schema is loose;
+  old rows parse without it).
+- `LlmBandPayload.interaction`: the measured facts beside `triggerStatus` — `prints`, `firstAt`,
+  `lastAt`, `defenses { session, overnight }`, `failedLookThisSession`, `holdingSide`
+  (`above` / `below` / `straddling` / null).
+- `LlmContextPayload.sessionTape`: a `what` sentence (context for shape and freshness only; a bar
+  price is never a level), the day's clocks and counts, and `bars` as one line per bar —
+  `2026-09-08T17:00 overnight O … H … L … C …` — so the JSON stays compact.
+- Guard: `validate.ts` `knownPrices` is UNCHANGED — bar OHLC values are not known prices, so a
+  bar high or low quoted in prose is an `invented_price` violation (tested). The output rules
+  gain one bullet: the tape and interaction show where price has been, they are never the
+  reason an area gets a play, and a bar's open/high/low/close is never quoted as a price.
+- `LLM_PLANNER_REVISION llm-planner/2026-09-09.1`, `PLANNER_REVISION job-planner/2026-09-09.1`
+  (context shape changed). No summary-tape block and no narration canary — kept simple.
+
 ## Claude / Codex review notes
 
 - **LLM in the loop**: Claude initially proposed a thin LLM step (narrative + judgment

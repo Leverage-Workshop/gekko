@@ -118,6 +118,69 @@ describe('llm-planner context payload', () => {
   })
 })
 
+describe('llm-planner context payload — where price has been (feat-154)', () => {
+  it('carries each band\'s measured interaction beside its R9 status, and the session tape as one line per 30-min bar', () => {
+    const ctx = synthContext({
+      price: 19930,
+      refs: [
+        { id: 'wp', source: 'weekly-job-pivot', price: 20150, label: 'Weekly Pivot' },
+        { id: 'dp', source: 'daily-job-pivot', price: 19900, label: 'Daily Pivot' },
+      ],
+      facts: {
+        dp: {
+          holdingSide: { side: 'ABOVE', windowMinutes: 30, closes: 12, scope: 'session', from: '2026-08-24T09:00:00', to: '2026-08-24T09:28:00' },
+          interaction: { interacted: true, prints: 3, firstAt: '2026-08-24T08:41:00', lastAt: '2026-08-24T08:52:00', defenses: { session: 1, overnight: 2 }, failedLookThisSession: false, triggerStatus: 'full' },
+        },
+      },
+      tape: {
+        bars: [
+          { wall: '2026-08-23T17:00:00', scope: 'overnight', open: 19950, high: 19980.25, low: 19940, close: 19975.5 },
+          { wall: '2026-08-24T08:30:00', scope: 'session', open: 19960, high: 19965, low: 19895.75, close: 19931 },
+        ],
+        overnightBars: 1,
+        sessionBars: 1,
+      },
+    })
+    const payload = llmContextPayload(ctx)
+    const at = (id: string) => payload.bands.find((b) => b.bandId === bandOf(ctx, id))!
+    expect(at('dp')).toMatchObject({ triggerStatus: 'full', interaction: { prints: 3, firstAt: '2026-08-24T08:41:00', lastAt: '2026-08-24T08:52:00', defenses: { session: 1, overnight: 2 }, failedLookThisSession: false, holdingSide: 'above' } })
+    expect(at('wp').interaction).toEqual({ prints: 0, firstAt: null, lastAt: null, defenses: { session: 0, overnight: 0 }, failedLookThisSession: false, holdingSide: null })
+    expect(payload.sessionTape).toMatchObject({ tradingDay: '2026-08-24', globexOpenAt: '2026-08-23T17:00:00', rthOpenAt: '2026-08-24T08:30:00', overnightBars: 1, sessionBars: 1 })
+    expect(payload.sessionTape.bars).toEqual([
+      '2026-08-23T17:00 overnight O 19950 H 19980.25 L 19940 C 19975.5',
+      '2026-08-24T08:30 session O 19960 H 19965 L 19895.75 C 19931',
+    ])
+    expect(payload.sessionTape.what).toContain('never a level')
+  })
+
+  it('a bar price quoted as a level is an invented price — the tape never widens the known-price set', () => {
+    const ctx = synthContext({
+      price: 19930,
+      refs: [
+        { id: 'wp', source: 'weekly-job-pivot', price: 20150, label: 'Weekly Pivot' },
+        { id: 'dp', source: 'daily-job-pivot', price: 19900, label: 'Daily Pivot' },
+      ],
+      tape: { bars: [{ wall: '2026-08-24T08:30:00', scope: 'session', open: 19960, high: 19965, low: 19895.75, close: 19931 }], sessionBars: 1 },
+    })
+    const judgment: LlmPlanJudgment = {
+      frame: { bandId: bandOf(ctx, 'wp'), rationale: 'Weekly Pivot frames.' },
+      plays: [{ bandId: bandOf(ctx, 'dp'), direction: 'two-way', text: 'The Daily Pivot below, under the 19965 opening-bar high: a fail there turns price up; a break that holds makes the pullback the short.', rationale: 'Unreached important level.' }],
+      sidesWithoutPlay: [{ side: 'fork', reason: 'nothing above the Weekly Pivot in the inventory' }],
+      lean: 'Long above the Daily Pivot.',
+    }
+    const violations = validateJudgment(judgment, ctx)
+    expect(violations.map((v) => v.code)).toContain('invented_price')
+    expect(violations.find((v) => v.code === 'invented_price')?.message).toContain('19965')
+  })
+
+  it('the prompt says the tape and interaction are context, never a reason for a play, and a bar price is never a level', () => {
+    const prompt = buildLlmPlannerPrompt('{}')
+    expect(prompt).toContain('sessionTape and each band’s interaction show where price has been')
+    expect(prompt).toContain('they are never the reason an area gets a play')
+    expect(prompt).toContain('A bar’s open, high, low or close is not a level')
+  })
+})
+
 describe('llm-planner context payload — importance (feat-150)', () => {
   it('marks every band the frame ladder could anchor on, the extremes, and any stack as important, with reasons; distribution edges are spelled out', () => {
     const ctx = synthContext({

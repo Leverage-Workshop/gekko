@@ -89,7 +89,16 @@ import { MAX_PLAYS } from '../rules'
  * model thinks that's the correct call". direction: 'two-way' — one play,
  * both reads, one slot — at an unreached important level; one play per band.
  */
-export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-07.8'
+/**
+ * 2026-09-09 (feat-154): the payload now carries where price has been — each
+ * band's measured `interaction` and the `sessionTape` of completed 30-min
+ * bars since the Globex open. Operator: "just so the model can get a bit of
+ * context on where price has been and if it has interacted with any of the
+ * levels being evaluated". Context for the judgment, never a reason for a
+ * play and never a level source — the CONTEXT rule below says so, and a bar
+ * price quoted as a level trips the invented-price gate.
+ */
+export const LLM_PLANNER_REVISION = 'llm-planner/2026-09-09.1'
 
 export const ROLE =
   'You are writing the trading-day plan for a futures session the way a professional prepares one before the session does anything: a frame, then a short list of forward conditionals — what to expect IF price reaches the few areas that matter. You are given everything already measured: the level inventory with importance ranks, the confluence bands, distances, the day’s volatility scale, and each area’s freshness. None of the measuring is your job. Your job is the judgment: which band is the day’s bias line, which areas deserve a play, and what to expect at each one.'
@@ -150,7 +159,8 @@ const OUTPUT_RULES = `Output JSON only, matching the schema. Rules:
 - plays: at most ${MAX_PLAYS}, ordered by precedence — the first play is the primary look, and the bias side and the fork side alternate starting from the bias side. Each play names its area by bandId (choose from bands, never the frame band — the line is two-way by assumption and is not a play); direction follows rule 4 — the bias direction between the line and price, the fork direction only beyond the line; direction is long, short, or two-way — two-way only at an unreached important level (the payload’s important flag), beyond price or on the far side, and it carries both reads in that one play. A band appears at most ONCE. text: the play in the register of the rules — the approach (or the break and hold), the expected turn, the traverse toward the structure beyond, and what happens if price builds through instead — naming levels by their labels (a numeric price you write must be one the payload carries — never invent one). rationale: why this area won its side, including the breach test whenever you reached past a nearer level.
 - sidesWithoutPlay: one entry per side that carries no play, with the one-line reason — the sides are 'bias' and 'fork' (when the frame is at its band and has no direction yet, 'above' and 'below' price instead).
 - lean: one line naming the primary look and the side to lean with.
-- Every bandId and referenceId must come from the payload — never invent an id, a level, or a price. Do not restate session history as justification for any play.`
+- Every bandId and referenceId must come from the payload — never invent an id, a level, or a price. Do not restate session history as justification for any play.
+- sessionTape and each band’s interaction show where price has been this trading day — the shape of the approach into an area, what the overnight built, what the session has already touched. Use them to judge freshness and how price is arriving; they are never the reason an area gets a play. A bar’s open, high, low or close is not a level: never quote one as a price — levels are named by their labels and the inventory prices only.`
 
 /**
  * Build the full prompt: doctrine + the serialized context payload
