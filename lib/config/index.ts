@@ -12,3 +12,24 @@ export {
   updateConfigRow,
 } from './updateConfig'
 export type { ConfigUpdate, ConfigUpdateOutcome } from './updateConfig'
+export {
+  PRESETS_MIGRATION_REQUIRED_MESSAGE,
+  PresetCreateSchema,
+  PresetUpdateSchema,
+  applyPresetValues,
+  createConfigPreset,
+  deleteConfigPreset,
+  fetchConfigPresets,
+  findActivePreset,
+  isMissingTableError,
+  presetValuesEqual,
+  toConfigUpdate,
+  updateConfigPreset,
+} from './presets'
+export type {
+  ConfigPreset,
+  PresetCreate,
+  PresetListResult,
+  PresetUpdate,
+  PresetWriteOutcome,
+} from './presets'

@@ -1,15 +1,15 @@
 ---
 name: gekko-db
-description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomxob) directly via REST, without the Supabase MCP server. Use whenever a task needs to read or write config, raw_bundles, briefings, entry_levels, eval_results, job_plans, bundle_requests, or push_subscriptions, download bundle files or job-plan images from storage, check applied migrations, or apply schema changes. Contains the full live schema snapshot.
+description: Interact with Gekko's Supabase database (project qvhkqilizwozikpomxob) directly via REST, without the Supabase MCP server. Use whenever a task needs to read or write config, config_presets, raw_bundles, briefings, entry_levels, eval_results, job_plans, bundle_requests, or push_subscriptions, download bundle files or job-plan images from storage, check applied migrations, or apply schema changes. Contains the full live schema snapshot.
 ---
 
 # Gekko Supabase DB — direct access (no MCP)
 
 The Supabase MCP server is disabled (token cost). Everything below uses `curl` against
-the project's REST APIs. Schema snapshot updated 2026-08-31 (nothing pending — latest
-applied: `20260831210000_job_plan_bands_view.sql`, the `job_plan_bands` view + anon grant
-for the Sierra Job Plan Bands study, via the claude.ai Supabase MCP `apply_migration`
-tool, same day it landed in the repo, verified with an anon-key read).
+the project's REST APIs. Schema snapshot updated 2026-09-10 (nothing pending — latest
+applied: `20260910200000_config_presets.sql`, the feat-155 `config_presets` table, via the
+claude.ai Supabase MCP `apply_migration` tool, same day it landed in the repo, verified in
+information_schema).
 If migrations have been added since, re-verify against `supabase/migrations/` before
 trusting column lists.
 
@@ -114,6 +114,22 @@ All tables have RLS **enabled**; the service-role key bypasses it. PK is `id` un
 | profile_vision_model_effort | text, nullable | CHECK in ('none','minimal','low','medium','high','xhigh','max'); NULL = provider default (feat-124) |
 | profile_vision_samples | int | 3 — samples per profile image in the vision consensus (feat-123); CHECK 1–5 (feat-124) |
 | updated_at | timestamptz | now() |
+
+### config_presets — named snapshots of the config singleton's editable fields (feat-155)
+| column | type | default / constraint |
+|---|---|---|
+| id | uuid | gen_random_uuid() (PK) |
+| name | text | NOT NULL, UNIQUE, CHECK 1–60 chars trimmed |
+| values | jsonb | NOT NULL, CHECK object — exactly the `ConfigUpdate` fields (model ids, efforts, rr_min, significant_move_sigma, execution_bar_volume, profile vision); never `updated_at` |
+| created_at / updated_at | timestamptz | now() |
+
+Presets are SNAPSHOTS: `config` id=1 stays the one live row every pipeline reads. `/settings`
+loads a preset into the form (`lib/config/presets.ts` `applyPresetValues` merges known keys
+over the live values, ignores unknown keys, so a preset saved before a config column existed
+still loads) and the ordinary `POST /api/config` makes it live. The active preset is DERIVED
+(the preset whose values equal the live row), never tracked on row 1. API:
+`GET/POST /api/config/presets`, `PUT/DELETE /api/config/presets/[id]` (duplicate name → 409;
+missing table 42P01 → `tableMissing`, /settings shows an apply-migration warning).
 
 ### raw_bundles — one row per ingested Sierra export bundle
 | column | type | notes |
@@ -245,6 +261,9 @@ curl -s "$URL/rest/v1/job_plans?select=id,status,trading_day,planner_revision,ru
 
 ## Migrations & DDL
 
+- **2026-09-10:** `20260910200000_config_presets.sql` (feat-155: the `config_presets`
+  table, RLS on, no policies) — applied the same day via the claude.ai Supabase MCP
+  `apply_migration` (live name `config_presets`), verified in information_schema.
 - **2026-09-08:** `20260908010000_job_plan_bands_two_way.sql` (the `job_plan_bands` view
   emits kind 'both' for a feat-152 two-way play, stance 'two-way'; the R10 stand-down stays
   excluded) — applied the same night via the claude.ai Supabase MCP `apply_migration`.

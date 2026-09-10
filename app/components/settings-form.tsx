@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import type { ConfigPreset, ConfigUpdate } from '@/lib/config'
 import { RECOMMENDED_PROFILE_VISION } from '@/lib/job-plan/profile-vision/recommended'
-import { REASONING_EFFORTS, type ReasoningEffort } from '@/lib/llm/reasoning'
 import { Button } from './button'
+import { EffortSelect, FieldError, FieldLabel, inputClass } from './settings-field'
+import { PresetActions, PresetPicker } from './settings-presets'
+import { presetStatus, useConfigPresets } from './use-config-presets'
 
 // Settings form (feat-028): edits the config singleton via POST /api/config.
 // DESIGN.md text-input styling (surface-card, rounded-none, hairline border,
@@ -13,28 +16,20 @@ import { Button } from './button'
 // Hidden fields (operator ask, 2026-09-10): the triage model + effort,
 // minimum R/R, significant move, execution bar volume and the whole
 // high-conviction block are no longer rendered. The config row still carries
-// them and the API still requires them, so the form passes the stored values
-// through unchanged on save — nothing is reset, the knobs are just off-screen.
+// them and the API still requires them, so the form holds the stored values
+// and passes them through unchanged on save — nothing is reset, the knobs are
+// just off-screen. Presets (feat-155) snapshot them too, so a restore is whole.
 
-export interface SettingsInitialValues {
-  model_id: string
-  triage_model_id: string
-  rr_min: number
-  high_conviction_enabled: boolean
-  high_conviction_model_id: string
-  model_effort: ReasoningEffort | null
-  triage_model_effort: ReasoningEffort | null
-  high_conviction_model_effort: ReasoningEffort | null
-  execution_bar_volume: number
-  significant_move_sigma: number
-  profile_vision_model_id: string | null
-  profile_vision_model_effort: ReasoningEffort | null
-  profile_vision_samples: number
-}
+/** The editable config fields — exactly what POST /api/config accepts. */
+export type SettingsInitialValues = ConfigUpdate
 
 interface SettingsFormProps {
   initial: SettingsInitialValues
   updatedAt: string | null
+  /** Saved presets (feat-155); empty when the table is missing. */
+  presets: ConfigPreset[]
+  /** Live DB predates the config_presets migration (feat-155). */
+  presetsTableMissing: boolean
   /** Live DB predates the high_conviction_flag migration (feat-031). */
   highConvictionColumnsMissing: boolean
   /** Live DB predates the model_reasoning_effort migration. */
@@ -60,9 +55,6 @@ interface ConfigResponse {
   fieldErrors?: Record<string, string[]>
 }
 
-const inputClass =
-  'mt-2 h-12 w-full rounded-none border border-hairline bg-surface-card px-4 text-base font-light text-ink outline-none transition-colors focus:border-ink'
-
 function fmtUpdatedAt(iso: string | null): string {
   if (!iso) return '—'
   const date = new Date(iso)
@@ -70,97 +62,76 @@ function fmtUpdatedAt(iso: string | null): string {
   return `${date.toISOString().slice(0, 16).replace('T', ' ')} UTC`
 }
 
-function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
-  return (
-    <label
-      htmlFor={htmlFor}
-      className="block text-xs font-bold uppercase tracking-[1.5px] text-body"
-    >
-      {children}
-    </label>
-  )
-}
-
-function FieldError({ messages }: { messages?: string[] }) {
-  if (!messages || messages.length === 0) return null
-  return <p className="mt-1 text-xs font-light tracking-wide text-m-red">{messages[0]}</p>
-}
-
-const EFFORT_LABELS: Record<ReasoningEffort, string> = {
-  none: 'None',
-  minimal: 'Minimal',
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-  xhigh: 'X-High',
-  max: 'Max',
-}
-
 /**
- * Reasoning-effort selector rendered under each model input. Empty value maps
- * to null (provider default — no reasoning parameter sent with the call).
+ * The form's values as the API wants them: trimmed ids, blank vision model →
+ * null, the samples text parsed. Null when the samples text is not a number
+ * (the one check the server can't phrase better than "Must be a number").
  */
-function EffortSelect({
-  id,
-  value,
-  onChange,
-  messages,
-}: {
-  id: string
-  value: ReasoningEffort | null
-  onChange: (value: ReasoningEffort | null) => void
-  messages?: string[]
-}) {
-  return (
-    <div className="mt-3">
-      <FieldLabel htmlFor={id}>Reasoning Effort</FieldLabel>
-      <select
-        id={id}
-        name={id}
-        value={value ?? ''}
-        onChange={(e) =>
-          onChange(e.target.value === '' ? null : (e.target.value as ReasoningEffort))
-        }
-        className={inputClass}
-      >
-        <option value="">Provider default</option>
-        {REASONING_EFFORTS.map((effort) => (
-          <option key={effort} value={effort}>
-            {EFFORT_LABELS[effort]}
-          </option>
-        ))}
-      </select>
-      <FieldError messages={messages} />
-    </div>
-  )
+function readForm(values: ConfigUpdate, pvSamplesText: string): ConfigUpdate | null {
+  const samples = Number(pvSamplesText)
+  if (pvSamplesText.trim() === '' || Number.isNaN(samples)) return null
+  const pvModelId = values.profile_vision_model_id?.trim() ?? ''
+  return {
+    ...values,
+    model_id: values.model_id.trim(),
+    profile_vision_model_id: pvModelId === '' ? null : pvModelId,
+    profile_vision_samples: samples,
+  }
 }
 
 export function SettingsForm({
   initial,
   updatedAt,
+  presets: initialPresets,
+  presetsTableMissing,
   highConvictionColumnsMissing,
   effortColumnsMissing,
   barVolumeColumnMissing,
   significantMoveColumnMissing,
   profileVisionColumnsMissing,
 }: SettingsFormProps) {
-  const [modelId, setModelId] = useState(initial.model_id)
-  const [modelEffort, setModelEffort] = useState(initial.model_effort)
-  const [pvModelId, setPvModelId] = useState(initial.profile_vision_model_id ?? '')
-  const [pvEffort, setPvEffort] = useState(initial.profile_vision_model_effort)
-  const [pvSamples, setPvSamples] = useState(String(initial.profile_vision_samples))
+  const [values, setValues] = useState<ConfigUpdate>(initial)
+  const [pvSamplesText, setPvSamplesText] = useState(String(initial.profile_vision_samples))
+  const [live, setLive] = useState<ConfigUpdate>(initial)
   const [state, setState] = useState<SaveState>({ phase: 'idle' })
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
   const [lastUpdatedAt, setLastUpdatedAt] = useState(updatedAt)
+
+  function set<K extends keyof ConfigUpdate>(key: K, value: ConfigUpdate[K]) {
+    setValues((current) => ({ ...current, [key]: value }))
+  }
+
+  function loadValues(next: ConfigUpdate) {
+    setValues(next)
+    setPvSamplesText(String(next.profile_vision_samples))
+    setFieldErrors({})
+    setState({ phase: 'idle' })
+  }
+
+  function readValidated(): ConfigUpdate | null {
+    const body = readForm(values, pvSamplesText)
+    if (!body) {
+      setFieldErrors({ profile_vision_samples: ['Must be a number'] })
+    }
+    return body
+  }
+
+  const presetsApi = useConfigPresets({
+    initialPresets,
+    live,
+    readForm: readValidated,
+    onLoad: loadValues,
+  })
+  const formValues = readForm(values, pvSamplesText) ?? values
+  const status = presetStatus(presetsApi.selected, formValues, live)
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setState({ phase: 'saving' })
     setFieldErrors({})
 
-    const pvSampleCount = Number(pvSamples)
-    if (pvSamples.trim() === '' || Number.isNaN(pvSampleCount)) {
-      setFieldErrors({ profile_vision_samples: ['Must be a number'] })
+    const body = readValidated()
+    if (!body) {
       setState({ phase: 'error', message: 'Validation failed' })
       return
     }
@@ -169,33 +140,19 @@ export function SettingsForm({
       const res = await fetch('/api/config', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          model_id: modelId.trim(),
-          model_effort: modelEffort,
-          // Hidden fields: stored values pass through unchanged.
-          triage_model_id: initial.triage_model_id,
-          triage_model_effort: initial.triage_model_effort,
-          rr_min: initial.rr_min,
-          execution_bar_volume: initial.execution_bar_volume,
-          significant_move_sigma: initial.significant_move_sigma,
-          high_conviction_enabled: initial.high_conviction_enabled,
-          high_conviction_model_id: initial.high_conviction_model_id,
-          high_conviction_model_effort: initial.high_conviction_model_effort,
-          profile_vision_model_id: pvModelId.trim() === '' ? null : pvModelId.trim(),
-          profile_vision_model_effort: pvEffort,
-          profile_vision_samples: pvSampleCount,
-        }),
+        body: JSON.stringify(body),
       })
-      const body = (await res.json().catch(() => null)) as ConfigResponse | null
-      if (!res.ok || !body?.success) {
-        setFieldErrors(body?.fieldErrors ?? {})
+      const parsed = (await res.json().catch(() => null)) as ConfigResponse | null
+      if (!res.ok || !parsed?.success) {
+        setFieldErrors(parsed?.fieldErrors ?? {})
         setState({
           phase: 'error',
-          message: body?.error ?? `Request failed (HTTP ${res.status})`,
+          message: parsed?.error ?? `Request failed (HTTP ${res.status})`,
         })
         return
       }
-      setLastUpdatedAt(body.data?.config?.updated_at ?? lastUpdatedAt)
+      setLive(body)
+      setLastUpdatedAt(parsed.data?.config?.updated_at ?? lastUpdatedAt)
       setState({ phase: 'saved' })
     } catch {
       setState({ phase: 'error', message: 'Network error — is the app server running?' })
@@ -204,14 +161,22 @@ export function SettingsForm({
 
   return (
     <form onSubmit={(event) => void save(event)} className="space-y-8" noValidate>
+      <PresetPicker
+        presets={presetsApi.presets}
+        selected={presetsApi.selected}
+        status={status}
+        tableMissing={presetsTableMissing}
+        onSelect={presetsApi.select}
+      />
+
       <div>
         <FieldLabel htmlFor="model_id">Briefing Model</FieldLabel>
         <input
           id="model_id"
           name="model_id"
           type="text"
-          value={modelId}
-          onChange={(e) => setModelId(e.target.value)}
+          value={values.model_id}
+          onChange={(e) => set('model_id', e.target.value)}
           className={inputClass}
           placeholder="provider/model"
         />
@@ -221,8 +186,8 @@ export function SettingsForm({
         </p>
         <EffortSelect
           id="model_effort"
-          value={modelEffort}
-          onChange={setModelEffort}
+          value={values.model_effort}
+          onChange={(effort) => set('model_effort', effort)}
           messages={fieldErrors.model_effort}
         />
       </div>
@@ -244,8 +209,8 @@ export function SettingsForm({
             id="profile_vision_model_id"
             name="profile_vision_model_id"
             type="text"
-            value={pvModelId}
-            onChange={(e) => setPvModelId(e.target.value)}
+            value={values.profile_vision_model_id ?? ''}
+            onChange={(e) => set('profile_vision_model_id', e.target.value)}
             className={inputClass}
             placeholder={`${RECOMMENDED_PROFILE_VISION.modelId} (blank = read OFF)`}
           />
@@ -258,9 +223,13 @@ export function SettingsForm({
             <button
               type="button"
               onClick={() => {
-                setPvModelId(RECOMMENDED_PROFILE_VISION.modelId)
-                setPvEffort(RECOMMENDED_PROFILE_VISION.effort)
-                setPvSamples(String(RECOMMENDED_PROFILE_VISION.samples))
+                setValues((current) => ({
+                  ...current,
+                  profile_vision_model_id: RECOMMENDED_PROFILE_VISION.modelId,
+                  profile_vision_model_effort: RECOMMENDED_PROFILE_VISION.effort,
+                  profile_vision_samples: RECOMMENDED_PROFILE_VISION.samples,
+                }))
+                setPvSamplesText(String(RECOMMENDED_PROFILE_VISION.samples))
               }}
               className="text-xs font-light uppercase tracking-wide text-accent underline underline-offset-4 hover:no-underline"
             >
@@ -273,8 +242,8 @@ export function SettingsForm({
           </div>
           <EffortSelect
             id="profile_vision_model_effort"
-            value={pvEffort}
-            onChange={setPvEffort}
+            value={values.profile_vision_model_effort}
+            onChange={(effort) => set('profile_vision_model_effort', effort)}
             messages={fieldErrors.profile_vision_model_effort}
           />
         </div>
@@ -288,8 +257,8 @@ export function SettingsForm({
             step="1"
             min="1"
             max="5"
-            value={pvSamples}
-            onChange={(e) => setPvSamples(e.target.value)}
+            value={pvSamplesText}
+            onChange={(e) => setPvSamplesText(e.target.value)}
             className={inputClass}
           />
           <FieldError messages={fieldErrors.profile_vision_samples} />
@@ -323,20 +292,31 @@ export function SettingsForm({
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-6 border-t border-hairline pt-8">
-        <Button type="submit" disabled={state.phase === 'saving'}>
-          {state.phase === 'saving' ? 'Saving…' : 'Save Settings'}
-        </Button>
-        {state.phase === 'saved' && (
-          <p role="status" className="text-xs font-light tracking-wide text-success">
-            Saved — applies from the next run.
-          </p>
-        )}
-        {state.phase === 'error' && (
-          <p role="status" className="text-xs font-light tracking-wide text-m-red">
-            {state.message}
-          </p>
-        )}
+      <div className="space-y-6 border-t border-hairline pt-8">
+        <div className="flex flex-wrap items-center gap-6">
+          <Button type="submit" disabled={state.phase === 'saving' || presetsApi.busy}>
+            {state.phase === 'saving' ? 'Saving…' : 'Save Settings'}
+          </Button>
+          {state.phase === 'saved' && (
+            <p role="status" className="text-xs font-light tracking-wide text-success">
+              Saved — applies from the next run.
+            </p>
+          )}
+          {state.phase === 'error' && (
+            <p role="status" className="text-xs font-light tracking-wide text-m-red">
+              {state.message}
+            </p>
+          )}
+        </div>
+        <PresetActions
+          selected={presetsApi.selected}
+          busy={presetsApi.busy || state.phase === 'saving'}
+          message={presetsApi.message}
+          tableMissing={presetsTableMissing}
+          onSaveAs={presetsApi.saveAs}
+          onUpdate={presetsApi.update}
+          onDelete={presetsApi.remove}
+        />
       </div>
 
       <p className="text-xs font-light tracking-wide text-muted">
