@@ -13,6 +13,13 @@ take, offer relocates, and sweep that doesn't hold. Each drill is graded against
 `dom-drills/`; `ignoreCommand` skips commits that don't touch the folder). Engine checked headlessly
 over 600 drills: no crossed or empty books, confirm-entry grades A, fakes skipped grade A.
 `dom-drills/` added to `.prettierignore`. ESLint and tsc don't scan `.html`.
+Live at https://domdrills.leverageworkshop.com (Cloudflare CNAME `domdrills` on leverageworkshop.com,
+DNS only, to Vercel). Verification: `./init.sh` green (2340 tests, lint, typecheck, build).
+**Codex gate NOT run.** It can't run in the cloud container: no Codex CLI, plugin
+(`installed_plugins.json`) or OpenAI credentials. Merged anyway at the operator's direct request
+("run the checks and open the PR and merge"). Risk is low: the diff is a self-contained static page plus
+docs/config and touches no app code. Run `npm run codex:gate` locally over this change if a
+retroactive review is wanted.
 
 ---
 
