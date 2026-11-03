@@ -63,24 +63,31 @@ a{color:var(--level)}
 
 /* ladder */
 .ladwrap{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.cols,.row{display:grid;grid-template-columns:.9fr 1.1fr 1.45fr 1.1fr .9fr}
+.cols,.row{display:grid;grid-template-columns:.78fr .78fr 1fr 1.42fr 1fr .78fr .78fr}
+.nops .cols,.nops .row{grid-template-columns:.9fr 1.1fr 1.45fr 1.1fr .9fr}
+.nops .ps{display:none}
 .cols{font-family:var(--font-cond);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);background:var(--panel-2)}
-.cols span{padding:4px 6px;text-align:center}
+.cols span{padding:4px 2px;text-align:center;white-space:nowrap;overflow:hidden}
 .ladder{flex:1;min-height:0;position:relative}
-.row{height:var(--rh,24px);font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:13px;border-bottom:1px solid rgba(36,48,54,.55)}
-.c{display:flex;align-items:center;padding:0 6px;position:relative;overflow:hidden;white-space:nowrap}
+.row{height:var(--rh,24px);font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:12.5px;border-bottom:1px solid rgba(36,48,54,.55)}
+.nops .row{font-size:13px}
+.c{display:flex;align-items:center;padding:0 5px;position:relative;overflow:hidden;white-space:nowrap}
 .c.sold{justify-content:flex-end;color:var(--sell)}
 .c.bought{justify-content:flex-start;color:var(--buy)}
 .c.bid{justify-content:flex-end;background:linear-gradient(to left,var(--bid-bar) var(--w,0%),transparent var(--w,0%));cursor:pointer}
 .c.ask{justify-content:flex-start;background:linear-gradient(to right,var(--ask-bar) var(--w,0%),transparent var(--w,0%));cursor:pointer}
 .c.bid.in{color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px rgba(79,156,240,.55)}
 .c.ask.in{color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px rgba(240,107,107,.55)}
+.c.ps{justify-content:center;font-size:11.5px;color:var(--dim);padding:0 2px}
+.c.ps.pull{color:var(--sell)} .c.ps.stack{color:var(--buy)}
+.c.ps.flash.pull{background:rgba(240,96,90,.42);color:#fff;font-weight:600}
+.c.ps.flash.stack{background:rgba(63,199,133,.26);color:#fff}
 .c.px{justify-content:center;background:var(--panel-2);color:var(--muted);font-size:12.5px}
 .c.px.band{color:var(--fg);background:linear-gradient(90deg,var(--level) 0 3px,var(--level-tint) 3px)}
 .c.px.last{color:var(--bg);background:var(--fg);font-weight:600}
 .c.px.avg::after{content:"";position:absolute;inset:2px;border:1.5px solid var(--good);border-radius:3px}
 .c.px.stp::before{content:"STP";position:absolute;left:3px;font-family:var(--font-cond);font-size:10px;font-weight:700;color:var(--bad)}
-.c.px.dmark::before{content:attr(data-d);position:absolute;right:3px;font-family:var(--font-cond);font-size:10px;font-weight:700;color:var(--level)}
+.c.px.dmark::before{content:attr(data-d);position:absolute;right:2px;top:1px;line-height:1;font-family:var(--font-cond);font-size:9px;font-weight:700;color:var(--level)}
 .c .o{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--font-cond);font-weight:700;font-size:11px;padding:1px 4px;border-radius:3px;color:var(--bg)}
 .c.bid .o{left:3px;background:var(--bid)} .c.ask .o{right:3px;background:var(--ask)}
 .c .o:empty{display:none}
@@ -166,7 +173,7 @@ blockquote cite{display:block;margin-top:6px;font-style:normal;font-size:12.5px;
   </header>
   <div class="coach" id="coach"><span class="msg muted">Tap a bid cell to join the bid, an ask cell to join the offer. Tap your order to cancel it.</span></div>
   <div class="ladwrap">
-    <div class="cols"><span>Sold</span><span>Bid</span><span>Price</span><span>Ask</span><span>Bought</span></div>
+    <div class="cols"><span>Sold</span><span class="ps">P/S</span><span>Bid</span><span>Price</span><span>Ask</span><span class="ps">P/S</span><span>Bought</span></div>
     <div class="ladder" id="ladder" aria-label="Price ladder"></div>
   </div>
   <div class="tape">
@@ -201,6 +208,7 @@ blockquote cite{display:block;margin-top:6px;font-style:normal;font-size:12.5px;
     <div class="settings">
       <div class="set"><label>Side</label><div class="seg" id="mixSeg"><button data-v="both">Both</button><button data-v="long">Longs</button><button data-v="short">Shorts</button></div></div>
       <div class="set"><label>Stop</label><div class="seg" id="stopSeg"><button data-v="0">Off</button><button data-v="8">8t</button><button data-v="16">16t</button><button data-v="24">24t</button></div></div>
+      <div class="set"><label>Pull/stack</label><div class="seg" id="psSeg"><button data-v="1">Show</button><button data-v="0">Hide</button></div></div>
       <div class="set"><label>Speed</label><div class="seg" id="speedSeg"><button data-v="0.5">½×</button><button data-v="1">1×</button><button data-v="2">2×</button></div></div>
     </div>
     <button class="go" id="startBtn">Start drill</button>
@@ -208,12 +216,12 @@ blockquote cite{display:block;margin-top:6px;font-style:normal;font-size:12.5px;
       <summary>The read, in five steps</summary>
       <ol class="steps">
         <li><b>Arrive.</b> Only read the DOM once price is in the planned band. Structure precedes execution.</li>
-        <li><b>Defend.</b> The offer at one price keeps reloading as buyers lift it, and sells make no new low. The opponent is active. Wait.</li>
-        <li><b>Withdraw.</b> Size at that price leaves without trades. This is not yet an entry.</li>
+        <li><b>Defend.</b> The offer at one price keeps reloading as buyers lift it (green stack flashes there), and sells make no new low. The opponent is active. Wait.</li>
+        <li><b>Withdraw.</b> Size at that price leaves without trades, so the pull/stack column flashes red. On its own this is not yet an entry.</li>
         <li><b>Take.</b> The bid steps above that price, trades there, and holds. This is the entry.</li>
         <li><b>Accept.</b> It should go your way right away. A trade back below the old offer price means scratch.</li>
       </ol>
-      <p class="muted" style="margin-top:10px;font-size:13px">Shorts are the mirror: watch the bid, enter when the offer steps below it. The ladder shows size at each price, plus recent volume sold into the bid and bought from the offer. Coach mode names each phase live while you learn.</p>
+      <p class="muted" style="margin-top:10px;font-size:13px">Shorts are the mirror: watch the bid, enter when the offer steps below it. The ladder shows size at each price, recent volume sold into the bid and bought from the offer, and pull/stack (P/S): how much resting size was added or removed at each price over the last few seconds, not counting trades. Red means pulled and green means stacked. A bright red flash is a sudden pull. Coach mode names each phase live while you learn.</p>
     </details>
   </div>
 </div>
@@ -230,7 +238,7 @@ const $=id=>document.getElementById(id);
 const rnd=Math.random, ri=(a,b)=>a+Math.floor(rnd()*(b-a+1)), pick=a=>a[Math.floor(rnd()*a.length)];
 const rs=r=>ri(r[0],r[1]);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const settings=Object.assign({mix:'both',stop:16,speed:1,coach:false},store.get('domdrills.settings',{}));
+const settings=Object.assign({mix:'both',stop:16,speed:1,coach:false,ps:1},store.get('domdrills.settings',{}));
 let log=store.get('domdrills.log',[]);
 if(!Array.isArray(log)) log=[];
 
@@ -260,13 +268,13 @@ const PH={
   APPROACH:()=>({key:'APPROACH',dur:45,lamBuy:3.2,lamSell:7,bigBuy:.03,bigSell:.12,pBid:.3,
     until:S=>S.ba<=S.arriveAt,
     step:(S,ph)=>{if(S.t-ph.t0>22){ph.lamSell=12;ph.pBid=.15}},
-    end:S=>{S.D=S.ba; S.ask[S.D+O]=Math.max(S.ask[S.D+O],ri(26,48)); S.floorX=S.D-ri(3,5)}}),
+    end:S=>{S.D=S.ba; {const was=S.ask[S.D+O], nv=Math.max(was,ri(26,48)); S.ask[S.D+O]=nv; chg('ask',S.D,nv-was)} S.floorX=S.D-ri(3,5)}}),
   DEFEND:(d)=>({key:'DEFEND',dur:d||ri(16,26),lamBuy:5,lamSell:5.5,bigBuy:.05,bigSell:.12,pBid:.5,refresh:[14,40],floorRefresh:[10,28],
-    enter:(S,ph)=>{ph.ceil=S.D; ph.floor=S.floorX}}),
+    enter:(S,ph)=>{ph.ceil=S.D; ph.floor=S.floorX}, end:S=>{if(S.ask[S.D+O]<16) addAsk(S.D,ri(16,30)-S.ask[S.D+O])},}),
   WITHDRAW:(heavy)=>({key:'WITHDRAW',dur:ri(6,10),lamBuy:1.8,lamSell:heavy?5.5:2.4,bigBuy:0,bigSell:heavy?.1:.03,pBid:.5,floorRefresh:[10,28],
     enter:(S,ph)=>{ph.floor=S.floorX; ph.noBidAbove=S.D-1; ph.thin=S.D; if(S.truth.tWithdraw==null) S.truth.tWithdraw=S.t;
       for(let k=1;k<=4;k++){const x=S.D+k; if(x>S.ba) cancelTo('ask',x,Math.max(1,Math.round(S.ask[x+O]*(.25+rnd()*.3))))}},
-    step:(S,ph)=>{const i=S.D+O; if(S.ask[i]>2){ if(rnd()<.35) cancelAt('ask',S.D,Math.max(1,Math.round(S.ask[i]*.12))) } else if(S.ask[i]>0&&rnd()<.03) S.ask[i]+=ri(1,3)}}),
+    step:(S,ph)=>{const i=S.D+O; if(!ph.pulled&&S.t-ph.t0>=.6){ph.pulled=true; cancelAt('ask',S.D,S.ask[i]-ri(2,5))} if(S.ask[i]>2){ if(rnd()<.35) cancelAt('ask',S.D,Math.max(1,Math.round(S.ask[i]*.12))) } else if(S.ask[i]>0&&rnd()<.03){const q=ri(1,3); S.ask[i]+=q; chg('ask',S.D,q)}}}),
   TAKE:()=>({key:'TAKE',dur:16,lamBuy:8.5,lamSell:2.8,bigBuy:.16,bigSell:.03,pBid:.88,track:true,floorRefresh:[10,24],
     enter:(S,ph)=>{ph.floor=S.floorX; ph.thin=S.D; for(let k=1;k<=3;k++){const x=S.D+k; if(x>S.ba) cancelTo('ask',x,Math.max(1,Math.round(S.ask[x+O]*(.3+rnd()*.3))))}},
     step:(S,ph)=>{ if(S.bb>=S.D+1) ph.floor=S.D+1; if(S.truth.tConfirm!=null&&S.t-S.truth.tConfirm>1.5) ph.done=true }}),
@@ -277,7 +285,7 @@ const PH={
   BREAKDOWN:()=>({key:'BREAKDOWN',dur:ri(14,20),lamBuy:2.6,lamSell:8.5,bigBuy:.03,bigSell:.16,pBid:.25,
     enter:(S)=>{for(let k=S.floorX;k>=S.floorX-3;k--) if(k<S.bb) cancelTo('bid',k,Math.max(1,Math.round(S.bid[k+O]*.4)))}}),
   RELOAD:()=>({key:'RELOAD',dur:ri(10,15),lamBuy:5,lamSell:5,bigBuy:.05,bigSell:.1,pBid:.5,refresh:[24,50],floorRefresh:[10,28],
-    enter:(S,ph)=>{ph.ceil=S.D; ph.floor=S.floorX; if(S.D>S.bb) addAsk(S.D,ri(35,60))}}),
+    enter:(S,ph)=>{ph.ceil=S.D; ph.floor=S.floorX; if(S.D>S.bb) addAsk(S.D,ri(35,60))}, end:S=>{if(S.ask[S.D+O]<16) addAsk(S.D,ri(16,30)-S.ask[S.D+O])},}),
   RELOCATE:()=>({key:'RELOCATE',dur:13,lamBuy:3.8,lamSell:6.5,bigBuy:.04,bigSell:.12,pBid:.2,refresh:[18,36],
     enter:(S,ph)=>{ph.ceil=S.D-1; ph.noBidAbove=S.D-2; S.relocTo=S.D-1; if(S.D>S.ba) cancelTo('ask',S.D,ri(2,5))},
     step:(S,ph)=>{if(S.t-ph.t0>6&&ph.ceil===S.D-1){ph.ceil=S.D-2; ph.noBidAbove=S.D-3; S.relocTo=S.D-2}}}),
@@ -298,7 +306,7 @@ function newSim(){
   const kind=pickKind();
   const P0=Math.round((23800+rnd()*2600)/TICK)*TICK;
   S={dir,kind,P0,W:WORDS[dir],levelName:pick(LEVELS[dir]),t:0,
-    bid:new Float64Array(NN),ask:new Float64Array(NN),rb:new Float64Array(NN),rs:new Float64Array(NN),
+    bid:new Float64Array(NN),ask:new Float64Array(NN),rb:new Float64Array(NN),rs:new Float64Array(NN),psA:new Float64Array(NN),psB:new Float64Array(NN),fA:new Float64Array(NN),fB:new Float64Array(NN),gA:new Float64Array(NN),gB:new Float64Array(NN),
     prints:[],nPrints:0,series:[],timeline:[],phases:KINDS[kind].make(),pi:-1,phase:null,D:null,floorX:null,arriveAt:ri(-1,1),
     truth:{reloads:0,tFlip:null,tConfirm:null,held:0,tWithdraw:null},paceB:0,paceS:0,_b:0,_s:0,seriesT:-1,done:false,reviewed:false,
     user:{pos:0,avg:0,realized:0,orders:[],stop:null,fills:[],first:null,against:false}};
@@ -316,15 +324,17 @@ function nextPhase(){
   if(ph.enter) ph.enter(S,ph);
   S.timeline.push({key:ph.key,t0:S.t,t1:null,idx:S.pi});
 }
-function nextAsk(x){for(let k=x+1;k<x+60;k++) if(S.ask[k+O]>0) return k; S.ask[x+1+O]=levelSize(1); return x+1}
-function nextBid(x){for(let k=x-1;k>x-60;k--) if(S.bid[k+O]>0) return k; S.bid[x-1+O]=levelSize(1); return x-1}
-function addAsk(x,sz){if(x<=S.bb||sz<=0) return; S.ask[x+O]+=sz; if(x<S.ba) S.ba=x}
-function addBid(x,sz){if(x>=S.ba||sz<=0) return; S.bid[x+O]+=sz; if(x>S.bb) S.bb=x}
+// pull/stack: change in resting size from adds and cancels only (fills excluded). ps = shown value; f = recent pulls, g = recent stacks (drive the flash)
+function chg(side,x,d){const i=x+O; if(side==='ask'){S.psA[i]+=d; if(d<0) S.fA[i]+=d; else S.gA[i]+=d} else {S.psB[i]+=d; if(d<0) S.fB[i]+=d; else S.gB[i]+=d}}
+function nextAsk(x){for(let k=x+1;k<x+60;k++) if(S.ask[k+O]>0) return k; S.ask[x+1+O]=levelSize(1); chg('ask',x+1,S.ask[x+1+O]); return x+1}
+function nextBid(x){for(let k=x-1;k>x-60;k--) if(S.bid[k+O]>0) return k; S.bid[x-1+O]=levelSize(1); chg('bid',x-1,S.bid[x-1+O]); return x-1}
+function addAsk(x,sz){if(x<=S.bb||sz<=0) return; S.ask[x+O]+=sz; chg('ask',x,sz); if(x<S.ba) S.ba=x}
+function addBid(x,sz){if(x>=S.ba||sz<=0) return; S.bid[x+O]+=sz; chg('bid',x,sz); if(x>S.bb) S.bb=x}
 function cancelAt(side,x,amt){
   const arr=side==='ask'?S.ask:S.bid, i=x+O; if(arr[i]<=0) return;
   const inside=side==='ask'?x===S.ba:x===S.bb;
   const a=Math.min(amt,inside?arr[i]-1:arr[i]); if(a<=0) return;
-  arr[i]-=a;
+  arr[i]-=a; chg(side,x,-a);
   const os=side==='ask'?-1:1;
   for(const o of S.user.orders) if(o.x===x&&o.side===os) o.ahead=Math.max(0,o.ahead-a*.5);
 }
@@ -357,7 +367,7 @@ function marketBuy(q){
     S.ask[i]-=f; q-=f; trade(x,f,1);
     if(S.ask[i]<=0){
       S.ask[i]=0;
-      if(ph.ceil===x){S.ask[i]=rs(ph.refresh||[14,40]); if(x===S.D&&(ph.key==='DEFEND'||ph.key==='RELOAD')) S.truth.reloads++; continue}
+      if(ph.ceil===x){S.ask[i]=rs(ph.refresh||[14,40]); chg('ask',x,S.ask[i]); if(x===S.D&&(ph.key==='DEFEND'||ph.key==='RELOAD')) S.truth.reloads++; continue}
       S.ba=nextAsk(x);
     }
   }
@@ -370,7 +380,7 @@ function marketSell(q){
     S.bid[i]-=f; q-=f; trade(x,f,-1);
     if(S.bid[i]<=0){
       S.bid[i]=0;
-      if(ph.floor===x){S.bid[i]=rs(ph.floorRefresh||[10,28]); continue}
+      if(ph.floor===x){S.bid[i]=rs(ph.floorRefresh||[10,28]); chg('bid',x,S.bid[i]); continue}
       S.bb=nextBid(x);
     }
   }
@@ -380,17 +390,17 @@ function fillGap(ph){
   while(S.ba-S.bb>1&&g++<12){
     let up=rnd()<ph.pBid;
     if(up&&ph.noBidAbove!=null&&S.bb+1>ph.noBidAbove) up=false;
-    if(up){S.bb++; S.bid[S.bb+O]+=ri(1,6)} else {S.ba--; S.ask[S.ba+O]+=ri(1,6)}
+    const q=ri(1,6); if(up){S.bb++; S.bid[S.bb+O]+=q; chg('bid',S.bb,q)} else {S.ba--; S.ask[S.ba+O]+=q; chg('ask',S.ba,q)}
   }
 }
 function noise(ph){
   for(let n=0;n<3;n++){
     const isAsk=rnd()<.5, d=ri(0,14), x=isAsk?S.ba+d:S.bb-d, arr=isAsk?S.ask:S.bid, i=x+O;
     if(isAsk&&ph.thin!=null&&x===ph.thin) continue;
-    if(arr[i]<=0){ if(d>0) arr[i]=levelSize(d); continue }
-    if(arr[i]>60) cancelAt(isAsk?'ask':'bid',x,ri(5,15));
-    else if(rnd()<.5) arr[i]+=ri(1,4);
-    else cancelAt(isAsk?'ask':'bid',x,ri(1,4));
+    if(arr[i]<=0){ if(d>0){arr[i]=levelSize(d); chg(isAsk?'ask':'bid',x,arr[i])} continue }
+    if(arr[i]>60) cancelAt(isAsk?'ask':'bid',x,ri(2,6));
+    else if(rnd()<.5){const q=ri(1,3); arr[i]+=q; chg(isAsk?'ask':'bid',x,q)}
+    else cancelAt(isAsk?'ask':'bid',x,ri(1,3));
   }
 }
 function step(){
@@ -405,6 +415,7 @@ function step(){
   if(ph.track&&S.truth.tFlip==null&&S.truth.tConfirm==null&&S.bb>=S.D+1){S.truth.tFlip=S.t; S.truth.held=0}
   const a=Math.exp(-STEP/3); S.paceB=S.paceB*a+(S._b/STEP)*(1-a); S.paceS=S.paceS*a+(S._s/STEP)*(1-a);
   const k=Math.exp(-STEP/10); for(let x=S.last-45;x<=S.last+45;x++){S.rb[x+O]*=k; S.rs[x+O]*=k}
+  const k1=Math.exp(-STEP/6), k2=Math.exp(-STEP/1); for(let i=0;i<NN;i++){S.psA[i]*=k1; S.psB[i]*=k1; S.fA[i]*=k2; S.fB[i]*=k2; S.gA[i]*=k2; S.gB[i]*=k2}
   if(S.t-S.seriesT>=.25){S.series.push([S.t,S.last]); S.seriesT=S.t}
   const el=S.t-ph.t0;
   if(ph.done||el>=ph.dur||(ph.until&&ph.until(S))) nextPhase();
@@ -462,9 +473,9 @@ function coachText(){
   const W=S.W, ph=S.phase, Dn=S.D!=null?handle(S.D):'', tr=S.truth;
   switch(ph.key){
     case 'APPROACH':return `Price is moving into the ${S.levelName.toLowerCase()}. Structure first. No read yet.`;
-    case 'DEFEND':return `${W.Opp} at ${Dn} keeps reloading (${tr.reloads}×) while ${W.aggr} make no progress. Opponent active. Wait.`;
+    case 'DEFEND':return `${W.Opp} at ${Dn} keeps reloading (${tr.reloads}×, green stack flashes) while ${W.aggr} make no progress. Opponent active. Wait.`;
     case 'RELOAD':return `${W.Opp} came back at ${Dn}. It is defending again. Wait.`;
-    case 'WITHDRAW':return `${W.Opp} at ${Dn} is pulling: size leaves without trades. Not yet an entry. Wait for the ${W.mine} to step ${W.above} ${Dn}.`;
+    case 'WITHDRAW':return `${W.Opp} at ${Dn} is pulling: size leaves without trades (red on the ${S.dir>0?'ask':'bid'} P/S). Not yet an entry. Wait for the ${W.mine} to step ${W.above} ${Dn}.`;
     case 'TAKE':return tr.tConfirm!=null?`Held ${W.above} ${Dn}. Confirmed take.`:tr.tFlip!=null?`${W.Mine} stepped ${W.above} ${Dn} and is holding (${tr.held}/${HOLD_PRINTS} prints). This is the trigger.`:`${W.Mine} is pressing into ${Dn}…`;
     case 'CONTINUE':return `Move underway. Now manage by watching the ${W.mine}.`;
     case 'TICKLE':return `${W.Mine} keeps tapping ${Dn} but can't get ${W.above} it. No take.`;
@@ -523,7 +534,7 @@ function buildLadder(){
   lad.textContent=''; rows=[];
   for(let r=0;r<R;r++){
     const row=document.createElement('div'); row.className='row';
-    const cells=['sold','bid','px','ask','bought'].map((c,ci)=>{const d=document.createElement('div'); d.className='c '+c; d.dataset.r=r; d.dataset.c=ci;
+    const cells=['sold','ps','bid','px','ask','ps','bought'].map((c,ci)=>{const d=document.createElement('div'); d.className='c '+c; d.dataset.r=r; d.dataset.c=ci;
       const v=document.createElement('span'); d.appendChild(v); d._v=v; d._t=null; d._cls=null; d._w=null;
       if(c==='bid'||c==='ask'){const o=document.createElement('span'); o.className='o'; d.appendChild(o); d._o=o; d._ot=''}
       row.appendChild(d); return d});
@@ -532,13 +543,18 @@ function buildLadder(){
 }
 lad.addEventListener('click',e=>{
   const c=e.target.closest('.c'); if(!c||!S) return;
-  const ci=+c.dataset.c; if(ci!==1&&ci!==3) return;
+  const ci=+c.dataset.c; if(ci!==2&&ci!==4) return;
   const half=Math.floor(R/2), x=S.center+S.dir*(half-(+c.dataset.r));
-  tapCell(x,ci===1?1:-1);
+  tapCell(x,ci===2?1:-1);
   render();
 });
 function setText(el,t){if(el._t!==t){el._v.textContent=t; el._t=t}}
 function setCls(el,c){if(el._cls!==c){el.className=c; el._cls=c}}
+// while a cell flashes it shows the size just pulled (or stacked); otherwise the net change, only where that side has orders
+function psCell(el,v,f,g,inBook){
+  if(f<=-10){setText(el,String(Math.round(f))); setCls(el,'c ps pull flash'); return}
+  if(g>=14){setText(el,'+'+Math.round(g)); setCls(el,'c ps stack flash'); return}
+  const n=inBook?Math.round(v):0; setText(el,n?(n>0?'+'+n:String(n)):''); setCls(el,'c ps'+(n<0?' pull':n>0?' stack':''))}
 function setW(el,w){if(el._w!==w){el.style.setProperty('--w',w+'%'); el._w=w}}
 
 function updatePlan(){
@@ -549,6 +565,7 @@ function updatePlan(){
 let lastPrintN=-1;
 function render(){
   if(!S||!R) return;
+  const app=$('app'); if(app._ps!==settings.ps){app.classList.toggle('nops',!settings.ps); app._ps=settings.ps}
   const half=Math.floor(R/2), dir=S.dir;
   const lr=half-dir*(S.last-S.center); if(lr<3||lr>R-4) S.center=S.last;
   const u=S.user, coach=settings.coach&&S.D!=null;
@@ -561,22 +578,26 @@ function render(){
     const b=dir>0?S.bid[i]:S.ask[i], a=dir>0?S.ask[i]:S.bid[i];
     const sold=dir>0?S.rs[i]:S.rb[i], bought=dir>0?S.rb[i]:S.rs[i];
     setText(cells[0],sold>=1?String(Math.round(sold)):'');
-    setText(cells[4],bought>=1?String(Math.round(bought)):'');
-    setText(cells[1],b>0?String(b):''); setW(cells[1],Math.min(100,Math.round(b/45*100)));
-    setText(cells[3],a>0?String(a):''); setW(cells[3],Math.min(100,Math.round(a/45*100)));
-    setCls(cells[1],'c bid'+(x===inB?' in':'')); setCls(cells[3],'c ask'+(x===inA?' in':''));
+    setText(cells[6],bought>=1?String(Math.round(bought)):'');
+    if(settings.ps){
+      psCell(cells[1],dir>0?S.psB[i]:S.psA[i],dir>0?S.fB[i]:S.fA[i],dir>0?S.gB[i]:S.gA[i],(dir>0?x<=S.bb:x>=S.ba)&&(b>0||(dir>0?S.psB[i]:S.psA[i])<0));
+      psCell(cells[5],dir>0?S.psA[i]:S.psB[i],dir>0?S.fA[i]:S.fB[i],dir>0?S.gA[i]:S.gB[i],(dir>0?x>=S.ba:x<=S.bb)&&(a>0||(dir>0?S.psA[i]:S.psB[i])<0));
+    }
+    setText(cells[2],b>0?String(b):''); setW(cells[2],Math.min(100,Math.round(b/45*100)));
+    setText(cells[4],a>0?String(a):''); setW(cells[4],Math.min(100,Math.round(a/45*100)));
+    setCls(cells[2],'c bid'+(x===inB?' in':'')); setCls(cells[4],'c ask'+(x===inA?' in':''));
     const ob=ordB[x]?('B'+ordB[x]):'', oa=ordA[x]?('S'+ordA[x]):'';
-    if(cells[1]._ot!==ob){cells[1]._o.textContent=ob; cells[1]._ot=ob}
-    if(cells[3]._ot!==oa){cells[3]._o.textContent=oa; cells[3]._ot=oa}
+    if(cells[2]._ot!==ob){cells[2]._o.textContent=ob; cells[2]._ot=ob}
+    if(cells[4]._ot!==oa){cells[4]._o.textContent=oa; cells[4]._ot=oa}
     let pc='c px';
     if(x>=-2&&x<=2) pc+=' band';
     if(x===S.last) pc+=' last';
     if(avgX!==null&&x===avgX) pc+=' avg';
     if(u.stop!=null&&u.pos&&x===u.stop) pc+=' stp';
     if(coach&&x===S.D) pc+=' dmark';
-    setCls(cells[2],pc);
-    if(coach&&x===S.D) cells[2].dataset.d='D';
-    setText(cells[2],fmt(dp(x)));
+    setCls(cells[3],pc);
+    if(coach&&x===S.D) cells[3].dataset.d='D';
+    setText(cells[3],fmt(dp(x)));
   }
   // tape
   if(S.nPrints!==lastPrintN){
@@ -682,7 +703,7 @@ function bindSeg(id,key,num){
     if(key==='stop'&&S){const u=S.user; u.stop=(u.pos&&settings.stop>0)?(u.pos>0?Math.floor(u.avg)-settings.stop:Math.ceil(u.avg)+settings.stop):null}});
   syncSeg(id,settings[key]);
 }
-bindSeg('mixSeg','mix',false); bindSeg('stopSeg','stop',true); bindSeg('speedSeg','speed',true);
+bindSeg('mixSeg','mix',false); bindSeg('stopSeg','stop',true); bindSeg('speedSeg','speed',true); bindSeg('psSeg','ps',true);
 
 let wake=null;
 function keepAwake(){try{if(navigator.wakeLock&&!wake) navigator.wakeLock.request('screen').then(w=>{wake=w; w.addEventListener('release',()=>{wake=null})}).catch(()=>{})}catch(e){}}
