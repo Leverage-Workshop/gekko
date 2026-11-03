@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1113">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DOM Drills">
+<meta name="description" content="Phone DOM trainer: simulated NQ order flow at a planned level, graded against Job's refresh, pull, take entry sequence.">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,-apple-system,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>DOM Drills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-screen phone instrument. Plan strip on top, ladder fills the middle, tape and a thumb-reach order bar at the bottom; start and review sheets rise from below. Single dark look on purpose: it is a trading screen. */
+:root{
+  --bg:#0d1113; --panel:#141a1d; --panel-2:#1a2226; --line:#243036; --fg:#dce4e7; --muted:#81919a; --dim:#4a575d;
+  --bid:#4f9cf0; --bid-bar:rgba(79,156,240,.24); --ask:#f06b6b; --ask-bar:rgba(240,107,107,.22);
+  --buy:#3fc785; --sell:#f0605a;
+  --level:#e9a23b; --level-tint:rgba(233,162,59,.13);
+  --pull:#e3cf4a; --good:#3fc785; --bad:#f0605a;
+  --ph-APPROACH:#6d7c83; --ph-DEFEND:#e9a23b; --ph-RELOAD:#e9a23b; --ph-WITHDRAW:#e3cf4a; --ph-TAKE:#3fc785;
+  --ph-CONTINUE:#2f9a66; --ph-TICKLE:#b9a64c; --ph-BREAKDOWN:#f0605a; --ph-RELOCATE:#f0605a; --ph-SPIKE:#8fa3ad; --ph-SLAM:#f0605a;
+  --font-ui:"Barlow",system-ui,-apple-system,sans-serif;
+  --font-cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+html{box-sizing:border-box;height:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;background:var(--bg);color:var(--fg);font-family:var(--font-ui);overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation}
+button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--level);outline-offset:2px}
+a{color:var(--level)}
+
+#app{height:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:6px;
+  padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:8px}
+@media (min-width:420px){#app{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}}
+
+/* plan strip */
+.plan{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.dir{font-family:var(--font-cond);font-weight:700;font-size:15px;letter-spacing:.08em;padding:3px 8px;border-radius:4px;background:var(--level-tint);color:var(--level);border:1px solid var(--level)}
+.plan-body{min-width:0}
+.plan-level{font-family:var(--font-cond);font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-watch{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan-watch b{color:var(--fg);font-weight:600}
+.pnl{text-align:right;font-family:var(--font-num);font-variant-numeric:tabular-nums;line-height:1.2}
+.pnl .pos{font-size:11px;color:var(--muted);white-space:nowrap}
+.pnl .usd{font-size:15px;font-weight:600}
+.up{color:var(--good)} .down{color:var(--bad)}
+
+.coach{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.35;color:var(--muted);min-height:20px;padding:0 2px}
+.chip{flex:none;font-family:var(--font-cond);font-weight:700;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;padding:2px 6px;border-radius:3px;color:var(--bg);background:var(--c,var(--muted))}
+.coach .msg{min-width:0}
+
+/* ladder */
+.ladwrap{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.cols,.row{display:grid;grid-template-columns:.9fr 1.1fr 1.45fr 1.1fr .9fr}
+.cols{font-family:var(--font-cond);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);background:var(--panel-2)}
+.cols span{padding:4px 6px;text-align:center}
+.ladder{flex:1;min-height:0;position:relative}
+.row{height:var(--rh,24px);font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:13px;border-bottom:1px solid rgba(36,48,54,.55)}
+.c{display:flex;align-items:center;padding:0 6px;position:relative;overflow:hidden;white-space:nowrap}
+.c.sold{justify-content:flex-end;color:var(--sell)}
+.c.bought{justify-content:flex-start;color:var(--buy)}
+.c.bid{justify-content:flex-end;background:linear-gradient(to left,var(--bid-bar) var(--w,0%),transparent var(--w,0%));cursor:pointer}
+.c.ask{justify-content:flex-start;background:linear-gradient(to right,var(--ask-bar) var(--w,0%),transparent var(--w,0%));cursor:pointer}
+.c.bid.in{color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px rgba(79,156,240,.55)}
+.c.ask.in{color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px rgba(240,107,107,.55)}
+.c.px{justify-content:center;background:var(--panel-2);color:var(--muted);font-size:12.5px}
+.c.px.band{color:var(--fg);background:linear-gradient(90deg,var(--level) 0 3px,var(--level-tint) 3px)}
+.c.px.last{color:var(--bg);background:var(--fg);font-weight:600}
+.c.px.avg::after{content:"";position:absolute;inset:2px;border:1.5px solid var(--good);border-radius:3px}
+.c.px.stp::before{content:"STP";position:absolute;left:3px;font-family:var(--font-cond);font-size:10px;font-weight:700;color:var(--bad)}
+.c.px.dmark::before{content:attr(data-d);position:absolute;right:3px;font-family:var(--font-cond);font-size:10px;font-weight:700;color:var(--level)}
+.c .o{position:absolute;top:50%;transform:translateY(-50%);font-family:var(--font-cond);font-weight:700;font-size:11px;padding:1px 4px;border-radius:3px;color:var(--bg)}
+.c.bid .o{left:3px;background:var(--bid)} .c.ask .o{right:3px;background:var(--ask)}
+.c .o:empty{display:none}
+
+/* tape */
+.tape{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;height:30px}
+.prints{display:flex;gap:4px;overflow:hidden;min-width:0}
+.pr{flex:none;font-family:var(--font-num);font-size:12px;font-variant-numeric:tabular-nums;padding:2px 5px;border-radius:3px;background:var(--panel-2)}
+.pr.b{color:var(--buy)} .pr.s{color:var(--sell)} .pr.big{font-weight:600;outline:1px solid currentColor}
+.pace{display:grid;grid-template-columns:auto 52px;gap:2px 6px;align-items:center;font-family:var(--font-cond);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.meter{height:5px;background:var(--panel-2);border-radius:3px;overflow:hidden}
+.meter i{display:block;height:100%;width:var(--w,0%)}
+.meter.s i{background:var(--sell)} .meter.b i{background:var(--buy)}
+
+/* orders */
+.orders{display:grid;grid-template-columns:1fr .8fr 1fr;gap:8px}
+.btn{height:52px;border-radius:8px;font-family:var(--font-cond);font-weight:700;font-size:18px;letter-spacing:.06em;text-transform:uppercase}
+.btn.sell{background:#3a1c1e;color:#ff8c87;border:1px solid #6a2e30}
+.btn.buy{background:#163024;color:#7fe0ad;border:1px solid #2b5c43}
+.btn.flat{background:var(--panel-2);color:var(--fg);border:1px solid var(--line);font-size:16px}
+.btn:active{filter:brightness(1.35)}
+.btn:disabled{opacity:.4}
+.sub{display:flex;gap:6px;align-items:center;justify-content:space-between}
+.sub .grp{display:flex;gap:6px;align-items:center}
+.tb{height:32px;padding:0 10px;border-radius:6px;background:var(--panel);border:1px solid var(--line);font-family:var(--font-cond);font-weight:600;font-size:14px;letter-spacing:.04em;color:var(--muted)}
+.tb[aria-pressed="true"]{color:var(--level);border-color:var(--level)}
+.clock{font-family:var(--font-num);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:38px;text-align:center}
+
+/* sheets */
+.sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center;background:rgba(5,8,9,.62)}
+.card{width:100%;max-width:560px;max-height:calc(100% - 24px - env(safe-area-inset-top,0px));overflow:auto;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:14px 14px 0 0;
+  padding:18px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;-webkit-user-select:text;user-select:text}
+.card h1{font-family:var(--font-cond);font-weight:700;font-size:30px;letter-spacing:.02em;margin:0;line-height:1}
+.card h2{font-family:var(--font-cond);font-weight:700;font-size:22px;margin:0;line-height:1.1;text-wrap:balance}
+.card p{margin:0;line-height:1.5;font-size:14.5px;max-width:62ch}
+.muted{color:var(--muted)}
+.eyebrow{font-family:var(--font-cond);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--level)}
+.settings{display:grid;gap:10px}
+.set{display:grid;grid-template-columns:76px 1fr;align-items:center;gap:10px}
+.set label{font-family:var(--font-cond);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:2px;gap:2px}
+.seg button{flex:1;height:32px;border-radius:5px;font-family:var(--font-cond);font-weight:600;font-size:14.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--line);color:var(--fg)}
+.go{height:52px;border-radius:9px;background:var(--level);color:#1a1206;font-family:var(--font-cond);font-weight:700;font-size:19px;letter-spacing:.08em;text-transform:uppercase}
+.go.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--panel-2);border-radius:7px;padding:8px}
+.stat b{display:block;font-family:var(--font-num);font-size:16px;font-variant-numeric:tabular-nums}
+.stat span{font-family:var(--font-cond);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.recent{display:flex;gap:4px;flex-wrap:wrap}
+.g{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:4px;font-family:var(--font-cond);font-weight:700;font-size:13px;color:var(--bg)}
+.g-A{background:var(--good)} .g-B{background:#8fd16a} .g-C{background:var(--pull)} .g-F{background:var(--bad)}
+details{background:var(--panel-2);border-radius:8px;padding:10px 12px}
+summary{font-family:var(--font-cond);font-weight:600;font-size:15px;cursor:pointer}
+.steps{margin:10px 0 0;padding-left:20px;display:grid;gap:7px;font-size:14px;line-height:1.45}
+.steps b{font-family:var(--font-cond);font-size:15px;letter-spacing:.03em}
+.rv-head{display:flex;gap:12px;align-items:center}
+.rv-head .g{width:44px;height:44px;font-size:26px;border-radius:8px;flex:none}
+.chart{width:100%;height:auto;display:block;background:var(--panel-2);border-radius:8px}
+.tl{list-style:none;margin:0;padding:0;display:grid;gap:5px;font-size:13.5px}
+.tl li{display:grid;grid-template-columns:40px 10px 1fr;gap:8px;align-items:center}
+.tl .t{font-family:var(--font-num);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tl .dot{width:10px;height:10px;border-radius:2px;background:var(--c)}
+.tl .you{color:var(--level);font-weight:600}
+blockquote{margin:0;padding:10px 12px;border-left:3px solid var(--level);background:var(--panel-2);border-radius:0 8px 8px 0;font-size:14.5px;line-height:1.45}
+blockquote cite{display:block;margin-top:6px;font-style:normal;font-size:12.5px;color:var(--muted)}
+.kv{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--font-num);font-size:13.5px;font-variant-numeric:tabular-nums}
+.kv span{color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.sheet .card{animation:rise .22s ease-out}@keyframes rise{from{transform:translateY(24px);opacity:.6}}}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header class="plan">
+    <div class="dir" id="dir">LONG</div>
+    <div class="plan-body">
+      <div class="plan-level" id="planLevel">Overnight low · 24,487.25</div>
+      <div class="plan-watch" id="planWatch">Watch the <b>offer</b> at the 87s</div>
+    </div>
+    <div class="pnl"><div class="pos" id="pos">Flat</div><div class="usd" id="pnl">$0</div></div>
+  </header>
+  <div class="coach" id="coach"><span class="msg muted">Tap a bid cell to join the bid, an ask cell to join the offer. Tap your order to cancel it.</span></div>
+  <div class="ladwrap">
+    <div class="cols"><span>Sold</span><span>Bid</span><span>Price</span><span>Ask</span><span>Bought</span></div>
+    <div class="ladder" id="ladder" aria-label="Price ladder"></div>
+  </div>
+  <div class="tape">
+    <div class="prints" id="prints" aria-label="Recent trades"></div>
+    <div class="pace"><span>Sell pace</span><div class="meter s"><i id="paceS"></i></div><span>Buy pace</span><div class="meter b"><i id="paceB"></i></div></div>
+  </div>
+  <div class="orders">
+    <button class="btn sell" id="sellBtn">Sell mkt</button>
+    <button class="btn flat" id="flatBtn">Flatten</button>
+    <button class="btn buy" id="buyBtn">Buy mkt</button>
+  </div>
+  <div class="sub">
+    <div class="grp">
+      <button class="tb" id="menuBtn">Menu</button>
+      <button class="tb" id="pauseBtn">Pause</button>
+      <span class="clock" id="clock">0:00</span>
+    </div>
+    <div class="grp">
+      <button class="tb" id="coachBtn" aria-pressed="false">Coach</button>
+      <button class="tb" id="endBtn">End drill</button>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="startSheet">
+  <div class="card">
+    <div class="eyebrow">NQ · simulated order flow</div>
+    <h1>DOM Drills</h1>
+    <p>Each drill drops you at a planned level and plays out one of Job's sequences. The opponent refreshes, pulls, and then your side either takes the level or it doesn't. Get in on the take and sit out the fakes. You get a grade after every drill.</p>
+    <div class="stats" id="stats"></div>
+    <div class="recent" id="recent"></div>
+    <div class="settings">
+      <div class="set"><label>Side</label><div class="seg" id="mixSeg"><button data-v="both">Both</button><button data-v="long">Longs</button><button data-v="short">Shorts</button></div></div>
+      <div class="set"><label>Stop</label><div class="seg" id="stopSeg"><button data-v="0">Off</button><button data-v="8">8t</button><button data-v="16">16t</button><button data-v="24">24t</button></div></div>
+      <div class="set"><label>Speed</label><div class="seg" id="speedSeg"><button data-v="0.5">½×</button><button data-v="1">1×</button><button data-v="2">2×</button></div></div>
+    </div>
+    <button class="go" id="startBtn">Start drill</button>
+    <details>
+      <summary>The read, in five steps</summary>
+      <ol class="steps">
+        <li><b>Arrive.</b> Only read the DOM once price is in the planned band. Structure precedes execution.</li>
+        <li><b>Defend.</b> The offer at one price keeps reloading as buyers lift it, and sells make no new low. The opponent is active. Wait.</li>
+        <li><b>Withdraw.</b> Size at that price leaves without trades. This is not yet an entry.</li>
+        <li><b>Take.</b> The bid steps above that price, trades there, and holds. This is the entry.</li>
+        <li><b>Accept.</b> It should go your way right away. A trade back below the old offer price means scratch.</li>
+      </ol>
+      <p class="muted" style="margin-top:10px;font-size:13px">Shorts are the mirror: watch the bid, enter when the offer steps below it. The ladder shows size at each price, plus recent volume sold into the bid and bought from the offer. Coach mode names each phase live while you learn.</p>
+    </details>
+  </div>
+</div>
+
+<div class="sheet" id="reviewSheet" hidden>
+  <div class="card" id="reviewCard"></div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const TICK=0.25, USD_TICK=5, STEP=0.05, O=400, NN=800, MAXPOS=5, HOLD_PRINTS=25;
+const $=id=>document.getElementById(id);
+const rnd=Math.random, ri=(a,b)=>a+Math.floor(rnd()*(b-a+1)), pick=a=>a[Math.floor(rnd()*a.length)];
+const rs=r=>ri(r[0],r[1]);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const settings=Object.assign({mix:'both',stop:16,speed:1,coach:false},store.get('domdrills.settings',{}));
+let log=store.get('domdrills.log',[]);
+if(!Array.isArray(log)) log=[];
+
+const WORDS={'1':{Opp:'Offer',opp:'offer',Mine:'Bid',mine:'bid',above:'above',below:'below',down:'down',aggr:'sellers',name:'LONG'},
+            '-1':{Opp:'Bid',opp:'bid',Mine:'Offer',mine:'offer',above:'below',below:'above',down:'up',aggr:'buyers',name:'SHORT'}};
+const LEVELS={'1':['Overnight low','JBA low','Prior-day VAL','LVN','Job pivot S1','Single-print low'],
+             '-1':['Overnight high','JBA high','Prior-day VAH','LVN','Job pivot R1','Poor high']};
+const Q={
+  opponent:{t:"I definitely don't want to be entering when my opponent is active.",r:'05-04 @40:16',u:'https://youtu.be/9iNMcMoI9nk?t=2416'},
+  notYet:{t:"So the offer starts to shy away right here. This is not yet an entry for my point.",r:'04-08 @7:10',u:'https://youtu.be/u-S6Rvj7hIY?t=430'},
+  spec:{t:"You want to see the offer be allergic to that, not refreshing, but the bid needs to now step above where that offer shied away and then pulled back in.",r:'06-30 @14:04',u:'https://youtu.be/FrSP2kDoJvs?t=844'},
+  noTake:{t:"…but we're not seeing the bid willing to refresh and stay above those 25s.",r:'06-30 @15:52',u:'https://youtu.be/FrSP2kDoJvs?t=952'},
+  tickle:{t:"I want to see this press and step above that zone and not just tickle this 87 back and forth.",r:'07-17 @12:00',u:'https://youtu.be/glG8-dCLba0?t=720'},
+  relocate:{t:"We see the offer stepping down further into the 27s. That's where I pretty much know it's off.",r:'05-28 @10:18',u:'https://youtu.be/bFU1dXf5uw8?t=618'},
+  structure:{t:"Structure precedes execution. Let it move into this zone first.",r:'04-08 @5:43',u:'https://youtu.be/u-S6Rvj7hIY?t=343'},
+  party:{t:"It's okay to get in a little bit later on the move, but you want to make sure you're not the first one to the party.",r:'05-28 @11:05',u:'https://youtu.be/bFU1dXf5uw8?t=665'},
+  dontGuess:{t:"Instead of trying to guess where they're going to step off, allow them to step off.",r:'06-26 @30:51',u:'https://youtu.be/l4xvVNTE_H8?t=1851'},
+  flip:{t:"With that flip that occurred there, that in my end would trigger an entry.",r:'06-30 @13:19',u:'https://youtu.be/FrSP2kDoJvs?t=799'},
+};
+
+/* ---------- market engine (works in "long space": the plan is always a long; shorts are mirrored at the screen) ---------- */
+let S=null;
+function levelSize(d){return Math.round(3+Math.min(d,12)*.9+rnd()*9+(rnd()<.07?ri(12,35):0))}
+function aggSize(big){if(rnd()<big) return ri(8,30); let s=1; while(rnd()<.55&&s<9) s++; return s}
+
+const PH={
+  APPROACH:()=>({key:'APPROACH',dur:45,lamBuy:3.2,lamSell:7,bigBuy:.03,bigSell:.12,pBid:.3,
+    until:S=>S.ba<=S.arriveAt,
+    step:(S,ph)=>{if(S.t-ph.t0>22){ph.lamSell=12;ph.pBid=.15}},
+    end:S=>{S.D=S.ba; S.ask[S.D+O]=Math.max(S.ask[S.D+O],ri(26,48)); S.floorX=S.D-ri(3,5)}}),
+  DEFEND:(d)=>({key:'DEFEND',dur:d||ri(16,26),lamBuy:5,lamSell:5.5,bigBuy:.05,bigSell:.12,pBid:.5,refresh:[14,40],floorRefresh:[10,28],
+    enter:(S,ph)=>{ph.ceil=S.D; ph.floor=S.floorX}}),
+  WITHDRAW:(heavy)=>({key:'WITHDRAW',dur:ri(6,10),lamBuy:1.8,lamSell:heavy?5.5:2.4,bigBuy:0,bigSell:heavy?.1:.03,pBid:.5,floorRefresh:[10,28],
+    enter:(S,ph)=>{ph.floor=S.floorX; ph.noBidAbove=S.D-1; ph.thin=S.D; if(S.truth.tWithdraw==null) S.truth.tWithdraw=S.t;
+      for(let k=1;k<=4;k++){const x=S.D+k; if(x>S.ba) cancelTo('ask',x,Math.max(1,Math.round(S.ask[x+O]*(.25+rnd()*.3))))}},
+    step:(S,ph)=>{const i=S.D+O; if(S.ask[i]>2){ if(rnd()<.35) cancelAt('ask',S.D,Math.max(1,Math.round(S.ask[i]*.12))) } else if(S.ask[i]>0&&rnd()<.03) S.ask[i]+=ri(1,3)}}),
+  TAKE:()=>({key:'TAKE',dur:16,lamBuy:8.5,lamSell:2.8,bigBuy:.16,bigSell:.03,pBid:.88,track:true,floorRefresh:[10,24],
+    enter:(S,ph)=>{ph.floor=S.floorX; ph.thin=S.D; for(let k=1;k<=3;k++){const x=S.D+k; if(x>S.ba) cancelTo('ask',x,Math.max(1,Math.round(S.ask[x+O]*(.3+rnd()*.3))))}},
+    step:(S,ph)=>{ if(S.bb>=S.D+1) ph.floor=S.D+1; if(S.truth.tConfirm!=null&&S.t-S.truth.tConfirm>1.5) ph.done=true }}),
+  CONTINUE:()=>({key:'CONTINUE',dur:ri(16,22),lamBuy:7,lamSell:4,bigBuy:.12,bigSell:.05,pBid:.68,floorRefresh:[10,24],
+    enter:(S,ph)=>{ph.floor=S.D+1}}),
+  TICKLE:()=>({key:'TICKLE',dur:ri(6,9),lamBuy:4.5,lamSell:4,bigBuy:.04,bigSell:.04,pBid:.6,refresh:[14,30],floorRefresh:[10,24],
+    enter:(S,ph)=>{ph.floor=S.floorX; ph.noBidAbove=S.D; ph.ceil=S.D+1; if(S.D+1>S.bb&&S.ask[S.D+1+O]<15) addAsk(S.D+1,ri(18,32)-S.ask[S.D+1+O])}}),
+  BREAKDOWN:()=>({key:'BREAKDOWN',dur:ri(14,20),lamBuy:2.6,lamSell:8.5,bigBuy:.03,bigSell:.16,pBid:.25,
+    enter:(S)=>{for(let k=S.floorX;k>=S.floorX-3;k--) if(k<S.bb) cancelTo('bid',k,Math.max(1,Math.round(S.bid[k+O]*.4)))}}),
+  RELOAD:()=>({key:'RELOAD',dur:ri(10,15),lamBuy:5,lamSell:5,bigBuy:.05,bigSell:.1,pBid:.5,refresh:[24,50],floorRefresh:[10,28],
+    enter:(S,ph)=>{ph.ceil=S.D; ph.floor=S.floorX; if(S.D>S.bb) addAsk(S.D,ri(35,60))}}),
+  RELOCATE:()=>({key:'RELOCATE',dur:13,lamBuy:3.8,lamSell:6.5,bigBuy:.04,bigSell:.12,pBid:.2,refresh:[18,36],
+    enter:(S,ph)=>{ph.ceil=S.D-1; ph.noBidAbove=S.D-2; S.relocTo=S.D-1; if(S.D>S.ba) cancelTo('ask',S.D,ri(2,5))},
+    step:(S,ph)=>{if(S.t-ph.t0>6&&ph.ceil===S.D-1){ph.ceil=S.D-2; ph.noBidAbove=S.D-3; S.relocTo=S.D-2}}}),
+  SPIKE:()=>({key:'SPIKE',dur:2.6,lamBuy:14,lamSell:1,bigBuy:.3,bigSell:0,pBid:.85,enter:(S,ph)=>{ph.thin=S.D}}),
+  SLAM:()=>({key:'SLAM',dur:3.5,lamBuy:1,lamSell:14,bigBuy:0,bigSell:.3,pBid:.08,refresh:[20,40],enter:(S,ph)=>{ph.ceil=S.D+1}}),
+};
+const KINDS={
+  take:{w:35,good:true,name:W=>'Clean take',make:()=>[PH.APPROACH(),PH.DEFEND(),PH.WITHDRAW(rnd()<.35),PH.TAKE(),PH.CONTINUE()]},
+  reload:{w:15,good:true,name:W=>`Pull, ${W.opp} reloads, then take`,make:()=>{const w=PH.WITHDRAW(false); w.dur=ri(5,7); return [PH.APPROACH(),PH.DEFEND(ri(12,16)),w,PH.RELOAD(),PH.WITHDRAW(false),PH.TAKE(),PH.CONTINUE()]}},
+  notake:{w:20,good:false,name:W=>'Pull without a take',make:()=>[PH.APPROACH(),PH.DEFEND(),PH.WITHDRAW(rnd()<.3),PH.TICKLE(),PH.BREAKDOWN()]},
+  relocate:{w:15,good:false,name:W=>`${W.Opp} relocates`,make:()=>[PH.APPROACH(),PH.DEFEND(ri(10,14)),PH.RELOCATE(),PH.BREAKDOWN()]},
+  sweep:{w:15,good:false,name:W=>"Sweep that doesn't hold",make:()=>[PH.APPROACH(),PH.DEFEND(),PH.WITHDRAW(false),PH.SPIKE(),PH.SLAM(),PH.BREAKDOWN()]},
+};
+function pickKind(){let tot=0;for(const k in KINDS) tot+=KINDS[k].w; let r=rnd()*tot; for(const k in KINDS){r-=KINDS[k].w; if(r<=0) return k} return 'take'}
+
+function newSim(){
+  const dir=settings.mix==='long'?1:settings.mix==='short'?-1:(rnd()<.5?1:-1);
+  const kind=pickKind();
+  const P0=Math.round((23800+rnd()*2600)/TICK)*TICK;
+  S={dir,kind,P0,W:WORDS[dir],levelName:pick(LEVELS[dir]),t:0,
+    bid:new Float64Array(NN),ask:new Float64Array(NN),rb:new Float64Array(NN),rs:new Float64Array(NN),
+    prints:[],nPrints:0,series:[],timeline:[],phases:KINDS[kind].make(),pi:-1,phase:null,D:null,floorX:null,arriveAt:ri(-1,1),
+    truth:{reloads:0,tFlip:null,tConfirm:null,held:0,tWithdraw:null},paceB:0,paceS:0,_b:0,_s:0,seriesT:-1,done:false,reviewed:false,
+    user:{pos:0,avg:0,realized:0,orders:[],stop:null,fills:[],first:null,against:false}};
+  const x0=ri(20,30); S.ba=x0; S.bb=x0-1; S.last=x0; S.center=x0;
+  for(let d=0;d<70;d++){S.ask[x0+d+O]=levelSize(d); S.bid[x0-1-d+O]=levelSize(d)}
+  nextPhase();
+  updatePlan();
+}
+function nextPhase(){
+  const prev=S.phase;
+  if(prev){ if(prev.end) prev.end(S,prev); S.timeline[S.timeline.length-1].t1=S.t }
+  S.pi++;
+  if(S.pi>=S.phases.length){S.done=true; return}
+  const ph=S.phases[S.pi]; ph.t0=S.t; ph.idx=S.pi; S.phase=ph;
+  if(ph.enter) ph.enter(S,ph);
+  S.timeline.push({key:ph.key,t0:S.t,t1:null,idx:S.pi});
+}
+function nextAsk(x){for(let k=x+1;k<x+60;k++) if(S.ask[k+O]>0) return k; S.ask[x+1+O]=levelSize(1); return x+1}
+function nextBid(x){for(let k=x-1;k>x-60;k--) if(S.bid[k+O]>0) return k; S.bid[x-1+O]=levelSize(1); return x-1}
+function addAsk(x,sz){if(x<=S.bb||sz<=0) return; S.ask[x+O]+=sz; if(x<S.ba) S.ba=x}
+function addBid(x,sz){if(x>=S.ba||sz<=0) return; S.bid[x+O]+=sz; if(x>S.bb) S.bb=x}
+function cancelAt(side,x,amt){
+  const arr=side==='ask'?S.ask:S.bid, i=x+O; if(arr[i]<=0) return;
+  const inside=side==='ask'?x===S.ba:x===S.bb;
+  const a=Math.min(amt,inside?arr[i]-1:arr[i]); if(a<=0) return;
+  arr[i]-=a;
+  const os=side==='ask'?-1:1;
+  for(const o of S.user.orders) if(o.x===x&&o.side===os) o.ahead=Math.max(0,o.ahead-a*.5);
+}
+function cancelTo(side,x,target){const arr=side==='ask'?S.ask:S.bid; cancelAt(side,x,arr[x+O]-target)}
+
+function trade(x,q,side){
+  S.last=x;
+  (side>0?S.rb:S.rs)[x+O]+=q;
+  S.prints.push({x,q,side}); if(S.prints.length>24) S.prints.shift();
+  S.nPrints++; if(side>0) S._b++; else S._s++;
+  const tr=S.truth, ph=S.phase;
+  if(ph&&ph.track&&tr.tFlip!=null&&tr.tConfirm==null){ if(x<S.D){tr.tFlip=null} else if(++tr.held>=HOLD_PRINTS) tr.tConfirm=S.t }
+  const u=S.user;
+  if(u.orders.length){
+    for(const o of u.orders){
+      if(o.side!==-side||o.qty<=0) continue;
+      const through=side>0?x>o.x:x<o.x;
+      if(through) fillOrder(o,o.qty);
+      else if(o.x===x){o.ahead-=q; if(o.ahead<0){const f=Math.min(o.qty,Math.ceil(-o.ahead)); o.ahead=0; fillOrder(o,f)}}
+    }
+    u.orders=u.orders.filter(o=>o.qty>0);
+  }
+  checkStop(x);
+}
+function marketBuy(q){
+  const ph=S.phase; let g=0;
+  while(q>0&&g++<40){
+    const x=S.ba, i=x+O, f=Math.min(q,S.ask[i]);
+    if(f<=0){S.ask[i]=0; S.ba=nextAsk(x); continue}
+    S.ask[i]-=f; q-=f; trade(x,f,1);
+    if(S.ask[i]<=0){
+      S.ask[i]=0;
+      if(ph.ceil===x){S.ask[i]=rs(ph.refresh||[14,40]); if(x===S.D&&(ph.key==='DEFEND'||ph.key==='RELOAD')) S.truth.reloads++; continue}
+      S.ba=nextAsk(x);
+    }
+  }
+}
+function marketSell(q){
+  const ph=S.phase; let g=0;
+  while(q>0&&g++<40){
+    const x=S.bb, i=x+O, f=Math.min(q,S.bid[i]);
+    if(f<=0){S.bid[i]=0; S.bb=nextBid(x); continue}
+    S.bid[i]-=f; q-=f; trade(x,f,-1);
+    if(S.bid[i]<=0){
+      S.bid[i]=0;
+      if(ph.floor===x){S.bid[i]=rs(ph.floorRefresh||[10,28]); continue}
+      S.bb=nextBid(x);
+    }
+  }
+}
+function fillGap(ph){
+  let g=0;
+  while(S.ba-S.bb>1&&g++<12){
+    let up=rnd()<ph.pBid;
+    if(up&&ph.noBidAbove!=null&&S.bb+1>ph.noBidAbove) up=false;
+    if(up){S.bb++; S.bid[S.bb+O]+=ri(1,6)} else {S.ba--; S.ask[S.ba+O]+=ri(1,6)}
+  }
+}
+function noise(ph){
+  for(let n=0;n<3;n++){
+    const isAsk=rnd()<.5, d=ri(0,14), x=isAsk?S.ba+d:S.bb-d, arr=isAsk?S.ask:S.bid, i=x+O;
+    if(isAsk&&ph.thin!=null&&x===ph.thin) continue;
+    if(arr[i]<=0){ if(d>0) arr[i]=levelSize(d); continue }
+    if(arr[i]>60) cancelAt(isAsk?'ask':'bid',x,ri(5,15));
+    else if(rnd()<.5) arr[i]+=ri(1,4);
+    else cancelAt(isAsk?'ask':'bid',x,ri(1,4));
+  }
+}
+function step(){
+  const ph=S.phase; S.t+=STEP; S._b=0; S._s=0;
+  if(ph.step) ph.step(S,ph);
+  if(ph.ceil!=null&&ph.ceil>S.bb&&S.ask[ph.ceil+O]<=0) addAsk(ph.ceil,rs(ph.refresh||[14,40]));
+  if(ph.floor!=null&&ph.floor<S.ba&&S.bid[ph.floor+O]<=0) addBid(ph.floor,rs(ph.floorRefresh||[10,28]));
+  noise(ph);
+  if(rnd()<ph.lamBuy*STEP) marketBuy(aggSize(ph.bigBuy||0));
+  if(rnd()<ph.lamSell*STEP) marketSell(aggSize(ph.bigSell||0));
+  fillGap(ph);
+  if(ph.track&&S.truth.tFlip==null&&S.truth.tConfirm==null&&S.bb>=S.D+1){S.truth.tFlip=S.t; S.truth.held=0}
+  const a=Math.exp(-STEP/3); S.paceB=S.paceB*a+(S._b/STEP)*(1-a); S.paceS=S.paceS*a+(S._s/STEP)*(1-a);
+  const k=Math.exp(-STEP/10); for(let x=S.last-45;x<=S.last+45;x++){S.rb[x+O]*=k; S.rs[x+O]*=k}
+  if(S.t-S.seriesT>=.25){S.series.push([S.t,S.last]); S.seriesT=S.t}
+  const el=S.t-ph.t0;
+  if(ph.done||el>=ph.dur||(ph.until&&ph.until(S))) nextPhase();
+}
+
+/* ---------- your orders and position (internal side: +1 = with the plan) ---------- */
+function applyFill(side,x,qty,why){
+  const u=S.user, before=u.pos;
+  if(before===0||Math.sign(before)===side){u.avg=(u.avg*Math.abs(before)+x*qty)/(Math.abs(before)+qty); u.pos=before+side*qty}
+  else{const c=Math.min(qty,Math.abs(before)); u.realized+=c*(x-u.avg)*Math.sign(before); u.pos=before+side*c; const rem=qty-c; if(rem>0){u.avg=x; u.pos=side*rem} if(u.pos===0) u.avg=0}
+  u.fills.push({t:S.t,x,side,qty,why});
+  const opened=u.pos!==0&&(before===0||Math.sign(before)!==Math.sign(u.pos));
+  if(opened){
+    if(u.pos>0&&!u.first) u.first={t:S.t,x,key:S.phase.key,idx:S.pi,flipped:S.truth.tFlip!=null&&S.phase.key==='TAKE'};
+    if(u.pos<0) u.against=true;
+  }
+  u.stop=(u.pos&&settings.stop>0)?(u.pos>0?Math.floor(u.avg)-settings.stop:Math.ceil(u.avg)+settings.stop):null;
+}
+function fillOrder(o,f){o.qty-=f; applyFill(o.side,o.x,f,'limit')}
+function checkStop(x){
+  const u=S.user; if(u.stop==null||!u.pos) return;
+  if((u.pos>0&&x<=u.stop)||(u.pos<0&&x>=u.stop)) applyFill(-Math.sign(u.pos),x,Math.abs(u.pos),'stop');
+}
+function mkt(dispSide){
+  if(!running||paused||!S||S.done) return;
+  const side=dispSide*S.dir, u=S.user;
+  if(Math.sign(u.pos)===side&&Math.abs(u.pos)>=MAXPOS) return;
+  applyFill(side,side>0?S.ba:S.bb,1,'market');
+}
+function flatten(){
+  if(!S) return; const u=S.user; u.orders=[];
+  if(u.pos) applyFill(-Math.sign(u.pos),u.pos>0?S.bb:S.ba,Math.abs(u.pos),'flat');
+}
+function tapCell(x,dispSide){
+  if(!running||paused||!S||S.done) return;
+  const side=dispSide*S.dir, u=S.user;
+  const ex=u.orders.find(o=>o.x===x&&o.side===side);
+  if(ex){u.orders=u.orders.filter(o=>o!==ex); return}
+  if(side>0){ if(x>=S.ba) return; u.orders.push({side:1,x,qty:1,ahead:S.bid[x+O]}) }
+  else { if(x<=S.bb) return; u.orders.push({side:-1,x,qty:1,ahead:S.ask[x+O]}) }
+}
+
+/* ---------- display helpers ---------- */
+const dp=x=>S.P0+S.dir*x*TICK;
+function fmt(p){const s=p.toFixed(2), [a,b]=s.split('.'); return a.replace(/\B(?=(\d{3})+(?!\d))/g,',')+'.'+b}
+const handle=x=>`the ${String(Math.floor(dp(x))%100).padStart(2,'0')}s`;
+const clock=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+function phaseLabel(key){
+  const W=S.W, Dn=S.D!=null?handle(S.D):'the level';
+  return ({APPROACH:'Price arrives',DEFEND:`${W.Opp} refreshing at ${Dn}`,RELOAD:`${W.Opp} reloads at ${Dn}`,WITHDRAW:`${W.Opp} pulls at ${Dn}`,
+    TAKE:`${W.Mine} steps ${W.above} ${Dn}`,CONTINUE:'Continuation',TICKLE:`${W.Mine} tickles ${Dn}`,BREAKDOWN:'Level fails',
+    RELOCATE:`${W.Opp} steps ${W.down} with price`,SPIKE:`Fast sweep ${W.above} ${Dn}`,SLAM:`Back ${W.below} ${Dn}`})[key]||key;
+}
+function coachText(){
+  const W=S.W, ph=S.phase, Dn=S.D!=null?handle(S.D):'', tr=S.truth;
+  switch(ph.key){
+    case 'APPROACH':return `Price is moving into the ${S.levelName.toLowerCase()}. Structure first. No read yet.`;
+    case 'DEFEND':return `${W.Opp} at ${Dn} keeps reloading (${tr.reloads}×) while ${W.aggr} make no progress. Opponent active. Wait.`;
+    case 'RELOAD':return `${W.Opp} came back at ${Dn}. It is defending again. Wait.`;
+    case 'WITHDRAW':return `${W.Opp} at ${Dn} is pulling: size leaves without trades. Not yet an entry. Wait for the ${W.mine} to step ${W.above} ${Dn}.`;
+    case 'TAKE':return tr.tConfirm!=null?`Held ${W.above} ${Dn}. Confirmed take.`:tr.tFlip!=null?`${W.Mine} stepped ${W.above} ${Dn} and is holding (${tr.held}/${HOLD_PRINTS} prints). This is the trigger.`:`${W.Mine} is pressing into ${Dn}…`;
+    case 'CONTINUE':return `Move underway. Now manage by watching the ${W.mine}.`;
+    case 'TICKLE':return `${W.Mine} keeps tapping ${Dn} but can't get ${W.above} it. No take.`;
+    case 'BREAKDOWN':return 'The level failed. Stand aside.';
+    case 'RELOCATE':return `${W.Opp} is stepping ${W.down} with price. It is relocating, not withdrawing. This level is off.`;
+    case 'SPIKE':return `Fast sweep ${W.above} ${Dn}. Has it held? Not yet.`;
+    case 'SLAM':return `Right back ${W.below} ${Dn}. The sweep did not hold.`;
+  }
+  return '';
+}
+
+/* ---------- grading ---------- */
+function grade(){
+  const k=S.kind, good=KINDS[k].good, f=S.user.first, W=S.W, Dn=handle(S.D), tr=S.truth;
+  let g,title,body,q;
+  if(!f){
+    if(good){g='C';title='Missed the take';body=`The ${W.opp} pulled at ${Dn}, then the ${W.mine} stepped ${W.above} it${tr.tFlip!=null?` at ${clock(tr.tFlip)}`:''} and held. That was the entry.`;q=Q.spec}
+    else if(S.user.against){g='C';title='Traded against the plan';body=`This was a ${W.name.toLowerCase()} plan. Sitting out was right, but you took the other side.`;q=Q.structure}
+    else{g='A';title='Correct pass';q={notake:Q.noTake,sweep:Q.tickle,relocate:Q.relocate}[k];
+      body={notake:`The ${W.opp} pulled, but the ${W.mine} never got ${W.above} ${Dn}. No take, no trade.`,
+            sweep:`Price swept ${W.above} ${Dn} but got sold right back. A take has to hold.`,
+            relocate:`The ${W.opp} stepped ${W.down} with price instead of pulling. There was nothing to take.`}[k]}
+  } else {
+    const key=f.key;
+    if(key==='APPROACH'){g='F';title='In before the level';body=`You got in before price reached the ${S.levelName.toLowerCase()}. The DOM read only starts at the level.`;q=Q.structure}
+    else if(key==='DEFEND'||key==='RELOAD'){g='F';title='Opponent still active';body=`The ${W.opp} at ${Dn} was still reloading when you got in. Wait for it to step away.`;q=Q.opponent}
+    else if(good){
+      if(key==='WITHDRAW'){
+        const ri_=S.phases.findIndex(p=>p.key==='RELOAD');
+        if(k==='reload'&&f.idx<ri_){g='C';title=`Early, and the ${W.opp} came back`;body=`You got in on the first pull. The ${W.opp} reloaded at ${Dn} right after.`;q=Q.dontGuess}
+        else{g='B';title='Early';body=`You got in on the pull, before the ${W.mine} stepped ${W.above} ${Dn}. That works as a starter, not a full entry.`;q=Q.notYet}
+      } else if(key==='TAKE'){
+        if(f.flipped){g='A';title='On the trigger';body=`The ${W.mine} stepped ${W.above} ${Dn} and you went with it.`;q=Q.flip}
+        else{g='B';title='A beat early';body=`The ${W.opp} was gone, but the ${W.mine} had not stepped ${W.above} ${Dn} yet.`;q=Q.spec}
+      } else {
+        const dist=f.x-S.D;
+        if(dist<=8){g='A';title='Confirmed entry';body=`You waited for the hold and got in ${dist} ticks from ${Dn}.`;q=Q.party}
+        else{g='C';title='Chased';body=`You got in ${dist} ticks past ${Dn}, after most of the move.`;q=Q.party}
+      }
+    } else {
+      if(key==='WITHDRAW'){g='C';title='The pull alone';body=`You got in when the ${W.opp} pulled. The ${W.mine} never stepped ${W.above} ${Dn} and held, so there was no take.`;q=Q.notYet}
+      else if(key==='TICKLE'){g='F';title='In on a tickle';body=`The ${W.mine} tapped ${Dn} but couldn't get ${W.above} it.`;q=Q.tickle}
+      else if(key==='SPIKE'){g='F';title='Chased the sweep';body=`Price swept ${W.above} ${Dn} fast, then got sold back. A take has to hold.`;q=Q.tickle}
+      else{g='F';title='Level failed';body=`You were in while the level was failing.`;q=Q.relocate}
+    }
+  }
+  if(S.user.against&&!(title==='Traded against the plan')) body+=` You also traded ${S.dir>0?'short':'long'}, against the plan. Direction comes from the plan.`;
+  return {g,title,body,q};
+}
+const PTS={A:3,B:2,C:1,F:0};
+
+/* ---------- UI ---------- */
+const lad=$('ladder'); let rows=[], R=0, running=false, paused=false;
+function buildLadder(){
+  const h=lad.clientHeight; R=Math.max(9,Math.floor(h/24)); lad.style.setProperty('--rh',(h/R)+'px');
+  lad.textContent=''; rows=[];
+  for(let r=0;r<R;r++){
+    const row=document.createElement('div'); row.className='row';
+    const cells=['sold','bid','px','ask','bought'].map((c,ci)=>{const d=document.createElement('div'); d.className='c '+c; d.dataset.r=r; d.dataset.c=ci;
+      const v=document.createElement('span'); d.appendChild(v); d._v=v; d._t=null; d._cls=null; d._w=null;
+      if(c==='bid'||c==='ask'){const o=document.createElement('span'); o.className='o'; d.appendChild(o); d._o=o; d._ot=''}
+      row.appendChild(d); return d});
+    lad.appendChild(row); rows.push(cells);
+  }
+}
+lad.addEventListener('click',e=>{
+  const c=e.target.closest('.c'); if(!c||!S) return;
+  const ci=+c.dataset.c; if(ci!==1&&ci!==3) return;
+  const half=Math.floor(R/2), x=S.center+S.dir*(half-(+c.dataset.r));
+  tapCell(x,ci===1?1:-1);
+  render();
+});
+function setText(el,t){if(el._t!==t){el._v.textContent=t; el._t=t}}
+function setCls(el,c){if(el._cls!==c){el.className=c; el._cls=c}}
+function setW(el,w){if(el._w!==w){el.style.setProperty('--w',w+'%'); el._w=w}}
+
+function updatePlan(){
+  $('dir').textContent=S.W.name;
+  $('planLevel').textContent=`${S.levelName} · ${fmt(S.P0)}`;
+  $('planWatch').innerHTML=`Watch the <b>${S.W.opp}</b> at ${handle(0)}`;
+}
+let lastPrintN=-1;
+function render(){
+  if(!S||!R) return;
+  const half=Math.floor(R/2), dir=S.dir;
+  const lr=half-dir*(S.last-S.center); if(lr<3||lr>R-4) S.center=S.last;
+  const u=S.user, coach=settings.coach&&S.D!=null;
+  const ordB={}, ordA={};
+  for(const o of u.orders){const ds=o.side*dir; const m=ds>0?ordB:ordA; m[o.x]=(m[o.x]||0)+o.qty}
+  const inB=dir>0?S.bb:S.ba, inA=dir>0?S.ba:S.bb;
+  const avgX=u.pos?(u.pos>0?Math.floor(u.avg+1e-9):Math.ceil(u.avg-1e-9)):null;
+  for(let r=0;r<R;r++){
+    const x=S.center+dir*(half-r), i=x+O, cells=rows[r];
+    const b=dir>0?S.bid[i]:S.ask[i], a=dir>0?S.ask[i]:S.bid[i];
+    const sold=dir>0?S.rs[i]:S.rb[i], bought=dir>0?S.rb[i]:S.rs[i];
+    setText(cells[0],sold>=1?String(Math.round(sold)):'');
+    setText(cells[4],bought>=1?String(Math.round(bought)):'');
+    setText(cells[1],b>0?String(b):''); setW(cells[1],Math.min(100,Math.round(b/45*100)));
+    setText(cells[3],a>0?String(a):''); setW(cells[3],Math.min(100,Math.round(a/45*100)));
+    setCls(cells[1],'c bid'+(x===inB?' in':'')); setCls(cells[3],'c ask'+(x===inA?' in':''));
+    const ob=ordB[x]?('B'+ordB[x]):'', oa=ordA[x]?('S'+ordA[x]):'';
+    if(cells[1]._ot!==ob){cells[1]._o.textContent=ob; cells[1]._ot=ob}
+    if(cells[3]._ot!==oa){cells[3]._o.textContent=oa; cells[3]._ot=oa}
+    let pc='c px';
+    if(x>=-2&&x<=2) pc+=' band';
+    if(x===S.last) pc+=' last';
+    if(avgX!==null&&x===avgX) pc+=' avg';
+    if(u.stop!=null&&u.pos&&x===u.stop) pc+=' stp';
+    if(coach&&x===S.D) pc+=' dmark';
+    setCls(cells[2],pc);
+    if(coach&&x===S.D) cells[2].dataset.d='D';
+    setText(cells[2],fmt(dp(x)));
+  }
+  // tape
+  if(S.nPrints!==lastPrintN){
+    lastPrintN=S.nPrints;
+    const ps=S.prints.slice(-10).reverse();
+    $('prints').innerHTML=ps.map(p=>{const ds=p.side*dir; return `<span class="pr ${ds>0?'b':'s'}${p.q>=10?' big':''}">${p.q}</span>`}).join('');
+  }
+  const sp=dir>0?S.paceS:S.paceB, bp=dir>0?S.paceB:S.paceS;
+  $('paceS').style.setProperty('--w',Math.min(100,sp/10*100)+'%');
+  $('paceB').style.setProperty('--w',Math.min(100,bp/10*100)+'%');
+  // position
+  const ticks=u.realized+(u.pos?u.pos*(S.last-u.avg):0), usd=Math.round(ticks*USD_TICK);
+  const pe=$('pnl'); pe.textContent=(usd>0?'+':usd<0?'−':'')+'$'+Math.abs(usd); pe.className='usd'+(usd>0?' up':usd<0?' down':'');
+  $('pos').textContent=u.pos?`${u.pos*dir>0?'Long':'Short'} ${Math.abs(u.pos)} @ ${fmt(dp(u.avg))}`:'Flat';
+  $('clock').textContent=clock(S.t);
+  // coach line
+  const co=$('coach');
+  if(settings.coach&&running){
+    const key=S.phase.key, html=`<span class="chip" style="--c:var(--ph-${key})">${phaseLabel(key).split(' ').slice(0,2).join(' ')}</span><span class="msg">${coachText()}</span>`;
+    if(co._h!==html){co.innerHTML=html; co._h=html}
+  } else {
+    const html=`<span class="msg muted">${running?`Tap a bid cell to join the bid, an ask cell to join the offer. Tap your order to cancel.${settings.stop?` Auto stop ${settings.stop} ticks.`:''}`:'Paused.'}</span>`;
+    if(co._h!==html){co.innerHTML=html; co._h=html}
+  }
+  const live=running&&!paused&&!S.done;
+  $('buyBtn').disabled=!live; $('sellBtn').disabled=!live; $('flatBtn').disabled=!live;
+  $('endBtn').textContent=running?'End drill':'Next drill';
+  $('pauseBtn').textContent=paused?'Resume':'Pause';
+}
+
+/* main loop */
+let lastTs=null, acc=0;
+function frame(ts){
+  if(lastTs==null) lastTs=ts;
+  const dt=Math.min(.25,(ts-lastTs)/1000); lastTs=ts;
+  if(S&&running&&!paused&&!S.done){
+    acc+=dt*settings.speed;
+    while(acc>=STEP&&!S.done){step(); acc-=STEP}
+    if(S.done) finish();
+  }
+  render();
+  requestAnimationFrame(frame);
+}
+
+function finish(){
+  if(!S||S.reviewed) return;
+  flatten();
+  let g=0; while(!S.done&&g++<20000) step();
+  S.reviewed=true; running=false; paused=false;
+  const res=grade(), ticks=Math.round(S.user.realized);
+  log.push({at:Date.now(),kind:S.kind,dir:S.dir,g:res.g,ticks}); if(log.length>300) log=log.slice(-300);
+  store.set('domdrills.log',log);
+  showReview(res,ticks);
+}
+
+function chartSVG(){
+  const W=340,H=170,pl=56,pr=8,pt=10,pb=20, T=Math.max(1,S.t);
+  const ps=S.series.map(p=>dp(p[1])); ps.push(dp(S.D));
+  const mn=Math.min(...ps), mx=Math.max(...ps), pad=(mx-mn)*.08+TICK, lo=mn-pad, hi=mx+pad;
+  const X=t=>pl+(t/T)*(W-pl-pr), Y=p=>pt+(hi-p)/(hi-lo)*(H-pt-pb);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Price path through the drill, shaded by phase">`;
+  for(const ph of S.timeline){const x0=X(ph.t0), x1=X(ph.t1??T); s+=`<rect x="${x0.toFixed(1)}" y="${pt}" width="${Math.max(0,x1-x0).toFixed(1)}" height="${H-pt-pb}" style="fill:var(--ph-${ph.key});fill-opacity:.17"/>`}
+  const yD=Y(dp(S.D));
+  s+=`<line x1="${pl}" x2="${W-pr}" y1="${yD.toFixed(1)}" y2="${yD.toFixed(1)}" style="stroke:var(--level);stroke-dasharray:4 3;stroke-width:1"/>`;
+  s+=`<text x="${pl-5}" y="${(yD+3.5).toFixed(1)}" text-anchor="end" style="fill:var(--level);font:600 10px var(--font-num)">D ${fmt(dp(S.D)).slice(-6)}</text>`;
+  s+=`<text x="${pl-5}" y="${(Y(mx)+3.5).toFixed(1)}" text-anchor="end" style="fill:var(--muted);font:10px var(--font-num)">${fmt(mx).slice(-6)}</text>`;
+  s+=`<text x="${pl-5}" y="${(Y(mn)+3.5).toFixed(1)}" text-anchor="end" style="fill:var(--muted);font:10px var(--font-num)">${fmt(mn).slice(-6)}</text>`;
+  const d=S.series.map((p,j)=>`${j?'L':'M'}${X(p[0]).toFixed(1)} ${Y(dp(p[1])).toFixed(1)}`).join('');
+  s+=`<path d="${d}" style="fill:none;stroke:var(--fg);stroke-width:1.4;stroke-linejoin:round"/>`;
+  for(const f of S.user.fills){const ds=f.side*S.dir, cx=X(f.t), cy=Y(dp(f.x));
+    const tri=ds>0?`${cx},${cy-1} ${cx-5},${cy+8} ${cx+5},${cy+8}`:`${cx},${cy+1} ${cx-5},${cy-8} ${cx+5},${cy-8}`;
+    s+=`<polygon points="${tri}" style="fill:${ds>0?'var(--buy)':'var(--sell)'};stroke:var(--bg);stroke-width:1"/>`}
+  s+=`<text x="${pl}" y="${H-6}" style="fill:var(--muted);font:10px var(--font-num)">0:00</text><text x="${W-pr}" y="${H-6}" text-anchor="end" style="fill:var(--muted);font:10px var(--font-num)">${clock(T)}</text>`;
+  return s+'</svg>';
+}
+function showReview(res,ticks){
+  const W=S.W, f=S.user.first, tr=S.truth;
+  const items=S.timeline.map(ph=>{const you=f&&f.idx===ph.idx;
+    return `<li><span class="t">${clock(ph.t0)}</span><span class="dot" style="--c:var(--ph-${ph.key})"></span><span>${phaseLabel(ph.key)}${ph.key==='DEFEND'&&tr.reloads?` (${tr.reloads} reload${tr.reloads===1?'':'s'})`:''}${you?` <span class="you">← you entered ${clock(f.t)}</span>`:''}</span></li>`});
+  if(tr.tConfirm!=null) items.push(`<li><span class="t">${clock(tr.tConfirm)}</span><span class="dot" style="--c:var(--good)"></span><span>Take confirmed: ${HOLD_PRINTS} trades held ${W.above} ${handle(S.D)}</span></li>`);
+  const usd=Math.round(ticks*USD_TICK);
+  const mirror=S.dir<0?' <span class="muted">(Job is describing a long. Mirror it for this short.)</span>':'';
+  $('reviewCard').innerHTML=`
+    <div class="rv-head"><span class="g g-${res.g}">${res.g}</span><div><div class="eyebrow">${KINDS[S.kind].name(W)} · ${W.name} · ${S.levelName}</div><h2>${res.title}</h2></div></div>
+    <p>${res.body}</p>
+    ${chartSVG()}
+    <ol class="tl">${items.join('')}</ol>
+    <blockquote>“${res.q.t}”${mirror}<cite>Job · <a href="${res.q.u}" target="_blank" rel="noopener">replay ${res.q.r}</a></cite></blockquote>
+    <div class="kv"><div><span>P&amp;L </span><b class="${usd>0?'up':usd<0?'down':''}">${usd>0?'+':usd<0?'−':''}$${Math.abs(usd)}</b></div><div><span>Ticks </span>${ticks>0?'+':''}${ticks}</div><div><span>Fills </span>${S.user.fills.length}</div><div><span>D </span>${fmt(dp(S.D))}</div></div>
+    <div class="row2"><button class="go ghost" id="rvClose">Look at the DOM</button><button class="go" id="rvNext">Next drill</button></div>`;
+  $('reviewSheet').hidden=false;
+  $('rvNext').onclick=startNext;
+  $('rvClose').onclick=()=>{$('reviewSheet').hidden=true};
+}
+function renderStats(){
+  const n=log.length, a=log.filter(r=>r.g==='A').length, avg=n?(log.reduce((s,r)=>s+PTS[r.g],0)/n):0, usd=log.reduce((s,r)=>s+r.ticks,0)*USD_TICK;
+  $('stats').innerHTML=`<div class="stat"><b>${n}</b><span>Drills</span></div><div class="stat"><b>${n?Math.round(a/n*100)+'%':'—'}</b><span>A grades</span></div><div class="stat"><b>${n?avg.toFixed(1):'—'}</b><span>Avg / 3</span></div><div class="stat"><b class="${usd>0?'up':usd<0?'down':''}">${n?(usd<0?'−':'')+'$'+Math.abs(usd):'—'}</b><span>Sim P&amp;L</span></div>`;
+  $('recent').innerHTML=log.slice(-16).map(r=>`<span class="g g-${r.g}" title="${r.kind}">${r.g}</span>`).join('');
+}
+function syncSeg(id,val){for(const b of $(id).querySelectorAll('button')) b.setAttribute('aria-pressed',String(b.dataset.v===String(val)))}
+function bindSeg(id,key,num){
+  $(id).addEventListener('click',e=>{const b=e.target.closest('button'); if(!b) return; settings[key]=num?+b.dataset.v:b.dataset.v; store.set('domdrills.settings',settings); syncSeg(id,settings[key]);
+    if(key==='stop'&&S){const u=S.user; u.stop=(u.pos&&settings.stop>0)?(u.pos>0?Math.floor(u.avg)-settings.stop:Math.ceil(u.avg)+settings.stop):null}});
+  syncSeg(id,settings[key]);
+}
+bindSeg('mixSeg','mix',false); bindSeg('stopSeg','stop',true); bindSeg('speedSeg','speed',true);
+
+let wake=null;
+function keepAwake(){try{if(navigator.wakeLock&&!wake) navigator.wakeLock.request('screen').then(w=>{wake=w; w.addEventListener('release',()=>{wake=null})}).catch(()=>{})}catch(e){}}
+function startNext(){
+  $('reviewSheet').hidden=true; $('startSheet').hidden=true;
+  newSim(); acc=0; lastPrintN=-1; running=true; paused=false; keepAwake();
+}
+$('startBtn').onclick=()=>{
+  // the preview drill behind the sheet is reused unless side preference excludes it
+  const ok=settings.mix==='both'||(settings.mix==='long')===(S.dir>0);
+  if(!ok||S.t>8||S.reviewed) newSim();
+  $('startSheet').hidden=true; running=true; paused=false; keepAwake();
+};
+$('menuBtn').onclick=()=>{paused=running?true:paused; renderStats(); $('startBtn').textContent=running?'Resume drill':'Start drill'; $('startSheet').hidden=false};
+$('startSheet').addEventListener('click',e=>{if(e.target.id==='startSheet'&&running){$('startSheet').hidden=true; paused=false}});
+const origStart=$('startBtn').onclick;
+$('startBtn').onclick=()=>{ if(running){$('startSheet').hidden=true; paused=false; return} origStart() };
+$('pauseBtn').onclick=()=>{if(running) paused=!paused};
+$('coachBtn').onclick=()=>{settings.coach=!settings.coach; store.set('domdrills.settings',settings); $('coachBtn').setAttribute('aria-pressed',String(settings.coach))};
+$('coachBtn').setAttribute('aria-pressed',String(settings.coach));
+$('endBtn').onclick=()=>{ if(running) finish(); else if(S&&S.reviewed) startNext(); };
+$('buyBtn').onclick=()=>mkt(1); $('sellBtn').onclick=()=>mkt(-1); $('flatBtn').onclick=()=>{if(running&&!paused) flatten()};
+document.addEventListener('keydown',e=>{
+  if(e.target.closest&&e.target.closest('input,select,textarea')) return;
+  const k=e.key.toLowerCase();
+  if(k==='b') mkt(1); else if(k==='s') mkt(-1); else if(k==='f'&&running&&!paused) flatten();
+  else if(k===' '&&running){paused=!paused; e.preventDefault()}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running) paused=true; else if(!document.hidden) keepAwake()});
+let rT=null; window.addEventListener('resize',()=>{clearTimeout(rT); rT=setTimeout(()=>{buildLadder(); render()},80)});
+
+// open on a live-looking book: a drill already approaching its level, paused behind the start sheet
+newSim(); for(let i=0;i<70;i++) step();
+renderStats(); buildLadder(); render(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

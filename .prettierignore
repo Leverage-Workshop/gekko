@@ -12,3 +12,6 @@ node_modules/
 *.md
 *.json
 package-lock.json
+
+# Standalone static trainer (single hand-written HTML file)
+dom-drills/
