@@ -4,6 +4,19 @@
 
 **Last Updated:** 2026-09-10
 
+**DOM Drills follow-up: pull/stack columns.** Operator: "it would be good to have the pull stack on
+the DOM as well. Entering after it flashes because the bid or offer was pulled is key." Added bid and ask
+P/S columns, computed from adds and cancels only (fills excluded). Each shows a net value that decays
+over about 6 s and flashes when about 10+ lots are pulled or 14+ stacked within about 1 s. A Menu toggle
+hides them. The pull scenario now has the opponent reload, then pull most of D about 0.6 s into the
+pull phase. Measured over about 250 drills: the pull flashes at D in 97% of pull phases, and random
+flashes near the inside drop to about 0.1% in quiet phases. Deliberate flashes remain: the offer thinning
+during the take, bids pulling as a level fails, and the relocate trap. Grading is unchanged. An entry
+right at the pull is still B (early) in a take and C in a fake, per `execution-steps.md` step 3. The
+operator may want that changed. Codex gate still can't run in the cloud container.
+
+---
+
 **Side tool (branch `ccr-fda00091-wrzowf`, outside `feature_list.json`): DOM Drills trainer.**
 Operator is in hospital and wants to practise reading the DOM from a phone. `dom-drills/index.html`
 is a standalone static page (no build, no deps, and nothing shared with the Next.js app): simulated NQ order
