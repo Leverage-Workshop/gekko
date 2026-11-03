@@ -4,6 +4,18 @@
 
 **Last Updated:** 2026-09-10
 
+**Side tool (branch `ccr-fda00091-wrzowf`, outside `feature_list.json`): DOM Drills trainer.**
+Operator is in hospital and wants to practise reading the DOM from a phone. `dom-drills/index.html`
+is a standalone static page (no build, no deps, and nothing shared with the Next.js app): simulated NQ order
+flow at a planned level that plays out one of five sequences: clean take, pull/reload/take, pull with no
+take, offer relocates, and sweep that doesn't hold. Each drill is graded against the entry steps in
+`docs/jba-research/execution-steps.md`. Deployed by its own Vercel project `dom-drills` (root dir
+`dom-drills/`; `ignoreCommand` skips commits that don't touch the folder). Engine checked headlessly
+over 600 drills: no crossed or empty books, confirm-entry grades A, fakes skipped grade A.
+`dom-drills/` added to `.prettierignore`. ESLint and tsc don't scan `.html`.
+
+---
+
 **Latest change (branch `feat-155-config-presets`): named config presets on /settings.** Operator:
 "I would look to be able to have different Config Settings records that I could switch back and
 forth between... Maybe a dropdown list at the top of the settings page and a save as new settings
